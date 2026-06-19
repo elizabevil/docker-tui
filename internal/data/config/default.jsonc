@@ -1,0 +1,128 @@
+{
+  // Default configuration — embedded at build time.
+  // Users can override any field in ~/.config/github.com/elizabevil/docker-tui/config.yml
+
+  "general": {
+    "scrollHeight": 2,
+    "reporting": "off",
+    "sizeFormat": "binary"
+    // "binary" = 1024-base (MiB/GiB), "si" = 1000-base (MB/GB, matches podman/docker CLI)
+  },
+  "ui": {
+    "wrapMainPanel": false,
+    "returnImmediately": false,
+    "borderStyle": "rounded",
+    "showHelp": true,
+    "hintTimeout": 3,
+    "dialogOverlayColor": "#0d1117cc"
+  },
+  "docker": {
+    "timeout": 30000000000,
+    "statsPollSec": 3
+    // 30s in nanoseconds (time.Duration)
+  },
+  "logs": {
+    "since": "1h",
+    "tail": "200",
+    "timestamps": false
+  },
+  "layout": {
+    "sectionWeights": {
+      "top": 2,
+      "content": 7,
+      "bottom": 1
+    },
+    "background": {
+      "enable": false,
+      "type": "image",
+      "color": "red"
+    }
+  },
+  "commandTemplates": {
+    "dockerCompose": "docker compose"
+  },
+  "keymap": {
+    "quit": [
+      "q",
+      "ctrl+c"
+    ],
+    "help": [
+      "?"
+    ],
+    "filter": [
+      "/"
+    ],
+    "refresh": [
+      "r"
+    ],
+    "containerStart": [
+      "s"
+    ],
+    "containerStop": [
+      "S"
+    ],
+    "containerRestart": [
+      "r"
+    ],
+    "containerKill": [
+      "K"
+    ],
+    "containerRemove": [
+      "d",
+      "x"
+    ],
+    "containerLogs": [
+      "l"
+    ],
+    "containerExec": [
+      "e"
+    ],
+    "containerInspect": [
+      "i"
+    ],
+    "containerStats": [
+      "m"
+    ],
+    "imagePull": [
+      "P"
+    ],
+    "imageRemove": [
+      "d",
+      "x"
+    ],
+    "imagePrune": [
+      "p"
+    ],
+    "volumeRemove": [
+      "d",
+      "x"
+    ],
+    "networkRemove": [
+      "d",
+      "x"
+    ],
+    "tabNext": [
+      "tab"
+    ],
+    "tabPrev": [
+      "shift+tab"
+    ],
+    "up": [
+      "up",
+      "k"
+    ],
+    "down": [
+      "down",
+      "j"
+    ],
+    "enter": [
+      "enter"
+    ],
+    "back": [
+      "esc"
+    ],
+    "delete": [
+      "ctrl+d"
+    ]
+  }
+}

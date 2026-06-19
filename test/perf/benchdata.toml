@@ -1,0 +1,136 @@
+# dtui serialization benchmark data
+# 100 key-value pairs with nesting, mimicking i18n translation files
+# Both JSON and TOML formats
+
+# ── TOML version ──────────────────────────────────────────────
+[meta]
+name = "benchmark"
+version = 1
+description = "Performance test dataset for serialization benchmarks"
+
+[panel]
+containers = "Containers"
+images = "Images"
+volumes = "Volumes"
+networks = "Networks"
+compose = "Compose"
+logs = "Logs"
+detail = "Detail"
+help = "Help"
+settings = "Settings"
+dashboard = "Dashboard"
+
+[key]
+start = "Start"
+stop = "Stop"
+restart = "Restart"
+kill = "Kill"
+detail = "Detail"
+delete = "Delete"
+debug = "Debug"
+export = "Export"
+logs = "Logs"
+stats = "Stats"
+exec = "Exec"
+expand = "Containers"
+collapse = "Collapse"
+filter = "Filter"
+help = "Help"
+quit = "Quit"
+connect = "Connect"
+toggle = "Toggle"
+back = "Back"
+scroll = "Scroll"
+page = "Page"
+top = "Top"
+bottom = "Bottom"
+confirm = "Confirm"
+cancel = "Cancel"
+mark = "Mark"
+pull = "Pull"
+prune = "Prune"
+sort = "Sort"
+
+[toast]
+started = "Started {0}"
+stopped = "Stopped {0}"
+restarted = "Restarted {0}"
+killed = "Killed {0}"
+deleted = "Deleted {0}"
+pulled = "Pulled {0}"
+pruned = "Pruned {0}"
+exported = "Exported {0}"
+failed = "Failed {0}"
+
+[dialog]
+delete_title = "Delete {0}"
+confirm_delete = "Delete {0}?"
+force = "Force remove"
+remove_volumes = "Remove volumes"
+remove_links = "Remove links"
+target = "Target: {0}"
+
+[status]
+connected = "● connected"
+disconnected = "○ disconnected"
+running = "● {0} running"
+error = "Error: {0}"
+loading = "Loading..."
+
+[table]
+id = "ID"
+name = "NAME"
+image = "IMAGE"
+state = "STATE"
+created = "CREATED"
+ip = "IP"
+ports = "PORTS"
+mounts = "MOUNTS"
+cpu = "CPU"
+mem = "MEM"
+registry = "REGISTRY"
+tag = "TAG"
+arch = "ARCH"
+size = "SIZE"
+project = "PROJECT"
+services = "SERVICES"
+containers = "CONTAINERS"
+
+[help]
+navigation = "Navigation"
+containers_section = "Containers"
+images_section = "Images"
+volumes_section = "Volumes & Networks"
+global = "Global"
+cli_flags = "CLI Flags"
+themes = "Themes"
+
+[msg]
+loading = "Loading..."
+no_containers = "No containers found"
+no_images = "No images found"
+no_volumes = "No volumes found"
+no_networks = "No networks found"
+select_logs = "Select a container and press l to view logs"
+waiting_logs = "Waiting for logs..."
+unknown_panel = "Unknown panel"
+empty = "(empty)"
+no_logs = "No logs"
+select_container = "Select a container"
+press_back = "Press Esc or Enter to return"
+
+[error]
+not_found = "Resource {0} not found"
+timeout = "Operation timed out: {0}"
+permission = "Permission denied: {0}"
+connection = "Connection refused: {0}"
+unknown = "Unknown error: {0}"
+
+[format]
+date_short = "01-02 15:04"
+date_long = "2006-01-02 15:04:05"
+date_full = "2006-01-02T15:04:05Z07:00"
+size_bytes = "{0} B"
+size_kb = "{0}.{1} KB"
+size_mb = "{0}.{1} MB"
+size_gb = "{0}.{1} GB"

@@ -1,0 +1,9 @@
+dtui — Docker & Podman TUI Manager
+
+A keyboard-driven terminal interface for managing containers,
+images, volumes, networks, and Compose projects. Inspired
+by k9s for Kubernetes.
+
+Config: ~/.config/dtui/config.yml
+Themes: default, dark, light, nord, dracula, solarized
+Use: dtui --help for CLI flags
