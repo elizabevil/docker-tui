@@ -1,0 +1,26 @@
+{
+  // Dialog width as percentage of terminal width (25 = 25%).
+  "widthPercent": 30,
+  // Dialog height as percentage of terminal height (30 = 30%).
+  "heightPercent": 30,
+  // Minimum width in columns.
+  "minWidth": 30,
+  // Maximum width in columns.
+  "maxWidth": 120,
+  // Minimum height in rows.
+  "minHeight": 10,
+  // Maximum height in rows.
+  "maxHeight": 60,
+  // Horizontal position offset as percentage of terminal width (50 = center).
+  "xOffset": 50,
+  // Vertical position offset as percentage of terminal height (50 = center).
+  "yOffset": 50,
+  // Overlay/scrim base hex color (without alpha).
+  "overlayColor": "#0d1117",
+  // Overlay opacity (0-100). Combined with overlayColor to produce alpha.
+  "overlayOpacity": 50,
+  // Dialog confirmation key binding.
+  "confirmKey": "Enter",
+  // Dialog cancel key binding.
+  "cancelKey": "Esc"
+}

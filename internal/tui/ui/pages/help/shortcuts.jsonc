@@ -1,0 +1,178 @@
+{
+  // shortcuts.jsonc — Page-specific keybinding reference for the help panel.
+  // Each section groups related shortcuts.  titleI18n is a i18n key (help.*);
+  // if non-empty it is translated via i18n.T(), otherwise title is used as-is.
+  // Maintain this file when keybindings change.
+  "sections": [
+    {
+      "titleI18n": "help.navigation",
+      "title": "Navigation",
+      "items": [
+        {
+          "keys": "\u2191\u2193 / j k",
+          "desc": "Move cursor"
+        },
+        {
+          "keys": "Tab / S-Tab",
+          "desc": "Switch panel"
+        },
+        {
+          "keys": "\u2192 / Enter",
+          "desc": "Expand containers"
+        },
+        {
+          "keys": "\u2190 / Esc",
+          "desc": "Collapse / Back"
+        }
+      ]
+    },
+    {
+      "titleI18n": "help.containers",
+      "title": "Containers",
+      "items": [
+        {
+          "keys": "s Ctrl+S",
+          "desc": "Start / Stop"
+        },
+        {
+          "keys": "Ctrl+R Ctrl+K",
+          "desc": "Restart / Kill"
+        },
+        {
+          "keys": "l m d e i",
+          "desc": "Logs Stats Detail Exec Inspect"
+        },
+        {
+          "keys": "Ctrl+D",
+          "desc": "Delete"
+        }
+      ]
+    },
+    {
+      "titleI18n": "help.images",
+      "title": "Images",
+      "items": [
+        {
+          "keys": "Ctrl+P / p",
+          "desc": "Pull / Prune"
+        },
+        {
+          "keys": "Ctrl+B / Ctrl+E",
+          "desc": "Debug / Export"
+        },
+        {
+          "keys": "y",
+          "desc": "Copy reference"
+        },
+        {
+          "keys": "\u2192 / Enter",
+          "desc": "Expand containers"
+        },
+        {
+          "keys": "o",
+          "desc": "Sort"
+        }
+      ]
+    },
+    {
+      "titleI18n": "",
+      "title": "Compose",
+      "items": [
+        {
+          "keys": "s Ctrl+S l Ctrl+D",
+          "desc": "Start Stop Logs Down"
+        },
+        {
+          "keys": "\u2192 / Enter",
+          "desc": "Expand services"
+        },
+        {
+          "keys": "\u2190",
+          "desc": "Collapse services"
+        },
+        {
+          "keys": "d",
+          "desc": "Project detail"
+        }
+      ]
+    },
+    {
+      "titleI18n": "help.volumes_networks",
+      "title": "Volumes & Networks",
+      "items": [
+        {
+          "keys": "d",
+          "desc": "Detail / inspect (all panels)"
+        },
+        {
+          "keys": "Ctrl+D",
+          "desc": "Delete (all resources)"
+        },
+        {
+          "keys": "Enter",
+          "desc": "Expand details"
+        }
+      ]
+    },
+    {
+      "titleI18n": "help.global",
+      "title": "Global",
+      "items": [
+        {
+          "keys": "Space",
+          "desc": "Mark for bulk ops"
+        },
+        {
+          "keys": ":",
+          "desc": "Command palette"
+        },
+        {
+          "keys": "H",
+          "desc": "Toggle header bar"
+        },
+        {
+          "keys": "r",
+          "desc": "Refresh"
+        },
+        {
+          "keys": "c",
+          "desc": "Connection info"
+        },
+        {
+          "keys": "o",
+          "desc": "Sort (containers / images / networks)"
+        },
+        {
+          "keys": "F2",
+          "desc": "Switch runtime"
+        },
+        {
+          "keys": "/ ? q",
+          "desc": "Filter Help Quit"
+        }
+      ]
+    },
+    {
+      "titleI18n": "help.themes",
+      "title": "Themes",
+      "items": [
+        {
+          "keys": "default",
+          "desc": "Dark cyan"
+        },
+        {
+          "keys": "dark",
+          "desc": "High contrast"
+        },
+        {
+          "keys": "nord",
+          "desc": "Arctic blue"
+        },
+        {
+          "keys": "dracula",
+          "desc": "Purple dark"
+        }
+      ]
+    }
+  ]
+}

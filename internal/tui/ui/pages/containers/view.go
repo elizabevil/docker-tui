@@ -1,0 +1,267 @@
+package containers
+
+import (
+	"fmt"
+	"strings"
+
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
+	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	"github.com/elizabevil/docker-tui/internal/tui/state"
+	"github.com/elizabevil/docker-tui/internal/tui/tables"
+	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
+	"github.com/elizabevil/docker-tui/internal/tui/utils"
+)
+
+var tc = tables.MustLoad("containers")
+
+var profileSelector component.TableProfileSelector = component.ContainerProfileSelector{
+	Default:       "default",
+	DefaultStats:  "default_stats",
+	More:          "more",
+	MoreStats:     "more_stats",
+	MoreMinWidth:  tc.ShowBreak("more"),
+	StatsEnabled:  tc.Stats.Enabled,
+	StatsMinWidth: 60,
+}
+
+func RenderList(cm *state.ContainerListModel, width int, panelHeight int, markedIDs map[string]bool, selectionDisabled bool) string {
+	if cm == nil {
+		return i18n.T("msg.loading")
+	}
+	w := width - 8
+	if w < 52 {
+		w = 52
+	}
+
+	profile := profileSelector.Select(w)
+
+	widths := tc.ColumnWidths(profile, w)
+	colsDef := tc.Columns[profile]
+	if widths == nil {
+		return i18n.T("msg.loading")
+	}
+
+	items := cm.SortedItems()
+	total := len(items)
+	if total == 0 {
+		return component.GetStyle("dim").Render(i18n.T("msg.no_containers"))
+	}
+
+	rowHeight := component.CalcRowHeight(panelHeight)
+	component.EnsureVisible(&cm.ViewOffset, cm.Cursor, rowHeight, total)
+
+	running, exited, createdSt := 0, 0, 0
+	for _, c := range items {
+		switch c.State {
+		case state.ContainerStateRunning:
+			running++
+		case state.ContainerStateExited:
+			exited++
+		case state.ContainerStateCreated:
+			createdSt++
+		}
+	}
+
+	banner := ""
+	if !selectionDisabled && cm.Cursor < total {
+		sel := items[cm.Cursor]
+		b := sel.Name
+		if len(sel.ID) >= 12 {
+			b += " (" + sel.ID[:12] + ")"
+		}
+		banner = b
+	}
+
+	rows := make([][]string, 0, rowHeight)
+	for i := cm.ViewOffset; i < total && len(rows) < rowHeight; i++ {
+		c := items[i]
+		created := utils.FormatCreated(c.Created)
+		status := c.Status
+		stateColW := 0
+		for j, cd := range colsDef {
+			if cd.Key == "state" {
+				stateColW = widths[j]
+				break
+			}
+		}
+		if stateColW > 6 && len(status) > stateColW-3 {
+			status = status[:stateColW-6] + "..."
+		}
+
+		portList := SplitPorts(c.Ports)
+		for pi, p := range portList {
+			if len(rows) >= rowHeight {
+				break
+			}
+			cells := make([]string, len(colsDef))
+			for j, cd := range colsDef {
+				switch {
+				case cd.Key == "stats":
+					if pi == 0 {
+						if st, ok := cm.Stats[c.ID]; ok {
+							cells[j] = statsString(st, tc)
+						}
+					}
+				case pi == 0:
+					cells[j] = CellValue(cd.Key, &c, status, p, created)
+				case cd.Key == "ports":
+					cells[j] = p
+				}
+			}
+			rows = append(rows, cells)
+		}
+	}
+
+	hint := fmt.Sprintf("%d %s, %d %s, %d %s", running, i18n.T("container.state.running"), exited, i18n.T("container.state.exited"), createdSt, i18n.T("container.state.created"))
+
+	ts := tc.EffectiveTableStyle()
+	// 从 table.jsonc 获取列样式
+	colStyles := component.GetPageColumnStyles("container", colsDef)
+
+	// 选中项详情预览
+	var selProv component.SelectionInfoProvider
+	if !selectionDisabled {
+		selProv = component.NewSelectionProviderFromFn(func() string {
+			if cm.Cursor >= total {
+				return ""
+			}
+			sel := items[cm.Cursor]
+			return fmt.Sprintf("%s  %s", utils.ShortID(sel.ID), utils.ShortImage(sel.Image))
+		})
+	}
+
+	selected := -1
+	if !selectionDisabled {
+		selected = selectedRowForCursor(items, cm.ViewOffset, cm.Cursor)
+	}
+
+	return component.RenderTable(component.TableData{
+		Cols:              colsDef,
+		Widths:            widths,
+		Rows:              rows,
+		Selected:          selected,
+		Total:             total,
+		Offset:            cm.ViewOffset,
+		Limit:             rowHeight,
+		Banner:            banner,
+		BannerW:           w,
+		FooterHint:        hint,
+		BodyHeight:        panelHeight,
+		MarkedRows:        buildMarkedRows(rows, items, cm.ViewOffset, markedIDs),
+		RowPrefix:         ts.RowPrefix,
+		RowPrefixSelected: ts.RowPrefixSelected,
+		ColStyles:         colStyles,
+		SelectionProvider: selProv,
+		SortColKey:        containerSortColKey(cm.SortBy),
+		SortAsc:           cm.SortAsc,
+	})
+}
+
+func selectedRowForCursor(items []dockerclient.ContainerSummary, offset, cursor int) int {
+	if cursor < offset {
+		return 0
+	}
+	row := 0
+	for i := offset; i < len(items) && i < cursor; i++ {
+		row += len(SplitPorts(items[i].Ports))
+	}
+	return row
+}
+
+func buildMarkedRows(rows [][]string, items []dockerclient.ContainerSummary, offset int, markedIDs map[string]bool) map[int]bool {
+	if markedIDs == nil || len(markedIDs) == 0 {
+		return nil
+	}
+	result := make(map[int]bool)
+	rowIdx := 0
+	for i := offset; i < len(items) && rowIdx < len(rows); i++ {
+		portsRows := len(SplitPorts(items[i].Ports))
+		if markedIDs[items[i].ID] {
+			for k := 0; k < portsRows && rowIdx+k < len(rows); k++ {
+				result[rowIdx+k] = true
+			}
+		}
+		rowIdx += portsRows
+	}
+	return result
+}
+
+func CellValue(key string, c *dockerclient.ContainerSummary, status, ports, created string) string {
+	switch key {
+	case "id":
+		return c.ID[:12]
+	case "name":
+		return c.Name
+	case "image":
+		return utils.ShortImage(c.Image)
+	case "state":
+		return component.RenderStateText(c.State) + " " + status
+	case "ports":
+		return ports
+	case "mounts":
+		if c.MountCount > 0 {
+			return fmt.Sprintf("%d", c.MountCount)
+		}
+		return "\u2014"
+	case "ip":
+		if len(c.IPs) > 0 {
+			return c.IPs[0]
+		}
+		return "\u2014"
+	case "created":
+		return created
+	default:
+		return ""
+	}
+}
+
+func statsString(st state.ContainerStats, cfg *tables.TableConfig) string {
+	var parts []string
+	for _, f := range cfg.Stats.Fields {
+		switch f {
+		case "cpu":
+			parts = append(parts, utils.FormatPercent(st.CPU))
+		case "mem":
+			parts = append(parts, utils.FormatPercent(st.MemPerc))
+		case "net_rx":
+			parts = append(parts, "RX:"+utils.FormatBytes(st.NetRx))
+		case "net_tx":
+			parts = append(parts, "TX:"+utils.FormatBytes(st.NetTx))
+		}
+	}
+	return strings.Join(parts, " ")
+}
+
+func SplitPorts(raw string) []string {
+	if raw == "" {
+		return []string{"\u2014"}
+	}
+	parts := strings.Split(raw, ",")
+	result := make([]string, len(parts))
+	for i, p := range parts {
+		p = strings.TrimSpace(p)
+		p = strings.ReplaceAll(p, "/tcp", "")
+		result[i] = p
+	}
+	return result
+}
+
+// containerSortColKey maps the current sort column to a table column key for the sort indicator.
+func containerSortColKey(col state.ContainerSortColumn) string {
+	switch col {
+	case state.ContainerSortByName:
+		return "name"
+	case state.ContainerSortByID:
+		return "id"
+	case state.ContainerSortByCPU:
+		return "stats"
+	case state.ContainerSortByMem:
+		return "stats"
+	case state.ContainerSortByState:
+		return "state"
+	case state.ContainerSortByCreated:
+		return "created"
+	default:
+		return ""
+	}
+}

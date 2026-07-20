@@ -1,0 +1,271 @@
+{
+  // dtui 表格组件专有样式配置
+  // 每列可独立定义 color/bold/faint 等属性，类似 Android Compose 的 TextStyle
+
+  "table": {
+    "columnSpacing": 1,
+    "rowPrefix": "  ",
+    "rowPrefixSelected": "\u2503 ",
+    "minColumnWidth": 8,
+    "rowSpacing": 0,
+    "selectionInfo": {
+      "enabled": true,
+      "padLines": 1,
+      "color": "white",
+      "background": ""
+    }
+  },
+  // 行级别样式（按行状态）
+  "rowStyles": {
+    "selected": {
+      "color": "white",
+      "background": "#37676f",
+      "bold": true
+    },
+    "normal": {
+      "color": "white"
+    },
+    "alt": {
+      "faint": true,
+      "background": "#1e1f22"
+    },
+    "marked": {
+      "color": "white",
+      "background": "#463f16",
+      "bold": true
+    }
+  },
+  // 容器状态颜色（stateRunning / stateExited …）
+  "stateStyles": {
+    "running": {
+      "color": "green"
+    },
+    "stopping": {
+      "color": "yellow"
+    },
+    "stopped": {
+      "color": "white",
+      "faint": true
+    },
+    "exited": {
+      "color": "white",
+      "faint": true
+    },
+    "paused": {
+      "color": "yellow"
+    },
+    "created": {
+      "color": "blue"
+    },
+    "restarting": {
+      "color": "orange"
+    },
+    "dead": {
+      "color": "red"
+    }
+  },
+  // 表格页脚样式
+  "footer": {
+    "color": "white",
+    "faint": true
+  },
+  // 页面列定义与列内联样式（类似 Compose TextStyle）
+  // 每个 page 的每列都可独立设置颜色、加粗、弱化
+  "pages": {
+    "container": {
+      "columns": [
+        {
+          "key": "id",
+          "width": 8,
+          "style": {
+            "color": "white",
+            "faint": true
+          }
+        },
+        {
+          "key": "name",
+          "width": 14,
+          "style": {
+            "color": "white",
+            "bold": true
+          }
+        },
+        {
+          "key": "image",
+          "width": 12,
+          "style": {
+            "color": "white"
+          }
+        },
+        {
+          "key": "state",
+          "width": 16,
+          "style": {
+            "color": "green"
+          }
+        },
+        {
+          "key": "created",
+          "width": 10,
+          "style": {
+            "color": "white",
+            "faint": true
+          }
+        },
+        {
+          "key": "ip",
+          "width": 5,
+          "style": {
+            "color": "white"
+          }
+        },
+        {
+          "key": "ports",
+          "width": 8,
+          "style": {
+            "color": "cyan"
+          }
+        },
+        {
+          "key": "stats",
+          "width": 0,
+          "style": {
+            "color": "white"
+          }
+        }
+      ],
+      "breakpoints": {
+        "wide": 130,
+        "more": 85
+      }
+    },
+    "image": {
+      "columns": [
+        {
+          "key": "registry",
+          "width": 12,
+          "style": {
+            "color": "white",
+            "faint": true
+          }
+        },
+        {
+          "key": "name",
+          "width": 18,
+          "style": {
+            "color": "white",
+            "bold": true
+          }
+        },
+        {
+          "key": "tag",
+          "width": 10,
+          "style": {
+            "color": "cyan"
+          }
+        },
+        {
+          "key": "id",
+          "width": 16,
+          "style": {
+            "color": "white",
+            "faint": true
+          }
+        },
+        {
+          "key": "arch",
+          "width": 6,
+          "style": {
+            "color": "white"
+          }
+        },
+        {
+          "key": "created",
+          "width": 14,
+          "style": {
+            "color": "white",
+            "faint": true
+          }
+        },
+        {
+          "key": "size",
+          "width": 10,
+          "style": {
+            "color": "white"
+          }
+        }
+      ],
+      "breakpoints": {
+        "wide": 140,
+        "more": 108
+      }
+    },
+    "volume": {
+      "columns": [
+        {
+          "key": "name",
+          "width": 18,
+          "style": {
+            "color": "white",
+            "bold": true
+          }
+        },
+        {
+          "key": "driver",
+          "width": 12,
+          "style": {
+            "color": "white"
+          }
+        },
+        {
+          "key": "mountpoint",
+          "width": 0,
+          "style": {
+            "color": "white"
+          }
+        }
+      ],
+      "breakpoints": {
+        "wide": 110,
+        "more": 75
+      }
+    },
+    "network": {
+      "columns": [
+        {
+          "key": "name",
+          "width": 16,
+          "style": {
+            "color": "white",
+            "bold": true
+          }
+        },
+        {
+          "key": "driver",
+          "width": 10,
+          "style": {
+            "color": "white"
+          }
+        },
+        {
+          "key": "scope",
+          "width": 8,
+          "style": {
+            "color": "white"
+          }
+        },
+        {
+          "key": "subnet",
+          "width": 0,
+          "style": {
+            "color": "cyan"
+          }
+        }
+      ],
+      "breakpoints": {
+        "wide": 110,
+        "more": 75
+      }
+    }
+  }
+}

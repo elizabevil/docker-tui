@@ -1,0 +1,100 @@
+[
+  {
+    "registry": "docker.io",
+    "name": "library/nginx",
+    "tag": "latest",
+    "id": "sha256:aaa111bbb222",
+    "arch": "amd64",
+    "created": "01-15 10:00",
+    "size": 187000000,
+    "containers": [
+      {
+        "id": "abc123",
+        "name": "web-app",
+        "state": "running",
+        "created": "01-15",
+        "ports": "80:80"
+      },
+      {
+        "id": "def456",
+        "name": "api-gw",
+        "state": "running",
+        "created": "01-10",
+        "ports": "443→443"
+      }
+    ]
+  },
+  {
+    "registry": "docker.io",
+    "name": "library/redis",
+    "tag": "7-alpine",
+    "id": "sha256:bbb222ccc333",
+    "arch": "amd64",
+    "created": "01-14 08:30",
+    "size": 32000000,
+    "containers": [
+      {
+        "id": "ghi789",
+        "name": "redis-cache",
+        "state": "running",
+        "created": "01-14",
+        "ports": "6379→6379"
+      },
+      {
+        "id": "jkl012",
+        "name": "redis-queue",
+        "state": "running",
+        "created": "01-10",
+        "ports": "6380→6379"
+      }
+    ]
+  },
+  {
+    "registry": "docker.io",
+    "name": "library/postgres",
+    "tag": "16",
+    "id": "sha256:ccc333ddd444",
+    "arch": "amd64",
+    "created": "01-16 14:20",
+    "size": 420000000,
+    "containers": [
+      {
+        "id": "mno345",
+        "name": "postgres-db",
+        "state": "running",
+        "created": "01-16",
+        "ports": "5432→5432"
+      }
+    ]
+  },
+  {
+    "registry": "docker.io",
+    "name": "library/alpine",
+    "tag": "3.19",
+    "id": "sha256:ddd444eee555",
+    "arch": "amd64",
+    "created": "01-10 06:00",
+    "size": 7200000,
+    "containers": []
+  },
+  {
+    "registry": "swr.cn-north-4...",
+    "name": "ddn-k8s/.../postgres",
+    "tag": "18.4-alpine",
+    "id": "sha256:eee555fff666",
+    "arch": "amd64",
+    "created": "01-12 11:00",
+    "size": 350000000,
+    "containers": []
+  },
+  {
+    "registry": "—",
+    "name": "<none>",
+    "tag": "<none>",
+    "id": "sha256:fff666ggg777",
+    "arch": "—",
+    "created": "01-08 02:00",
+    "size": 15000000,
+    "containers": []
+  }
+]

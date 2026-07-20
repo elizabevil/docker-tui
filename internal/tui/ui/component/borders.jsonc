@@ -1,0 +1,63 @@
+{
+  // borders.jsonc — Predefined border character sets for the main content panel.
+  // The active style is selected by theme.border.style (e.g. "rounded", "double").
+  // Each entry defines the 8 characters needed for a complete box-drawing border:
+  //   top, bottom, left, right, topLeft, topRight, bottomLeft, bottomRight
+  "borders": {
+    // Rounded corners (default) — ╭─╮ │ ╰─╯
+    "rounded": {
+      "top": "─",
+      "bottom": "─",
+      "left": "│",
+      "right": "│",
+      "topLeft": "╭",
+      "topRight": "╮",
+      "bottomLeft": "╰",
+      "bottomRight": "╯"
+    },
+    // Double-line border — ╔═╗ ║ ╚═╝
+    "double": {
+      "top": "═",
+      "bottom": "═",
+      "left": "║",
+      "right": "║",
+      "topLeft": "╔",
+      "topRight": "╗",
+      "bottomLeft": "╚",
+      "bottomRight": "╝"
+    },
+    // Thick border — ┏━┓ ┃ ┗━┛
+    "thick": {
+      "top": "━",
+      "bottom": "━",
+      "left": "┃",
+      "right": "┃",
+      "topLeft": "┏",
+      "topRight": "┓",
+      "bottomLeft": "┗",
+      "bottomRight": "┛"
+    },
+    // Single-line border — ┌─┐ │ └─┘
+    "single": {
+      "top": "─",
+      "bottom": "─",
+      "left": "│",
+      "right": "│",
+      "topLeft": "┌",
+      "topRight": "┐",
+      "bottomLeft": "└",
+      "bottomRight": "┘"
+    },
+    // Hidden border — uses spaces so no visible border lines
+    "hidden": {
+      "top": " ",
+      "bottom": " ",
+      "left": " ",
+      "right": " ",
+      "topLeft": " ",
+      "topRight": " ",
+      "bottomLeft": " ",
+      "bottomRight": " "
+    }
+  }
+}

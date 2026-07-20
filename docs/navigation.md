@@ -1,0 +1,178 @@
+# 交互与导航
+
+本文记录当前默认行为，基于 `internal/tui/keyboard/*`、`internal/tui/keys/*` 与页面渲染代码整理。
+
+## 面板与模式
+
+### 主面板
+
+- `containers`
+- `images`
+- `volumes`
+- `networks`
+- `compose`
+
+### 覆盖层 / 模式
+
+- `help`
+- `detail`
+- `logs`
+- `filter`
+- `command`
+- `exec`
+- `exec passthrough`
+- `confirm`
+- `mark`
+
+## 全局默认按键
+
+| 按键 | 行为 |
+|---|---|
+| `Tab` / `Shift+Tab` | 在五个主面板之间切换 |
+| `j` / `k` / `↑` / `↓` | 移动光标 |
+| `Enter` | 进入当前面板的主动作 |
+| `Esc` | 返回上一级；主界面双击 `Esc` 退出 |
+| `/` | 打开过滤模式 |
+| `:` | 打开命令模式 |
+| `?` / `F1` | 打开帮助 |
+| `r` | 刷新全部资源 |
+| `H` | 显示/隐藏 Header |
+| `F2` | 切换当前运行时连接 |
+| `c` | 显示连接信息 |
+| `Space` | 进入或操作标记模式 |
+| `Ctrl+D` | 删除当前资源 |
+
+注意：键盘分发会先把单字符大写转成小写，因此一些旧文档里写的 `S/K/P` 已被实际实现改成 `Ctrl+S`、`Ctrl+K`、`Ctrl+P` 这类组合键。
+
+## 面板级行为
+
+### Containers
+
+| 按键 | 行为 |
+|---|---|
+| `s` | Start |
+| `Ctrl+S` | Stop |
+| `Ctrl+R` | Restart |
+| `Ctrl+K` | Kill |
+| `l` | 打开日志视图 |
+| `m` | 开关容器 stats |
+| `d` | 详情视图 |
+| `i` | Inspect |
+| `e` | 打开 exec shell 对话框 |
+| `o` / `Ctrl+O` | 切换排序列 / 切换升降序 |
+
+### Images
+
+| 按键 | 行为 |
+|---|---|
+| `Enter` / `→` | 展开“使用该镜像的容器”子视图 |
+| `Ctrl+P` | Pull |
+| `p` | Prune |
+| `Ctrl+B` | Debug 入口 |
+| `Ctrl+E` | Export 入口 |
+| `y` | 复制镜像引用 |
+| `d` | 详情 |
+| `o` / `Ctrl+O` | 排序 |
+
+镜像子视图中可对映射出的容器执行 `s`、`Ctrl+S`、`r`、`l`、`e` 等操作。
+
+### Volumes
+
+| 按键 | 行为 |
+|---|---|
+| `Enter` | 展开卷详情/关联容器子视图 |
+| `d` | 详情 |
+| `Ctrl+D` | 删除 |
+
+### Networks
+
+| 按键 | 行为 |
+|---|---|
+| `d` | 详情 |
+| `Ctrl+D` | 删除 |
+| `o` / `Ctrl+O` | 排序 |
+
+### Compose
+
+Compose 面板是双栏：
+
+- 左栏：项目
+- 右栏：服务
+
+常用按键：
+
+| 按键 | 行为 |
+|---|---|
+| `Tab` | 主面板切换，不在 Compose 左右栏之间切换 |
+| `←` / `→` | 在 Compose 内部左右栏或子视图间切换 |
+| `Enter` | 进入服务容器子视图或详情 |
+| `s` | Compose start |
+| `Ctrl+S` | Compose stop |
+| `l` | Compose logs |
+| `Ctrl+D` | Compose down |
+| `d` | 项目详情 |
+
+## 过滤与命令模式
+
+### 过滤模式
+
+- `/` 进入
+- `Enter` 应用过滤
+- `Esc` 退出
+- 支持左右移动、`Home` / `End`、`Ctrl+A` / `Ctrl+E`、`Backspace` / `Delete`
+- 在日志视图中，过滤模式会转为日志搜索
+
+### 命令模式
+
+由 `:` 进入，当前支持的命令由 `internal/tui/keyboard/command.go` 定义：
+
+- `compose`
+- `images`
+- `containers`
+- `volumes`
+- `networks`
+- `logs`
+- `help`
+
+支持 `Tab` 自动补全。
+
+## 覆盖层行为
+
+### Help
+
+- 当前实现里帮助页按任意键都会退出，并返回之前的面板
+
+### Detail
+
+- `Esc` / `Enter` 返回
+- `j` / `k` / 鼠标滚轮滚动
+- `Space` / `PgDn` 向下翻页
+- `PgUp` 向上翻页
+- `g` 回到顶部
+
+### Logs
+
+- `Esc` 返回
+- `j` / `k` / `PgUp` / `PgDn` / 鼠标滚轮滚动
+- `/` 进入搜索，`Enter` 应用
+- `n` / `Ctrl+N` 跳到下一个 / 上一个匹配
+- `g` 回到顶部，`Ctrl+G` 跳到底部
+- `w` 切换自动换行
+
+### Exec
+
+分两段：
+
+1. `ModeExec`：选择 `/bin/sh`、`/bin/bash`、`/bin/ash` 或自定义 shell
+2. `ModeExecPassthrough`：进入真实容器终端透传
+
+在 exec 对话框中：
+
+- `Tab` / `Shift+Tab` 切换焦点
+- `Enter` 执行或确认
+- `Esc` 取消
+
+在 exec 透传中：
+
+- 普通按键直接写入容器会话
+- `Esc` 关闭当前 exec 会话并返回

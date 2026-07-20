@@ -1,0 +1,6 @@
+{
+  // App window layout — 应用窗口在终端中的占比
+  "marginTopPct": 5,
+  "marginBottomPct": 5,
+  "contentWidthPct": 98
+}

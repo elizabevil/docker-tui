@@ -1,0 +1,20 @@
+runtime:
+  connections:
+    - name: local-docker
+      addr: unix:///var/run/docker.sock
+#    - name: local-podman
+#      addr: unix:///run/user/1000/podman/podman.sock
+
+layout:
+  topPct: 20
+  contentPct: 70
+  bottomPct: 10
+  background:
+    enable: false
+    type: image
+    image:
+      src: "/home/debi/IdeaProjects/docker-tui/test/test.jpg"
+      sampleRate: 80
+    overlay:
+      opacity: 25
+    fallthrough: false

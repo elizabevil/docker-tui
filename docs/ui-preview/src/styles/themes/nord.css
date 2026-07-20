@@ -1,0 +1,23 @@
+/* Nord Theme */
+[data-theme="nord"] {
+    --tui-bg: #242933;
+    --tui-green: #a3be8c;
+    --tui-cyan: #88c0d0;
+    --tui-blue: #81a1c1;
+    --tui-red: #bf616a;
+    --tui-yellow: #ebcb8b;
+    --tui-orange: #d08770;
+    --tui-purple: #b48ead;
+    --tui-white: #eceff4;
+    --tui-gray: #4c566a;
+    --tui-surface: #3b4252;
+    --tui-dark: #2e3440;
+
+    --tui-border: var(--tui-cyan);
+    --tui-title-fg: var(--tui-cyan);
+    --tui-header-fg: var(--tui-blue);
+    --tui-selected-bg: var(--tui-blue);
+    --tui-status-fg: var(--tui-green);
+    --tui-dim-fg: var(--tui-gray);
+    --tui-bar-bg: var(--tui-surface);
+}

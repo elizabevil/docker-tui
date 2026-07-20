@@ -1,0 +1,35 @@
+package keys
+
+// KeyAction represents a named action that can be bound to keys.
+type KeyAction string
+
+const (
+	ActionQuit             KeyAction = "quit"
+	ActionHelp             KeyAction = "help"
+	ActionFilter           KeyAction = "filter"
+	ActionRefresh          KeyAction = "refresh"
+	ActionContainerStart   KeyAction = "containerStart"
+	ActionContainerStop    KeyAction = "containerStop"
+	ActionContainerRestart KeyAction = "containerRestart"
+	ActionContainerKill    KeyAction = "containerKill"
+	ActionContainerRemove  KeyAction = "containerRemove"
+	ActionContainerLogs    KeyAction = "containerLogs"
+	ActionContainerExec    KeyAction = "containerExec"
+	ActionContainerInspect KeyAction = "containerInspect"
+	ActionContainerStats   KeyAction = "containerStats"
+	ActionImagePull        KeyAction = "imagePull"
+	ActionImageRemove      KeyAction = "imageRemove"
+	ActionImagePrune       KeyAction = "imagePrune"
+	ActionVolumeRemove     KeyAction = "volumeRemove"
+	ActionNetworkRemove    KeyAction = "networkRemove"
+	ActionTabNext          KeyAction = "tabNext"
+	ActionTabPrev          KeyAction = "tabPrev"
+	ActionUp               KeyAction = "up"
+	ActionDown             KeyAction = "down"
+	ActionEnter            KeyAction = "enter"
+	ActionBack             KeyAction = "back"
+	ActionDelete           KeyAction = "delete"
+	ActionDetail           KeyAction = "detail"
+	ActionSwitchRuntime    KeyAction = "switchRuntime"
+	ActionCommand          KeyAction = "command"
+)

@@ -1,0 +1,64 @@
+{
+  "columns": {
+    "default": [
+      {
+        "key": "name",
+        "flex": 1,
+        "max": 20,
+        "header": "table.name"
+      },
+      {
+        "key": "driver",
+        "fixed": 8,
+        "header": "table.driver"
+      },
+      {
+        "key": "scope",
+        "fixed": 6,
+        "header": "table.scope"
+      },
+      {
+        "key": "ctr",
+        "fixed": 3,
+        "header": "table.containers"
+      }
+    ],
+    "more": [
+      {
+        "key": "name",
+        "flex": 1,
+        "max": 20,
+        "header": "table.name"
+      },
+      {
+        "key": "driver",
+        "fixed": 8,
+        "header": "table.driver"
+      },
+      {
+        "key": "scope",
+        "fixed": 6,
+        "header": "table.scope"
+      },
+      {
+        "key": "subnet",
+        "flex": 2,
+        "max": 0,
+        "header": "table.subnet"
+      },
+      {
+        "key": "ctr",
+        "fixed": 3,
+        "header": "table.containers"
+      },
+      {
+        "key": "created",
+        "fixed": 19,
+        "header": "table.created"
+      }
+    ]
+  },
+  "show": {
+    "more": 71
+  }
+}
