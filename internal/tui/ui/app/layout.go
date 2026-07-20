@@ -59,68 +59,10 @@ func init() {
 var imageColorCache sync.Map
 
 const (
-	toastMaxHeight = 3
-
 	dialogModeExport = "export"
 	dialogModeDebug  = "debug"
 	dialogModeExec   = "exec"
 )
-
-// sectionHeights computes row allocations for the three layout sections using
-// weight-based proportional sizing. Total always equals m.Height — no overflow.
-func sectionHeights(m *state.AppModel, usableH ...int) (topRows, contentRows, bottomRows int) {
-	H := m.Height
-	if len(usableH) > 0 && usableH[0] > 0 {
-		H = usableH[0]
-	}
-
-	cfg := m.Config.Layout
-	sw := cfg.SectionWeights
-	topW := sw.Top
-	if topW <= 0 {
-		topW = 2
-	}
-	conW := sw.Content
-	if conW <= 0 {
-		conW = 7
-	}
-	botW := sw.Bottom
-	if botW <= 0 {
-		botW = 1
-	}
-
-	totalW := topW + conW + botW
-	topRows = H * topW / totalW
-	bottomRows = H * botW / totalW
-	contentRows = H - topRows - bottomRows
-
-	if topRows < 1 {
-		topRows = 1
-	}
-	if bottomRows < 1 {
-		bottomRows = 1
-	}
-	if contentRows < 1 {
-		contentRows = 1
-	}
-	return
-}
-
-// panelHeight returns the rows available for panel content body inside the
-// middle section: contentRows minus border(2) and title(1).
-func panelHeight(m *state.AppModel, usableH ...int) int {
-	h := m.Height
-	if len(usableH) > 0 && usableH[0] > 0 {
-		h = usableH[0]
-	}
-	_, contentRows, _ := sectionHeights(m, h)
-	overhead := 3 // border(2) + title(1)
-	body := contentRows - overhead
-	if body < 1 {
-		return 1
-	}
-	return body
-}
 
 // sectionBG resolves the effective background for a section by merging the global
 // background config with any per-section override. Inherits from global when not overridden.
@@ -177,8 +119,8 @@ func RenderApp(m *state.AppModel) string {
 		}
 		return i18n.T("msg.loading")
 	}
-	if m.Width < 50 || m.Height < 10 {
-		return fmt.Sprintf("Terminal too small: %dx%d (min 50x10)", m.Width, m.Height)
+	if m.Width < minimumTerminalWidth || m.Height < minimumTerminalHeight {
+		return terminalSizeMessage(m.Width, m.Height)
 	}
 
 	// Window margin: percentage of terminal height for top/bottom spacing
@@ -215,8 +157,8 @@ func RenderApp(m *state.AppModel) string {
 	}
 	padH := (m.Width - usableW) / 2
 
-	topH, midH, botH := sectionHeights(m, usableH)
-	totalH := topH + midH + botH
+	rails := calculateRailHeights(usableH)
+	totalH := rails.total()
 
 	// Layer 1+2: compute global image colors with overlay
 	bgCfg := m.Config.Layout.Background
@@ -256,9 +198,11 @@ func RenderApp(m *state.AppModel) string {
 			}
 		}
 	}
-	topColors := sliceColors(globalColors, 0, topH)
-	midColors := sliceColors(globalColors, topH, midH)
-	botColors := sliceColors(globalColors, topH+midH, botH)
+	headerColors := sliceColors(globalColors, 0, rails.header)
+	messageColors := sliceColors(globalColors, rails.header, rails.message)
+	queryColors := sliceColors(globalColors, rails.header+rails.message, rails.query)
+	panelColors := sliceColors(globalColors, rails.header+rails.message+rails.query, rails.panel)
+	footerColors := sliceColors(globalColors, totalH-rails.footer, rails.footer)
 
 	// Helper: wrap content with background colors (ANSI reset barrier)
 	wrap := func(text string, colors []string) string {
@@ -266,10 +210,6 @@ func RenderApp(m *state.AppModel) string {
 			return text
 		}
 		return renderContentLayer(text, colors)
-	}
-
-	hClamp := func(h int, parts ...string) string {
-		return lipgloss.NewStyle().MaxHeight(h).Render(lipgloss.JoinVertical(lipgloss.Top, parts...))
 	}
 
 	padLeft := func(text string) string {
@@ -286,42 +226,18 @@ func RenderApp(m *state.AppModel) string {
 
 	pad := strings.Repeat("\n", marginTop)
 
-	// 预计算共享的 header / toast / footer 片段
-	headerRendered := header.Render(m, usableW)
-	toastRendered := renderToast(m)
-	footerRendered := lipgloss.JoinVertical(lipgloss.Top,
-		footer.Shortcuts(m), footer.StatusBar(m))
-
-	// 自然高度：取各区域实际行数，不超过权重上限
-	headerH := strings.Count(headerRendered, "\n") + 1
-	if toastRendered != "" {
-		headerH += strings.Count(toastRendered, "\n") + 1
-	}
-	footerH := strings.Count(footerRendered, "\n") + 1
-	midH = usableH - headerH - footerH
-	if midH < 3 {
-		midH = 3
-	}
-	// 中段最小 3 行可能导致总高超出，但 50x10 守卫保证 usableH >= 10
-	// 更新权重变量为自然高度，后续 hClamp 自动生效
-	topH = headerH
-	botH = footerH
-
-	midContent := renderMiddlePanel(m, midH, usableH, usableW)
-
-	topSection := hClamp(topH, headerRendered, toastRendered)
-	if m.Mode == state.ModeExecPassthrough || m.Mode == state.ModeLogView || m.Mode == state.ModeDetail {
-		topSection = hClamp(topH, headerRendered, toastRendered)
-	}
-	midSection := midContent
-	if searchBar := renderSearchBar(m.Mode, m.FilterText, m.FilterCursor, usableW); searchBar != "" {
-		midSection = lipgloss.JoinVertical(lipgloss.Top, searchBar, midContent)
-	}
+	headerRendered := fitRailHeight(header.Render(m, usableW), rails.header)
+	messageRendered := fitRailHeight(renderMessageRail(m, usableW), rails.message)
+	queryRendered := fitRailHeight(renderQueryRail(m, usableW), rails.query)
+	panelRendered := fitRailHeight(renderMiddlePanel(m, rails.panel, usableW), rails.panel)
+	footerRendered := fitRailHeight(footer.Render(m, usableW), rails.footer)
 
 	result := pad + padLeft(lipgloss.JoinVertical(lipgloss.Top,
-		wrap(topSection, topColors),
-		wrap(hClamp(midH, midSection), midColors),
-		wrap(hClamp(botH, footerRendered), botColors)))
+		wrap(headerRendered, headerColors),
+		wrap(messageRendered, messageColors),
+		wrap(queryRendered, queryColors),
+		wrap(panelRendered, panelColors),
+		wrap(footerRendered, footerColors)))
 
 	overlayColor := m.Config.UI.DialogOverlayColor
 	if overlayColor == "" {
@@ -345,7 +261,7 @@ func RenderApp(m *state.AppModel) string {
 	return result
 }
 
-func renderMiddlePanel(m *state.AppModel, midH int, usableH int, panelW int) string {
+func renderMiddlePanel(m *state.AppModel, panelH int, panelW int) string {
 	searchText := ""
 
 	borderLabel := ""
@@ -359,7 +275,7 @@ func renderMiddlePanel(m *state.AppModel, midH int, usableH int, panelW int) str
 	info := m.InfoMessage
 	bc := breadcrumb(m)
 
-	bodyH := panelHeight(m, usableH)
+	bodyH := panelBodyHeight(panelH)
 	contentW := panelW - 4
 	content := renderResourceTable(m, bodyH, contentW)
 	if m.ActivePanel == state.PanelCompose {
@@ -388,7 +304,7 @@ func renderMiddlePanel(m *state.AppModel, midH int, usableH int, panelW int) str
 		content = renderExecPassthroughPanel(m, bodyH)
 	}
 
-	return panel.Panel{Title: title, Info: info, Content: content, Breadcrumb: bc, SearchText: searchText, BorderLabel: borderLabel, Width: panelW, Height: midH}.Render()
+	return panel.Panel{Title: title, Info: info, Content: content, Breadcrumb: bc, SearchText: searchText, BorderLabel: borderLabel, Width: panelW, Height: panelH}.Render()
 }
 
 func renderExecPassthroughPanel(m *state.AppModel, bodyH int) string {
@@ -452,44 +368,6 @@ func renderResourceTable(m *state.AppModel, panelHeight int, contentW int) strin
 	}
 }
 
-func renderSearchBar(mode state.AppMode, filterText string, cursor int, width int) string {
-	if mode != state.ModeCommand && mode != state.ModeFilter {
-		return ""
-	}
-	boxW := width - 4
-	if boxW < 16 {
-		boxW = 16
-	}
-	innerW := boxW - 4
-	if innerW < 8 {
-		innerW = 8
-	}
-
-	var input string
-	if mode == state.ModeCommand {
-		prefix := component.GetStyle("commandPrefix").Render(": ")
-		suffix := component.AutocompleteSuffix(filterText)
-		if suffix != "" {
-			// Suffix hint rendered in searchHint (gray/faint) after cursor
-			typed := component.GetStyle("searchBar").Render(filterText)
-			hint := component.GetStyle("searchHint").Render(suffix)
-			input = prefix + typed + "\u2588" + hint
-		} else {
-			typed := component.GetStyle("searchBar").Render(insertCursor(filterText, cursor))
-			input = prefix + typed
-		}
-	} else {
-		input = component.GetStyle("searchBar").Render("Search: " + insertCursor(filterText, cursor))
-	}
-	content := component.PadVisible(input, innerW)
-	return lipgloss.NewStyle().
-		Width(boxW-2).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(component.GetStyle("dim").GetForeground()).
-		Padding(0, 1).
-		Render(content)
-}
-
 func insertCursor(text string, cursor int) string {
 	r := []rune(text)
 	if cursor < 0 {
@@ -535,24 +413,6 @@ func currentTableFilterLabel(m *state.AppModel) string {
 		return "项目: " + m.ComposeProjectFilter
 	}
 	return ""
-}
-
-func renderToast(m *state.AppModel) string {
-	if m.ToastMessage == "" {
-		return ""
-	}
-	var style lipgloss.Style
-	switch m.ToastLevel {
-	case component.ToastSuccess:
-		style = component.GetStyle("toastSuccess")
-	case component.ToastError:
-		style = component.GetStyle("toastError")
-	case component.ToastWarning:
-		style = component.GetStyle("toastWarning")
-	default:
-		style = component.GetStyle("toastInfo")
-	}
-	return lipgloss.NewStyle().MaxHeight(toastMaxHeight).Height(toastMaxHeight).Render(style.Render(m.ToastMessage))
 }
 
 // ── Background rendering ────────────────────────────────────

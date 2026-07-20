@@ -117,21 +117,29 @@ func StatusBar(app *state.AppModel) string {
 }
 
 func Shortcuts(app *state.AppModel) string {
-	// 统一操作日志行：固定占位一行，默认空，避免内容出现时 footer 高度跳变。
-	logLine := component.GetStyle("shortcutBar").Render(OperationLogLine(app))
-
-	// 关键节点：先处理模式级快捷键，再组合全局+页面特定。
-	if modeHints := shortcuts.ModeShortcuts(app); len(modeHints) > 0 {
-		return lipgloss.JoinVertical(lipgloss.Top, renderKeyShortcuts(modeHints), logLine)
-	}
-
-	// 双行快捷键栏：全局行 + 页面特定行
 	globalRow := renderGlobalShortcuts()
-	pageRow := renderPageShortcuts(app.ActivePanel, app.MarkedIDs)
-	if pageRow == "" {
-		return lipgloss.JoinVertical(lipgloss.Top, globalRow, logLine)
+	contextRow := ""
+	if modeHints := shortcuts.ModeShortcuts(app); len(modeHints) > 0 {
+		contextRow = renderKeyShortcuts(modeHints)
+	} else {
+		contextRow = renderPageShortcuts(app.ActivePanel, app.MarkedIDs)
 	}
-	return lipgloss.JoinVertical(lipgloss.Top, globalRow, pageRow, logLine)
+	return lipgloss.JoinVertical(lipgloss.Top, globalRow, contextRow)
+}
+
+// Render returns the fixed three-row footer rail: global actions, context
+// actions, and runtime/operation status.
+func Render(app *state.AppModel, width int) string {
+	rows := strings.Split(Shortcuts(app), "\n")
+	for len(rows) < 2 {
+		rows = append(rows, "")
+	}
+	rows = rows[:2]
+	rows = append(rows, StatusBar(app))
+	for i := range rows {
+		rows[i] = component.PadVisible(component.TruncateVisible(rows[i], width), width)
+	}
+	return strings.Join(rows, "\n")
 }
 
 // renderGlobalShortcuts 返回全局通用快捷键（所有面板一致，不区分大小写）。
