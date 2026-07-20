@@ -60,9 +60,33 @@ Panel body 高度只由 `Panel Rail - border(2) - title(1)` 决定，不再读�
   - Filter/Search/Command 查询语义识别。
   - Footer 在 Normal/Mark/Detail 下固定三行。
   - `< 80x20` 最小尺寸规则。
-- 页面矩阵: `RG-001 ~ RG-006` 待真实终端交互回归。
-- 模式矩阵: `RM-001 ~ RM-006` 核心高度约束通过，具体交互待真实终端回归。
-- 尺寸矩阵: 尺寸分配自动化通过，`RS-001 ~ RS-004` 视觉结果待真实终端回归。
+- 页面矩阵: `RG-001 ~ RG-006` renderer 自动化矩阵通过。
+- 模式矩阵: `RM-001 ~ RM-006` 高度、模板归属和 Query 状态自动化通过。
+- 尺寸矩阵: `RS-001 ~ RS-004` 自动化通过，`<80x20` 进入限制提示。
 - 失败项: 无自动化失败。
 - 遗留风险: Footer 长动作行会按终端宽度截断，完整动作发现依赖后续 Help 统一投影层。
-- 结论: `继续验证`。
+- 结论: `通过`。
+
+## Batch-B / EP-4 ~ EP-6
+
+- 日期: 2026-07-20
+- 页面模板: List、Split、Detail、Log、Help 已建立统一分类和 renderer 接线。
+- 日志页: 使用 Panel body width，仅对 viewport 内日志执行 wrap 和 highlight。
+- 状态边界: Log Page 进入 Search 后保持 Log Page 模板，不回退资源列表。
+- 投影层: 页面 title/summary/breadcrumb 由页面投影统一生成；Footer 与 Help 共同消费 action registry；表格 selection 使用 `SelectionProjector` 接口。
+- 删除项: Help 独立快捷键 JSON 已删除，避免形成第二事实源。
+- 验证: `CGO_ENABLED=0 GOTOOLCHAIN=local go test ./...` 通过。
+- 结论: `通过`。
+
+## Batch-C / EP-7 ~ EP-9
+
+- 日期: 2026-07-20
+- Detail: UI 主链路改为 `ImageDetailData`，inspect、history、manifest variants 均为结构化数据。
+- History: 普通镜像使用 `History / Layers`；manifest 使用 `History / Manifest variants`；空历史不生成占位 section。
+- Table cache: cache key 覆盖 schema、container width、resolved headers、sort、width profile 和 viewport rows，容量上限 256。
+- Benchmark:
+  - cached: 约 `3.22 us/op`、`72 B/op`、`2 allocs/op`。
+  - uncached: 约 `7.95 us/op`、`3248 B/op`、`154 allocs/op`。
+- EP-9 结论: 当前证据支持保留 table layout cache；没有证据支持继续引入 dirty-path、刷新节流或额外 `VisibleLen()` 全局缓存。
+- 验证: `CGO_ENABLED=0 GOTOOLCHAIN=local go test ./...` 通过。
+- 结论: `通过`。

@@ -35,9 +35,9 @@
 
 | 批次 | 包含阶段 | 目标 | 状态 |
 |---|---|---|---|
-| `Batch-A` | `EP-0` `EP-1` `EP-2` `EP-3` | 固定主骨架与基础轨道 | `verifying` |
-| `Batch-B` | `EP-4` `EP-5` `EP-6` | 建立页面模板与统一投影 | `todo` |
-| `Batch-C` | `EP-7` `EP-8` `EP-9` | 详情页结构化与性能收敛 | `todo` |
+| `Batch-A` | `EP-0` `EP-1` `EP-2` `EP-3` | 固定主骨架与基础轨道 | `done` |
+| `Batch-B` | `EP-4` `EP-5` `EP-6` | 建立页面模板与统一投影 | `done` |
+| `Batch-C` | `EP-7` `EP-8` `EP-9` | 详情页结构化与性能收敛 | `done` |
 
 ## EP-0 回归清单
 
@@ -242,7 +242,7 @@
 
 ### T-008 Batch-A 综合回归
 
-- 状态: `verifying`
+- 状态: `done`
 - 归属阶段: `EP-0/1/2/3`
 - 目标:
   对固定骨架、query rail、message rail、footer rail 做一次统一回归。
@@ -268,7 +268,7 @@
 
 ### T-101 页面模板归类与接口草案
 
-- 状态: `todo`
+- 状态: `done`
 - 归属阶段: `EP-4`
 - 目标:
   给现有页面建立模板归类表和模板接口草案。
@@ -278,7 +278,7 @@
 
 ### T-102 日志页专项改造
 
-- 状态: `todo`
+- 状态: `done`
 - 归属阶段: `EP-5`
 - 目标:
   将日志页改为真实 panel body width + viewport 级渲染。
@@ -288,7 +288,7 @@
 
 ### T-103 投影层接口草案
 
-- 状态: `todo`
+- 状态: `done`
 - 归属阶段: `EP-6`
 - 目标:
   为 title / summary / selection / shortcut 建立统一 projector 接口。
@@ -300,7 +300,7 @@
 
 ### T-201 Detail Page 接线到 BR-001
 
-- 状态: `todo`
+- 状态: `done`
 - 归属阶段: `EP-7`
 - 目标:
   让 detail page 正式接线 image detail section model。
@@ -310,7 +310,7 @@
 
 ### T-202 表格列宽缓存第一版
 
-- 状态: `todo`
+- 状态: `done`
 - 归属阶段: `EP-8`
 - 目标:
   为高频表格建立宽度与表头缓存。
@@ -320,7 +320,7 @@
 
 ### T-203 增量性能热点收敛
 
-- 状态: `todo`
+- 状态: `done`
 - 归属阶段: `EP-9`
 - 目标:
   对 profiling 后确认的热点做增量优化。
