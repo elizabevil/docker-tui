@@ -1,6 +1,6 @@
 # dtui — 当前设计文档
 
-> 最后更新: 2026-06-19
+> 最后更新: 2026-07-20
 > 此文档为唯一权威设计参考，旧版 design/*.md 已归档。
 
 ---
@@ -41,9 +41,9 @@ dtui 采用类 HTML 嵌套盒模型（Box Model），从外到内逐层缩进宽
 │  │  │  │ │   └─────────────────────────┘  │  │  │  │  │
 │  │  │  │ ╰──────────────────────────────╯  │  │  │  │
 │  │  │  └───────────────────────────────────┘  │  │  │
-│  │  │  ┌─ Footer Shortcuts (双行) ──────────┐  │  │  │ ← widget/footer/
-│  │  │  │  j↓ k↑ Tab / : ? H C q            │  │  │  │
-│  │  │  │  s S r K l m d e                   │  │  │  │
+│  │  │  ┌─ Footer Shortcuts (2~3行) ────────┐  │  │  │ ← widget/footer/
+│  │  │  │  j↓ k↑ Tab / ? H C q              │  │  │  │
+│  │  │  │  Space s Ctrl+S ...（按面板变化）  │  │  │  │
 │  │  │  └───────────────────────────────────┘  │  │  │
 │  │  │  ┌─ Status Bar (1行) ─────────────────┐  │  │  │ ← widget/footer/
 │  │  │  │  ● docker │ /var/run/docker.sock   │  │  │  │
@@ -84,8 +84,7 @@ topH, midH, botH = sectionHeights(m, usableH)
 ```
 internal/tui/ui/app/
 ├── app.jsonc        ← 应用窗口占比配置 (嵌入 Go 二进制)
-├── layout.go        ← 主布局入口 RenderApp()
-└── bgcache.go       ← 图片背景缓存
+└── layout.go        ← 主布局入口 RenderApp() + 背景渲染 / imageColorCache
 ```
 
 ```jsonc
@@ -104,6 +103,8 @@ Fallback: appWindowConfig{
     ContentWidthPct: 90,
 }
 ```
+
+背景相关配置不在 `app.jsonc`，而是在主配置的 `layout.background` / `layout.sectionWeights` 中定义，并由 `layout.go` 统一处理。
 
 ---
 
@@ -298,9 +299,8 @@ midH  (sectionHeights 分配)
 ```
 internal/tui/ui/
 ├── app/
-│   ├── layout.go             主布局入口 (RenderApp)
-│   ├── app.jsonc             应用窗口占比配置
-│   └── bgcache.go            图片背景缓存
+│   ├── layout.go             主布局入口 (RenderApp) + 背景绘制 / imageColorCache
+│   └── app.jsonc             应用窗口占比配置
 │
 ├── component/                可复用组件库
 │   ├── table.go              RenderTable + SelectionInfoProvider 接口
@@ -427,15 +427,16 @@ type FuncInfoProvider struct { Fn func() string }
 
 ```
 / 按下 → ModeFilter + FilterText=""
-键入   → handleFilterInput 累加字符 + 重置 SearchTimer
-停止   → SearchTimer 到 0 → ApplyFilter + ModeNormal (自动过滤)
-Enter → 手动确认过滤
-Esc   → 取消
+键入   → handleFilterInput 累加字符
+资源表 → 输入时即时 ApplyFilter()
+日志页 → 作为搜索词编辑，按 Enter 后跳转到首个匹配
+Enter → 资源表确认并退出 / 日志页应用搜索
+Esc   → 取消并返回 Normal
 ```
 
-- 防抖: `searchDebounceMs` 配置 (默认 1000ms, 见 config.jsonc)
+- `SearchTick`/`SearchTimer` 相关结构仍在代码里保留，但当前过滤框不会按 1 秒防抖自动关闭
 - 搜索输入显示在面板标题行的 BorderLabel 中: `╭─ Search: xxx ─╮`
-- 支持 Backspace 删除
+- 支持左右移动、`Home` / `End`、`Ctrl+A` / `Ctrl+E`、`Backspace` / `Delete`
 
 ### 7.2 命令 (: 键)
 
@@ -456,25 +457,29 @@ Esc   → 取消
 ### 8.1 全局 (所有面板)
 
 ```
-j/k Tab 导航  / 搜索  : 命令  ? 帮助  H 顶栏  C 连接  q 退出
+j/k/↑/↓ 导航  Tab 切面板  / 搜索  : 命令  ?/F1 帮助  H 顶栏  F2 切运行时  C 连接  q 退出
 ```
 
 ### 8.2 页面特有
 
 | 面板 | 快捷键 |
 |------|--------|
-| 容器 | s 启动, Ctrl+S 停止, r 重启, Ctrl+K 杀死, l 日志, m 统计, d 详情 |
-| 镜像 | p Prune, Ctrl+P Pull, d 详情, Ctrl+B 调试, Ctrl+E 导出, o 排序 |
-| 卷/网络 | Enter 扩展, Ctrl+D 删除 |
-| Compose | ←→ 切换焦点, Enter 钻取, d 详情, s 启动, Ctrl+S 停止 |
+| 容器 | `s` 启动, `Ctrl+S` 停止, `Ctrl+R` 重启, `Ctrl+K` 杀死, `l` 日志, `m` 统计, `d` 详情, `i` inspect, `e` exec |
+| 镜像 | `Enter/→` 进入容器子视图, `Ctrl+P` Pull, `p` Prune, `d` 详情, `Ctrl+B` 调试, `Ctrl+E` 导出, `y` 复制引用, `o/Ctrl+O` 排序 |
+| 卷 | `Enter` 进入卷详情子视图, `d` 详情, `Ctrl+D` 删除 |
+| 网络 | `d` 详情, `o/Ctrl+O` 排序, `Ctrl+D` 删除 |
+| Compose | `←/→` 切换焦点或子视图, `Enter` 钻取, `s` 启动, `Ctrl+S` 停止, `l` 日志, `Ctrl+D` down, `d` 详情 |
 
-### 8.3 Footer 双行
+### 8.3 Footer 结构
 
 ```
-第一行: j↓ k↑ Tab / : ? H C q      ← 全局
-第二行: s S r K l m d e            ← 容器面板特有
-第三行: 操作日志 (短提示, 始终占位)    ← OperationLogLine
+第一行: j↓ k↑ Tab / ? H C q         ← 全局快捷键行
+第二行: 当前面板或当前模式的快捷键     ← 例如容器面板显示 Space / s / Ctrl+S / ...
+第三行: 操作日志 (短提示, 始终占位)     ← OperationLogLine
 ```
+
+- 处于 `ModeMark`、`ModeConfirm`、`ModeLogView`、`ModeDetail`、`ModeHelp` 时，第二行会被模式级提示覆盖。
+- `:` 命令模式、`F2` 运行时切换等能力存在，但当前不在 Footer 全局行中展示。
 
 ---
 
@@ -515,7 +520,8 @@ GetStyle("stateRunning")
 | 文件 | 配置项 |
 |------|--------|
 | `app.jsonc` | `marginTopPct: 5`, `marginBottomPct: 5`, `contentWidthPct: 90` |
-| `config.jsonc` | `search.debounceMs: 1000`, `cols.*.pct/more/wide/compact/show` |
+| `internal/data/config/default.jsonc` / 用户 `config.yml` | `layout.sectionWeights`, `layout.background`, `ui.searchDebounceMs`, `keymap.*` |
+| `config.jsonc` | `cols.*.pct/more/wide/compact/show` |
 | `table.jsonc` | `rowStyles`, `stateStyles`, `pages.*.columns`, `selectionInfo`, `rowSpacing` |
 | `header.jsonc` | `columns[].weight`, `keystroke.displayDuration: 30`, `keystroke.animDuration: 5` |
 | `footer.jsonc` | `markSymbol: ☑` |

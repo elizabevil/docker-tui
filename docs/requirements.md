@@ -9,7 +9,7 @@
 | 容器列表、启停、重启、Kill、删除 | 已实现 | `internal/tui/keyboard/container_action.go` |
 | 实时日志 | 已实现 | 当前为按需拉取/显示，不是启动即常驻事件流 |
 | 容器 stats | 已实现 | 定时轮询当前容器列表，不是只轮询单个聚焦容器 |
-| 镜像列表、Pull、Prune、详情 | 已实现 | Export / Debug 目前提供命令预览对话框 |
+| 镜像列表、Pull、Prune、详情 | 已实现 | Export / Debug 目前提供命令预览对话框；详情页已分区渲染，但 History 区块仍是占位提示 |
 | Volume / Network 列表、删除、详情 | 已实现 | 当前没有“创建”入口 |
 | Compose 项目视图 | 已实现 | 基于 `com.docker.compose.*` labels 聚合，不解析 `compose.yaml` |
 | 主题、i18n、帮助页、命令模式、过滤 | 已实现 | `zh` / `en` 已接入 |
@@ -18,6 +18,15 @@
 | 自定义快捷键 | 规划中 | 配置结构存在，运行时仍使用硬编码默认映射 |
 | Bulk 批量操作 | 部分实现 | 已有 mark 模式，但覆盖范围仍有限 |
 | 鼠标支持 | 部分实现 | 当前主要用于日志/详情滚轮滚动 |
+
+## 当前已验证差距
+
+这些点适合作为后续 bug / 需求跟踪入口，均已按代码核对：
+
+- 镜像详情页的 `History` 区块已经预留，但 `internal/data/docker/InspectImage()` 还没有接入镜像 layer history 数据，当前只显示“暂不可用”占位文案。
+- `config.Keymap` 结构和默认值已存在，但运行时仍走 `keys.DefaultKeyMapping()`；用户配置里的自定义键位当前不会生效。
+- 默认配置中的 `keymap` 示例仍保留旧的大写键位写法（如 `S/K/P`），而实际键盘分发已经统一成 `Ctrl+S`、`Ctrl+K`、`Ctrl+P` 风格。
+- 过滤交互当前是“资源列表输入即过滤、日志搜索按 Enter 应用”，不再是旧文档描述的“1 秒防抖后自动退出”。
 
 ## 竞品参考
 

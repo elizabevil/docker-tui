@@ -23,11 +23,13 @@ go build -o ./dist/docker-tui ./cmd/docker-tui
 - [project-structure.md](project-structure.md)：目录与包职责，已按代码核对
 - [navigation.md](navigation.md)：当前默认交互与快捷键
 - [requirements.md](requirements.md)：产品范围和路线图，包含规划项，不等于已实现清单
+- [bugfix-requirements.md](bugfix-requirements.md)：历史 bug 修复需求台账，单独跟踪修复项
 - [ai-prompts.md](ai-prompts.md)：面向当前代码结构的 AI 协作提示
 
 ## 设计文档
 
 - [../design/current-design.md](../design/current-design.md)：当前唯一权威 UI 设计文档
+- [../design/bugfix-design.md](../design/bugfix-design.md)：历史 bug 修复设计与变更约束
 - [../design/README.md](../design/README.md)：设计文档入口
 - [ui-preview/README.md](ui-preview/README.md)：浏览器预览系统说明
 
@@ -46,3 +48,4 @@ go build -o ./dist/docker-tui ./cmd/docker-tui
 - “实现现状”以代码为准。
 - “设计意图”以 `design/current-design.md` 为准。
 - “需求/路线图”允许包含尚未实现的能力，但应与实现文档分开表述。
+- “历史 bug 修复需求”统一记录在 `bugfix-requirements.md`，不要混入路线图。
