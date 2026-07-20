@@ -1,6 +1,6 @@
 # 交互与导航
 
-本文记录当前默认行为，基于 `internal/tui/keyboard/*`、`internal/tui/keys/*` 与页面渲染代码整理。
+本文记录当前默认行为，基于 `internal/tui/keyboard/*`、`internal/tui/keys/*` 与页面渲染代码整理。表中的可配置动作均可通过 `config.yml` 的 `keymap.*` 覆盖；Help 和 Footer 会显示当前有效绑定。
 
 ## 面板与模式
 
@@ -42,7 +42,7 @@
 | `Space` | 进入或操作标记模式 |
 | `Ctrl+D` | 删除当前资源 |
 
-注意：键盘分发会先把单字符大写转成小写，因此一些旧文档里写的 `S/K/P` 已被实际实现改成 `Ctrl+S`、`Ctrl+K`、`Ctrl+P` 这类组合键。
+按键名称统一做大小写归一化。Stop、Kill、Pull 等与小写单键动作冲突的操作使用 `Ctrl+S`、`Ctrl+K`、`Ctrl+P` 组合键。
 
 ## 面板级行为
 
@@ -74,7 +74,7 @@
 | `d` | 详情 |
 | `o` / `Ctrl+O` | 排序 |
 
-镜像子视图中可对映射出的容器执行 `s`、`Ctrl+S`、`r`、`l`、`e` 等操作。
+镜像子视图中可对映射出的容器执行 `s`、`Ctrl+S`、`Ctrl+R`、`l`、`e` 等操作。
 
 ### Volumes
 
@@ -119,7 +119,8 @@ Compose 面板是双栏：
 - `/` 进入
 - `Enter` 应用过滤
 - `Esc` 退出
-- 支持左右移动、`Home` / `End`、`Ctrl+A` / `Ctrl+E`、`Backspace` / `Delete`
+- 支持左右移动、`Ctrl+B` / `Ctrl+F`、`Alt+B` / `Alt+F`、`Home` / `End`、`Ctrl+A` / `Ctrl+E`
+- 支持 `Backspace` / `Delete`、`Ctrl+H`、`Ctrl+W`、`Ctrl+U`、`Ctrl+K`
 - 在日志视图中，过滤模式会转为日志搜索
 
 ### 命令模式
@@ -136,11 +137,13 @@ Compose 面板是双栏：
 
 支持 `Tab` 自动补全。
 
+命令输入与过滤输入共享上述 shell 风格光标移动和删除操作。
+
 ## 覆盖层行为
 
 ### Help
 
-- 当前实现里帮助页按任意键都会退出，并返回之前的面板
+- 使用当前 Help 绑定或 Back 绑定关闭，并返回之前的面板
 
 ### Detail
 

@@ -113,7 +113,7 @@ state.StatsTick
 - `internal/data/docker/events.go` 已实现 `Client.Events()`，但启动流程里没有订阅事件流；当前刷新主路径仍是连接后 `FetchAll()` 和显式刷新。
 - 容器 stats 当前不是“仅聚焦项轮询”，而是对当前容器列表逐项请求，轮询间隔来自 `config.Docker.StatsPollSec`，默认 3 秒。
 - Compose 面板不是直接解析 `compose.yaml`，而是基于容器上的 `com.docker.compose.*` labels 聚合。
-- `config.Keymap` 结构和默认值已经存在，但 `keyboard.HandleKeyPress()` 目前仍直接使用 `keys.DefaultKeyMapping()`，自定义键位尚未接线。
+- `config.Keymap` 已通过统一动作注册表接入 `keyboard.HandleKeyPress()`；当前支持动作级默认绑定覆盖，用户级上下文覆盖尚未开放。
 - CLI `Use` 名称是 `dtui`，但仓库中仍有部分构建脚本输出文件名 `docker-tui`；文件名和 Cobra `Use` 目前未完全统一。
 
 ## 配置入口

@@ -45,12 +45,12 @@
 
 ### BR-002 自定义键位配置未生效
 
-- 状态: `designing`
+- 状态: `done`
 - 优先级: `high`
 - 症状:
   配置文件里已经存在 `keymap.*` 结构，但运行时不会读取用户自定义键位。
 - 当前行为:
-  `HandleKeyPress()` 直接使用 `keys.DefaultKeyMapping()`，未将 `config.Keymap` 编译为实际映射。
+  `config.Keymap` 已经通过统一动作注册表编译为运行时绑定；未配置动作使用注册表默认值，已配置动作覆盖默认绑定。
 - 代码锚点:
   [internal/data/config/types.go](/home/debi/IdeaProjects/docker-tui/internal/data/config/types.go:27)
   [internal/tui/keyboard/keyboard.go](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/keyboard.go:185)
@@ -64,12 +64,12 @@
 
 ### BR-003 默认键位示例与实际按键体系不一致
 
-- 状态: `designing`
+- 状态: `done`
 - 优先级: `medium`
 - 症状:
   默认配置里的 `keymap` 示例仍使用旧的大写键位写法，如 `S/K/P`，而运行时已经转向 `Ctrl+S`、`Ctrl+K`、`Ctrl+P`。
 - 当前行为:
-  文档和默认配置会误导用户，以为大写单键仍可直接触发 stop / kill / pull。
+  默认配置、运行时解析、Help 和 Footer 已统一使用动作注册表及其有效绑定，不再将大写单键作为 stop / kill / pull 的默认说明。
 - 代码锚点:
   [internal/data/config/default.jsonc](/home/debi/IdeaProjects/docker-tui/internal/data/config/default.jsonc:37)
   [internal/tui/keyboard/keyboard.go](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/keyboard.go:13)
