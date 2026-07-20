@@ -9,11 +9,8 @@ import (
 )
 
 func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	key := msg.String()
-	// 不区分大小写：统一转为小写匹配
-	if len(key) == 1 && key >= "A" && key <= "Z" {
-		key = string(key[0] + 32)
-	}
+	rawKey := msg.String()
+	key := keys.Normalize(rawKey)
 	var cmds []tea.Cmd
 
 	if key != keys.KeyEsc {
@@ -28,8 +25,9 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 	}
 
 	if m.Mode == state.ModeHelp {
-		key = keys.KeyEsc
-		BackFromHelp(m)
+		if action, known := resolveAction(key, m); known && (action == keys.ActionHelp || action == keys.ActionBack) {
+			BackFromHelp(m)
+		}
 		return m, nil
 	}
 
@@ -56,11 +54,11 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 	}
 
 	if m.Mode == state.ModeFilter {
-		return handleFilterInput(key, m), nil
+		return handleFilterInput(normalizeInputKey(rawKey), m), nil
 	}
 
 	if m.Mode == state.ModeCommand {
-		return handleCommandInput(key, m)
+		return handleCommandInput(normalizeInputKey(rawKey), m)
 	}
 
 	if handleDetailKeys(key, m) {
@@ -107,6 +105,22 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 		return enterMarkMode(m)
 	}
 
+	// Nested views own additional cursor semantics and are resolved first.
+	if m.ActivePanel == state.PanelImages && m.Images.ContainersViewID != "" {
+		if mm, cmd := handleImagePanelKeys(key, m); mm != nil || cmd != nil {
+			return mm, cmd
+		}
+	}
+	if m.ActivePanel == state.PanelCompose && m.ComposeContainerViewID != "" {
+		if mm, cmd := handleComposePanelKeys(key, m); mm != nil || cmd != nil {
+			return mm, cmd
+		}
+	}
+	if action, known := resolveAction(key, m); known {
+		cmds = append(cmds, RecordKeyStroke(m, key, KeyStrokeActionLabel(key)))
+		return handleAction(action, m, cmds)
+	}
+
 	if mm, cmd := handleImagePanelKeys(key, m); mm != nil || cmd != nil {
 		return mm, cmd
 	}
@@ -114,24 +128,10 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 		return mm, cmd
 	}
 
-	if key == keys.KeyCtrlD {
-		cmds = append(cmds, RecordKeyStroke(m, key, keys.ActionLabelDelete))
-		return doDeleteAction(m)
-	}
-
-	if key == keys.KeyF2 || key == "F2" {
-		cmds = append(cmds, RecordKeyStroke(m, key, keys.ActionLabelSwitch))
-		return doSwitchRuntime(m)
-	}
-
 	if key == keys.KeyH {
 		cmds = append(cmds, RecordKeyStroke(m, key, keys.ActionLabelHeader))
 		m.HeaderVisible = !m.HeaderVisible
 		return m, tea.Batch(cmds...)
-	}
-
-	if mm, cmd := handleVolumeEnter(key, m); mm != nil || cmd != nil {
-		return mm, cmd
 	}
 
 	if key == keys.KeyC {
@@ -182,13 +182,75 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 		}
 	}
 
-	km := keys.DefaultKeyMapping()
-	action, known := km[key]
-	if !known {
-		return m, nil
+	return m, nil
+}
+
+func normalizeInputKey(key string) string {
+	if len([]rune(key)) == 1 {
+		return key
 	}
-	cmds = append(cmds, RecordKeyStroke(m, key, KeyStrokeActionLabel(key)))
-	return handleAction(action, m, cmds)
+	return keys.Normalize(key)
+}
+
+func resolveAction(key string, m *state.AppModel) (keys.KeyAction, bool) {
+	if m == nil || m.Config == nil {
+		return "", false
+	}
+	resolver := keys.NewResolver(keys.CompileBindings(m.Config.Keymap))
+	return resolver.Resolve(key, keyContext(m))
+}
+
+func keyContext(m *state.AppModel) keys.Context {
+	view := "containers"
+	switch m.ActivePanel {
+	case state.PanelImages:
+		if m.Images.ContainersViewID != "" {
+			view = "image-containers"
+		} else {
+			view = "images"
+		}
+	case state.PanelVolumes:
+		view = "volumes"
+	case state.PanelNetworks:
+		view = "networks"
+	case state.PanelCompose:
+		if m.ComposeContainerViewID != "" {
+			view = "compose-containers"
+		} else {
+			view = "compose"
+		}
+	case state.PanelHelp:
+		view = "help"
+	}
+	return keys.Context{App: "app", Surface: keySurface(m.Mode), View: view, Mode: keyMode(m.Mode)}
+}
+
+func keySurface(mode state.AppMode) string {
+	switch mode {
+	case state.ModeFilter, state.ModeCommand:
+		return "input"
+	case state.ModeConfirm, state.ModeExport, state.ModeDebug, state.ModeExec, state.ModeExecShell:
+		return "dialog"
+	default:
+		return "main"
+	}
+}
+
+func keyMode(mode state.AppMode) string {
+	switch mode {
+	case state.ModeFilter:
+		return "filter"
+	case state.ModeCommand:
+		return "command"
+	case state.ModeLogView:
+		return "logs"
+	case state.ModeDetail:
+		return "detail"
+	case state.ModeMark:
+		return "mark"
+	default:
+		return "normal"
+	}
 }
 
 func handleFilterInput(key string, m *state.AppModel) *state.AppModel {
@@ -219,54 +281,9 @@ func handleFilterInput(key string, m *state.AppModel) *state.AppModel {
 		} else {
 			ApplyFilter(m)
 		}
-	case keys.KeyLeft:
-		if m.FilterCursor > 0 {
-			m.FilterCursor--
-		}
-	case keys.KeyRight:
-		t := []rune(m.FilterText)
-		if m.FilterCursor < len(t) {
-			m.FilterCursor++
-		}
-	case "ctrl+a", keys.KeyHome:
-		m.FilterCursor = 0
-	case "ctrl+e", keys.KeyEnd:
-		m.FilterCursor = len([]rune(m.FilterText))
-	case keys.KeyBackspace:
-		t := []rune(m.FilterText)
-		if len(t) > 0 && m.FilterCursor > 0 {
-			idx := m.FilterCursor
-			m.FilterText = string(append(t[:idx-1], t[idx:]...))
-			m.FilterCursor--
-			if !inLogSearch {
-				ApplyFilter(m)
-			}
-		}
-	case keys.KeyDelete:
-		t := []rune(m.FilterText)
-		if len(t) > 0 && m.FilterCursor < len(t) {
-			idx := m.FilterCursor
-			m.FilterText = string(append(t[:idx], t[idx+1:]...))
-			if !inLogSearch {
-				ApplyFilter(m)
-			}
-		}
 	default:
-		if len(key) == 1 && key != keys.KeyBackspace {
-			t := []rune(m.FilterText)
-			idx := m.FilterCursor
-			if idx < 0 {
-				idx = 0
-			}
-			if idx > len(t) {
-				idx = len(t)
-			}
-			insert := []rune(key)
-			m.FilterText = string(append(append(t[:idx], insert...), t[idx:]...))
-			m.FilterCursor += len(insert)
-			if !inLogSearch {
-				ApplyFilter(m)
-			}
+		if handled, changed := editTextInput(key, &m.FilterText, &m.FilterCursor); handled && changed && !inLogSearch {
+			ApplyFilter(m)
 		}
 	}
 	return m

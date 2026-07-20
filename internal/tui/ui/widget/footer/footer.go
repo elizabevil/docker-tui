@@ -39,7 +39,7 @@ func StatusBar(app *state.AppModel) string {
 }
 
 func Shortcuts(app *state.AppModel) string {
-	globalRow := renderShortcuts(action.Global())
+	globalRow := renderShortcuts(action.Global(app))
 	contextRow := renderShortcuts(action.Context(app))
 	return lipgloss.JoinVertical(lipgloss.Top, globalRow, contextRow)
 }

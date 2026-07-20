@@ -21,34 +21,37 @@ func exitMarkMode(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 }
 
 func handleMarkMode(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	// Mark-specific keys
-	switch key {
-	case keys.KeyEsc:
-		m.MarkedIDs = make(map[string]bool)
-		return exitMarkMode(m)
-	case keys.KeyCtrlD:
-		return doBulkDelete(m)
-	case keys.KeyEnter:
-		return doToggleMark(m)
+	action, known := resolveAction(key, m)
+	if known {
+		switch action {
+		case keys.ActionBack:
+			m.MarkedIDs = make(map[string]bool)
+			return exitMarkMode(m)
+		case keys.ActionDelete, keys.ActionContainerRemove, keys.ActionImageRemove, keys.ActionVolumeRemove, keys.ActionNetworkRemove:
+			return doBulkDelete(m)
+		case keys.ActionEnter:
+			return doToggleMark(m)
+		case keys.ActionUp:
+			moveCursor(m, -1)
+			return m, nil
+		case keys.ActionDown:
+			moveCursor(m, 1)
+			return m, nil
+		case keys.ActionTabNext:
+			switchPanel(m, 1)
+			return m, nil
+		case keys.ActionTabPrev:
+			switchPanel(m, -1)
+			return m, nil
+		}
 	}
 
 	if keys.IsSpace(key) {
 		return doToggleMark(m)
 	}
 
-	// Navigation passthrough
-	if key == keys.KeyJ || key == keys.KeyUp {
-		moveCursor(m, -1)
-	} else if key == keys.KeyK || key == keys.KeyDown {
-		moveCursor(m, 1)
-	} else if key == keys.KeyG {
+	if key == keys.KeyG {
 		moveCursor(m, -999)
-	} else if key == keys.KeyG {
-		moveCursor(m, 999)
-	} else if key == keys.KeyTab {
-		switchPanel(m, 1)
-	} else if key == keys.KeyShiftTab {
-		switchPanel(m, -1)
 	}
 	return m, nil
 }

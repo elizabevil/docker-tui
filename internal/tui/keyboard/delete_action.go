@@ -58,7 +58,16 @@ func doEnterAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		return doLogAction(m)
 	}
 	if m.ActivePanel == state.PanelImages && m.Docker != nil {
-		return doImageDetail(m)
+		return doImageExpand(m)
+	}
+	if m.ActivePanel == state.PanelVolumes {
+		if vol := m.Volumes.Selected(); vol != nil {
+			ToVolumeDetail(m, vol.Name)
+		}
+		return m, nil
+	}
+	if m.ActivePanel == state.PanelCompose {
+		return doComposeEnter(m)
 	}
 	return m, nil
 }

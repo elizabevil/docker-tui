@@ -56,13 +56,13 @@ type helpItem struct {
 // SectionProvider 为帮助页提供分组数据。
 // 通过接口解耦"渲染流程"和"内容来源"，便于后续替换为动态来源。
 type SectionProvider interface {
-	Sections() []helpSection
+	Sections(*state.AppModel) []helpSection
 }
 
 type defaultSectionProvider struct{}
 
-func (defaultSectionProvider) Sections() []helpSection {
-	registrySections := action.Sections()
+func (defaultSectionProvider) Sections(app *state.AppModel) []helpSection {
+	registrySections := action.Sections(app)
 	sections := make([]helpSection, 0, len(registrySections))
 	for _, section := range registrySections {
 		items := make([]helpItem, len(section.Shortcuts))
@@ -87,7 +87,7 @@ func NewRenderer(provider SectionProvider) *Renderer {
 	return &Renderer{cfg: DefaultHelpConfig(), provider: provider}
 }
 
-func (r *Renderer) Render(width int, _ *state.AppModel) string {
+func (r *Renderer) Render(width int, app *state.AppModel) string {
 	if width < 40 {
 		width = 40
 	}
@@ -106,7 +106,7 @@ func (r *Renderer) Render(width int, _ *state.AppModel) string {
 
 	// Right column: all shortcut sections
 	var rightSb strings.Builder
-	for _, sec := range r.provider.Sections() {
+	for _, sec := range r.provider.Sections(app) {
 		rightSb.WriteString("\n")
 		rightSb.WriteString(component.GetStyle("header").Render(sec.Title))
 		rightSb.WriteString("\n")
@@ -118,7 +118,14 @@ func (r *Renderer) Render(width int, _ *state.AppModel) string {
 		}
 	}
 	rightSb.WriteString("\n")
-	rightSb.WriteString(component.GetStyle("dim").Render("Press '?' or Esc to close help"))
+	closeKeys := "Esc"
+	for _, shortcut := range action.ForMode(app) {
+		if shortcut.Description == "Close" {
+			closeKeys = shortcut.Key
+			break
+		}
+	}
+	rightSb.WriteString(component.GetStyle("dim").Render("Press " + closeKeys + " to close help"))
 
 	leftBox := lipgloss.NewStyle().Width(leftW).Render(leftSb.String())
 	rightBox := lipgloss.NewStyle().Width(rightW).Render(rightSb.String())

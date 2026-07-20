@@ -3,6 +3,8 @@ package action
 import (
 	"testing"
 
+	"github.com/elizabevil/docker-tui/internal/data/config"
+	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
 
@@ -22,4 +24,16 @@ func TestSectionsUseRegistryActions(t *testing.T) {
 	if len(sections[0].Shortcuts) != len(Global()) {
 		t.Fatalf("global help section and footer registry differ")
 	}
+}
+
+func TestGlobalProjectsConfiguredBindings(t *testing.T) {
+	app := &state.AppModel{Config: config.DefaultConfig()}
+	app.Config.Keymap.Help = []string{"f3"}
+	shortcuts := Global(app)
+	for _, shortcut := range shortcuts {
+		if shortcut.Description == i18n.T("key.help") && shortcut.Key == "F3" {
+			return
+		}
+	}
+	t.Fatalf("configured help binding not found: %#v", shortcuts)
 }

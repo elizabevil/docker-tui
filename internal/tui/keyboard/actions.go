@@ -60,6 +60,8 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 		return doContainerAction(m, "restart", func(c *docker.Client, id string) tea.Cmd { return containerRestartCmd(c, id) })
 	case keys.ActionContainerKill:
 		return doContainerAction(m, "kill", func(c *docker.Client, id string) tea.Cmd { return containerKillCmd(c, id) })
+	case keys.ActionContainerRemove, keys.ActionDelete:
+		return doDeleteAction(m)
 
 	case keys.ActionDetail:
 		return doDetailAction(m)
@@ -91,6 +93,8 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 		return doVolumeRemove(m)
 	case keys.ActionNetworkRemove:
 		return doNetworkRemove(m)
+	case keys.ActionSwitchRuntime:
+		return doSwitchRuntime(m)
 
 	case keys.ActionCommand:
 		ToCommand(m)

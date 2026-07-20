@@ -47,7 +47,8 @@
       "ctrl+c"
     ],
     "help": [
-      "?"
+      "?",
+      "f1"
     ],
     "filter": [
       "/"
@@ -59,17 +60,16 @@
       "s"
     ],
     "containerStop": [
-      "S"
+      "ctrl+s"
     ],
     "containerRestart": [
-      "r"
+      "ctrl+r"
     ],
     "containerKill": [
-      "K"
+      "ctrl+k"
     ],
     "containerRemove": [
-      "d",
-      "x"
+      "ctrl+d"
     ],
     "containerLogs": [
       "l"
@@ -84,22 +84,19 @@
       "m"
     ],
     "imagePull": [
-      "P"
+      "ctrl+p"
     ],
     "imageRemove": [
-      "d",
-      "x"
+      "ctrl+d"
     ],
     "imagePrune": [
       "p"
     ],
     "volumeRemove": [
-      "d",
-      "x"
+      "ctrl+d"
     ],
     "networkRemove": [
-      "d",
-      "x"
+      "ctrl+d"
     ],
     "tabNext": [
       "tab"

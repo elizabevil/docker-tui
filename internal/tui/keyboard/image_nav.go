@@ -19,35 +19,42 @@ func handleImagePanelKeys(key string, m *state.AppModel) (*state.AppModel, tea.C
 
 	// ── Container sub-view (ContainersViewID is set) ─────────
 	if m.Images.ContainersViewID != "" {
-		switch key {
-		case keys.KeyJ, keys.KeyDown:
+		action, known := resolveAction(key, m)
+		if !known {
+			if key == keys.KeyLeft {
+				return doImageCollapse(m)
+			}
+			return m, nil
+		}
+		switch action {
+		case keys.ActionDown:
 			m.Images.ContainerCursor++
 			return m, nil
-		case keys.KeyK, keys.KeyUp:
+		case keys.ActionUp:
 			if m.Images.ContainerCursor > 0 {
 				m.Images.ContainerCursor--
 			}
 			return m, nil
-		case keys.KeyE:
+		case keys.ActionContainerExec:
 			syncContainerCursorForSubView(m)
 			m.Mode = state.ModeExec
 			m.DialogFocus = 0
 			m.DialogCursor = 0
 			m.FilterText = "/bin/sh"
 			return m, RecordKeyStroke(m, key, "Exec")
-		case keys.KeyS:
+		case keys.ActionContainerStart:
 			mm, cmd := doImageSubContainerCmd(m, containerStartCmd)
 			return mm, tea.Batch(cmd, RecordKeyStroke(m, key, "Start"))
-		case keys.KeyCtrlS:
+		case keys.ActionContainerStop:
 			mm, cmd := doImageSubContainerCmd(m, func(c *docker.Client, id string) tea.Cmd { return containerStopCmd(c, id) })
 			return mm, tea.Batch(cmd, RecordKeyStroke(m, key, "Stop"))
-		case keys.KeyR:
+		case keys.ActionContainerRestart:
 			mm, cmd := doImageSubContainerCmd(m, func(c *docker.Client, id string) tea.Cmd { return containerRestartCmd(c, id) })
 			return mm, tea.Batch(cmd, RecordKeyStroke(m, key, "Restart"))
-		case keys.KeyEnter, keys.KeyL:
+		case keys.ActionEnter, keys.ActionContainerLogs:
 			mm, cmd := doImageContainerLog(m)
 			return mm, tea.Batch(cmd, RecordKeyStroke(m, key, "Logs"))
-		case keys.KeyEsc, keys.KeyLeft:
+		case keys.ActionBack:
 			return doImageCollapse(m)
 		}
 		return m, nil
@@ -63,7 +70,7 @@ func handleImagePanelKeys(key string, m *state.AppModel) (*state.AppModel, tea.C
 	if key == keys.KeyY {
 		return doImageCopyRef(m)
 	}
-	if key == keys.KeyRight || key == keys.KeyEnter {
+	if key == keys.KeyRight {
 		return doImageExpand(m)
 	}
 	if key == keys.KeyLeft {

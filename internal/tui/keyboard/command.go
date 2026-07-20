@@ -20,21 +20,12 @@ func handleCommandInput(key string, m *state.AppModel) (*state.AppModel, tea.Cmd
 		m.FilterText = ""
 		m.FilterCursor = 0
 		return m, nil
-	case "backspace":
-		if len(m.FilterText) > 0 {
-			m.FilterText = m.FilterText[:len(m.FilterText)-1]
-		}
-		m.FilterCursor = len([]rune(m.FilterText))
-		return m, nil
 	case "tab":
 		m.FilterText = autocompleteCommand(m.FilterText)
 		m.FilterCursor = len([]rune(m.FilterText))
 		return m, nil
 	default:
-		if len(key) == 1 {
-			m.FilterText += key
-			m.FilterCursor = len([]rune(m.FilterText))
-		}
+		editTextInput(key, &m.FilterText, &m.FilterCursor)
 		return m, nil
 	}
 }

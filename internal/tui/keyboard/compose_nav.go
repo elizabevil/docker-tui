@@ -15,16 +15,17 @@ func handleComposePanelKeys(key string, m *state.AppModel) (*state.AppModel, tea
 
 	// 容器子视图模式：Esc 返回
 	if m.ComposeContainerViewID != "" {
-		if key == keys.KeyEsc || key == keys.KeyLeft {
+		action, known := resolveAction(key, m)
+		if action == keys.ActionBack || key == keys.KeyLeft {
 			m.ComposeContainerViewID = ""
 			m.ComposeContainerCursor = 0
 			return m, RecordKeyStroke(m, key, keys.ActionLabelProjects)
 		}
-		if key == keys.KeyJ || key == keys.KeyDown {
+		if known && action == keys.ActionDown {
 			m.ComposeContainerCursor++
 			return m, nil
 		}
-		if key == keys.KeyK || key == keys.KeyUp {
+		if known && action == keys.ActionUp {
 			if m.ComposeContainerCursor > 0 {
 				m.ComposeContainerCursor--
 			}
@@ -49,24 +50,6 @@ func handleComposePanelKeys(key string, m *state.AppModel) (*state.AppModel, tea
 	// Enter:
 	//   左栏 → 切到右栏（同 →）
 	//   右栏 → 进入容器子视图（Compose 面板内）
-	if key == keys.KeyEnter {
-		if m.ComposeFocus == 0 {
-			m.ComposeFocus = 1
-			if m.ComposeServiceCursor < 0 {
-				m.ComposeServiceCursor = 0
-			}
-			return m, RecordKeyStroke(m, key, keys.ActionLabelServices)
-		}
-		// 右栏 Enter → 进入该服务的容器子视图
-		project := currentComposeProject(m)
-		services := composeServiceNames(m, project)
-		if m.ComposeServiceCursor >= 0 && m.ComposeServiceCursor < len(services) {
-			m.ComposeContainerViewID = services[m.ComposeServiceCursor]
-			m.ComposeContainerCursor = 0
-		}
-		return m, RecordKeyStroke(m, key, keys.ActionLabelContainers)
-	}
-
 	switch key {
 	case keys.KeyD:
 		// 左栏按 d → 项目概览
@@ -92,4 +75,21 @@ func handleComposePanelKeys(key string, m *state.AppModel) (*state.AppModel, tea
 		return mm, tea.Batch(cmd, RecordKeyStroke(m, key, keys.ActionLabelDown))
 	}
 	return nil, nil
+}
+
+func doComposeEnter(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	if m.ComposeFocus == 0 {
+		m.ComposeFocus = 1
+		if m.ComposeServiceCursor < 0 {
+			m.ComposeServiceCursor = 0
+		}
+		return m, RecordKeyStroke(m, keys.KeyEnter, keys.ActionLabelServices)
+	}
+	project := currentComposeProject(m)
+	services := composeServiceNames(m, project)
+	if m.ComposeServiceCursor >= 0 && m.ComposeServiceCursor < len(services) {
+		m.ComposeContainerViewID = services[m.ComposeServiceCursor]
+		m.ComposeContainerCursor = 0
+	}
+	return m, RecordKeyStroke(m, keys.KeyEnter, keys.ActionLabelContainers)
 }

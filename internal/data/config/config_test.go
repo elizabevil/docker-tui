@@ -117,3 +117,21 @@ func TestConfigKeymapDefaults(t *testing.T) {
 		t.Error("expected Up to be 'up' and 'k'")
 	}
 }
+
+func TestLoadKeymapOverridePreservesOtherDefaults(t *testing.T) {
+	cfgPath := filepath.Join(t.TempDir(), "config.yml")
+	if err := os.WriteFile(cfgPath, []byte("keymap:\n  help: [f3]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := Load(cfgPath)
+	if err != nil {
+		t.Fatalf("Load failed: %v", err)
+	}
+	if len(cfg.Keymap.Help) != 1 || cfg.Keymap.Help[0] != "f3" {
+		t.Fatalf("help override = %v", cfg.Keymap.Help)
+	}
+	if len(cfg.Keymap.Quit) == 0 || cfg.Keymap.Quit[0] != "q" {
+		t.Fatalf("quit default was not preserved: %v", cfg.Keymap.Quit)
+	}
+}

@@ -12,15 +12,23 @@ func handleDetailKeys(key string, m *state.AppModel) bool {
 	if m.Mode != state.ModeDetail {
 		return false
 	}
-	switch key {
-	case keys.KeyEnter, keys.KeyEsc:
-		BackFromDetail(m)
-	case keys.KeyJ, keys.KeyDown:
-		m.DetailOffset++
-	case keys.KeyK, keys.KeyUp:
-		if m.DetailOffset > 0 {
-			m.DetailOffset--
+	action, known := resolveAction(key, m)
+	if known {
+		switch action {
+		case keys.ActionEnter, keys.ActionBack:
+			BackFromDetail(m)
+			return true
+		case keys.ActionDown:
+			m.DetailOffset++
+			return true
+		case keys.ActionUp:
+			if m.DetailOffset > 0 {
+				m.DetailOffset--
+			}
+			return true
 		}
+	}
+	switch key {
 	case keys.KeySpace, keys.KeyPgDn:
 		m.DetailOffset += 20
 	case keys.KeyPgUp:

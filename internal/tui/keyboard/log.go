@@ -11,17 +11,25 @@ func handleLogKeys(key string, m *state.AppModel) bool {
 	if m.Mode != state.ModeLogView {
 		return false
 	}
-	switch key {
-	case keys.KeyEsc:
-		m.Mode = state.ModeNormal
-		m.LogViewOffset = 0
-		m.LogSearchText = ""
-	case keys.KeyJ, keys.KeyDown:
-		m.LogViewOffset++
-	case keys.KeyK, keys.KeyUp:
-		if m.LogViewOffset > 0 {
-			m.LogViewOffset--
+	action, known := resolveAction(key, m)
+	if known {
+		switch action {
+		case keys.ActionBack:
+			m.Mode = state.ModeNormal
+			m.LogViewOffset = 0
+			m.LogSearchText = ""
+			return true
+		case keys.ActionDown:
+			m.LogViewOffset++
+			return true
+		case keys.ActionUp:
+			if m.LogViewOffset > 0 {
+				m.LogViewOffset--
+			}
+			return true
 		}
+	}
+	switch key {
 	case keys.KeyPgDn:
 		m.LogViewOffset += 20
 	case keys.KeyPgUp:
