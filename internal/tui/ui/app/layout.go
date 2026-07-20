@@ -16,14 +16,6 @@ import (
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/compose"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/containers"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/detail"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/help"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/images"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/logs"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/networks"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/volumes"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/dialog"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/footer"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/header"
@@ -262,8 +254,6 @@ func RenderApp(m *state.AppModel) string {
 }
 
 func renderMiddlePanel(m *state.AppModel, panelH int, panelW int) string {
-	searchText := ""
-
 	borderLabel := ""
 	if m.Mode != state.ModeFilter && m.Mode != state.ModeCommand {
 		if f := currentTableFilterLabel(m); f != "" {
@@ -271,40 +261,10 @@ func renderMiddlePanel(m *state.AppModel, panelH int, panelW int) string {
 		}
 	}
 
-	title := state.PanelLabel(m.ActivePanel)
-	info := m.InfoMessage
-	bc := breadcrumb(m)
-
 	bodyH := panelBodyHeight(panelH)
 	contentW := panelW - 4
-	content := renderResourceTable(m, bodyH, contentW)
-	if m.ActivePanel == state.PanelCompose {
-		content = compose.RenderPanel(m, contentW, bodyH)
-	}
-	if m.Mode == state.ModeLogView {
-		title = state.PanelLabel(state.PanelLogs)
-		if m.LogContainerID != "" {
-			info = component.ShortID(m.LogContainerID)
-		} else {
-			info = ""
-		}
-		content = logs.RenderView(m, bodyH)
-	}
-	if m.Mode == state.ModeDetail {
-		title = m.DetailTitle
-		if title == "" {
-			title = state.PanelLabel(state.PanelDetail)
-		}
-		info = ""
-		content = detail.RenderView(m, bodyH)
-	}
-	if m.Mode == state.ModeExecPassthrough {
-		title = "Exec"
-		info = ""
-		content = renderExecPassthroughPanel(m, bodyH)
-	}
-
-	return panel.Panel{Title: title, Info: info, Content: content, Breadcrumb: bc, SearchText: searchText, BorderLabel: borderLabel, Width: panelW, Height: panelH}.Render()
+	page := projectPage(m, bodyH, contentW)
+	return panel.Panel{Title: page.title, Info: page.summary, Content: page.content, Breadcrumb: page.breadcrumb, BorderLabel: borderLabel, Width: panelW, Height: panelH}.Render()
 }
 
 func renderExecPassthroughPanel(m *state.AppModel, bodyH int) string {
@@ -346,26 +306,6 @@ func sliceColors(colors []string, start, count int) []string {
 		return nil
 	}
 	return colors[start : start+count]
-}
-
-func renderResourceTable(m *state.AppModel, panelHeight int, contentW int) string {
-	selectionDisabled := m.Mode == state.ModeFilter
-	switch m.ActivePanel {
-	case state.PanelContainers:
-		return containers.RenderList(m.Containers, contentW, panelHeight, m.MarkedIDs, selectionDisabled)
-	case state.PanelImages:
-		return images.RenderList(m.Images, m.Containers, contentW, panelHeight, m.MarkedIDs, selectionDisabled)
-	case state.PanelVolumes:
-		return volumes.RenderList(m.Volumes, m.Containers, contentW, panelHeight, m.MarkedIDs, selectionDisabled)
-	case state.PanelNetworks:
-		return networks.RenderList(m.Networks, contentW, panelHeight, m.MarkedIDs, selectionDisabled)
-	case state.PanelCompose:
-		return compose.RenderPanel(m, contentW, panelHeight)
-	case state.PanelHelp:
-		return help.RenderView(contentW)
-	default:
-		return ""
-	}
 }
 
 func insertCursor(text string, cursor int) string {

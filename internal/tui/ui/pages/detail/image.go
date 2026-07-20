@@ -2,10 +2,125 @@ package detail
 
 import (
 	"fmt"
+	"sort"
 	"strings"
+	"time"
 
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	"github.com/elizabevil/docker-tui/internal/tui/utils"
 )
+
+func buildImageDetailDataSections(data *dockerclient.ImageDetailData) []detailSection {
+	if data == nil {
+		return nil
+	}
+	sections := make([]detailSection, 0, 7)
+	appendValue := func(lines *[]string, label, value string) {
+		if value != "" {
+			*lines = append(*lines, label+": "+value)
+		}
+	}
+
+	basic := detailSection{Title: i18n.T("inspect.section_basic")}
+	appendValue(&basic.Lines, "ID", data.ID)
+	appendValue(&basic.Lines, i18n.T("inspect.tags"), strings.Join(data.RepoTags, ", "))
+	appendValue(&basic.Lines, i18n.T("inspect.registry"), data.Registry)
+	appendValue(&basic.Lines, i18n.T("inspect.name"), data.Name)
+	appendValue(&basic.Lines, i18n.T("inspect.tag"), data.Tag)
+	appendValue(&basic.Lines, i18n.T("inspect.digest"), strings.Join(data.RepoDigests, ", "))
+	appendValue(&basic.Lines, i18n.T("inspect.created"), data.Created)
+	if data.Size > 0 {
+		appendValue(&basic.Lines, i18n.T("inspect.size"), utils.FormatBytes(float64(data.Size)))
+	}
+	sections = append(sections, basic)
+
+	system := detailSection{Title: i18n.T("inspect.section_system")}
+	appendValue(&system.Lines, i18n.T("inspect.arch"), data.Architecture)
+	appendValue(&system.Lines, "OS", data.OS)
+	appendValue(&system.Lines, "OS Version", data.OSVersion)
+	appendValue(&system.Lines, i18n.T("inspect.author"), data.Author)
+	appendValue(&system.Lines, i18n.T("inspect.comment"), data.Comment)
+	if len(system.Lines) > 0 {
+		sections = append(sections, system)
+	}
+
+	runtime := detailSection{Title: i18n.T("inspect.section_config")}
+	appendValue(&runtime.Lines, i18n.T("inspect.working_dir"), data.Runtime.WorkingDir)
+	appendValue(&runtime.Lines, i18n.T("inspect.user"), data.Runtime.User)
+	appendValue(&runtime.Lines, i18n.T("inspect.stop_signal"), data.Runtime.StopSignal)
+	appendValue(&runtime.Lines, i18n.T("inspect.entrypoint"), strings.Join(data.Runtime.Entrypoint, " "))
+	appendValue(&runtime.Lines, i18n.T("inspect.cmd"), strings.Join(data.Runtime.Cmd, " "))
+	appendValue(&runtime.Lines, i18n.T("inspect.shell"), strings.Join(data.Runtime.Shell, " "))
+	appendValue(&runtime.Lines, i18n.T("inspect.on_build"), strings.Join(data.Runtime.OnBuild, ", "))
+	appendValue(&runtime.Lines, i18n.T("inspect.exposed_ports"), strings.Join(data.Runtime.ExposedPorts, ", "))
+	appendValue(&runtime.Lines, i18n.T("inspect.volumes"), strings.Join(data.Runtime.Volumes, ", "))
+	if len(data.Runtime.Environment) > 0 {
+		runtime.Lines = append(runtime.Lines, i18n.T("inspect.environment")+":")
+		runtime.Lines = append(runtime.Lines, data.Runtime.Environment...)
+	}
+	if len(data.Runtime.Healthcheck) > 0 {
+		runtime.Lines = append(runtime.Lines, i18n.T("inspect.healthcheck")+":")
+		runtime.Lines = append(runtime.Lines, data.Runtime.Healthcheck...)
+	}
+	if len(runtime.Lines) > 0 {
+		sections = append(sections, runtime)
+	}
+
+	storage := detailSection{Title: i18n.T("inspect.section_storage")}
+	appendValue(&storage.Lines, i18n.T("inspect.driver"), data.Driver)
+	if data.LayerCount > 0 {
+		appendValue(&storage.Lines, i18n.T("inspect.layers"), fmt.Sprintf("%d", data.LayerCount))
+	}
+	if len(storage.Lines) > 0 {
+		sections = append(sections, storage)
+	}
+
+	if len(data.Labels) > 0 {
+		labels := detailSection{Title: i18n.T("inspect.section_tags")}
+		keys := make([]string, 0, len(data.Labels))
+		for key := range data.Labels {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			labels.Lines = append(labels.Lines, key+"="+data.Labels[key])
+		}
+		sections = append(sections, labels)
+	}
+
+	history := detailSection{Title: "History"}
+	if data.IsManifest {
+		history.Subtitle = "Manifest variants"
+		for _, variant := range data.ManifestVariants {
+			platform := variant.Platform.OS + "/" + variant.Platform.Architecture
+			if variant.Platform.Variant != "" {
+				platform += "/" + variant.Platform.Variant
+			}
+			availability := "remote"
+			if variant.Available {
+				availability = "available"
+			}
+			history.Lines = append(history.Lines, fmt.Sprintf("%s: %s, %s, %s", platform, variant.Digest, utils.FormatBytes(float64(variant.Size)), availability))
+		}
+	} else {
+		history.Subtitle = "Layers"
+		for index, layer := range data.History {
+			created := ""
+			if layer.Created > 0 {
+				created = time.Unix(layer.Created, 0).Format(time.RFC3339)
+			}
+			history.Lines = append(history.Lines, fmt.Sprintf("%d: %s | %s | %s", index+1, utils.FormatBytes(float64(layer.Size)), created, layer.CreatedBy))
+		}
+	}
+	if data.HistoryError != "" {
+		history.Lines = append(history.Lines, "Unavailable: "+data.HistoryError)
+	}
+	if len(history.Lines) > 0 {
+		sections = append(sections, history)
+	}
+	return sections
+}
 
 func isImageDetailContent(content string) bool {
 	return strings.Contains(content, "Tags:") && strings.Contains(content, "Architecture:")

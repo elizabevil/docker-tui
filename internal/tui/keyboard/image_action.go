@@ -77,6 +77,7 @@ func doImageDetail(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	m.ImageDetailID = img.ID
 	m.ImageDetailContent = ""
+	m.ImageDetailData = docker.NewImageDetailData(*img)
 	titleID := img.ID
 	if len(titleID) > 12 {
 		titleID = titleID[:12]
@@ -86,15 +87,15 @@ func doImageDetail(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	m.DetailOffset = 0
 	m.PrevPanel = m.ActivePanel
 	m.Mode = state.ModeDetail
-	return m, inspectImageCmd(m.Docker, img.ID)
+	return m, inspectImageCmd(m.Docker, *img)
 }
 
-func inspectImageCmd(client *docker.Client, id string) tea.Cmd {
+func inspectImageCmd(client *docker.Client, image docker.ImageSummary) tea.Cmd {
 	return func() tea.Msg {
-		info, err := client.InspectImage(id)
+		detail, err := client.InspectImageDetail(image)
 		return state.ImageDetailLoaded{
-			ImageID: id,
-			Content: info,
+			ImageID: image.ID,
+			Detail:  detail,
 			Error:   err,
 		}
 	}

@@ -21,7 +21,7 @@ type (
 
 	ImageDetailLoaded struct {
 		ImageID string
-		Content string
+		Detail  *dockerclient.ImageDetailData
 		Error   error
 	}
 )

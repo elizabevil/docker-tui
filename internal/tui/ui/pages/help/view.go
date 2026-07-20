@@ -7,10 +7,11 @@ import (
 
 	"charm.land/lipgloss/v2"
 
+	"github.com/elizabevil/docker-tui/internal/tui/ui/action"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 
-	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui"
+	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
 
 //go:embed help.jsonc
@@ -39,44 +40,6 @@ func DefaultHelpConfig() helpConfig {
 	return loader.Load()
 }
 
-//go:embed shortcuts.jsonc
-var shortcutsData []byte
-
-// shortcutsConfig maps the JSONC structure for help-panel shortcut sections.
-type shortcutsConfig struct {
-	Sections []sectionDef `json:"sections"`
-}
-
-type sectionDef struct {
-	TitleI18n string    `json:"titleI18n"`
-	Title     string    `json:"title"`
-	Items     []itemDef `json:"items"`
-}
-
-type itemDef struct {
-	Keys string `json:"keys"`
-	Desc string `json:"desc"`
-}
-
-func (c *shortcutsConfig) normalize() {
-	for i := range c.Sections {
-		if c.Sections[i].Items == nil {
-			c.Sections[i].Items = []itemDef{}
-		}
-	}
-}
-
-func loadShortcuts() shortcutsConfig {
-	loader := component.ConfigLoader[shortcutsConfig]{
-		RawData:  shortcutsData,
-		Fallback: shortcutsConfig{},
-		Normalize: func(c *shortcutsConfig) {
-			c.normalize()
-		},
-	}
-	return loader.Load()
-}
-
 //go:embed about.txt
 var aboutText string
 
@@ -99,18 +62,14 @@ type SectionProvider interface {
 type defaultSectionProvider struct{}
 
 func (defaultSectionProvider) Sections() []helpSection {
-	cfg := loadShortcuts()
-	sections := make([]helpSection, 0, len(cfg.Sections))
-	for _, s := range cfg.Sections {
-		title := s.Title
-		if s.TitleI18n != "" {
-			title = i18n.T(s.TitleI18n)
+	registrySections := action.Sections()
+	sections := make([]helpSection, 0, len(registrySections))
+	for _, section := range registrySections {
+		items := make([]helpItem, len(section.Shortcuts))
+		for i, shortcut := range section.Shortcuts {
+			items[i] = helpItem{Keys: shortcut.Key, Desc: shortcut.Description}
 		}
-		items := make([]helpItem, len(s.Items))
-		for i, it := range s.Items {
-			items[i] = helpItem{Keys: it.Keys, Desc: it.Desc}
-		}
-		sections = append(sections, helpSection{Title: title, Items: items})
+		sections = append(sections, helpSection{Title: section.Title, Items: items})
 	}
 	return sections
 }
@@ -128,7 +87,7 @@ func NewRenderer(provider SectionProvider) *Renderer {
 	return &Renderer{cfg: DefaultHelpConfig(), provider: provider}
 }
 
-func (r *Renderer) Render(width int) string {
+func (r *Renderer) Render(width int, _ *state.AppModel) string {
 	if width < 40 {
 		width = 40
 	}
@@ -169,6 +128,10 @@ func (r *Renderer) Render(width int) string {
 
 var defaultRenderer = NewRenderer(nil)
 
-func RenderView(width int) string {
-	return defaultRenderer.Render(width)
+func RenderView(width int, app ...*state.AppModel) string {
+	var model *state.AppModel
+	if len(app) > 0 {
+		model = app[0]
+	}
+	return defaultRenderer.Render(width, model)
 }

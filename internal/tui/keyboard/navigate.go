@@ -67,6 +67,7 @@ func ToDetail(m *state.AppModel, title, content string) {
 	m.Mode = state.ModeDetail
 	m.DetailTitle = title
 	m.ImageDetailContent = content
+	m.ImageDetailData = nil
 	m.DetailOffset = 0
 	m.DetailHint = ""
 }
@@ -79,6 +80,7 @@ func BackFromDetail(m *state.AppModel) {
 	}
 	m.ImageDetailID = ""
 	m.ImageDetailContent = ""
+	m.ImageDetailData = nil
 	m.DetailTitle = ""
 	m.DetailHint = ""
 	m.DetailOffset = 0

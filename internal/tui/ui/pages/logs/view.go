@@ -47,7 +47,7 @@ func DefaultLogsConfig() logsConfig {
 }
 
 // RenderView renders the log streaming view with search highlight and word wrap.
-func RenderView(m *state.AppModel, panelHeight int) string {
+func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
 	lines := m.LogContent
 	headerExtras := fmt.Sprintf("  %d lines", len(lines))
 	if m.LogSearchText != "" {
@@ -80,16 +80,14 @@ func RenderView(m *state.AppModel, panelHeight int) string {
 		m.LogViewOffset = 0
 	}
 	maxOffset := len(lines) - rowHeight
+	if m.LogWrapEnabled {
+		maxOffset = len(lines) - 1
+	}
 	if maxOffset < 0 {
 		maxOffset = 0
 	}
 	if m.LogViewOffset > maxOffset {
 		m.LogViewOffset = maxOffset
-	}
-
-	visible := lines[m.LogViewOffset:]
-	if len(visible) > rowHeight {
-		visible = visible[:rowHeight]
 	}
 
 	lineNumStyle := component.GetStyle("dim")
@@ -98,42 +96,51 @@ func RenderView(m *state.AppModel, panelHeight int) string {
 	stderrStyle := component.GetStyle("logStderr")
 	searchHighlight := component.GetStyle("logHighlightBg")
 
-	logW := m.Width - 10 // available width for log content
+	const prefixWidth = 38 // line number + timestamp + separators
+	logWidth := max(8, panelWidth-prefixWidth)
 
-	var rendered []string
-	for i, raw := range visible {
-		lineNum := m.LogViewOffset + i + 1
+	rendered := make([]string, 0, rowHeight)
+	consumed := 0
+	for lineIndex := m.LogViewOffset; lineIndex < len(lines) && len(rendered) < rowHeight; lineIndex++ {
+		raw := lines[lineIndex]
+		lineNum := lineIndex + 1
 		numStr := fmt.Sprintf("%4d", lineNum)
 
 		timestamp, text := splitLogLine(raw)
-
-		// Word wrap
-		if m.LogWrapEnabled && len(text) > logW {
-			text = wrapLine(text, logW)
+		segments := []string{text}
+		if m.LogWrapEnabled {
+			segments = wrapLine(text, logWidth)
 		}
 
-		// Determine style
 		textStyle := logTextStyle
 		if strings.Contains(strings.ToLower(text), "stderr") {
 			textStyle = stderrStyle
 		}
-
-		// Search highlight
-		display := fmt.Sprintf("%s %s %s",
-			lineNumStyle.Render(numStr),
-			timestampStyle.Render(timestamp),
-			textStyle.Render(text),
-		)
-		if m.LogSearchText != "" && strings.Contains(raw, m.LogSearchText) {
-			display = searchHighlight.Render(fmt.Sprintf("%s %s %s", numStr, timestamp, text))
+		matched := m.LogSearchText != "" && strings.Contains(strings.ToLower(raw), strings.ToLower(m.LogSearchText))
+		for segmentIndex, segment := range segments {
+			if len(rendered) >= rowHeight {
+				break
+			}
+			lineNumber, lineTimestamp := numStr, timestamp
+			if segmentIndex > 0 {
+				lineNumber, lineTimestamp = "    ", ""
+			}
+			display := fmt.Sprintf("%s %s %s",
+				lineNumStyle.Render(lineNumber),
+				timestampStyle.Render(lineTimestamp),
+				textStyle.Render(segment),
+			)
+			if matched {
+				display = searchHighlight.Render(fmt.Sprintf("%s %s %s", lineNumber, lineTimestamp, segment))
+			}
+			rendered = append(rendered, display)
 		}
-
-		rendered = append(rendered, display)
+		consumed++
 	}
 
 	footer := fmt.Sprintf(" %d-%d/%d │ j/k scroll │ / search │ n/N next │ w wrap │ Esc back",
 		m.LogViewOffset+1,
-		m.LogViewOffset+len(visible),
+		m.LogViewOffset+consumed,
 		len(lines),
 	)
 
@@ -164,20 +171,20 @@ func splitLogLine(raw string) (timestamp, text string) {
 	return "", raw
 }
 
-// wrapLine wraps text at maxWidth, inserting newlines.
-func wrapLine(text string, maxWidth int) string {
-	if len(text) <= maxWidth {
-		return text
+// wrapLine returns display segments without processing content outside the viewport.
+func wrapLine(text string, maxWidth int) []string {
+	if maxWidth < 1 {
+		maxWidth = 1
 	}
-	var result strings.Builder
-	for len(text) > 0 {
-		if len(text) <= maxWidth {
-			result.WriteString(text)
-			break
-		}
-		result.WriteString(text[:maxWidth])
-		result.WriteByte('\n')
-		text = text[maxWidth:]
+	runes := []rune(text)
+	if len(runes) == 0 {
+		return []string{""}
 	}
-	return result.String()
+	segments := make([]string, 0, (len(runes)+maxWidth-1)/maxWidth)
+	for len(runes) > 0 {
+		end := min(maxWidth, len(runes))
+		segments = append(segments, string(runes[:end]))
+		runes = runes[end:]
+	}
+	return segments
 }

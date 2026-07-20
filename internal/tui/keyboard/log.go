@@ -1,6 +1,8 @@
 package keyboard
 
 import (
+	"strings"
+
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
@@ -54,7 +56,7 @@ func handleLogKeys(key string, m *state.AppModel) bool {
 func scrollToMatch(m *state.AppModel) {
 	count := 0
 	for i, line := range m.LogContent {
-		if contains(line, m.LogSearchText) {
+		if strings.Contains(strings.ToLower(line), strings.ToLower(m.LogSearchText)) {
 			if count == m.LogSearchMatch {
 				m.LogViewOffset = i
 				return

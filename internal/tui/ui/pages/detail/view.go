@@ -39,17 +39,22 @@ func DefaultDetailConfig() detailConfig {
 }
 
 type detailSection struct {
-	Title string
-	Lines []string
+	Title    string
+	Subtitle string
+	Lines    []string
 }
 
 func RenderView(m *state.AppModel, panelHeight int) string {
 	content := m.ImageDetailContent
-	if content == "" {
-		content = i18n.T("hint.loading_detail")
+	var sections []detailSection
+	if m.ImageDetailData != nil {
+		sections = buildImageDetailDataSections(m.ImageDetailData)
+	} else {
+		if content == "" {
+			content = i18n.T("hint.loading_detail")
+		}
+		sections = buildDetailSections(content)
 	}
-
-	sections := buildDetailSections(content)
 	if len(sections) == 0 {
 		sections = []detailSection{{Title: "Details", Lines: []string{content}}}
 	}
@@ -64,6 +69,9 @@ func RenderView(m *state.AppModel, panelHeight int) string {
 	for _, sec := range sections {
 		// 区段标题 — 永远展开，无折叠指示器
 		bodyLines = append(bodyLines, sectionStyle.Render(fmt.Sprintf("  \u2500\u2500 %s ", sec.Title)))
+		if sec.Subtitle != "" {
+			bodyLines = append(bodyLines, "    "+dimStyle.Render(sec.Subtitle))
+		}
 
 		for _, ln := range sec.Lines {
 			trimmed := strings.TrimSpace(ln)

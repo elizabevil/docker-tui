@@ -3,6 +3,7 @@ package docker
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	"github.com/docker/docker/api/types/filters"
@@ -271,4 +272,101 @@ func (c *Client) InspectImage(id string) (string, error) {
 	}
 
 	return sb.String(), nil
+}
+
+func (c *Client) InspectImageDetail(summary ImageSummary) (*ImageDetailData, error) {
+	detail := NewImageDetailData(summary)
+	info, _, err := c.cli.ImageInspectWithRaw(c.ctx, summary.ID)
+	if err != nil {
+		if detail.IsManifest && len(detail.ManifestVariants) > 0 {
+			detail.HistoryError = err.Error()
+			return detail, nil
+		}
+		return nil, fmt.Errorf("inspect image %s: %w", summary.ID, err)
+	}
+
+	detail.ID = info.ID
+	detail.RepoTags = append([]string(nil), info.RepoTags...)
+	detail.RepoDigests = append([]string(nil), info.RepoDigests...)
+	detail.Registry, detail.Name, detail.Tag = SplitImageRef(info.RepoTags)
+	detail.Created = info.Created
+	detail.Size = info.Size
+	detail.Architecture = info.Architecture
+	detail.OS = info.Os
+	detail.OSVersion = info.OsVersion
+	detail.Author = info.Author
+	detail.Comment = info.Comment
+	detail.Driver = info.GraphDriver.Name
+	detail.LayerCount = len(info.RootFS.Layers)
+	if info.Config != nil {
+		detail.Runtime = ImageRuntimeConfig{
+			WorkingDir:  info.Config.WorkingDir,
+			User:        info.Config.User,
+			StopSignal:  info.Config.StopSignal,
+			Entrypoint:  append([]string(nil), info.Config.Entrypoint...),
+			Cmd:         append([]string(nil), info.Config.Cmd...),
+			Shell:       append([]string(nil), info.Config.Shell...),
+			OnBuild:     append([]string(nil), info.Config.OnBuild...),
+			Environment: append([]string(nil), info.Config.Env...),
+		}
+		for port := range info.Config.ExposedPorts {
+			detail.Runtime.ExposedPorts = append(detail.Runtime.ExposedPorts, string(port))
+		}
+		for volume := range info.Config.Volumes {
+			detail.Runtime.Volumes = append(detail.Runtime.Volumes, volume)
+		}
+		sort.Strings(detail.Runtime.ExposedPorts)
+		sort.Strings(detail.Runtime.Volumes)
+		if health := info.Config.Healthcheck; health != nil {
+			detail.Runtime.Healthcheck = append(detail.Runtime.Healthcheck, "Test: "+strings.Join(health.Test, " "))
+			if health.Interval > 0 {
+				detail.Runtime.Healthcheck = append(detail.Runtime.Healthcheck, "Interval: "+health.Interval.String())
+			}
+			if health.Timeout > 0 {
+				detail.Runtime.Healthcheck = append(detail.Runtime.Healthcheck, "Timeout: "+health.Timeout.String())
+			}
+			if health.Retries > 0 {
+				detail.Runtime.Healthcheck = append(detail.Runtime.Healthcheck, fmt.Sprintf("Retries: %d", health.Retries))
+			}
+		}
+		detail.Labels = cloneStringMap(info.Config.Labels)
+	}
+	if len(detail.Labels) == 0 {
+		detail.Labels = cloneStringMap(info.ContainerConfig.Labels)
+	}
+
+	history, historyErr := c.cli.ImageHistory(c.ctx, summary.ID)
+	if historyErr != nil {
+		detail.HistoryError = historyErr.Error()
+	} else {
+		for _, layer := range history {
+			detail.History = append(detail.History, ImageHistoryLayer{
+				ID: layer.ID, Created: layer.Created, CreatedBy: layer.CreatedBy,
+				Size: layer.Size, Comment: layer.Comment,
+			})
+		}
+	}
+	return detail, nil
+}
+
+func NewImageDetailData(summary ImageSummary) *ImageDetailData {
+	registry, name, tag := SplitImageRef(summary.RepoTags)
+	return &ImageDetailData{
+		ID: summary.ID, RepoTags: append([]string(nil), summary.RepoTags...),
+		Registry: registry, Name: name, Tag: tag, Size: summary.Size,
+		Architecture: summary.Arch, Labels: cloneStringMap(summary.Labels),
+		IsManifest:       summary.IsManifest,
+		ManifestVariants: append([]ImageManifestEntry(nil), summary.Manifests...),
+	}
+}
+
+func cloneStringMap(source map[string]string) map[string]string {
+	if len(source) == 0 {
+		return nil
+	}
+	result := make(map[string]string, len(source))
+	for key, value := range source {
+		result[key] = value
+	}
+	return result
 }

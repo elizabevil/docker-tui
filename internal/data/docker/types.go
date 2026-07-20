@@ -48,6 +48,52 @@ type ImageSummary struct {
 	Manifests  []ImageManifestEntry
 }
 
+type ImageRuntimeConfig struct {
+	WorkingDir   string
+	User         string
+	StopSignal   string
+	Entrypoint   []string
+	Cmd          []string
+	Shell        []string
+	OnBuild      []string
+	Environment  []string
+	ExposedPorts []string
+	Volumes      []string
+	Healthcheck  []string
+}
+
+type ImageHistoryLayer struct {
+	ID        string
+	Created   int64
+	CreatedBy string
+	Size      int64
+	Comment   string
+}
+
+type ImageDetailData struct {
+	ID               string
+	RepoTags         []string
+	RepoDigests      []string
+	Registry         string
+	Name             string
+	Tag              string
+	Created          string
+	Size             int64
+	Architecture     string
+	OS               string
+	OSVersion        string
+	Author           string
+	Comment          string
+	Driver           string
+	LayerCount       int
+	Runtime          ImageRuntimeConfig
+	Labels           map[string]string
+	IsManifest       bool
+	ManifestVariants []ImageManifestEntry
+	History          []ImageHistoryLayer
+	HistoryError     string
+}
+
 type VolumeItem struct {
 	Name       string
 	Driver     string

@@ -12,10 +12,13 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/utils"
 )
 
-// SelectionInfoProvider 接口：各页面实现此接口返回选中项的详情预览。
-type SelectionInfoProvider interface {
+// SelectionProjector projects the current selection into a compact preview.
+type SelectionProjector interface {
 	SelectionInfo() string
 }
+
+// SelectionInfoProvider is kept as a compatibility alias during page migration.
+type SelectionInfoProvider = SelectionProjector
 
 // FuncInfoProvider 包装函数实现 SelectionInfoProvider。
 type FuncInfoProvider struct {
@@ -60,7 +63,7 @@ type TableData struct {
 	ColStyles []ColumnStyle
 
 	// SelectionProvider 选中项详情接口（若 nil 则不显示）。
-	SelectionProvider SelectionInfoProvider
+	SelectionProvider SelectionProjector
 }
 
 // RenderTable renders a complete resource table with 两端对齐 (justified) layout.
@@ -71,11 +74,8 @@ func RenderTable(d TableData) string {
 		return ""
 	}
 
-	// 1. Resolve headers
+	// Resolve cheap inputs first, then reuse the viewport layout when unchanged.
 	headers := resolveHeaders(d)
-
-	// 2. Compute content widths (natural column widths)
-	colW := computeContentWidths(d, headers)
 
 	// Container width for column layout
 	containerW := d.BannerW
@@ -87,8 +87,10 @@ func RenderTable(d TableData) string {
 		containerW += len(d.Cols) - 1
 	}
 
-	// 4. Compute gap
-	gap := computeGap(colW, containerW)
+	layout := defaultTableLayoutCache.resolve(d, headers, containerW)
+	headers = layout.headers
+	colW := layout.widths
+	gap := layout.gap
 	gapStr := strings.Repeat(" ", gap)
 
 	// Row renderer — column layout computed once, reused for all rows

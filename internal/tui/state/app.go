@@ -128,6 +128,7 @@ type AppModel struct {
 	// ── Detail ──
 	ImageDetailID      string
 	ImageDetailContent string
+	ImageDetailData    *dockerclient.ImageDetailData
 	DetailTitle        string
 	DetailHint         string
 	DetailOffset       int

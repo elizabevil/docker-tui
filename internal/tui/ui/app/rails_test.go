@@ -91,3 +91,57 @@ func TestRenderAppHeightDoesNotChangeWithQueryOrMessage(t *testing.T) {
 		)
 	}
 }
+
+func TestRenderAppRegressionMatrix(t *testing.T) {
+	sizes := []struct{ width, height int }{{120, 32}, {100, 24}, {80, 20}}
+	views := []struct {
+		name  string
+		panel state.PanelType
+		mode  state.AppMode
+	}{
+		{name: "containers", panel: state.PanelContainers, mode: state.ModeNormal},
+		{name: "images", panel: state.PanelImages, mode: state.ModeNormal},
+		{name: "compose", panel: state.PanelCompose, mode: state.ModeNormal},
+		{name: "logs", panel: state.PanelContainers, mode: state.ModeLogView},
+		{name: "detail", panel: state.PanelImages, mode: state.ModeDetail},
+		{name: "help", panel: state.PanelHelp, mode: state.ModeHelp},
+		{name: "filter", panel: state.PanelContainers, mode: state.ModeFilter},
+		{name: "search", panel: state.PanelContainers, mode: state.ModeFilter},
+		{name: "command", panel: state.PanelContainers, mode: state.ModeCommand},
+		{name: "mark", panel: state.PanelContainers, mode: state.ModeMark},
+	}
+	for _, size := range sizes {
+		var expectedRows int
+		for _, view := range views {
+			t.Run(view.name, func(t *testing.T) {
+				app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+				app.Width, app.Height = size.width, size.height
+				app.ActivePanel, app.Mode = view.panel, view.mode
+				app.FilterText = "query"
+				app.LogContainerID = "container"
+				if view.name != "logs" && view.name != "search" {
+					app.LogContainerID = ""
+				}
+				app.ImageDetailContent = "Name: test"
+				rendered := RenderApp(app)
+				if strings.Contains(rendered, "Terminal too small") {
+					t.Fatalf("supported size %dx%d degraded", size.width, size.height)
+				}
+				rows := strings.Count(rendered, "\n") + 1
+				if expectedRows == 0 {
+					expectedRows = rows
+				} else if rows != expectedRows {
+					t.Fatalf("layout rows changed at %dx%d: got %d want %d", size.width, size.height, rows, expectedRows)
+				}
+			})
+		}
+	}
+}
+
+func TestRenderAppRejectsUnsupportedTerminal(t *testing.T) {
+	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app.Width, app.Height = 79, 19
+	if got := RenderApp(app); !strings.Contains(got, "minimum 80x20") {
+		t.Fatalf("unexpected degradation message: %q", got)
+	}
+}
