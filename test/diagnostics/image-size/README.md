@@ -48,10 +48,10 @@ postgres:18.4-alpine                            |  288,681,577 |  289 MB  |  275
 
 ```bash
 # Shell 测试（需 Podman socket）
-bash test/imagesize/compare_size.sh
+bash test/diagnostics/image-size/compare.sh
 
 # Go 测试
-go test ./test/imagesize/ -v
+go test ./test/diagnostics/image-size/ -v
 ```
 
 ## 配置方式

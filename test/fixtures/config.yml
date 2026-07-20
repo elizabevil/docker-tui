@@ -13,7 +13,7 @@ layout:
     enable: false
     type: image
     image:
-      src: "/home/debi/IdeaProjects/docker-tui/test/test.jpg"
+      src: "test/fixtures/background.jpg"
       sampleRate: 80
     overlay:
       opacity: 25

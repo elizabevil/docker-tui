@@ -5,8 +5,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
-BINARY="$PROJECT_DIR/docker-tui"
-COMPOSE_FILE="$SCRIPT_DIR/docker-compose.test.yml"
+BINARY="$PROJECT_DIR/dist/docker-tui"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -14,16 +13,17 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 PASS=0; FAIL=0
-pass() { echo -e "${GREEN}[PASS]${NC} $*"; ((PASS++)); }
-fail() { echo -e "${RED}[FAIL]${NC} $*"; ((FAIL++)); }
+pass() { echo -e "${GREEN}[PASS]${NC} $*"; PASS=$((PASS + 1)); }
+fail() { echo -e "${RED}[FAIL]${NC} $*"; FAIL=$((FAIL + 1)); }
 info() { echo -e "${YELLOW}[INFO]${NC} $*"; }
 
 CONTAINERS=(dtui-test-postgres dtui-test-nginx dtui-test-redis dtui-test-alpine)
 
 cleanup() {
+    [ -n "${ENGINE:-}" ] || return 0
     info "Cleaning up test containers..."
     for c in "${CONTAINERS[@]}"; do
-        podman rm -f "$c" 2>/dev/null || docker rm -f "$c" 2>/dev/null || true
+        "$ENGINE" rm -f "$c" 2>/dev/null || true
     done
 }
 
@@ -36,20 +36,21 @@ detect_engine() {
 setup_containers() {
     ENGINE="$1"
     cleanup
+    trap cleanup EXIT
     info "Starting containers with $ENGINE..."
 
-    $ENGINE run -d --name dtui-test-postgres \
+    "$ENGINE" run -d --name dtui-test-postgres \
         -e POSTGRES_PASSWORD=dtui_test -e POSTGRES_DB=dtui_testdb \
         --label com.docker.compose.project=dtui-test \
         swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/postgres:18.4-alpine
 
-    $ENGINE run -d --name dtui-test-nginx \
+    "$ENGINE" run -d --name dtui-test-nginx \
         --label com.docker.compose.project=dtui-test nginx:alpine
 
-    $ENGINE run -d --name dtui-test-redis \
+    "$ENGINE" run -d --name dtui-test-redis \
         --label com.docker.compose.project=dtui-test redis:7-alpine
 
-    $ENGINE run -d --name dtui-test-alpine \
+    "$ENGINE" run -d --name dtui-test-alpine \
         --label com.docker.compose.project=dtui-test alpine:3.19 sleep infinity
 
     sleep 5
@@ -91,16 +92,17 @@ else
     info "Using engine: $ENGINE"
     setup_containers "$ENGINE"
 
-    count=$($ENGINE ps -q | wc -l)
+    count=$("$ENGINE" ps -q | wc -l)
     [ "$count" -ge 4 ] && pass "container count ($count)" || fail "container count ($count)"
 
-    running=$($ENGINE ps -q -f "status=running" | wc -l)
+    running=$("$ENGINE" ps -q -f "status=running" | wc -l)
     [ "$running" -ge 3 ] && pass "running containers ($running)" || fail "running containers ($running)"
 
-    images=$($ENGINE images -q | wc -l)
+    images=$("$ENGINE" images -q | wc -l)
     [ "$images" -ge 3 ] && pass "image count ($images)" || fail "image count ($images)"
 
     cleanup
+    trap - EXIT
     pass "cleanup complete"
 fi
 

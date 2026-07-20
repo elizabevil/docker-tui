@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# compare_size.sh — 对比 TUI FormatSize (1024-base) vs podman CLI (1000-base)
+# compare.sh — 对比 TUI FormatSize (1024-base) vs podman CLI (1000-base)
 #
-# Usage: bash test/imagesize/compare_size.sh
+# Usage: just test-image-size-live
 #
 # 通过 Docker-compatible API 获取原始 Size 字节值，
 # 然后分别用 1024-base (TUI) 和 1000-base (CLI) 格式化，
