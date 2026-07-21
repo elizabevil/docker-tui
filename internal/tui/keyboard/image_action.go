@@ -102,16 +102,11 @@ func doImageDetail(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if img == nil {
 		return m, nil
 	}
-	m.ImageDetailID = img.ID
-	m.ImageDetailContent = ""
-	m.ImageDetailData = docker.NewImageDetailData(*img)
 	titleID := img.ID
 	if len(titleID) > 12 {
 		titleID = titleID[:12]
 	}
-	m.DetailTitle = "Image Detail: " + titleID
-	m.DetailHint = ""
-	m.DetailOffset = 0
+	m.DetailState.OpenImage(img.ID, "Image Detail: "+titleID, docker.NewImageDetailData(*img))
 	m.PrevPanel = m.ActivePanel
 	m.Mode = state.ModeDetail
 	return m, inspectImageCmd(m.Docker, *img)

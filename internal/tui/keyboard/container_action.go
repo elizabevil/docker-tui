@@ -216,8 +216,7 @@ func doInspectAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		m.FeedbackState.RecordError(err.Error())
 		return m, nil
 	}
-	m.DetailRawJSON = rawJSON
-	m.DetailResourceType = state.ResourceContainer
+	m.DetailState.SetRaw(state.ResourceContainer, rawJSON)
 	ToDetail(m, i18n.T("detail.title.container", ctr.Name, ctr.ID), "")
 	return m, nil
 }

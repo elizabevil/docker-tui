@@ -50,16 +50,13 @@ func handleImageActioned(m *state.AppModel, msg state.ImageActioned) (*state.App
 }
 
 func handleImageDetailLoaded(m *state.AppModel, msg state.ImageDetailLoaded) (*state.AppModel, tea.Cmd) {
-	if msg.ImageID != m.ImageDetailID {
-		return m, nil
-	}
 	if msg.Error != nil {
-		m.FeedbackState.RecordError(msg.Error.Error())
-	} else {
-		m.ImageDetailData = msg.Detail
-		if m.Mode == state.ModeDetail {
-			m.DetailOffset = 0
+		if msg.ImageID != m.ImageDetailID {
+			return m, nil
 		}
+		m.FeedbackState.RecordError(msg.Error.Error())
+	} else if !m.DetailState.ApplyImage(msg.ImageID, msg.Detail) {
+		return m, nil
 	}
 	return m, nil
 }

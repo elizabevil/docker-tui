@@ -17,9 +17,7 @@ func TestWrapLineUsesRunes(t *testing.T) {
 
 func TestRenderViewFitsViewportWhenWrapped(t *testing.T) {
 	m := &state.AppModel{
-		LogContainerID: "container",
-		LogContent:     []string{strings.Repeat("x", 200), "second"},
-		LogWrapEnabled: true,
+		LogState: state.LogState{LogContainerID: "container", LogContent: []string{strings.Repeat("x", 200), "second"}, LogWrapEnabled: true},
 	}
 	got := RenderView(m, 8, 60)
 	if rows := strings.Count(got, "\n") + 1; rows != 8 {
@@ -29,10 +27,7 @@ func TestRenderViewFitsViewportWhenWrapped(t *testing.T) {
 
 func TestRenderViewCanScrollPastWrappedLine(t *testing.T) {
 	m := &state.AppModel{
-		LogContainerID: "container",
-		LogContent:     []string{strings.Repeat("x", 200), "second"},
-		LogWrapEnabled: true,
-		LogViewOffset:  1,
+		LogState: state.LogState{LogContainerID: "container", LogContent: []string{strings.Repeat("x", 200), "second"}, LogWrapEnabled: true, LogViewOffset: 1},
 	}
 	got := RenderView(m, 8, 60)
 	if !strings.Contains(got, "second") {

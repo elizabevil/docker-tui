@@ -224,9 +224,10 @@ keyboard / update controller
 
 ### Phase 4：Detail 与 Log
 
-- 拆 `DetailState`、`LogState`。
-- 将打开、加载、失败、滚动、搜索和关闭实现为显式转换。
-- 保持 Detail / Log 页面模板和现有用户交互不变。
+- 状态: `done`
+- 已完成: 拆出 `DetailState`、`LogState`；将打开、关闭、滚动、日志上限、搜索匹配、来源切换和异步镜像结果实现为显式转换。
+- 渲染边界: Detail / Log renderer 使用 `VisibleOffset()` 计算局部偏移，不再在 View 阶段修正模型状态。
+- 兼容性: Detail / Log 页面模板和既有键盘交互保持不变。
 
 ### Phase 5：Exec 与 Compose
 

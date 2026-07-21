@@ -51,7 +51,7 @@
 
 | 编号 | 任务 | 优先级 | 状态 | 已完成 / 剩余范围 |
 |---|---|---:|---|---|
-| `TASK-015` | [拆分 `AppModel` 状态域并封装状态方法](app-model-refactoring.md) | P1 | `in_progress` | 已完成 Connection、Navigation、Dialog、Feedback 与独立输入，`state -> ui/component` 依赖已移除；下一阶段拆 Detail 与 Log，随后拆 Exec、Compose |
+| `TASK-015` | [拆分 `AppModel` 状态域并封装状态方法](app-model-refactoring.md) | P1 | `in_progress` | 已完成 Connection、Navigation、Dialog、Feedback、Detail、Log 与独立输入，View 不再修正详情/日志 offset；下一阶段拆 Exec 与 Compose |
 
 `TASK-015` 采用逐域迁移，不进行一次性重写。顶层 `AppModel` 继续负责 Bubble Tea 协调，子状态负责维护自身不变量。
 

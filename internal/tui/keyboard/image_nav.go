@@ -177,8 +177,7 @@ func doImageContainerLog(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if matchedID == "" {
 		return m, nil
 	}
-	m.LogContainerID = matchedID
-	m.LogContent = m.LogContent[:0]
+	m.LogState.Open(matchedID)
 	m.Mode = state.ModeLogView
 	cfg := m.Config.Logs
 	return m, FetchLogBatch(m.Docker, matchedID, cfg.Since, cfg.Tail, cfg.Timestamps)

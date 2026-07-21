@@ -160,9 +160,7 @@ func doComposeLogs(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 			}
 		}
 	}
-	m.LogContainerID = picked.ID
-	m.LogContent = m.LogContent[:0]
-	m.LogViewOffset = 0
+	m.LogState.Open(picked.ID)
 	m.Mode = state.ModeLogView
 	cfg := m.Config.Logs
 	ShowToastNow(m, fmt.Sprintf("✓ compose logs %s/%s", project, picked.Name))

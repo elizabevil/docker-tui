@@ -13,10 +13,7 @@ func handleLogBatchReceived(m *state.AppModel, msg state.LogBatchReceived) (*sta
 	if msg.Error != nil {
 		m.FeedbackState.RecordError(msg.Error.Error())
 	} else {
-		m.LogContent = append(m.LogContent, msg.Lines...)
-		if len(m.LogContent) > 2000 {
-			m.LogContent = m.LogContent[len(m.LogContent)-2000:]
-		}
+		m.LogState.Append(msg.Lines)
 	}
 	// Keep polling logs every 2 seconds while in log view
 	if m.Mode == state.ModeLogView && m.LogContainerID == msg.ContainerID {

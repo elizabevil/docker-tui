@@ -55,8 +55,7 @@ func doNetworkInspect(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		m.FeedbackState.RecordError(err.Error())
 		return m, nil
 	}
-	m.DetailRawJSON = rawJSON
-	m.DetailResourceType = state.ResourceNetwork
+	m.DetailState.SetRaw(state.ResourceNetwork, rawJSON)
 	ToDetail(m, i18n.T("detail.title.network", net.Name), "")
 	return m, nil
 }

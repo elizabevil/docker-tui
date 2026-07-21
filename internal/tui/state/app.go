@@ -85,6 +85,8 @@ type AppModel struct {
 	NavigationState
 	DialogState
 	FeedbackState
+	LogState
+	DetailState
 
 	// ── Nav ──
 
@@ -98,15 +100,6 @@ type AppModel struct {
 	Width  int
 	Height int
 
-	// ── Log ──
-	LogContainerID string
-	LogContent     []string
-	LogViewOffset  int
-	LogSearchText  string
-	LogSearchIdx   int // index of current match in LogSearchMatches
-	LogSearchMatch int // line number of current match
-	LogWrapEnabled bool
-
 	// ── Stats ──
 	StatsActive  bool
 	HostCPU      float64
@@ -115,17 +108,6 @@ type AppModel struct {
 	HostCPUCores int
 	HostMemUsed  uint64
 	HostMemTotal uint64
-
-	// ── Detail ──
-	ImageDetailID      string
-	ImageDetailContent string
-	ImageDetailData    *dockerclient.ImageDetailData
-	DetailTitle        string
-	DetailHint         string
-	DetailOffset       int
-	DetailRawJSON      []byte       // raw JSON from Docker inspect API
-	DetailSourceType   string       // "section" (default), "yaml", "json"
-	DetailResourceType ResourceType // Resource* constant
 
 	// ── Confirm ──
 	ConfirmAction  string

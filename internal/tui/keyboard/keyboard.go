@@ -302,14 +302,11 @@ func handleSearchInput(key string, m *state.AppModel) *state.AppModel {
 	m.SearchInput.Clamp()
 	switch key {
 	case keys.KeyEnter:
-		m.LogSearchText = m.SearchInput.Text
-		m.LogSearchMatch = 0
+		matches := m.LogState.ApplySearch(m.SearchInput.Text)
 		m.Mode = state.ModeLogView
-		matches := logSearchMatchCount(m)
 		if matches == 0 && m.LogSearchText != "" {
 			ShowToastWarn(m, "No log matches for: "+m.LogSearchText)
 		} else if matches > 0 {
-			scrollToMatch(m)
 			ShowToastNow(m, fmt.Sprintf("Log match 1/%d", matches))
 		}
 	case keys.KeyEsc:

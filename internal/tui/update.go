@@ -19,26 +19,16 @@ func handleMouseWheel(m *state.AppModel, msg tea.MouseWheelMsg) *state.AppModel 
 	case tea.MouseWheelUp:
 		switch m.Mode {
 		case state.ModeDetail:
-			if m.DetailOffset > 0 {
-				m.DetailOffset -= 3
-				if m.DetailOffset < 0 {
-					m.DetailOffset = 0
-				}
-			}
+			m.DetailState.Scroll(-3)
 		case state.ModeLogView:
-			if m.LogViewOffset > 0 {
-				m.LogViewOffset -= 3
-				if m.LogViewOffset < 0 {
-					m.LogViewOffset = 0
-				}
-			}
+			m.LogState.Scroll(-3)
 		}
 	case tea.MouseWheelDown:
 		switch m.Mode {
 		case state.ModeDetail:
-			m.DetailOffset += 3
+			m.DetailState.Scroll(3)
 		case state.ModeLogView:
-			m.LogViewOffset += 3
+			m.LogState.Scroll(3)
 		}
 	}
 	return m

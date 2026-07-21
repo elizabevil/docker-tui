@@ -76,19 +76,11 @@ func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
 		}, component.GetStyle("dim").Render(" Esc back"), rowHeight)
 	}
 
-	if m.LogViewOffset < 0 {
-		m.LogViewOffset = 0
-	}
-	maxOffset := len(lines) - rowHeight
+	visibleRows := rowHeight
 	if m.LogWrapEnabled {
-		maxOffset = len(lines) - 1
+		visibleRows = 1
 	}
-	if maxOffset < 0 {
-		maxOffset = 0
-	}
-	if m.LogViewOffset > maxOffset {
-		m.LogViewOffset = maxOffset
-	}
+	offset := m.LogState.VisibleOffset(len(lines), visibleRows)
 
 	lineNumStyle := component.GetStyle("dim")
 	timestampStyle := component.GetStyle("logTimestamp")
@@ -101,7 +93,7 @@ func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
 
 	rendered := make([]string, 0, rowHeight)
 	consumed := 0
-	for lineIndex := m.LogViewOffset; lineIndex < len(lines) && len(rendered) < rowHeight; lineIndex++ {
+	for lineIndex := offset; lineIndex < len(lines) && len(rendered) < rowHeight; lineIndex++ {
 		raw := lines[lineIndex]
 		lineNum := lineIndex + 1
 		numStr := fmt.Sprintf("%4d", lineNum)
@@ -139,8 +131,8 @@ func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
 	}
 
 	footer := fmt.Sprintf(" %d-%d/%d │ j/k scroll │ / search │ n/N next │ w wrap │ Esc back",
-		m.LogViewOffset+1,
-		m.LogViewOffset+consumed,
+		offset+1,
+		offset+consumed,
 		len(lines),
 	)
 

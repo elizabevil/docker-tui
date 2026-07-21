@@ -20,38 +20,22 @@ func handleDetailKeys(key string, m *state.AppModel) bool {
 			BackFromDetail(m)
 			return true
 		case keys.ActionDown:
-			m.DetailOffset++
+			m.DetailState.Scroll(1)
 			return true
 		case keys.ActionUp:
-			if m.DetailOffset > 0 {
-				m.DetailOffset--
-			}
+			m.DetailState.Scroll(-1)
 			return true
 		}
 	}
 	switch key {
 	case keys.KeySpace, keys.KeyPgDn:
-		m.DetailOffset += 20
+		m.DetailState.Scroll(20)
 	case keys.KeyPgUp:
-		m.DetailOffset -= 20
-		if m.DetailOffset < 0 {
-			m.DetailOffset = 0
-		}
+		m.DetailState.Scroll(-20)
 	case keys.KeyG:
-		m.DetailOffset = 0
+		m.DetailState.Scroll(-m.DetailOffset)
 	case "s":
-		// Cycle through source view modes: section → yaml → json → section
-		m.DetailOffset = 0
-		switch m.DetailSourceType {
-		case "":
-			m.DetailSourceType = "yaml"
-		case "yaml":
-			m.DetailSourceType = "json"
-		case "json":
-			m.DetailSourceType = ""
-		default:
-			m.DetailSourceType = ""
-		}
+		m.DetailState.CycleSource()
 	}
 	return true
 }

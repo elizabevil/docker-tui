@@ -43,11 +43,7 @@ func BackFromVolumeDetail(m *state.AppModel) {
 // ToLogView opens the log viewer for a container.
 func ToLogView(m *state.AppModel, containerID string) tea.Cmd {
 	m.Mode = state.ModeLogView
-	m.LogContainerID = containerID
-	m.LogContent = m.LogContent[:0]
-	m.LogViewOffset = 0
-	m.LogSearchText = ""
-	m.LogSearchMatch = 0
+	m.LogState.Open(containerID)
 	cfg := m.Config.Logs
 	return FetchLogBatch(m.Docker, containerID, cfg.Since, cfg.Tail, cfg.Timestamps)
 }
@@ -55,21 +51,14 @@ func ToLogView(m *state.AppModel, containerID string) tea.Cmd {
 // BackFromLogView closes the log viewer.
 func BackFromLogView(m *state.AppModel) {
 	m.Mode = state.ModeNormal
-	m.LogContainerID = ""
-	m.LogContent = nil
-	m.LogViewOffset = 0
-	m.LogSearchText = ""
+	m.LogState.Close()
 }
 
 // ToDetail opens the detail inspector for the current item.
 func ToDetail(m *state.AppModel, title, content string) {
 	m.PrevPanel = m.ActivePanel
 	m.Mode = state.ModeDetail
-	m.DetailTitle = title
-	m.ImageDetailContent = content
-	m.ImageDetailData = nil
-	m.DetailOffset = 0
-	m.DetailHint = ""
+	m.DetailState.Open(title, content)
 }
 
 // BackFromDetail closes the detail inspector and restores the previous panel.
@@ -78,15 +67,7 @@ func BackFromDetail(m *state.AppModel) {
 	if m.PrevPanel != m.ActivePanel {
 		m.ActivePanel = m.PrevPanel
 	}
-	m.ImageDetailID = ""
-	m.ImageDetailContent = ""
-	m.ImageDetailData = nil
-	m.DetailTitle = ""
-	m.DetailHint = ""
-	m.DetailOffset = 0
-	m.DetailRawJSON = nil
-	m.DetailSourceType = ""
-	m.DetailResourceType = ""
+	m.DetailState.Close()
 }
 
 // ToHelp opens the help screen.

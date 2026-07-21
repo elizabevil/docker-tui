@@ -33,8 +33,7 @@ func doVolumeInspect(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		m.FeedbackState.RecordError(err.Error())
 		return m, nil
 	}
-	m.DetailRawJSON = rawJSON
-	m.DetailResourceType = state.ResourceVolume
+	m.DetailState.SetRaw(state.ResourceVolume, rawJSON)
 	ToDetail(m, i18n.T("detail.title.volume", vol.Name), "")
 	return m, nil
 }

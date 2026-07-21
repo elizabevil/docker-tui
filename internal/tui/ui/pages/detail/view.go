@@ -121,18 +121,9 @@ func renderSections(m *state.AppModel, sections []detailSection, panelHeight int
 	if bodyHeight < 3 {
 		bodyHeight = 3
 	}
-	if m.DetailOffset < 0 {
-		m.DetailOffset = 0
-	}
-	maxOffset := len(bodyLines) - bodyHeight
-	if maxOffset < 0 {
-		maxOffset = 0
-	}
-	if m.DetailOffset > maxOffset {
-		m.DetailOffset = maxOffset
-	}
+	offset := m.DetailState.VisibleOffset(len(bodyLines), bodyHeight)
 
-	visible := bodyLines[m.DetailOffset:]
+	visible := bodyLines[offset:]
 	if len(visible) > bodyHeight {
 		visible = visible[:bodyHeight]
 	}
@@ -141,7 +132,7 @@ func renderSections(m *state.AppModel, sections []detailSection, panelHeight int
 	}
 	body := lipgloss.NewStyle().Height(bodyHeight).MaxHeight(bodyHeight).Render(strings.Join(visible, "\n"))
 
-	footer := fmt.Sprintf(" %d-%d/%d", m.DetailOffset+1, m.DetailOffset+len(visible), len(bodyLines))
+	footer := fmt.Sprintf(" %d-%d/%d", offset+1, offset+len(visible), len(bodyLines))
 	if m.DetailHint != "" {
 		footer += " \u2502 " + m.DetailHint
 	}
@@ -181,18 +172,9 @@ func renderSourceView(m *state.AppModel, panelHeight int) string {
 	if bodyHeight < 3 {
 		bodyHeight = 3
 	}
-	if m.DetailOffset < 0 {
-		m.DetailOffset = 0
-	}
-	maxOffset := len(lines) - bodyHeight
-	if maxOffset < 0 {
-		maxOffset = 0
-	}
-	if m.DetailOffset > maxOffset {
-		m.DetailOffset = maxOffset
-	}
+	offset := m.DetailState.VisibleOffset(len(lines), bodyHeight)
 
-	visible := lines[m.DetailOffset:]
+	visible := lines[offset:]
 	if len(visible) > bodyHeight {
 		visible = visible[:bodyHeight]
 	}
@@ -206,7 +188,7 @@ func renderSourceView(m *state.AppModel, panelHeight int) string {
 	}
 	body := lipgloss.NewStyle().Height(bodyHeight).MaxHeight(bodyHeight).Render(strings.Join(rendered, "\n"))
 
-	footer := fmt.Sprintf(" %d-%d/%d", m.DetailOffset+1, m.DetailOffset+len(visible), len(lines))
+	footer := fmt.Sprintf(" %d-%d/%d", offset+1, offset+len(visible), len(lines))
 	if m.DetailHint != "" {
 		footer += " \u2502 " + m.DetailHint
 	}

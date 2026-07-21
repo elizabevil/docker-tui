@@ -38,7 +38,7 @@ func TestQueryKindFor(t *testing.T) {
 	}{
 		{name: "normal", app: &state.AppModel{NavigationState: state.NavigationState{Mode: state.ModeNormal}}, want: queryNone},
 		{name: "filter", app: &state.AppModel{NavigationState: state.NavigationState{Mode: state.ModeFilter}}, want: queryFilter},
-		{name: "search", app: &state.AppModel{NavigationState: state.NavigationState{Mode: state.ModeSearch}, LogContainerID: "abc"}, want: querySearch},
+		{name: "search", app: &state.AppModel{NavigationState: state.NavigationState{Mode: state.ModeSearch}, LogState: state.LogState{LogContainerID: "abc"}}, want: querySearch},
 		{name: "command", app: &state.AppModel{NavigationState: state.NavigationState{Mode: state.ModeCommand}}, want: queryCommand},
 	}
 	for _, tt := range tests {
