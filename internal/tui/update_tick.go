@@ -71,6 +71,9 @@ func handleDockerConnected(m *state.AppModel, msg state.DockerConnected) (*state
 	if msg.Name != "" {
 		m.RuntimeType = msg.Name
 	}
+	if msg.Notice != "" {
+		keyboard.ShowToastWarn(m, msg.Notice)
+	}
 	m.Containers.Loading = true
 	return m, tea.Batch(keyboard.FetchAll(m.Docker)...)
 }

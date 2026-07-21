@@ -137,13 +137,29 @@ func (m *mainModel) Init() tea.Cmd {
 
 func connectDocker(pool *dockerclient.ConnectionPool, name string) tea.Cmd {
 	return func() tea.Msg {
-		if pool.Get(name) == nil {
-			return state.DockerConnected{Error: fmt.Errorf("unknown default runtime connection %q", name)}
+		candidates := []string{name}
+		if name == "local-docker" {
+			candidates = append(candidates, "local-podman")
 		}
-		if err := pool.Connect(name, 2*time.Second); err != nil {
-			return state.DockerConnected{Error: fmt.Errorf("connect %s: %w", name, err)}
+		var errors []string
+		for _, candidate := range candidates {
+			if pool.Get(candidate) == nil {
+				continue
+			}
+			if err := pool.Connect(candidate, 2*time.Second); err == nil {
+				notice := ""
+				if candidate != name {
+					notice = fmt.Sprintf("%s unavailable; connected to %s", name, candidate)
+				}
+				return state.DockerConnected{Client: pool.ActiveClient(), Name: candidate, Notice: notice}
+			} else {
+				errors = append(errors, fmt.Sprintf("%s: %v", candidate, err))
+			}
 		}
-		return state.DockerConnected{Client: pool.ActiveClient(), Name: name}
+		if len(errors) == 0 {
+			return state.DockerConnected{Error: fmt.Errorf("unknown runtime connection %q", name)}
+		}
+		return state.DockerConnected{Error: fmt.Errorf("no available runtime (%s)", strings.Join(errors, "; "))}
 	}
 }
 

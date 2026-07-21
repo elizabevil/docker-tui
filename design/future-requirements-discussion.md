@@ -164,7 +164,7 @@ type ConnectionState struct {
 
 ### 已确认的产品决策
 
-1. 普通启动始终发现并检测本地 Docker 与 Podman；未指定 `runtime.default` 时默认活动目标是本地 Docker，Docker 失败不自动切换到 Podman。
+1. 普通启动始终发现并检测本地 Docker 与 Podman；未指定 `runtime.default` 时默认优先本地 Docker，Docker 失败且本地 Podman 可用时自动连接 Podman，并显示切换提示。
 2. `--host` 表示用户明确指定本次目标，进入单连接模式，不提供 `F2` 连接切换。
 3. 未使用 `--host` 时，连接集合包含两个本地候选和配置中的全部连接；配置连接额外追加，并按统一连接标识去重。
 4. TLS 连接能力纳入 FR-001 第一阶段。
@@ -194,8 +194,8 @@ type ConnectionState struct {
 1. 若存在 CLI `--host`，只尝试该 CLI 连接。
 2. 若配置了有效的 `runtime.default`，优先尝试该连接。
 3. 未配置显式默认连接时，以本地 Docker 为活动目标，同时检测本地 Podman 供选择框展示。
-4. 本地 Docker 失败时不自动切换到已检测到的 Podman。
-5. 连接失败后进入可恢复的 `disconnected` / `error` 状态，不退出 TUI。
+4. 本地 Docker 失败时，如果本地 Podman 可用则自动连接 Podman，并显示切换提示。
+5. 自定义或 CLI 连接失败时不跨到其他连接，进入可恢复的 `disconnected` / `error` 状态。
 6. Header、连接信息区和提示消息必须展示当前状态、目标连接和最后错误。
 7. 普通配置模式下，用户可打开 `F2` 选择框，手动选择本地或配置连接并重试。
 
@@ -303,7 +303,7 @@ type ConnectionState struct {
 
 #### D-006 本地 Docker / Podman 优先级
 
-- 决定: 无论是否存在配置，都发现并检测本地 Docker 与 Podman；默认活动目标是 Docker，Docker 失败不自动切换 Podman，用户可通过 `--podman`、`runtime.default` 或选择框显式选择 Podman。
+- 决定: 无论是否存在配置，都发现并检测本地 Docker 与 Podman；默认优先 Docker，Docker 失败且 Podman 可用时自动连接 Podman 并提示，用户也可通过 `--podman`、`runtime.default` 或选择框显式选择 Podman。
 - 状态: `approved`
 
 #### D-007 TLS 配置形式

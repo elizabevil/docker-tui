@@ -117,6 +117,7 @@ type DockerConnected struct {
 	Client *dockerclient.Client
 	Name   string
 	Error  error
+	Notice string
 }
 
 type ExecFinished struct {
