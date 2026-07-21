@@ -53,13 +53,13 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 		return handleBackAction(m)
 
 	case keys.ActionContainerStart:
-		return doContainerAction(m, "start", containerStartCmd)
+		return doContainerAction(m, docker.ContainerActionStart, containerStartCmd)
 	case keys.ActionContainerStop:
-		return doContainerAction(m, "stop", func(c *docker.Client, id string) tea.Cmd { return containerStopCmd(c, id) })
+		return doContainerAction(m, docker.ContainerActionStop, func(c *docker.Client, id string) tea.Cmd { return containerStopCmd(c, id) })
 	case keys.ActionContainerRestart:
-		return doContainerAction(m, "restart", func(c *docker.Client, id string) tea.Cmd { return containerRestartCmd(c, id) })
+		return doContainerAction(m, docker.ContainerActionRestart, func(c *docker.Client, id string) tea.Cmd { return containerRestartCmd(c, id) })
 	case keys.ActionContainerKill:
-		return doContainerAction(m, "kill", func(c *docker.Client, id string) tea.Cmd { return containerKillCmd(c, id) })
+		return doContainerAction(m, docker.ContainerActionKill, func(c *docker.Client, id string) tea.Cmd { return containerKillCmd(c, id) })
 	case keys.ActionContainerRemove, keys.ActionDelete:
 		return doDeleteAction(m)
 

@@ -45,8 +45,8 @@ func openRuntimeSelector(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 func runtimeHealthTimeout(m *state.AppModel) time.Duration {
 	seconds := 2
-	if m.Config != nil && m.Config.Runtime.Health.TimeoutSec > 0 {
-		seconds = m.Config.Runtime.Health.TimeoutSec
+	if m.Config != nil {
+		_, seconds, _ = m.Config.Runtime.Health.Effective()
 	}
 	return time.Duration(seconds) * time.Second
 }

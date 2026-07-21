@@ -24,8 +24,8 @@ func doContainerAction(m *state.AppModel, action string, cmdFn func(*docker.Clie
 	if ctr == nil {
 		return m, nil
 	}
-	// "start" is non-destructive — execute immediately
-	if action == "start" {
+	// Starting a container is non-destructive, so execute it immediately.
+	if action == docker.ContainerActionStart {
 		m.InfoMessage = "starting " + ctr.Name + "..."
 		trace := beginAudit(m, "resource.container.start", containerTarget(m, ctr.ID), "Starting "+ctr.Name)
 		return m, withContainerAudit(cmdFn(m.Docker, ctr.ID), trace)
@@ -57,13 +57,13 @@ func executeBatchAction(m *state.AppModel, action string, trace audit.Trace) (*s
 
 	var cmdFn func(*docker.Client, string) tea.Cmd
 	switch action {
-	case "start":
+	case docker.ContainerActionStart:
 		cmdFn = containerStartCmd
-	case "stop":
+	case docker.ContainerActionStop:
 		cmdFn = func(c *docker.Client, id string) tea.Cmd { return containerStopCmd(c, id) }
-	case "restart":
+	case docker.ContainerActionRestart:
 		cmdFn = func(c *docker.Client, id string) tea.Cmd { return containerRestartCmd(c, id) }
-	case "kill":
+	case docker.ContainerActionKill:
 		cmdFn = func(c *docker.Client, id string) tea.Cmd { return containerKillCmd(c, id) }
 	default:
 		ShowToastNow(m, fmt.Sprintf("✕ unknown batch action: %s", action))

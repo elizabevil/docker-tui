@@ -111,8 +111,7 @@ func handleDockerConnected(m *state.AppModel, msg state.DockerConnected) (*state
 
 func handleContainerEvent(m *state.AppModel, msg state.ContainerEvent) (*state.AppModel, tea.Cmd) {
 	if m.Docker != nil {
-		switch msg.Action {
-		case "start", "stop", "die", "kill", "destroy", "create":
+		if docker.RefreshesContainers(msg.Action) {
 			return m, keyboard.FetchContainers(m.Docker, true)
 		}
 	}
@@ -148,14 +147,7 @@ func handleHostStatsTick(m *state.AppModel, _ state.HostStatsTick) (*state.AppMo
 func handleRuntimeHealthTick(m *state.AppModel, _ state.RuntimeHealthTick) (*state.AppModel, tea.Cmd) {
 	interval, timeout := 3, 2
 	if m.Config != nil {
-		interval = m.Config.Runtime.Health.IntervalSec
-		timeout = m.Config.Runtime.Health.TimeoutSec
-	}
-	if interval <= 0 {
-		interval = 3
-	}
-	if timeout <= 0 {
-		timeout = 2
+		interval, timeout, _ = m.Config.Runtime.Health.Effective()
 	}
 	cmds := []tea.Cmd{tea.Tick(time.Duration(interval)*time.Second, func(time.Time) tea.Msg {
 		return state.RuntimeHealthTick{}
@@ -170,31 +162,17 @@ func handleRuntimeHealthTick(m *state.AppModel, _ state.RuntimeHealthTick) (*sta
 }
 
 func handleRuntimeHealthResult(m *state.AppModel, msg state.RuntimeHealthResult) (*state.AppModel, tea.Cmd) {
-	if msg.Name != m.ConnectionTarget || m.Docker == nil {
-		return m, nil
-	}
 	threshold := 2
 	if m.Config != nil && m.Config.Runtime.Health.FailureThreshold > 0 {
-		threshold = m.Config.Runtime.Health.FailureThreshold
+		_, _, threshold = m.Config.Runtime.Health.Effective()
 	}
-	if msg.Error != nil {
-		m.HealthFailures++
-		if m.HealthFailures >= threshold && !m.HealthDegraded {
-			m.HealthDegraded = true
-			m.Connected = false
-			m.ConnectionError = msg.Error.Error()
-			m.ErrorMessage = fmt.Sprintf("runtime health check failed: %v", msg.Error)
-			m.ErrorCount++
-			keyboard.ShowToastWarn(m, fmt.Sprintf("Runtime %s disconnected: %v", m.ConnectionTarget, msg.Error))
-		}
-		return m, nil
-	}
-	wasDegraded := m.HealthDegraded
-	m.HealthFailures = 0
-	m.HealthDegraded = false
-	if wasDegraded {
-		m.Connected = true
-		m.ConnectionError = ""
+	transition := m.ApplyHealthResult(msg.Name, msg.Error, threshold)
+	switch transition {
+	case state.HealthDisconnected:
+		m.ErrorMessage = fmt.Sprintf("runtime health check failed: %v", msg.Error)
+		m.ErrorCount++
+		keyboard.ShowToastWarn(m, fmt.Sprintf("Runtime %s disconnected: %v", m.ConnectionTarget, msg.Error))
+	case state.HealthRecovered:
 		keyboard.ShowToastNow(m, fmt.Sprintf("Runtime %s recovered", m.ConnectionTarget))
 	}
 	return m, nil
