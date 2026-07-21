@@ -1,8 +1,10 @@
 package keyboard
 
 import (
-	"github.com/elizabevil/docker-tui/internal/tui/keys"
+	"fmt"
+	"time"
 
+	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -54,7 +56,11 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 	}
 
 	if m.Mode == state.ModeFilter {
-		return handleFilterInput(normalizeInputKey(rawKey), m), nil
+		return handleFilterInput(normalizeInputKey(rawKey), m)
+	}
+
+	if m.Mode == state.ModeSearch {
+		return handleSearchInput(normalizeInputKey(rawKey), m), nil
 	}
 
 	if m.Mode == state.ModeCommand {
@@ -227,7 +233,7 @@ func keyContext(m *state.AppModel) keys.Context {
 
 func keySurface(mode state.AppMode) string {
 	switch mode {
-	case state.ModeFilter, state.ModeCommand:
+	case state.ModeFilter, state.ModeSearch, state.ModeCommand:
 		return "input"
 	case state.ModeConfirm, state.ModeExport, state.ModeDebug, state.ModeExec, state.ModeExecShell:
 		return "dialog"
@@ -240,6 +246,8 @@ func keyMode(mode state.AppMode) string {
 	switch mode {
 	case state.ModeFilter:
 		return "filter"
+	case state.ModeSearch:
+		return "search"
 	case state.ModeCommand:
 		return "command"
 	case state.ModeLogView:
@@ -253,53 +261,70 @@ func keyMode(mode state.AppMode) string {
 	}
 }
 
-func handleFilterInput(key string, m *state.AppModel) *state.AppModel {
-	inLogSearch := m.Mode == state.ModeFilter && m.LogContainerID != "" && m.LogContent != nil
-	clampFilterCursor(m)
+func handleFilterInput(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	clampQueryCursor(&m.FilterInput)
 
 	switch key {
 	case keys.KeyEnter:
-		if inLogSearch {
-			m.LogSearchText = m.FilterText
-			m.LogSearchMatch = 0
-			scrollToMatch(m)
-			m.Mode = state.ModeNormal
-			m.FilterText = ""
-			m.FilterCursor = 0
-			return m
-		}
 		ApplyFilter(m)
 		focusFirstFilteredItem(m)
 		m.Mode = state.ModeNormal
-		m.FilterCursor = 0
+		m.FilterExitPending = false
 	case keys.KeyEsc:
-		m.Mode = state.ModeNormal
-		m.FilterText = ""
-		m.FilterCursor = 0
-		if inLogSearch {
-			m.LogSearchText = ""
-		} else {
-			ApplyFilter(m)
+		if m.FilterExitPending {
+			BackFromFilter(m)
+			return m, nil
 		}
+		m.FilterExitPending = true
+		m.FilterExitToken++
+		token := m.FilterExitToken
+		ShowToastWarn(m, "Press Esc again within 5s to clear filter and exit")
+		return m, tea.Tick(5*time.Second, func(time.Time) tea.Msg {
+			return state.FilterExitTimeout{Token: token}
+		})
 	default:
-		if handled, changed := editTextInput(key, &m.FilterText, &m.FilterCursor); handled && changed && !inLogSearch {
+		if handled, changed := editTextInput(key, &m.FilterInput.Text, &m.FilterInput.Cursor); handled && changed {
 			ApplyFilter(m)
 		}
+	}
+	return m, nil
+}
+
+func handleSearchInput(key string, m *state.AppModel) *state.AppModel {
+	clampQueryCursor(&m.SearchInput)
+	switch key {
+	case keys.KeyEnter:
+		m.LogSearchText = m.SearchInput.Text
+		m.LogSearchMatch = 0
+		m.Mode = state.ModeLogView
+		matches := logSearchMatchCount(m)
+		if matches == 0 && m.LogSearchText != "" {
+			ShowToastWarn(m, "No log matches for: "+m.LogSearchText)
+		} else if matches > 0 {
+			scrollToMatch(m)
+			ShowToastNow(m, fmt.Sprintf("Log match 1/%d", matches))
+		}
+	case keys.KeyEsc:
+		m.Mode = state.ModeLogView
+		m.SearchInput.Text = m.LogSearchText
+		m.SearchInput.Cursor = len([]rune(m.SearchInput.Text))
+	default:
+		editTextInput(key, &m.SearchInput.Text, &m.SearchInput.Cursor)
 	}
 	return m
 }
 
-func clampFilterCursor(m *state.AppModel) {
-	if m == nil {
+func clampQueryCursor(input *state.QueryInputState) {
+	if input == nil {
 		return
 	}
-	max := len([]rune(m.FilterText))
-	if m.FilterCursor < 0 {
-		m.FilterCursor = 0
+	max := len([]rune(input.Text))
+	if input.Cursor < 0 {
+		input.Cursor = 0
 		return
 	}
-	if m.FilterCursor > max {
-		m.FilterCursor = max
+	if input.Cursor > max {
+		input.Cursor = max
 	}
 }
 

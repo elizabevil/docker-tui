@@ -39,7 +39,7 @@ func TestQueryKindFor(t *testing.T) {
 	}{
 		{name: "normal", app: &state.AppModel{Mode: state.ModeNormal}, want: queryNone},
 		{name: "filter", app: &state.AppModel{Mode: state.ModeFilter}, want: queryFilter},
-		{name: "search", app: &state.AppModel{Mode: state.ModeFilter, LogContainerID: "abc"}, want: querySearch},
+		{name: "search", app: &state.AppModel{Mode: state.ModeSearch, LogContainerID: "abc"}, want: querySearch},
 		{name: "command", app: &state.AppModel{Mode: state.ModeCommand}, want: queryCommand},
 	}
 	for _, tt := range tests {
@@ -78,7 +78,7 @@ func TestRenderAppHeightDoesNotChangeWithQueryOrMessage(t *testing.T) {
 
 	normalHeight := strings.Count(RenderApp(app), "\n") + 1
 	app.Mode = state.ModeFilter
-	app.FilterText = "nginx"
+	app.FilterInput = state.QueryInputState{Text: "nginx", Cursor: 5}
 	filterHeight := strings.Count(RenderApp(app), "\n") + 1
 	app.ToastMessage = "filter applied"
 	app.ToastLevel = component.ToastInfo
@@ -106,7 +106,7 @@ func TestRenderAppRegressionMatrix(t *testing.T) {
 		{name: "detail", panel: state.PanelImages, mode: state.ModeDetail},
 		{name: "help", panel: state.PanelHelp, mode: state.ModeHelp},
 		{name: "filter", panel: state.PanelContainers, mode: state.ModeFilter},
-		{name: "search", panel: state.PanelContainers, mode: state.ModeFilter},
+		{name: "search", panel: state.PanelContainers, mode: state.ModeSearch},
 		{name: "command", panel: state.PanelContainers, mode: state.ModeCommand},
 		{name: "mark", panel: state.PanelContainers, mode: state.ModeMark},
 	}
@@ -118,6 +118,8 @@ func TestRenderAppRegressionMatrix(t *testing.T) {
 				app.Width, app.Height = size.width, size.height
 				app.ActivePanel, app.Mode = view.panel, view.mode
 				app.FilterText = "query"
+				app.FilterInput = state.QueryInputState{Text: "query", Cursor: 5}
+				app.SearchInput = state.QueryInputState{Text: "query", Cursor: 5}
 				app.LogContainerID = "container"
 				if view.name != "logs" && view.name != "search" {
 					app.LogContainerID = ""

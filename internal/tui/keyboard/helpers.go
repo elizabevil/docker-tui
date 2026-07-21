@@ -64,21 +64,21 @@ func moveCursor(m *state.AppModel, delta int) {
 	m.StatsActive = false
 }
 
-// ApplyFilter 应用当前 FilterText 到活动面板。
+// ApplyFilter applies the current resource filter to the active panel.
 func ApplyFilter(m *state.AppModel) {
 	if m == nil {
 		return
 	}
 	if m.ActivePanel == state.PanelCompose {
 		if m.ComposeFocus == 1 {
-			m.ComposeServiceFilter = m.FilterText
+			m.ComposeServiceFilter = m.FilterInput.Text
 		} else {
-			m.ComposeProjectFilter = m.FilterText
+			m.ComposeProjectFilter = m.FilterInput.Text
 		}
 		return
 	}
 	if f := activeTableFilter(m); f != nil {
-		f.SetFilter(m.FilterText)
+		f.SetFilter(m.FilterInput.Text)
 	}
 }
 

@@ -26,7 +26,7 @@
 - 镜像详情页的 `History` 区块已经预留，但 `internal/data/docker/InspectImage()` 还没有接入镜像 layer history 数据，当前只显示“暂不可用”占位文案。
 - `config.Keymap` 已接入动作注册表和上下文解析器；当前开放动作级默认绑定覆盖，用户级上下文规则仍属于后续能力。
 - 默认配置、运行时、Help 和 Footer 已统一为 `Ctrl+S`、`Ctrl+K`、`Ctrl+P` 等默认键位语义。
-- 过滤交互当前是“资源列表输入即过滤、日志搜索按 Enter 应用”，不再是旧文档描述的“1 秒防抖后自动退出”。
+- Filter 与 Search 已拆分：资源列表输入即时过滤并使用双 `Esc` 清除退出，日志搜索按 Enter 应用且不改变原始数据集。
 
 ## 竞品参考
 

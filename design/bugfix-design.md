@@ -714,6 +714,13 @@
   1. 该问题同时影响交互体验、配置兼容和文档说明，容易出现局部修好、整体继续漂移。
   2. 若继续复用同一模式状态，后续 `Esc` 状态机和日志搜索语义会持续互相污染。
   3. 若删除旧防抖路径但不处理配置迁移，维护者仍会被 `ui.searchDebounceMs` 误导。
+- 实现记录（2026-07-20）:
+  1. 新增独立 `ModeFilter / ModeSearch` 和 `FilterInput / SearchInput` 状态，共享的仅是 rune-safe 文本编辑器。
+  2. 资源 Filter 输入即时调用 `ApplyFilter()`；Enter 保留筛选并退出编辑，5 秒内双 `Esc` 清空筛选并退出。
+  3. 日志页 `/` 进入 Search，Enter 应用并定位首个匹配，Esc 取消草稿并保留上一次搜索。
+  4. 删除 `SearchTimer / SearchTick / StartSearchDebounce()` 以及无实际含义的 `ui.searchDebounceMs` 字段。
+  5. Filter 退出提示和 Search 匹配反馈复用现有 Toast 消息轨道，等待 BR-005 统一事件来源。
+  6. 已覆盖即时过滤、双 Esc、退出超时、日志搜索应用/取消和日志页查询入口测试。
 
 ### BR-005 消息 / 审计日志管理
 

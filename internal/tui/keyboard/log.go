@@ -14,6 +14,9 @@ func handleLogKeys(key string, m *state.AppModel) bool {
 	action, known := resolveAction(key, m)
 	if known {
 		switch action {
+		case keys.ActionFilter:
+			ToSearch(m)
+			return true
 		case keys.ActionBack:
 			m.Mode = state.ModeNormal
 			m.LogViewOffset = 0
@@ -72,6 +75,19 @@ func scrollToMatch(m *state.AppModel) {
 			count++
 		}
 	}
+}
+
+func logSearchMatchCount(m *state.AppModel) int {
+	if m == nil || m.LogSearchText == "" {
+		return 0
+	}
+	count := 0
+	for _, line := range m.LogContent {
+		if strings.Contains(strings.ToLower(line), strings.ToLower(m.LogSearchText)) {
+			count++
+		}
+	}
+	return count
 }
 
 func contains(s, substr string) bool {

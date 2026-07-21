@@ -255,9 +255,9 @@ func RenderApp(m *state.AppModel) string {
 
 func renderMiddlePanel(m *state.AppModel, panelH int, panelW int) string {
 	borderLabel := ""
-	if m.Mode != state.ModeFilter && m.Mode != state.ModeCommand {
+	if m.Mode != state.ModeFilter && m.Mode != state.ModeSearch && m.Mode != state.ModeCommand {
 		if f := currentTableFilterLabel(m); f != "" {
-			borderLabel = "Search: " + f
+			borderLabel = "Filter: " + f
 		}
 	}
 

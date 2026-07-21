@@ -147,7 +147,9 @@ func handleKeyStrokeTick(m *state.AppModel, _ state.KeyStrokeTick) (*state.AppMo
 	})
 }
 
-func handleSearchTick(m *state.AppModel, _ state.SearchTick) (*state.AppModel, tea.Cmd) {
-	// 过滤框改为常驻，避免 3s 自动关闭导致 UI 闪烁。
+func handleFilterExitTimeout(m *state.AppModel, msg state.FilterExitTimeout) (*state.AppModel, tea.Cmd) {
+	if msg.Token == m.FilterExitToken {
+		m.FilterExitPending = false
+	}
 	return m, nil
 }

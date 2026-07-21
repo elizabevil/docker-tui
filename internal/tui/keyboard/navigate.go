@@ -101,27 +101,42 @@ func BackFromHelp(m *state.AppModel) {
 
 // ToFilter opens the search filter bar.
 func ToFilter(m *state.AppModel) tea.Cmd {
+	if m.Mode == state.ModeLogView {
+		ToSearch(m)
+		return nil
+	}
 	m.Mode = state.ModeFilter
 	if m.ActivePanel == state.PanelCompose {
 		if m.ComposeFocus == 1 {
-			m.FilterText = m.ComposeServiceFilter
+			m.FilterInput.Text = m.ComposeServiceFilter
 		} else {
-			m.FilterText = m.ComposeProjectFilter
+			m.FilterInput.Text = m.ComposeProjectFilter
 		}
+	} else if filter := activeTableFilter(m); filter != nil {
+		m.FilterInput.Text = filter.FilterText()
 	} else {
-		m.FilterText = ""
+		m.FilterInput.Text = ""
 	}
-	m.FilterCursor = 0
-	m.FilterCursor = len([]rune(m.FilterText))
-	m.SearchTimer = 0
+	m.FilterInput.Cursor = len([]rune(m.FilterInput.Text))
+	m.FilterExitPending = false
 	return nil
 }
 
-// BackFromFilter closes the search filter bar.
+// BackFromFilter clears the active filter and closes the filter bar.
 func BackFromFilter(m *state.AppModel) {
+	m.FilterInput.Text = ""
+	m.FilterInput.Cursor = 0
+	m.FilterExitPending = false
+	m.FilterExitToken++
+	ApplyFilter(m)
 	m.Mode = state.ModeNormal
-	m.FilterText = ""
-	m.FilterCursor = 0
+}
+
+// ToSearch opens log search without changing the underlying log data.
+func ToSearch(m *state.AppModel) {
+	m.Mode = state.ModeSearch
+	m.SearchInput.Text = m.LogSearchText
+	m.SearchInput.Cursor = len([]rune(m.SearchInput.Text))
 }
 
 // ToCommand opens the command palette.

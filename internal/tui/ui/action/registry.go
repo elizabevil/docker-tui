@@ -44,7 +44,9 @@ func ForMode(app *state.AppModel) []Shortcut {
 	}
 	switch app.Mode {
 	case state.ModeFilter:
-		return shortcuts("Enter", "Apply", "Esc", "Exit", "Ctrl+A/E", "Home/End", "Ctrl+W/U/K", "Edit")
+		return shortcuts("Enter", "Keep", "Esc Esc", "Clear & exit", "Ctrl+A/E", "Home/End", "Ctrl+W/U/K", "Edit")
+	case state.ModeSearch:
+		return shortcuts("Enter", "Search", "Esc", "Cancel", "Ctrl+A/E", "Home/End", "Ctrl+W/U/K", "Edit")
 	case state.ModeCommand:
 		return shortcuts("Enter", "Run", "Tab", "Complete", "Esc", "Exit", "Ctrl+A/E", "Home/End", "Ctrl+W/U/K", "Edit")
 	case state.ModeMark:

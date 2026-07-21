@@ -49,7 +49,6 @@ type UIConfig struct {
 	ShowHelp           bool        `json:"showHelp" yaml:"showHelp"`
 	HintTimeout        int         `json:"hintTimeout" yaml:"hintTimeout"`               // seconds, default 3
 	DialogOverlayColor string      `json:"dialogOverlayColor" yaml:"dialogOverlayColor"` // hex, e.g. "#0d1117"
-	SearchDebounceMs   int         `json:"searchDebounceMs" yaml:"searchDebounceMs"`
 }
 
 // ThemeConfig defines the color theme.

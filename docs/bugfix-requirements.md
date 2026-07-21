@@ -83,17 +83,17 @@
 
 ### BR-004 过滤模式的死配置与现行为不一致
 
-- 状态: `designing`
+- 状态: `done`
 - 优先级: `medium`
 - 症状:
   过滤交互已经变为“资源表输入即过滤、日志页按 Enter 应用搜索”，但 `SearchTimer` / `SearchTick` / `StartSearchDebounce()` 仍保留旧的防抖模型。
 - 当前行为:
-  运行时与配置项 `ui.searchDebounceMs` 的含义不一致，维护者容易误判真实行为。
+  资源 Filter 与日志 Search 已使用独立模式和输入状态；资源输入即时生效，日志搜索按 Enter 应用。旧防抖状态、消息和 `ui.searchDebounceMs` 已删除。
 - 代码锚点:
   [internal/tui/keyboard/keyboard.go](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/keyboard.go:198)
   [internal/tui/update_tick.go](/home/debi/IdeaProjects/docker-tui/internal/tui/update_tick.go:121)
-  [internal/tui/composable/filter.go](/home/debi/IdeaProjects/docker-tui/internal/tui/composable/filter.go:1)
-  [internal/data/config/types.go](/home/debi/IdeaProjects/docker-tui/internal/data/config/types.go:52)
+  [internal/tui/keyboard/navigate.go](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/navigate.go:103)
+  [internal/tui/state/app.go](/home/debi/IdeaProjects/docker-tui/internal/tui/state/app.go:30)
 - 期望行为:
   资源页与日志页应拆分为不同查询语义: 结构化资源页使用 `Filter`，日志页使用 `Search`。资源页过滤默认即时生效，并采用双 `Esc` 退出筛选功能的交互；日志页搜索不改变数据集，只负责匹配与跳转。
 - 验收标准:

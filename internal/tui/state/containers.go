@@ -101,8 +101,8 @@ type (
 
 	HostStatsTick struct{}
 
-	EscTimeout struct{}
-	SearchTick struct{}
+	EscTimeout        struct{}
+	FilterExitTimeout struct{ Token uint64 }
 
 	KeyHintTick   struct{}
 	KeyStrokeTick struct{}

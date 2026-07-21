@@ -127,8 +127,8 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case state.EscTimeout:
 		return handleEscTimeout(m, msg)
 
-	case state.SearchTick:
-		return handleSearchTick(m, msg)
+	case state.FilterExitTimeout:
+		return handleFilterExitTimeout(m, msg)
 
 	case state.KeyHintTick:
 		return handleKeyHintTick(m, msg)

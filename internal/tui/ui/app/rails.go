@@ -71,7 +71,15 @@ func renderQueryRail(m *state.AppModel, width int) string {
 	if m == nil {
 		return ""
 	}
-	return renderQueryInput(queryKindFor(m), m.FilterText, m.FilterCursor, width)
+	kind := queryKindFor(m)
+	switch kind {
+	case queryFilter:
+		return renderQueryInput(kind, m.FilterInput.Text, m.FilterInput.Cursor, width)
+	case querySearch:
+		return renderQueryInput(kind, m.SearchInput.Text, m.SearchInput.Cursor, width)
+	default:
+		return renderQueryInput(kind, m.FilterText, m.FilterCursor, width)
+	}
 }
 
 type queryKind int
@@ -90,13 +98,13 @@ func queryKindFor(m *state.AppModel) queryKind {
 	if m.Mode == state.ModeCommand {
 		return queryCommand
 	}
-	if m.Mode != state.ModeFilter {
-		return queryNone
-	}
-	if m.LogContainerID != "" {
+	if m.Mode == state.ModeSearch {
 		return querySearch
 	}
-	return queryFilter
+	if m.Mode == state.ModeFilter {
+		return queryFilter
+	}
+	return queryNone
 }
 
 func renderQueryInput(kind queryKind, text string, cursor int, width int) string {

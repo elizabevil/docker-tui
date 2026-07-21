@@ -117,11 +117,11 @@ Compose 面板是双栏：
 ### 过滤模式
 
 - `/` 进入
-- `Enter` 应用过滤
-- `Esc` 退出
+- 输入即时应用过滤，`Enter` 保留当前过滤并退出编辑
+- 第一次 `Esc` 进入 5 秒待退出窗口，第二次 `Esc` 清空过滤并退出
 - 支持左右移动、`Ctrl+B` / `Ctrl+F`、`Alt+B` / `Alt+F`、`Home` / `End`、`Ctrl+A` / `Ctrl+E`
 - 支持 `Backspace` / `Delete`、`Ctrl+H`、`Ctrl+W`、`Ctrl+U`、`Ctrl+K`
-- 在日志视图中，过滤模式会转为日志搜索
+- 在日志视图中，`/` 进入独立搜索模式；`Enter` 应用并跳转到首个匹配，`Esc` 取消草稿
 
 ### 命令模式
 

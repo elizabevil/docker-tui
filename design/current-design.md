@@ -426,17 +426,17 @@ type FuncInfoProvider struct { Fn func() string }
 ### 7.1 搜索 (/ 键)
 
 ```
-/ 按下 → ModeFilter + FilterText=""
-键入   → handleFilterInput 累加字符
-资源表 → 输入时即时 ApplyFilter()
-日志页 → 作为搜索词编辑，按 Enter 后跳转到首个匹配
-Enter → 资源表确认并退出 / 日志页应用搜索
-Esc   → 取消并返回 Normal
+/ 按下  → 资源页进入 ModeFilter，日志页进入 ModeSearch
+资源表  → FilterInput 输入时即时 ApplyFilter()
+Enter  → 保留当前过滤并退出编辑
+Esc Esc → 5 秒内连续按下时清空过滤并退出
+日志页  → SearchInput 仅编辑搜索草稿，Enter 后应用并跳转到首个匹配
+Esc    → 取消搜索草稿，保留上一次已应用搜索
 ```
 
-- `SearchTick`/`SearchTimer` 相关结构仍在代码里保留，但当前过滤框不会按 1 秒防抖自动关闭
-- 搜索输入显示在面板标题行的 BorderLabel 中: `╭─ Search: xxx ─╮`
-- 支持左右移动、`Home` / `End`、`Ctrl+A` / `Ctrl+E`、`Backspace` / `Delete`
+- Filter 与 Search 使用独立模式和输入状态，不再经过防抖计时器
+- 已生效的资源过滤显示在面板 BorderLabel 中: `╭─ Filter: xxx ─╮`
+- 支持左右移动、词移动、`Home` / `End`、`Ctrl+A` / `Ctrl+E` 及 shell 风格删除
 
 ### 7.2 命令 (: 键)
 
@@ -520,7 +520,7 @@ GetStyle("stateRunning")
 | 文件 | 配置项 |
 |------|--------|
 | `app.jsonc` | `marginTopPct: 5`, `marginBottomPct: 5`, `contentWidthPct: 90` |
-| `internal/data/config/default.jsonc` / 用户 `config.yml` | `layout.sectionWeights`, `layout.background`, `ui.searchDebounceMs`, `keymap.*` |
+| `internal/data/config/default.jsonc` / 用户 `config.yml` | `layout.sectionWeights`, `layout.background`, `keymap.*` |
 | `config.jsonc` | `cols.*.pct/more/wide/compact/show` |
 | `table.jsonc` | `rowStyles`, `stateStyles`, `pages.*.columns`, `selectionInfo`, `rowSpacing` |
 | `header.jsonc` | `columns[].weight`, `keystroke.displayDuration: 30`, `keystroke.animDuration: 5` |

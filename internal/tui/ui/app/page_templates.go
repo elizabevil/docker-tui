@@ -32,7 +32,7 @@ type pageView struct {
 
 func templateFor(m *state.AppModel) pageTemplateKind {
 	switch {
-	case m.Mode == state.ModeLogView || (m.Mode == state.ModeFilter && m.LogContainerID != ""):
+	case m.Mode == state.ModeLogView || m.Mode == state.ModeSearch:
 		return logPageTemplate
 	case m.Mode == state.ModeDetail || m.Mode == state.ModeExecPassthrough:
 		return detailPageTemplate
