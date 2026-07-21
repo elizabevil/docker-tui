@@ -10,20 +10,22 @@ const CurrentConfigVersion = 1
 
 // RuntimeTLSConfig defines TLS client authentication for one runtime endpoint.
 type RuntimeTLSConfig struct {
-	Enabled    bool   `json:"enabled" yaml:"enabled"`
-	Verify     bool   `json:"verify" yaml:"verify"`
-	CAFile     string `json:"caFile" yaml:"caFile"`
-	CertFile   string `json:"certFile" yaml:"certFile"`
-	KeyFile    string `json:"keyFile" yaml:"keyFile"`
-	ServerName string `json:"serverName" yaml:"serverName"`
+	Enabled            bool   `json:"enabled" yaml:"enabled"`
+	Verify             bool   `json:"verify" yaml:"verify"`
+	InsecureSkipVerify bool   `json:"insecureSkipVerify" yaml:"insecureSkipVerify"`
+	CAFile             string `json:"caFile" yaml:"caFile"`
+	CertFile           string `json:"certFile" yaml:"certFile"`
+	KeyFile            string `json:"keyFile" yaml:"keyFile"`
+	ServerName         string `json:"serverName" yaml:"serverName"`
 }
 
 // RuntimeConn defines a named container runtime connection.
 type RuntimeConn struct {
-	Name     string           `json:"name" yaml:"name"`
-	Driver   string           `json:"driver" yaml:"driver"`
-	Endpoint string           `json:"endpoint" yaml:"endpoint"`
-	TLS      RuntimeTLSConfig `json:"tls" yaml:"tls"`
+	Name       string           `json:"name" yaml:"name"`
+	Driver     string           `json:"driver" yaml:"driver"`
+	Endpoint   string           `json:"endpoint" yaml:"endpoint"`
+	APIVersion string           `json:"apiVersion" yaml:"apiVersion"`
+	TLS        RuntimeTLSConfig `json:"tls" yaml:"tls"`
 }
 
 type RuntimeDiscoveryConfig struct {

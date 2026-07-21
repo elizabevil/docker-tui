@@ -131,9 +131,11 @@ runtime:
     - name: remote-docker
       driver: docker
       endpoint: tcp://docker.example.com:2376
+      apiVersion: "" # 留空时自动协商
       tls:
         enabled: true
         verify: true
+        insecureSkipVerify: false
         caFile: /etc/docker/certs/ca.pem
         certFile: /etc/docker/certs/cert.pem
         keyFile: /etc/docker/certs/key.pem

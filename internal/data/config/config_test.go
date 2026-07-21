@@ -160,6 +160,49 @@ func TestValidateRuntimeConnections(t *testing.T) {
 	}
 }
 
+func TestValidateRuntimeTLSModes(t *testing.T) {
+	tests := []struct {
+		name    string
+		conn    RuntimeConn
+		wantErr bool
+	}{
+		{
+			name: "verified certificates are lazy loaded",
+			conn: RuntimeConn{Name: "verified", Driver: "docker", Endpoint: "tcp://example:2376",
+				TLS: RuntimeTLSConfig{Enabled: true, Verify: true, CAFile: "/not/read/during/validation.pem"}},
+		},
+		{
+			name: "explicit insecure",
+			conn: RuntimeConn{Name: "insecure", Driver: "podman", Endpoint: "https://example:2376",
+				TLS: RuntimeTLSConfig{Enabled: true, InsecureSkipVerify: true}},
+		},
+		{
+			name: "implicit insecure rejected", wantErr: true,
+			conn: RuntimeConn{Name: "invalid", Driver: "docker", Endpoint: "tcp://example:2376",
+				TLS: RuntimeTLSConfig{Enabled: true}},
+		},
+		{
+			name: "conflicting modes rejected", wantErr: true,
+			conn: RuntimeConn{Name: "invalid", Driver: "docker", Endpoint: "tcp://example:2376",
+				TLS: RuntimeTLSConfig{Enabled: true, Verify: true, InsecureSkipVerify: true, CAFile: "/ca.pem"}},
+		},
+		{
+			name: "unix tls rejected", wantErr: true,
+			conn: RuntimeConn{Name: "invalid", Driver: "docker", Endpoint: "unix:///var/run/docker.sock",
+				TLS: RuntimeTLSConfig{Enabled: true, InsecureSkipVerify: true}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.conn.Validate()
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestRuntimeHealthDurationsUseValidatedValues(t *testing.T) {
 	health := RuntimeHealthConfig{IntervalSec: 7, TimeoutSec: 4, FailureThreshold: 3}
 	if err := health.Validate(); err != nil {

@@ -19,14 +19,15 @@ const (
 )
 
 type PoolEntry struct {
-	Name    string
-	Host    string
-	Client  *Client
-	Engine  runtimeapi.Engine
-	State   ConnState
-	Error   error
-	Runtime RuntimeType
-	TLS     TLSConfig
+	Name       string
+	Host       string
+	APIVersion string
+	Client     *Client
+	Engine     runtimeapi.Engine
+	State      ConnState
+	Error      error
+	Runtime    RuntimeType
+	TLS        TLSConfig
 }
 
 type ConnectionPool struct {
@@ -50,11 +51,12 @@ func (p *ConnectionPool) AddHost(he HostEntry) {
 		return
 	}
 	p.entries[he.Name] = &PoolEntry{
-		Name:    he.Name,
-		Host:    he.Host,
-		Runtime: he.Runtime,
-		TLS:     he.TLS,
-		State:   StateDisconnected,
+		Name:       he.Name,
+		Host:       he.Host,
+		APIVersion: he.APIVersion,
+		Runtime:    he.Runtime,
+		TLS:        he.TLS,
+		State:      StateDisconnected,
 	}
 	p.order = append(p.order, he.Name)
 }
@@ -111,11 +113,12 @@ func (p *ConnectionPool) Connect(name string, timeout time.Duration) error {
 	entry.State = StateConnecting
 	entry.Error = nil
 	host := entry.Host
+	apiVersion := entry.APIVersion
 	runtimeType := entry.Runtime
 	tlsConfig := entry.TLS
 	p.mu.Unlock()
 
-	client, err := NewClient(ClientConfig{Host: host, Timeout: timeout, Runtime: runtimeType, TLS: tlsConfig})
+	client, err := NewClient(ClientConfig{Host: host, APIVersion: apiVersion, Timeout: timeout, Runtime: runtimeType, TLS: tlsConfig})
 	p.mu.Lock()
 	if err != nil {
 		entry.State = StateError
@@ -144,7 +147,7 @@ func (p *ConnectionPool) Probe(name string, timeout time.Duration) error {
 		p.mu.RUnlock()
 		return fmt.Errorf("unknown host: %s", name)
 	}
-	host, runtimeType, tlsConfig, existing := entry.Host, entry.Runtime, entry.TLS, entry.Client
+	host, apiVersion, runtimeType, tlsConfig, existing := entry.Host, entry.APIVersion, entry.Runtime, entry.TLS, entry.Client
 	p.mu.RUnlock()
 
 	var err error
@@ -152,7 +155,7 @@ func (p *ConnectionPool) Probe(name string, timeout time.Duration) error {
 		err = existing.PingTimeout(timeout)
 	} else {
 		var client *Client
-		client, err = NewClient(ClientConfig{Host: host, Timeout: timeout, Runtime: runtimeType, TLS: tlsConfig})
+		client, err = NewClient(ClientConfig{Host: host, APIVersion: apiVersion, Timeout: timeout, Runtime: runtimeType, TLS: tlsConfig})
 		if client != nil {
 			_ = client.Close()
 		}

@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -154,6 +155,13 @@ func (c RuntimeConn) Validate() error {
 	if strings.TrimSpace(c.Endpoint) == "" {
 		return fmt.Errorf("endpoint is required")
 	}
+	endpoint, err := url.Parse(c.Endpoint)
+	if err != nil || endpoint.Scheme == "" {
+		return fmt.Errorf("endpoint must be a valid URI")
+	}
+	if c.TLS.Enabled && endpoint.Scheme == "unix" {
+		return fmt.Errorf("tls cannot be enabled for a unix socket")
+	}
 	return c.TLS.Validate()
 }
 
@@ -161,10 +169,10 @@ func (tls RuntimeTLSConfig) Validate() error {
 	if !tls.Enabled {
 		return nil
 	}
-	if !tls.Verify {
-		return fmt.Errorf("tls.verify must be true")
+	if tls.Verify == tls.InsecureSkipVerify {
+		return fmt.Errorf("exactly one of tls.verify or tls.insecureSkipVerify must be true")
 	}
-	if strings.TrimSpace(tls.CAFile) == "" {
+	if tls.Verify && strings.TrimSpace(tls.CAFile) == "" {
 		return fmt.Errorf("tls.caFile is required")
 	}
 	if (strings.TrimSpace(tls.CertFile) == "") != (strings.TrimSpace(tls.KeyFile) == "") {

@@ -20,6 +20,16 @@ func TestNewClientRejectsUnverifiedTLSBeforeConnecting(t *testing.T) {
 	}
 }
 
+func TestTLSConfigAllowsExplicitInsecureSkipVerify(t *testing.T) {
+	config, err := tlsConfig(TLSConfig{Enabled: true, InsecureSkipVerify: true}, "tcp://runtime.example:2376")
+	if err != nil {
+		t.Fatalf("tlsConfig() error = %v", err)
+	}
+	if !config.InsecureSkipVerify {
+		t.Fatal("expected certificate verification to be explicitly disabled")
+	}
+}
+
 func TestConnectionPoolPreservesRuntimeAndTLS(t *testing.T) {
 	pool := NewPool()
 	pool.AddHost(HostEntry{

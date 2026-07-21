@@ -170,7 +170,11 @@ func Render(app *state.AppModel, usableW int) string {
 	}
 	if app.Connection.Pool != nil {
 		if active := app.Connection.Pool.Active(); active != nil && active.TLS.Enabled {
-			runtimeName += " [" + i18n.T("connection.tls_verified") + "]"
+			securityKey := "connection.tls_verified"
+			if active.TLS.InsecureSkipVerify {
+				securityKey = "connection.tls_insecure"
+			}
+			runtimeName += " [" + i18n.T(securityKey) + "]"
 		}
 	}
 	colConn := fmt.Sprintf("%s%s\n%s%s\n%s%s\n%s%s\n",

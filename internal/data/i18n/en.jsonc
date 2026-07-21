@@ -292,6 +292,7 @@
   "connection.error.network": "Network connection failed",
   "connection.tls_configured": "TLS configured",
   "connection.tls_verified": "TLS verified",
+  "connection.tls_insecure": "TLS insecure",
   "container.pause.unavailable": "Only running or paused containers support this action",
   "container.rename.title": "Rename container",
   "container.rename.invalid": "Container name cannot be empty or contain spaces or slashes",

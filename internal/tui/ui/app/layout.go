@@ -268,7 +268,11 @@ func renderRuntimeSelector(m *state.AppModel) string {
 		if e != nil && e.TLS.Enabled {
 			security = " " + i18n.T("connection.tls_configured")
 			if e.State == dockerclient.StateConnected {
-				security = " " + i18n.T("connection.tls_verified")
+				securityKey := "connection.tls_verified"
+				if e.TLS.InsecureSkipVerify {
+					securityKey = "connection.tls_insecure"
+				}
+				security = " " + i18n.T(securityKey)
 			}
 		}
 		if failure, ok := m.Connection.RuntimeSelectorError[name]; ok {

@@ -12,10 +12,11 @@ import (
 // ConnectionSpec is the normalized runtime connection model used by the
 // startup flow, connection pool and runtime selector.
 type ConnectionSpec struct {
-	Name    string
-	Host    string
-	Runtime RuntimeType
-	TLS     TLSConfig
+	Name       string
+	Host       string
+	APIVersion string
+	Runtime    RuntimeType
+	TLS        TLSConfig
 }
 
 // HostEntry preserves the legacy name used by the connection pool API.
@@ -26,23 +27,27 @@ type HostEntry = ConnectionSpec
 // FromRuntimeConn converts the config model into the normalized runtime model.
 func FromRuntimeConn(conn config.RuntimeConn) ConnectionSpec {
 	return ConnectionSpec{
-		Name:    conn.Name,
-		Host:    conn.Endpoint,
-		Runtime: RuntimeType(conn.Driver),
+		Name:       conn.Name,
+		Host:       conn.Endpoint,
+		APIVersion: conn.APIVersion,
+		Runtime:    RuntimeType(conn.Driver),
 		TLS: TLSConfig{
-			Enabled:    conn.TLS.Enabled,
-			Verify:     conn.TLS.Verify,
-			CAFile:     conn.TLS.CAFile,
-			CertFile:   conn.TLS.CertFile,
-			KeyFile:    conn.TLS.KeyFile,
-			ServerName: conn.TLS.ServerName,
+			Enabled:            conn.TLS.Enabled,
+			Verify:             conn.TLS.Verify,
+			InsecureSkipVerify: conn.TLS.InsecureSkipVerify,
+			CAFile:             conn.TLS.CAFile,
+			CertFile:           conn.TLS.CertFile,
+			KeyFile:            conn.TLS.KeyFile,
+			ServerName:         conn.TLS.ServerName,
 		},
 	}
 }
 
 // Key returns the deduplication key for this runtime connection.
 func (c ConnectionSpec) Key() string {
-	return ConnectionKey(c.Runtime, c.Host)
+	return fmt.Sprintf("%s|api=%s|tls=%t|verify=%t|server=%s|ca=%s|cert=%s",
+		ConnectionKey(c.Runtime, c.Host), c.APIVersion, c.TLS.Enabled,
+		!c.TLS.InsecureSkipVerify, c.TLS.ServerName, c.TLS.CAFile, c.TLS.CertFile)
 }
 
 // ConnectionKey normalizes driver and endpoint into a stable deduplication key.

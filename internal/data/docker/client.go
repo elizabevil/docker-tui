@@ -37,19 +37,21 @@ type Client struct {
 }
 
 type ClientConfig struct {
-	Host    string
-	TLS     TLSConfig
-	Timeout time.Duration
-	Runtime RuntimeType
+	Host       string
+	APIVersion string
+	TLS        TLSConfig
+	Timeout    time.Duration
+	Runtime    RuntimeType
 }
 
 type TLSConfig struct {
-	Enabled    bool
-	Verify     bool
-	CAFile     string
-	CertFile   string
-	KeyFile    string
-	ServerName string
+	Enabled            bool
+	Verify             bool
+	InsecureSkipVerify bool
+	CAFile             string
+	CertFile           string
+	KeyFile            string
+	ServerName         string
 }
 
 var knownSockets = []struct {
@@ -192,13 +194,15 @@ func detectRuntimeType(host string) RuntimeType {
 func NewClient(cfg ClientConfig) (*Client, error) {
 	host, rt := detectHost(cfg)
 
-	opts := []client.Opt{
-		client.WithHost(host),
-		client.WithAPIVersionNegotiation(),
+	opts := []client.Opt{client.WithHost(host)}
+	if cfg.APIVersion != "" {
+		opts = append(opts, client.WithVersion(cfg.APIVersion))
+	} else {
+		opts = append(opts, client.WithAPIVersionNegotiation())
 	}
 
 	if cfg.TLS.Enabled {
-		if !cfg.TLS.Verify {
+		if !cfg.TLS.Verify && !cfg.TLS.InsecureSkipVerify {
 			return nil, connectionError(ConnectionErrorCA, fmt.Errorf("TLS certificate verification is required"))
 		}
 		httpClient, err := tlsHTTPClient(cfg.TLS, host)
@@ -273,7 +277,8 @@ func tlsHTTPClient(cfg TLSConfig, host string) (*http.Client, error) {
 
 func tlsConfig(cfg TLSConfig, host string) (*tls.Config, error) {
 	tlsCfg := &tls.Config{
-		MinVersion: tls.VersionTLS12,
+		MinVersion:         tls.VersionTLS12,
+		InsecureSkipVerify: cfg.InsecureSkipVerify, // Set only by explicit, validated connection config.
 	}
 	if cfg.ServerName != "" {
 		tlsCfg.ServerName = cfg.ServerName

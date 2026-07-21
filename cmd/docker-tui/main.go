@@ -177,7 +177,7 @@ func runtimeConnections(cfg *config.Config, hostOverride string, usePodman bool)
 	seen := make(map[string]int, len(cfg.Runtime.Connections)+2)
 	aliases := make(map[string]string, len(cfg.Runtime.Connections)+2)
 	add := func(entry dockerclient.HostEntry, replace bool) {
-		key := dockerclient.ConnectionKey(entry.Runtime, entry.Host)
+		key := entry.Key()
 		if index, exists := seen[key]; exists {
 			if replace {
 				aliases[connections[index].Name] = entry.Name
