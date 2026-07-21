@@ -54,3 +54,13 @@ func TestPodmanOverrideAddsLocalEntryWhenDiscoveryDisabled(t *testing.T) {
 		t.Fatalf("entries=%#v", entries)
 	}
 }
+
+func TestRuntimeConnectionsAlwaysIncludeLocalRuntimes(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.Runtime.Discovery.LocalDocker = false
+	cfg.Runtime.Discovery.LocalPodman = false
+	entries, _ := runtimeConnections(cfg, "", false)
+	if len(entries) < 2 || entries[0].Name != "local-docker" || entries[1].Name != "local-podman" {
+		t.Fatalf("entries=%#v", entries)
+	}
+}

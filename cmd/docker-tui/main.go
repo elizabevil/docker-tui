@@ -188,12 +188,10 @@ func runtimeConnections(cfg *config.Config, hostOverride string, usePodman bool)
 		seen[key] = len(connections)
 		connections = append(connections, entry)
 	}
-	if cfg.Runtime.Discovery.LocalDocker {
-		add(dockerclient.HostEntry{Name: "local-docker", Host: "unix:///var/run/docker.sock", Runtime: "docker"}, false)
-	}
-	if cfg.Runtime.Discovery.LocalPodman || usePodman {
-		add(dockerclient.HostEntry{Name: "local-podman", Host: localPodmanEndpoint(), Runtime: "podman"}, false)
-	}
+	// Local runtimes are always candidates; discovery settings do not hide an
+	// installed runtime from the selector. Unavailable sockets fail visibly.
+	add(dockerclient.HostEntry{Name: "local-docker", Host: "unix:///var/run/docker.sock", Runtime: "docker"}, false)
+	add(dockerclient.HostEntry{Name: "local-podman", Host: localPodmanEndpoint(), Runtime: "podman"}, false)
 	for _, connection := range cfg.Runtime.Connections {
 		add(dockerclient.HostEntry{
 			Name:    connection.Name,
