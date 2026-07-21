@@ -19,7 +19,7 @@
 `cmd/docker-tui/main.go` 负责：
 
 1. 解析 CLI 参数：`--config`、`--host`、`--theme`、`--podman`、`--list-themes`、`--lang`、`--version`
-2. 加载配置与主题
+2. 按 `configVersion: 1` 严格加载配置与主题
 3. 初始化 i18n 与尺寸格式化策略
 4. 创建 `internal/data/docker.ConnectionPool`
 5. 构造 `state.AppModel`
@@ -135,6 +135,9 @@ keyboard action
 ## 配置入口
 
 - 默认配置路径：`~/.config/docker-tui/config.yml`
+- 连接配置：`runtime.discovery`、`runtime.default`、`runtime.health`、`runtime.connections`
+- 连接字段：`name`、`driver`、`endpoint` 和独立 `tls` 配置
+- 旧连接字段不兼容；未知字段与无效连接会在启动前返回配置错误
 - 默认配置模板：`internal/data/config/default.jsonc`
 - 布局窗口配置：`internal/tui/ui/app/app.jsonc`
 - 主题：`internal/data/config/themes/*.jsonc`

@@ -12,8 +12,14 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg == nil {
 		t.Fatal("DefaultConfig returned nil")
 	}
-	if cfg.Docker.Host != "" {
-		t.Errorf("expected empty default host, got %q", cfg.Docker.Host)
+	if cfg.ConfigVersion != CurrentConfigVersion {
+		t.Errorf("configVersion=%d", cfg.ConfigVersion)
+	}
+	if cfg.Runtime.Default != "local-docker" || !cfg.Runtime.Discovery.LocalDocker || !cfg.Runtime.Discovery.LocalPodman {
+		t.Errorf("unexpected runtime defaults: %#v", cfg.Runtime)
+	}
+	if cfg.Runtime.Health.IntervalSec != 3 {
+		t.Errorf("health interval=%d", cfg.Runtime.Health.IntervalSec)
 	}
 	if cfg.Docker.Timeout != 30*time.Second {
 		t.Errorf("expected 30s timeout, got %v", cfg.Docker.Timeout)
@@ -62,8 +68,8 @@ func TestLoadNonExistent(t *testing.T) {
 	if cfg == nil {
 		t.Fatal("Load returned nil config")
 	}
-	if cfg.Docker.Host != "" {
-		t.Errorf("expected empty host from defaults, got %q", cfg.Docker.Host)
+	if cfg.Runtime.Default != "local-docker" {
+		t.Errorf("default runtime=%q", cfg.Runtime.Default)
 	}
 }
 
@@ -72,7 +78,15 @@ func TestSaveAndLoad(t *testing.T) {
 	cfgPath := filepath.Join(tmpDir, "test-config.yml")
 
 	cfg := DefaultConfig()
-	cfg.Docker.Host = "tcp://192.168.1.1:2375"
+	cfg.Runtime.Default = "remote-docker"
+	cfg.Runtime.Connections = []RuntimeConn{{
+		Name:     "remote-docker",
+		Driver:   "docker",
+		Endpoint: "tcp://192.168.1.1:2376",
+		TLS: RuntimeTLSConfig{
+			Enabled: true, Verify: true, CAFile: "/certs/ca.pem",
+		},
+	}}
 	cfg.UI.Theme.ActiveBorderColor = []string{"red"}
 
 	if err := Save(cfg, cfgPath); err != nil {
@@ -88,8 +102,11 @@ func TestSaveAndLoad(t *testing.T) {
 		t.Fatalf("Load failed: %v", err)
 	}
 
-	if loaded.Docker.Host != "tcp://192.168.1.1:2375" {
-		t.Errorf("host mismatch: got %q", loaded.Docker.Host)
+	if loaded.Runtime.Default != "remote-docker" || len(loaded.Runtime.Connections) != 1 {
+		t.Errorf("runtime mismatch: %#v", loaded.Runtime)
+	}
+	if loaded.Runtime.Connections[0].TLS.CAFile != "/certs/ca.pem" {
+		t.Errorf("TLS mismatch: %#v", loaded.Runtime.Connections[0].TLS)
 	}
 	if loaded.UI.Theme.ActiveBorderColor[0] != "red" {
 		t.Errorf("theme mismatch: got %v", loaded.UI.Theme.ActiveBorderColor)
@@ -105,6 +122,38 @@ func TestLoadInvalidYAML(t *testing.T) {
 	_, err := Load(cfgPath)
 	if err == nil {
 		t.Fatal("expected error for invalid YAML")
+	}
+}
+
+func TestLoadRejectsLegacyConnectionFields(t *testing.T) {
+	cfgPath := filepath.Join(t.TempDir(), "config.yml")
+	legacy := "docker:\n  host: unix:///var/run/docker.sock\n"
+	if err := os.WriteFile(cfgPath, []byte(legacy), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Load(cfgPath); err == nil {
+		t.Fatal("expected legacy docker.host to be rejected")
+	}
+}
+
+func TestValidateRuntimeConnections(t *testing.T) {
+	tests := []struct {
+		name        string
+		connections []RuntimeConn
+	}{
+		{name: "driver", connections: []RuntimeConn{{Name: "remote", Driver: "containerd", Endpoint: "tcp://example:2376"}}},
+		{name: "duplicate", connections: []RuntimeConn{{Name: "remote", Driver: "docker", Endpoint: "tcp://one:2376"}, {Name: "remote", Driver: "docker", Endpoint: "tcp://two:2376"}}},
+		{name: "tls verify", connections: []RuntimeConn{{Name: "remote", Driver: "docker", Endpoint: "tcp://example:2376", TLS: RuntimeTLSConfig{Enabled: true, CAFile: "/ca.pem"}}}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cfg := DefaultConfig()
+			cfg.Runtime.Default = test.connections[0].Name
+			cfg.Runtime.Connections = test.connections
+			if err := Validate(cfg); err == nil {
+				t.Fatal("expected validation error")
+			}
+		})
 	}
 }
 

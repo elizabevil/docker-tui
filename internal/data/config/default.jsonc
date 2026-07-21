@@ -1,6 +1,7 @@
 {
   // Default configuration — embedded at build time.
   // Users can override any field in ~/.config/docker-tui/config.yml
+  "configVersion": 1,
 
   "general": {
     "scrollHeight": 2,
@@ -20,6 +21,33 @@
     "timeout": 30000000000,
     "statsPollSec": 3
     // 30s in nanoseconds (time.Duration)
+  },
+  "runtime": {
+    "default": "local-docker",
+    "discovery": {
+      "localDocker": true,
+      "localPodman": true
+    },
+    "health": {
+      "intervalSec": 3,
+      "timeoutSec": 2,
+      "failureThreshold": 2
+    },
+    "connections": [
+      // Example remote connection:
+      // {
+      //   "name": "remote-docker",
+      //   "driver": "docker",
+      //   "endpoint": "tcp://docker.example.com:2376",
+      //   "tls": {
+      //     "enabled": true,
+      //     "verify": true,
+      //     "caFile": "/etc/docker/certs/ca.pem",
+      //     "certFile": "/etc/docker/certs/cert.pem",
+      //     "keyFile": "/etc/docker/certs/key.pem"
+      //   }
+      // }
+    ]
   },
   "logs": {
     "since": "1h",

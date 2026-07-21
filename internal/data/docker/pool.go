@@ -17,11 +17,10 @@ const (
 )
 
 type HostEntry struct {
-	Name     string `toml:"name" yaml:"name"`
-	Host     string `toml:"host" yaml:"host"`
-	TLS      bool   `toml:"tls" yaml:"tls"`
-	CertPath string `toml:"certPath" yaml:"tlsCertPath"`
-	Runtime  string `toml:"runtime" yaml:"runtime"` // "docker", "podman", or ""
+	Name    string
+	Host    string
+	Runtime string
+	TLS     TLSConfig
 }
 
 type PoolEntry struct {
@@ -31,6 +30,7 @@ type PoolEntry struct {
 	State   ConnState
 	Error   error
 	Runtime string
+	TLS     TLSConfig
 }
 
 type ConnectionPool struct {
@@ -53,9 +53,11 @@ func (p *ConnectionPool) AddHost(he HostEntry) {
 		return
 	}
 	p.entries[he.Name] = &PoolEntry{
-		Name:  he.Name,
-		Host:  he.Host,
-		State: StateDisconnected,
+		Name:    he.Name,
+		Host:    he.Host,
+		Runtime: he.Runtime,
+		TLS:     he.TLS,
+		State:   StateDisconnected,
 	}
 }
 
@@ -114,9 +116,11 @@ func (p *ConnectionPool) Connect(name string, timeout time.Duration) error {
 	entry.State = StateConnecting
 	entry.Error = nil
 	host := entry.Host
+	runtimeType := entry.Runtime
+	tlsConfig := entry.TLS
 	p.mu.Unlock()
 
-	client, err := NewClient(ClientConfig{Host: host, Timeout: timeout, Runtime: entry.Runtime})
+	client, err := NewClient(ClientConfig{Host: host, Timeout: timeout, Runtime: runtimeType, TLS: tlsConfig})
 	p.mu.Lock()
 	if err != nil {
 		entry.State = StateError

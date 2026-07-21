@@ -1,14 +1,23 @@
+configVersion: 1
 runtime:
+  default: local-docker
+  discovery:
+    localDocker: true
+    localPodman: true
+  health:
+    intervalSec: 3
+    timeoutSec: 2
+    failureThreshold: 2
   connections:
-    - name: local-docker
-      addr: unix:///var/run/docker.sock
-#    - name: local-podman
-#      addr: unix:///run/user/1000/podman/podman.sock
+    - name: fixture-docker
+      driver: docker
+      endpoint: unix:///var/run/docker.sock
 
 layout:
-  topPct: 20
-  contentPct: 70
-  bottomPct: 10
+  sectionWeights:
+    top: 2
+    content: 7
+    bottom: 1
   background:
     enable: false
     type: image

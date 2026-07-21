@@ -6,20 +6,47 @@ import (
 	"github.com/bytedance/sonic"
 )
 
+const CurrentConfigVersion = 1
+
+// RuntimeTLSConfig defines TLS client authentication for one runtime endpoint.
+type RuntimeTLSConfig struct {
+	Enabled  bool   `json:"enabled" yaml:"enabled"`
+	Verify   bool   `json:"verify" yaml:"verify"`
+	CAFile   string `json:"caFile" yaml:"caFile"`
+	CertFile string `json:"certFile" yaml:"certFile"`
+	KeyFile  string `json:"keyFile" yaml:"keyFile"`
+}
+
 // RuntimeConn defines a named container runtime connection.
 type RuntimeConn struct {
-	Name string `json:"name" yaml:"name"`
-	Addr string `json:"addr" yaml:"addr"` // socket path, e.g. "unix:///var/run/docker.sock"
+	Name     string           `json:"name" yaml:"name"`
+	Driver   string           `json:"driver" yaml:"driver"`
+	Endpoint string           `json:"endpoint" yaml:"endpoint"`
+	TLS      RuntimeTLSConfig `json:"tls" yaml:"tls"`
+}
+
+type RuntimeDiscoveryConfig struct {
+	LocalDocker bool `json:"localDocker" yaml:"localDocker"`
+	LocalPodman bool `json:"localPodman" yaml:"localPodman"`
+}
+
+type RuntimeHealthConfig struct {
+	IntervalSec      int `json:"intervalSec" yaml:"intervalSec"`
+	TimeoutSec       int `json:"timeoutSec" yaml:"timeoutSec"`
+	FailureThreshold int `json:"failureThreshold" yaml:"failureThreshold"`
 }
 
 // RuntimeConfig configures container runtime connections.
 type RuntimeConfig struct {
-	Default     string        `json:"default" yaml:"default"` // "docker", "podman", or "" for auto
-	Connections []RuntimeConn `json:"connections" yaml:"connections"`
+	Default     string                 `json:"default" yaml:"default"`
+	Discovery   RuntimeDiscoveryConfig `json:"discovery" yaml:"discovery"`
+	Health      RuntimeHealthConfig    `json:"health" yaml:"health"`
+	Connections []RuntimeConn          `json:"connections" yaml:"connections"`
 }
 
 // Config represents the application configuration.
 type Config struct {
+	ConfigVersion    int               `json:"configVersion" yaml:"configVersion"`
 	General          GeneralConfig     `json:"general" yaml:"general"`
 	UI               UIConfig          `json:"ui" yaml:"ui"`
 	Docker           DockerConfig      `json:"docker" yaml:"docker"`
@@ -36,7 +63,6 @@ type GeneralConfig struct {
 	ScrollHeight int    `json:"scrollHeight" yaml:"scrollHeight"`
 	Reporting    string `json:"reporting" yaml:"reporting"`
 	Lang         string `json:"lang" yaml:"lang"`
-	Runtime      string `json:"runtime" yaml:"runtime"`       // "docker", "podman", or "" for auto-detect
 	SizeFormat   string `json:"sizeFormat" yaml:"sizeFormat"` // "binary" (1024-base, default) or "si" (1000-base)
 }
 
@@ -63,21 +89,9 @@ type ThemeConfig struct {
 }
 
 // DockerConfig holds Docker connection settings.
-type HostConfig struct {
-	Name     string `json:"name" yaml:"name"`
-	Host     string `json:"host" yaml:"host"`
-	TLS      bool   `json:"tls" yaml:"tls"`
-	CertPath string `json:"tlsCertPath" yaml:"tlsCertPath"`
-}
-
 type DockerConfig struct {
-	Host         string        `json:"host" yaml:"host"`
-	APIVersion   string        `json:"apiVersion" yaml:"apiVersion"`
-	TLSVerify    bool          `json:"tlsVerify" yaml:"tlsVerify"`
-	TLSCertPath  string        `json:"tlsCertPath" yaml:"tlsCertPath"`
 	Timeout      time.Duration `json:"timeout" yaml:"timeout"`
 	StatsPollSec int           `json:"statsPollSec" yaml:"statsPollSec"`
-	Hosts        []HostConfig  `json:"hosts" yaml:"hosts"`
 }
 
 // KeymapConfig defines keyboard shortcuts.
@@ -260,9 +274,15 @@ func DefaultConfig() *Config {
 // fallbackConfig returns a minimal hardcoded config if the embedded JSONC fails to parse.
 func fallbackConfig() *Config {
 	return &Config{
-		General: GeneralConfig{ScrollHeight: 2, Reporting: "off"},
-		Docker:  DockerConfig{StatsPollSec: 3},
-		Layout:  LayoutConfig{SectionWeights: SectionWeights{Top: 2, Content: 7, Bottom: 1}},
-		Keymap:  KeymapConfig{Quit: []string{"q"}, Up: []string{"up", "k"}, Down: []string{"down", "j"}},
+		ConfigVersion: CurrentConfigVersion,
+		General:       GeneralConfig{ScrollHeight: 2, Reporting: "off"},
+		Docker:        DockerConfig{Timeout: 30 * time.Second, StatsPollSec: 3},
+		Runtime: RuntimeConfig{
+			Default:   "local-docker",
+			Discovery: RuntimeDiscoveryConfig{LocalDocker: true, LocalPodman: true},
+			Health:    RuntimeHealthConfig{IntervalSec: 3, TimeoutSec: 2, FailureThreshold: 2},
+		},
+		Layout: LayoutConfig{SectionWeights: SectionWeights{Top: 2, Content: 7, Bottom: 1}},
+		Keymap: KeymapConfig{Quit: []string{"q"}, Up: []string{"up", "k"}, Down: []string{"down", "j"}},
 	}
 }

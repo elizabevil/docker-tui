@@ -63,7 +63,7 @@ just run-podman
 -v, --version        显示版本
 ```
 
-程序默认依次尝试本地 Podman 和 Docker。当前启动探测依赖 `local-podman`、`local-docker` 连接名；自定义连接的完整启动选择流程仍在完善。
+程序会注册本地 Docker 与 Podman 候选，默认连接 `local-docker`。可通过 `runtime.default` 选择配置连接，或使用 `--podman` 明确选择本地 Podman；连接失败时不会静默切换到其他运行时。
 
 ## 基本使用
 
@@ -110,17 +110,31 @@ just run-podman
 最小示例：
 
 ```yaml
+configVersion: 1
+
 general:
   lang: zh
-  runtime: docker
   sizeFormat: binary
 
 runtime:
+  default: local-docker
+  discovery:
+    localDocker: true
+    localPodman: true
+  health:
+    intervalSec: 3
+    timeoutSec: 2
+    failureThreshold: 2
   connections:
-    - name: local-docker
-      addr: unix:///var/run/docker.sock
-    - name: local-podman
-      addr: unix:///run/user/1000/podman/podman.sock
+    - name: remote-docker
+      driver: docker
+      endpoint: tcp://docker.example.com:2376
+      tls:
+        enabled: true
+        verify: true
+        caFile: /etc/docker/certs/ca.pem
+        certFile: /etc/docker/certs/cert.pem
+        keyFile: /etc/docker/certs/key.pem
 
 logs:
   since: 1h
@@ -133,6 +147,8 @@ keymap:
   containerStop: [ctrl+s]
   imagePull: [ctrl+p]
 ```
+
+连接配置只接受新的 `runtime` schema。旧的 `docker.host`、`docker.tlsVerify`、`docker.tlsCertPath` 和 `general.runtime` 字段不会迁移，加载时会直接返回配置错误。
 
 可配置内容包括语言、运行时连接、Stats 轮询间隔、日志范围、布局、主题和动作快捷键。完整字段见 [默认配置](internal/data/config/default.jsonc) 与 [配置类型](internal/data/config/types.go)。
 

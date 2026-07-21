@@ -31,12 +31,18 @@ type Client struct {
 }
 
 type ClientConfig struct {
-	Host        string
-	APIVersion  string
-	TLSVerify   bool
-	TLSCertPath string
-	Timeout     time.Duration
-	Runtime     string // "docker", "podman", or "" for auto-detect
+	Host    string
+	TLS     TLSConfig
+	Timeout time.Duration
+	Runtime string // "docker", "podman", or "" for auto-detect
+}
+
+type TLSConfig struct {
+	Enabled  bool
+	Verify   bool
+	CAFile   string
+	CertFile string
+	KeyFile  string
 }
 
 var knownSockets = []struct {
@@ -81,7 +87,16 @@ func resolvePodmanUserSocket() string {
 }
 
 func detectHost(cfg ClientConfig) (string, RuntimeType) {
-	// Explicit runtime config overrides auto-detection
+	if cfg.Host != "" {
+		runtimeType := detectRuntimeType(cfg.Host)
+		if cfg.Runtime == string(RuntimeDocker) {
+			runtimeType = RuntimeDocker
+		} else if cfg.Runtime == string(RuntimePodman) {
+			runtimeType = RuntimePodman
+		}
+		return cfg.Host, runtimeType
+	}
+	// Runtime without an endpoint selects the corresponding local socket.
 	if cfg.Runtime != "" {
 		switch cfg.Runtime {
 		case "docker":
@@ -91,9 +106,6 @@ func detectHost(cfg ClientConfig) (string, RuntimeType) {
 				return fmt.Sprintf("unix://%s", sock), RuntimePodman
 			}
 		}
-	}
-	if cfg.Host != "" {
-		return cfg.Host, detectRuntimeType(cfg.Host)
 	}
 	if host := os.Getenv("DOCKER_HOST"); host != "" {
 		return host, detectRuntimeType(host)
@@ -178,16 +190,11 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 		client.WithAPIVersionNegotiation(),
 	}
 
-	if cfg.TLSVerify {
-		if cfg.TLSCertPath != "" {
-			opts = append(opts,
-				client.WithTLSClientConfig(
-					filepath.Join(cfg.TLSCertPath, "ca.pem"),
-					filepath.Join(cfg.TLSCertPath, "cert.pem"),
-					filepath.Join(cfg.TLSCertPath, "key.pem"),
-				),
-			)
+	if cfg.TLS.Enabled {
+		if !cfg.TLS.Verify {
+			return nil, fmt.Errorf("TLS certificate verification is required")
 		}
+		opts = append(opts, client.WithTLSClientConfig(cfg.TLS.CAFile, cfg.TLS.CertFile, cfg.TLS.KeyFile))
 	}
 
 	cli, err := client.NewClientWithOpts(opts...)
@@ -205,7 +212,7 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 
 	if _, err := cli.Ping(ctx); err != nil {
 		cli.Close()
-		if rt == RuntimePodman || cfg.Host == "" {
+		if cfg.Host == "" && rt == RuntimePodman {
 			if sock := autoStartPodmanSocket(); sock != "" {
 				cli2, err2 := client.NewClientWithOpts(
 					client.WithHost(sock),

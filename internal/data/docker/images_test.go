@@ -195,7 +195,7 @@ func connectForTest(t *testing.T) (*Client, error) {
 		sock := strings.TrimPrefix(path, "unix://")
 		if _, err := os.Stat(sock); err == nil {
 			t.Logf("Using socket: %s", path)
-			client, err := NewClient(ClientConfig{Host: path, APIVersion: "1.41"})
+			client, err := NewClient(ClientConfig{Host: path})
 			if err == nil {
 				// Verify connection
 				_, err := client.ListImages()
