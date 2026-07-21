@@ -4,12 +4,28 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
 // ListNetworks returns all Docker networks visible to the client.
 func (c *Client) ListNetworks() ([]NetworkItem, error) {
-	nets, err := c.cli.NetworkList(c.ctx, network.ListOptions{})
+	return c.ListNetworksContext(c.ctx, runtimeapi.NetworkListOptions{})
+}
+
+func (c *Client) ListNetworksContext(ctx context.Context, options runtimeapi.NetworkListOptions) ([]NetworkItem, error) {
+	nativeFilters, err := options.NativeFilters()
+	if err != nil {
+		return nil, err
+	}
+	filterArgs := filters.NewArgs()
+	for field, values := range nativeFilters {
+		for _, value := range values {
+			filterArgs.Add(field, value)
+		}
+	}
+	nets, err := c.cli.NetworkList(ctx, network.ListOptions{Filters: filterArgs})
 	if err != nil {
 		return nil, fmt.Errorf("list networks: %w", err)
 	}

@@ -9,5 +9,7 @@ type Engine interface {
 	Capabilities() CapabilitySet
 	PingContext(context.Context) error
 	Containers() ContainerService
+	Volumes() VolumeService
+	Networks() NetworkService
 	Close() error
 }

@@ -4,12 +4,28 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/volume"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
 // ListVolumes returns all Docker volumes visible to the client.
 func (c *Client) ListVolumes() ([]VolumeItem, error) {
-	resp, err := c.cli.VolumeList(c.ctx, volume.ListOptions{})
+	return c.ListVolumesContext(c.ctx, runtimeapi.VolumeListOptions{})
+}
+
+func (c *Client) ListVolumesContext(ctx context.Context, options runtimeapi.VolumeListOptions) ([]VolumeItem, error) {
+	nativeFilters, err := options.NativeFilters()
+	if err != nil {
+		return nil, err
+	}
+	filterArgs := filters.NewArgs()
+	for field, values := range nativeFilters {
+		for _, value := range values {
+			filterArgs.Add(field, value)
+		}
+	}
+	resp, err := c.cli.VolumeList(ctx, volume.ListOptions{Filters: filterArgs})
 	if err != nil {
 		return nil, fmt.Errorf("list volumes: %w", err)
 	}

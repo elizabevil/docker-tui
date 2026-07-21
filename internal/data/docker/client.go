@@ -450,6 +450,20 @@ func (s containerService) List(ctx context.Context, options runtimeapi.Container
 	return s.client.ListContainersContext(ctx, options)
 }
 
+func (c *Client) Volumes() runtimeapi.VolumeService   { return volumeService{client: c} }
+func (c *Client) Networks() runtimeapi.NetworkService { return networkService{client: c} }
+
+type volumeService struct{ client *Client }
+type networkService struct{ client *Client }
+
+func (s volumeService) List(ctx context.Context, options runtimeapi.VolumeListOptions) ([]runtimeapi.Volume, error) {
+	return s.client.ListVolumesContext(ctx, options)
+}
+
+func (s networkService) List(ctx context.Context, options runtimeapi.NetworkListOptions) ([]runtimeapi.Network, error) {
+	return s.client.ListNetworksContext(ctx, options)
+}
+
 // PingTimeout verifies the runtime connection with a caller-selected deadline.
 func (c *Client) PingTimeout(timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(c.ctx, timeout)

@@ -108,3 +108,11 @@ func TestContainerListOptionsPreservesANDSemantics(t *testing.T) {
 		t.Fatalf("expected unsupported error, got %v", err)
 	}
 }
+
+func TestResourceListOptionsPreserveANDSemantics(t *testing.T) {
+	_, volumeErr := (VolumeListOptions{Filters: FilterSet{VolumeFilterLabel: {"a=1", "b=2"}}}).NativeFilters()
+	_, networkErr := (NetworkListOptions{Filters: FilterSet{NetworkFilterName: {"a", "b"}}}).NativeFilters()
+	if !IsErrorKind(volumeErr, ErrorUnsupported) || !IsErrorKind(networkErr, ErrorUnsupported) {
+		t.Fatalf("expected unsupported errors, got volume=%v network=%v", volumeErr, networkErr)
+	}
+}

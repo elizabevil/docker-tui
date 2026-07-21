@@ -88,23 +88,5 @@ type ImageDetailData struct {
 	HistoryError     string
 }
 
-type VolumeItem struct {
-	Name       string
-	Driver     string
-	Mountpoint string
-	Labels     map[string]string
-	Scope      string
-	CreatedAt  string
-}
-
-type NetworkItem struct {
-	Name       string
-	ID         string
-	Driver     string
-	Scope      string
-	IPAM       []string
-	Containers int
-	Created    int64 // Unix timestamp
-	Internal   bool
-	Labels     map[string]string
-}
+type VolumeItem = runtimeapi.Volume
+type NetworkItem = runtimeapi.Network
