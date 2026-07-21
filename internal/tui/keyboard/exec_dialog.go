@@ -77,7 +77,7 @@ func handleExecDialogKeys(key string, m *state.AppModel) (*state.AppModel, tea.C
 
 	case keys.KeyBackspace, keys.KeyDelete:
 		if m.DialogFocus == state.ExecFocusInput && len(m.FilterText) > 0 {
-			if key == keys.KeyDelete || key == "delete" {
+			if key == keys.KeyDelete {
 				// Delete at cursor: remove character AFTER cursor
 				if m.DialogCursor < len(m.FilterText) {
 					m.FilterText = m.FilterText[:m.DialogCursor] + m.FilterText[m.DialogCursor+1:]

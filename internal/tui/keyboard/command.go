@@ -20,7 +20,7 @@ func handleCommandInput(key string, m *state.AppModel) (*state.AppModel, tea.Cmd
 		m.FilterText = ""
 		m.FilterCursor = 0
 		return m, nil
-	case "tab":
+	case keys.KeyTab:
 		m.FilterText = autocompleteCommand(m.FilterText)
 		m.FilterCursor = len([]rune(m.FilterText))
 		return m, nil

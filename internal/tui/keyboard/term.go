@@ -1,5 +1,7 @@
 package keyboard
 
+import "github.com/elizabevil/docker-tui/internal/tui/keys"
+
 // mapKeyToTerm converts bubbletea key strings to terminal byte sequences
 // for Docker exec TTY passthrough. Supports Linux shell basic operations:
 //   - Single printable characters (a-z, A-Z, 0-9, punctuation)
@@ -10,121 +12,121 @@ package keyboard
 func mapKeyToTerm(key string) []byte {
 	switch key {
 	// ── Control characters ──
-	case "enter":
+	case keys.KeyEnter:
 		return []byte{'\r'} // 0x0D
-	case "backspace", "ctrl+h":
+	case keys.KeyBackspace, keys.KeyCtrlH:
 		return []byte{0x08} // BS
-	case "tab", "ctrl+i":
+	case keys.KeyTab, keys.KeyCtrlI:
 		return []byte{'\t'} // 0x09
-	case "esc", "ctrl+[":
+	case keys.KeyEsc, keys.KeyCtrlOpenBracket:
 		return []byte{'\x1b'} // Escape
-	case "space", " ":
+	case keys.KeySpaceName, keys.KeySpace:
 		return []byte{' '}
 
 	// ── Ctrl+letter (0x01-0x1A) — shell essential ──
-	case "ctrl+a":
+	case keys.KeyCtrlA:
 		return []byte{0x01} // Home / beginning of line
-	case "ctrl+b":
+	case keys.KeyCtrlB:
 		return []byte{0x02} // Backward char
-	case "ctrl+c":
+	case keys.KeyCtrlC:
 		return []byte{0x03} // SIGINT / interrupt
-	case "ctrl+d":
+	case keys.KeyCtrlD:
 		return []byte{0x04} // EOF / exit
-	case "ctrl+e":
+	case keys.KeyCtrlE:
 		return []byte{0x05} // End of line
-	case "ctrl+f":
+	case keys.KeyCtrlF:
 		return []byte{0x06} // Forward char
-	case "ctrl+g":
+	case keys.KeyCtrlG:
 		return []byte{0x07} // Bell / abort
-	case "ctrl+j":
+	case keys.KeyCtrlJ:
 		return []byte{0x0A} // Line feed
-	case "ctrl+k":
+	case keys.KeyCtrlK:
 		return []byte{0x0B} // Kill to end of line
-	case "ctrl+l":
+	case keys.KeyCtrlL:
 		return []byte{0x0C} // Clear screen (form feed)
-	case "ctrl+m":
+	case keys.KeyCtrlM:
 		return []byte{'\r'} // 0x0D — same as Enter
-	case "ctrl+n":
+	case keys.KeyCtrlN:
 		return []byte{0x0E} // Next history
-	case "ctrl+o":
+	case keys.KeyCtrlO:
 		return []byte{0x0F} // Operate / newline
-	case "ctrl+p":
+	case keys.KeyCtrlP:
 		return []byte{0x10} // Previous history
-	case "ctrl+q":
+	case keys.KeyCtrlQ:
 		return []byte{0x11} // XON / resume flow
-	case "ctrl+r":
+	case keys.KeyCtrlR:
 		return []byte{0x12} // Reverse search
-	case "ctrl+s":
+	case keys.KeyCtrlS:
 		return []byte{0x13} // XOFF / stop flow
-	case "ctrl+t":
+	case keys.KeyCtrlT:
 		return []byte{0x14} // Transpose chars
-	case "ctrl+u":
+	case keys.KeyCtrlU:
 		return []byte{0x15} // Kill to beginning of line
-	case "ctrl+v":
+	case keys.KeyCtrlV:
 		return []byte{0x16} // Literal next / paste
-	case "ctrl+w":
+	case keys.KeyCtrlW:
 		return []byte{0x17} // Kill word backward
-	case "ctrl+x":
+	case keys.KeyCtrlX:
 		return []byte{0x18} // Sequence prefix
-	case "ctrl+y":
+	case keys.KeyCtrlY:
 		return []byte{0x19} // Yank
-	case "ctrl+z":
+	case keys.KeyCtrlZ:
 		return []byte{0x1A} // Suspend (SIGTSTP)
-	case "ctrl+\\":
+	case keys.KeyCtrlBackslash:
 		return []byte{0x1C} // SIGQUIT
-	case "ctrl+]":
+	case keys.KeyCtrlCloseBracket:
 		return []byte{0x1D} // Quit / search terminator
-	case "ctrl+^":
+	case keys.KeyCtrlCaret:
 		return []byte{0x1E} // Record separator
-	case "ctrl+_":
+	case keys.KeyCtrlUnderscore:
 		return []byte{0x1F} // Undo
 
 	// ── Arrow keys (CSI sequences) ──
-	case "up":
+	case keys.KeyUp:
 		return []byte{'\x1b', '[', 'A'}
-	case "down":
+	case keys.KeyDown:
 		return []byte{'\x1b', '[', 'B'}
-	case "right":
+	case keys.KeyRight:
 		return []byte{'\x1b', '[', 'C'}
-	case "left":
+	case keys.KeyLeft:
 		return []byte{'\x1b', '[', 'D'}
 
 	// ── Navigation / editing keys ──
-	case "home":
+	case keys.KeyHome:
 		return []byte{'\x1b', '[', 'H'}
-	case "end":
+	case keys.KeyEnd:
 		return []byte{'\x1b', '[', 'F'}
-	case "pgup":
+	case keys.KeyPgUp:
 		return []byte{'\x1b', '[', '5', '~'}
-	case "pgdown":
+	case keys.KeyPgDn:
 		return []byte{'\x1b', '[', '6', '~'}
-	case "delete":
+	case keys.KeyDelete:
 		return []byte{'\x1b', '[', '3', '~'}
 
 	// ── Function keys F1-F12 ──
-	case "f1":
+	case keys.KeyF1:
 		return []byte{'\x1b', '[', '1', '1', '~'}
-	case "f2":
+	case keys.KeyF2:
 		return []byte{'\x1b', '[', '1', '2', '~'}
-	case "f3":
+	case keys.KeyF3:
 		return []byte{'\x1b', '[', '1', '3', '~'}
-	case "f4":
+	case keys.KeyF4:
 		return []byte{'\x1b', '[', '1', '4', '~'}
-	case "f5":
+	case keys.KeyF5:
 		return []byte{'\x1b', '[', '1', '5', '~'}
-	case "f6":
+	case keys.KeyF6:
 		return []byte{'\x1b', '[', '1', '7', '~'}
-	case "f7":
+	case keys.KeyF7:
 		return []byte{'\x1b', '[', '1', '8', '~'}
-	case "f8":
+	case keys.KeyF8:
 		return []byte{'\x1b', '[', '1', '9', '~'}
-	case "f9":
+	case keys.KeyF9:
 		return []byte{'\x1b', '[', '2', '0', '~'}
-	case "f10":
+	case keys.KeyF10:
 		return []byte{'\x1b', '[', '2', '1', '~'}
-	case "f11":
+	case keys.KeyF11:
 		return []byte{'\x1b', '[', '2', '3', '~'}
-	case "f12":
+	case keys.KeyF12:
 		return []byte{'\x1b', '[', '2', '4', '~'}
 
 	// ── Default: single printable character ──

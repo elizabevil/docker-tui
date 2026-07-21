@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
+	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -206,28 +207,28 @@ func FormatKeyForDisplay(key string) string {
 	switch {
 	case key == " ":
 		return "␣"
-	case key == "enter":
+	case key == keys.KeyEnter:
 		return "↵"
-	case key == "esc":
+	case key == keys.KeyEsc:
 		return "Esc"
-	case key == "tab":
+	case key == keys.KeyTab:
 		return "⇥"
-	case key == "backspace":
+	case key == keys.KeyBackspace:
 		return "⌫"
-	case key == "up":
+	case key == keys.KeyUp:
 		return "↑"
-	case key == "down":
+	case key == keys.KeyDown:
 		return "↓"
-	case key == "left":
+	case key == keys.KeyLeft:
 		return "←"
-	case key == "right":
+	case key == keys.KeyRight:
 		return "→"
-	case key == "pgup":
+	case key == keys.KeyPgUp:
 		return "Pg↑"
-	case key == "pgdown":
+	case key == keys.KeyPgDn:
 		return "Pg↓"
-	case strings.HasPrefix(key, "ctrl+"):
-		return "^" + strings.ToUpper(strings.TrimPrefix(key, "ctrl+"))
+	case strings.HasPrefix(key, keys.KeyCtrlPrefix):
+		return "^" + strings.ToUpper(strings.TrimPrefix(key, keys.KeyCtrlPrefix))
 	case len(key) == 1:
 		return strings.ToUpper(key)
 	default:
@@ -259,29 +260,29 @@ func RecordKeyStroke(m *state.AppModel, key, action string) tea.Cmd {
 // KeyStrokeActionLabel returns a short action label for a keys.
 func KeyStrokeActionLabel(key string) string {
 	label := map[string]string{
-		"q": "Quit", "Q": "Quit",
-		"?": "Help", "f1": "Help",
-		"/": "Filter",
-		"r": "Refresh", "R": "Restart",
-		"s": "Start", "S": "Stop", "K": "Kill",
-		"d": "Detail", "D": "Detail",
-		"l": "Logs", "L": "Logs",
-		"i": "Inspect", "I": "Inspect",
-		"e": "Exec", "E": "Exec",
-		"m": "Stats", "M": "Stats",
-		"P": "Pull", "p": "Prune",
-		"h": "Header", "H": "Header",
-		"c": "Conn", "C": "Conn",
-		"o": "Sort", "O": "Sort",
-		"enter": "Open",
-		"esc":   "Back",
-		" ":     "Mark",
-		"tab":   "Panel",
-		"up":    "Up", "k": "Up",
-		"down": "Down", "j": "Down",
-		"ctrl+d": "Delete",
-		"f2":     "Switch",
-		":":      "Cmd",
+		keys.KeyQ: "Quit", keys.KeyQUpper: "Quit",
+		keys.KeyQmark: "Help", keys.KeyF1: "Help",
+		keys.KeySlash: "Filter",
+		keys.KeyR:     "Refresh", keys.KeyRUpper: "Restart",
+		keys.KeyS: "Start", keys.KeySUpper: "Stop", keys.KeyKUpper: "Kill",
+		keys.KeyD: "Detail", keys.KeyDUpper: "Detail",
+		keys.KeyL: "Logs", keys.KeyLUpper: "Logs",
+		keys.KeyI: "Inspect", keys.KeyIUpper: "Inspect",
+		keys.KeyE: "Exec", keys.KeyEUpper: "Exec",
+		keys.KeyM: "Stats", keys.KeyMUpper: "Stats",
+		keys.KeyPUpper: "Pull", keys.KeyP: "Prune",
+		keys.KeyH: "Header", keys.KeyHUpper: "Header",
+		keys.KeyC: "Conn", keys.KeyCUpper: "Conn",
+		keys.KeyO: "Sort", keys.KeyOUpper: "Sort",
+		keys.KeyEnter: "Open",
+		keys.KeyEsc:   "Back",
+		keys.KeySpace: "Mark",
+		keys.KeyTab:   "Panel",
+		keys.KeyUp:    "Up", keys.KeyK: "Up",
+		keys.KeyDown: "Down", keys.KeyJ: "Down",
+		keys.KeyCtrlD: "Delete",
+		keys.KeyF2:    "Switch",
+		":":           "Cmd",
 	}
 	if l, ok := label[key]; ok {
 		return l
