@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
 type ConnState int
@@ -20,6 +22,7 @@ type PoolEntry struct {
 	Name    string
 	Host    string
 	Client  *Client
+	Engine  runtimeapi.Engine
 	State   ConnState
 	Error   error
 	Runtime RuntimeType
@@ -125,6 +128,7 @@ func (p *ConnectionPool) Connect(name string, timeout time.Duration) error {
 		entry.Client.Close()
 	}
 	entry.Client = client
+	entry.Engine = client
 	entry.State = StateConnected
 	entry.Error = nil
 	p.active = name
@@ -174,6 +178,17 @@ func (p *ConnectionPool) ActiveClient() *Client {
 		return nil
 	}
 	return entry.Client
+}
+
+// ActiveEngine is the SDK-independent connection used by migrated callers.
+func (p *ConnectionPool) ActiveEngine() runtimeapi.Engine {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	entry := p.entries[p.active]
+	if entry == nil {
+		return nil
+	}
+	return entry.Engine
 }
 
 func (p *ConnectionPool) Close() {

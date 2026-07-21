@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/client"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
 type RuntimeType string
@@ -352,6 +353,39 @@ func (c *Client) Raw() *client.Client {
 
 func (c *Client) Ping() error {
 	return c.PingTimeout(2 * time.Second)
+}
+
+// PingContext implements the runtime engine lifecycle contract.
+func (c *Client) PingContext(ctx context.Context) error {
+	_, err := c.cli.Ping(ctx)
+	return err
+}
+
+// Identity returns engine metadata without leaking Docker SDK types.
+func (c *Client) Identity() runtimeapi.Identity {
+	return runtimeapi.Identity{
+		Type:     runtimeapi.Type(c.RuntimeType),
+		Endpoint: c.Host,
+		Version:  c.EngineVersion,
+	}
+}
+
+// Capabilities describes the behavior currently exposed by this facade.
+func (c *Client) Capabilities() runtimeapi.CapabilitySet {
+	support := runtimeapi.Available
+	reason := ""
+	if c.RuntimeType == RuntimePodman {
+		support = runtimeapi.Degraded
+		reason = "provided through the Podman Docker compatibility API"
+	}
+	return runtimeapi.CapabilitySet{
+		runtimeapi.CapabilityContainers: {Support: support, Reason: reason},
+		runtimeapi.CapabilityImages:     {Support: support, Reason: reason},
+		runtimeapi.CapabilityVolumes:    {Support: support, Reason: reason},
+		runtimeapi.CapabilityNetworks:   {Support: support, Reason: reason},
+		runtimeapi.CapabilityEvents:     {Support: support, Reason: reason},
+		runtimeapi.CapabilityExec:       {Support: support, Reason: reason},
+	}
 }
 
 // PingTimeout verifies the runtime connection with a caller-selected deadline.

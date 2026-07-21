@@ -7,6 +7,6 @@ import "context"
 type Engine interface {
 	Identity() Identity
 	Capabilities() CapabilitySet
-	Ping(context.Context) error
+	PingContext(context.Context) error
 	Close() error
 }
