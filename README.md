@@ -180,6 +180,7 @@ test/                 跨包测试、诊断、基准和集成测试
 - [项目结构](docs/project-structure.md)
 - [历史修复设计](design/bugfix-design.md)
 - [历史修复需求](docs/bugfix-requirements.md)
+- [后续需求与规划讨论](design/future-requirements-discussion.md)
 - [文档索引](docs/README.md)
 
 ## 开发与测试
@@ -201,4 +202,3 @@ just bench             # 序列化基准测试
 ```
 
 集成测试可能拉取镜像并创建带 `dtui-test-` 前缀的临时容器，测试退出时会执行清理。测试目录说明见 [test/README.md](test/README.md)。
-
