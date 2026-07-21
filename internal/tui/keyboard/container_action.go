@@ -111,7 +111,7 @@ func doStatsAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if ctr == nil {
 		return m, nil
 	}
-	m.StatsActive = !m.StatsActive
+	m.MetricsState.ToggleContainerStats()
 	if m.StatsActive {
 		return m, FetchStats(m.Docker, ctr.ID)
 	}
@@ -158,12 +158,6 @@ func doExecAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		return m, nil
 	}
 
-	m.ExecID = execCreate.ID
-	m.ExecAudit = trace
-	m.ExecShell = shell
-	m.ExecConn = resp.Conn
-	m.Mode = state.ModeExecPassthrough
-
 	if m.Width > 0 && m.Height > 0 {
 		go cli.ContainerExecResize(context.Background(), execCreate.ID, container.ResizeOptions{
 			Height: uint(m.Height),
@@ -173,8 +167,9 @@ func doExecAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 	ch := make(chan string, 100)
 	done := make(chan struct{})
-	m.ExecCh = ch
-	m.ExecDone = done
+	m.ExecState.SetShell(shell)
+	m.ExecState.Start(execCreate.ID, resp.Conn, ch, done, trace)
+	m.Mode = state.ModeExecPassthrough
 
 	// Reader goroutine: reads raw TTY output from exec attach and sends it on ch.
 	go func() {

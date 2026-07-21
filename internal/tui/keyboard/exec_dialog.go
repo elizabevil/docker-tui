@@ -23,13 +23,10 @@ func handleExecDialogKeys(key string, m *state.AppModel) (*state.AppModel, tea.C
 	case keys.KeyEnter:
 		switch m.DialogState.Focus {
 		case state.ExecFocusShell1, state.ExecFocusShell2, state.ExecFocusShell3:
-			m.ExecShell = execShellOptions[m.DialogState.Focus]
+			m.ExecState.SetShell(execShellOptions[m.DialogState.Focus])
 			return doExecAction(m)
 		case state.ExecFocusInput, state.ExecFocusConfirm:
-			m.ExecShell = m.DialogState.Input.Text
-			if m.ExecShell == "" {
-				m.ExecShell = "/bin/sh"
-			}
+			m.ExecState.SetShell(m.DialogState.Input.Text)
 			return doExecAction(m)
 		case state.ExecFocusCancel:
 			clearDialogState(m)

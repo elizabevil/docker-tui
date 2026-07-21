@@ -1,13 +1,9 @@
 package state
 
 import (
-	"net"
-
-	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/config"
 	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
-	"github.com/elizabevil/docker-tui/internal/tui/term"
 )
 
 // PanelType identifies which panel is active.
@@ -76,87 +72,30 @@ const (
 //	Terminal  — width, height
 //	State     — UI transient state (toast, dialog, detail, compose, etc.)
 type AppModel struct {
-	// ── Config ──
-	Config     *config.Config
-	Theme      *config.Theme
-	AppVersion string
-	Audit      *audit.Service
+	Dependencies
 	ConnectionState
 	NavigationState
 	DialogState
 	FeedbackState
 	LogState
 	DetailState
-
-	// ── Nav ──
-
-	// ── Resources ──
-	Containers *ContainerListModel
-	Images     *ImageListModel
-	Volumes    *VolumeListModel
-	Networks   *NetworkListModel
-
-	// ── Terminal ──
-	Width  int
-	Height int
-
-	// ── Stats ──
-	StatsActive  bool
-	HostCPU      float64
-	HostMem      float64
-	HostDisk     string
-	HostCPUCores int
-	HostMemUsed  uint64
-	HostMemTotal uint64
-
-	// ── Confirm ──
-	ConfirmAction  string
-	ConfirmTarget  string
-	ConfirmMessage string
-	ConfirmAudit   audit.Trace
-
-	// ── Select ──
-	MarkedIDs             map[string]bool
-	PendingImagePull      string
-	PendingImagePullAudit audit.Trace
-
-	// ── Exec Passthrough ──
-	ExecConn   net.Conn      // hijacked connection for exec stdin
-	ExecID     string        // exec session ID (for resize)
-	ExecCh     chan string   // output channel for exec data
-	ExecDone   chan struct{} // closed when exec finishes
-	ExecBuf    *term.Buffer  // terminal output buffer with scrollback
-	ExecScroll int           // scroll offset (0 = bottom, >0 = scrolled up)
-	ExecShell  string        // shell to use for exec
-	ExecAudit  audit.Trace
-
-	// ── Header ──
-	HeaderVisible bool
-	EscPending    bool
-
-	// ── Compose ──
-	ComposeCursor          int // 左栏：项目列表光标
-	ComposeServiceCursor   int // 右栏：服务列表光标
-	ComposeProjectFilter   string
-	ComposeServiceFilter   string
-	ComposeDetailProject   string
-	ComposeFocus           int    // 0=左栏(项目), 1=右栏(服务)
-	ComposeContainerViewID string // 非空时显示容器子视图
-	ComposeContainerCursor int    // 容器子视图光标
+	ExecState
+	ComposeState
+	ConfirmState
+	SelectionState
+	ResourceState
+	MetricsState
+	ViewportState
 }
 
 // NewAppModel creates a new application model with default state.
 func NewAppModel(cfg *config.Config, client *dockerclient.Client, appVersion string) *AppModel {
 	return &AppModel{
-		Config:          cfg,
+		Dependencies:    Dependencies{Config: cfg, AppVersion: appVersion},
 		ConnectionState: NewConnectionState(client),
 		NavigationState: NewNavigationState(),
 		FeedbackState:   NewFeedbackState(),
-		Containers:      NewContainerListModel(),
-		Images:          NewImageListModel(),
-		Volumes:         NewVolumeListModel(),
-		Networks:        NewNetworkListModel(),
-		AppVersion:      appVersion,
+		ResourceState:   NewResourceState(),
 	}
 }
 

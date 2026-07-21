@@ -39,15 +39,7 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 			if m.ExecConn != nil {
 				m.ExecConn.Close()
 			}
-			m.ExecConn = nil
-			m.ExecID = ""
-			m.ExecCh = nil
-			m.ExecDone = nil
-			if m.ExecBuf != nil {
-				m.ExecBuf.Reset()
-			}
-			m.ExecScroll = 0
-			m.ExecAudit = audit.Trace{}
+			m.ExecState.Reset()
 			m.Mode = state.ModeNormal
 			return m, nil
 		}
@@ -144,7 +136,7 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 
 	if key == keys.KeyH {
 		cmds = append(cmds, RecordKeyStroke(m, key, keys.ActionLabelHeader))
-		m.HeaderVisible = !m.HeaderVisible
+		m.ViewportState.ToggleHeader()
 		return m, tea.Batch(cmds...)
 	}
 

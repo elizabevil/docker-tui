@@ -11,9 +11,6 @@ import (
 )
 
 func doToggleMark(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.MarkedIDs == nil {
-		m.MarkedIDs = make(map[string]bool)
-	}
 	var id string
 	switch m.ActivePanel {
 	case state.PanelContainers:
@@ -36,11 +33,7 @@ func doToggleMark(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if id == "" {
 		return m, nil
 	}
-	if m.MarkedIDs[id] {
-		delete(m.MarkedIDs, id)
-	} else {
-		m.MarkedIDs[id] = true
-	}
+	m.SelectionState.Toggle(id)
 	return m, nil
 }
 

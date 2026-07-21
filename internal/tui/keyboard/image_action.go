@@ -58,8 +58,8 @@ func handleImagePullInput(key string, m *state.AppModel) *state.AppModel {
 			ShowToastWarn(m, "Image reference is required")
 			return m
 		}
-		m.PendingImagePull = ref
-		m.PendingImagePullAudit = beginAudit(m, "resource.image.pull", audit.ImageTarget{ID: ref, Name: ref}, "Pulling image "+ref)
+		trace := beginAudit(m, "resource.image.pull", audit.ImageTarget{ID: ref, Name: ref}, "Pulling image "+ref)
+		m.SelectionState.QueueImagePull(ref, trace)
 		clearDialogState(m)
 	case keys.KeyEsc:
 		clearDialogState(m)

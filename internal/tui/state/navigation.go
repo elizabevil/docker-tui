@@ -13,6 +13,7 @@ type NavigationState struct {
 	CommandInput      QueryInputState
 	FilterExitPending bool
 	FilterExitToken   uint64
+	EscPending        bool
 }
 
 func NewNavigationState() NavigationState {

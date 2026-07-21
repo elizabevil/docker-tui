@@ -287,9 +287,6 @@ func KeyStrokeActionLabel(key string) string {
 
 // confirmAction sets the model to ModeConfirm with the given action, target, and message.
 func confirmAction(m *state.AppModel, action, target, message string) {
-	m.ConfirmAudit = audit.Trace{}
-	m.ConfirmAction = action
-	m.ConfirmTarget = target
-	m.ConfirmMessage = message
+	m.ConfirmState.Open(action, target, message, audit.Trace{})
 	m.Mode = state.ModeConfirm
 }

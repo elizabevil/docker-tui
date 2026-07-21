@@ -7,7 +7,6 @@ import (
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/tui/keyboard"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
-	"github.com/elizabevil/docker-tui/internal/tui/term"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -38,8 +37,7 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case tea.WindowSizeMsg:
-		m.Width = msg.Width
-		m.Height = msg.Height
+		m.ViewportState.Resize(msg.Width, msg.Height)
 		if m.Mode == state.ModeExecPassthrough && m.ExecID != "" && m.Docker != nil {
 			cli := m.Docker.Raw()
 			go cli.ContainerExecResize(context.Background(), m.ExecID, container.ResizeOptions{
@@ -55,10 +53,7 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case tea.KeyPressMsg:
 		updatedModel, cmd := keyboard.HandleKeyPress(msg, m)
 		if updatedModel.PendingImagePull != "" && updatedModel.Mode == state.ModeNormal && updatedModel.Docker != nil {
-			pullRef := updatedModel.PendingImagePull
-			trace := updatedModel.PendingImagePullAudit
-			updatedModel.PendingImagePull = ""
-			updatedModel.PendingImagePullAudit = audit.Trace{}
+			pullRef, trace := updatedModel.SelectionState.TakeImagePull()
 			if cmd != nil {
 				return updatedModel, tea.Batch(cmd, keyboard.ImagePullCmdWithAudit(updatedModel.Docker, pullRef, trace))
 			}
@@ -147,10 +142,7 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 }
 
 func handleExecOutput(m *state.AppModel, msg state.ExecOutput) (*state.AppModel, tea.Cmd) {
-	if m.ExecBuf == nil {
-		m.ExecBuf = term.NewBuffer(2000)
-	}
-	m.ExecBuf.Write(msg.Data)
+	m.ExecState.Append(msg.Data)
 	if m.ExecCh == nil {
 		return m, nil
 	}
@@ -165,15 +157,7 @@ func handleExecOutput(m *state.AppModel, msg state.ExecOutput) (*state.AppModel,
 
 func handleExecDone(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	keyboard.FinishAudit(m, m.ExecAudit, audit.ResultSucceeded, "Exec session finished", audit.Details{Shell: m.ExecShell})
-	m.ExecConn = nil
-	m.ExecID = ""
-	m.ExecCh = nil
-	m.ExecDone = nil
-	if m.ExecBuf != nil {
-		m.ExecBuf.Reset()
-	}
-	m.ExecScroll = 0
-	m.ExecAudit = audit.Trace{}
+	m.ExecState.Reset()
 	m.Mode = state.ModeNormal
 	return m, nil
 }

@@ -18,10 +18,7 @@ func handleConfirmKeys(key string, m *state.AppModel) (*state.AppModel, tea.Cmd)
 	case keys.KeyN, keys.KeyNUpper, keys.KeyEsc:
 		FinishAudit(m, m.ConfirmAudit, audit.ResultCancelled, "Operation cancelled", audit.Details{})
 		m.Mode = state.ModeNormal
-		m.ConfirmAction = ""
-		m.ConfirmTarget = ""
-		m.ConfirmMessage = ""
-		m.ConfirmAudit = audit.Trace{}
+		m.ConfirmState.Close()
 		return m, nil
 	}
 	return m, nil

@@ -103,12 +103,7 @@ func handleToastTick(m *state.AppModel, _ state.ToastTick) (*state.AppModel, tea
 
 func handleHostStatsTick(m *state.AppModel, _ state.HostStatsTick) (*state.AppModel, tea.Cmd) {
 	stats := docker.ReadHostStats()
-	m.HostCPU = stats.CPUPercent
-	m.HostMem = stats.MemPercent
-	m.HostDisk = stats.DiskStr
-	m.HostCPUCores = stats.CPUCores
-	m.HostMemUsed = stats.MemUsed
-	m.HostMemTotal = stats.MemTotal
+	m.MetricsState.ApplyHost(stats)
 	return m, tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
 		return state.HostStatsTick{}
 	})
