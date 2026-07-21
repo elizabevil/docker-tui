@@ -26,6 +26,16 @@ const (
 	PanelHelp
 )
 
+// ResourceType identifies the type of resource in the detail view.
+type ResourceType string
+
+const (
+	ResourceContainer ResourceType = "container"
+	ResourceNetwork   ResourceType = "network"
+	ResourceVolume    ResourceType = "volume"
+	ResourceImage     ResourceType = "image"
+)
+
 // AppMode represents the current UI mode.
 type AppMode int
 
@@ -166,6 +176,9 @@ type AppModel struct {
 	DetailTitle        string
 	DetailHint         string
 	DetailOffset       int
+	DetailRawJSON      []byte // raw JSON from Docker inspect API
+	DetailSourceType   string       // "section" (default), "yaml", "json"
+	DetailResourceType ResourceType // Resource* constant
 
 	// ── Dialog ──
 	DialogTitle   string

@@ -190,13 +190,13 @@ func imageTarget(m *state.AppModel, id string) audit.ImageTarget {
 func bulkResourceName(panel state.PanelType) string {
 	switch panel {
 	case state.PanelContainers:
-		return "container"
+		return string(state.ResourceContainer)
 	case state.PanelImages:
-		return "image"
+		return string(state.ResourceImage)
 	case state.PanelVolumes:
-		return "volume"
+		return string(state.ResourceVolume)
 	case state.PanelNetworks:
-		return "network"
+		return string(state.ResourceNetwork)
 	default:
 		return "resource"
 	}

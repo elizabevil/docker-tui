@@ -84,6 +84,9 @@ func BackFromDetail(m *state.AppModel) {
 	m.DetailTitle = ""
 	m.DetailHint = ""
 	m.DetailOffset = 0
+	m.DetailRawJSON = nil
+	m.DetailSourceType = ""
+	m.DetailResourceType = ""
 }
 
 // ToHelp opens the help screen.

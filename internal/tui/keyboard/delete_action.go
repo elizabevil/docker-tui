@@ -2,7 +2,6 @@ package keyboard
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
@@ -80,46 +79,9 @@ func doDetailAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case state.PanelImages:
 		return doImageDetail(m)
 	case state.PanelVolumes:
-		vol := m.Volumes.Selected()
-		if vol == nil {
-			return m, nil
-		}
-		m.PrevPanel = m.ActivePanel
-		m.Mode = state.ModeDetail
-		m.DetailTitle = "Volume Detail: " + vol.Name
-		m.DetailHint = ""
-		m.DetailOffset = 0
-		m.ImageDetailContent = strings.Join([]string{
-			"Name: " + vol.Name,
-			"Driver: " + vol.Driver,
-			"Mountpoint: " + vol.Mountpoint,
-			"Scope: " + vol.Scope,
-			"Created: " + vol.CreatedAt,
-		}, "\n")
-		return m, nil
+		return doVolumeInspect(m)
 	case state.PanelNetworks:
-		net := m.Networks.Selected()
-		if net == nil {
-			return m, nil
-		}
-		subnet := "—"
-		if len(net.IPAM) > 0 {
-			subnet = strings.Join(net.IPAM, ", ")
-		}
-		m.PrevPanel = m.ActivePanel
-		m.Mode = state.ModeDetail
-		m.DetailTitle = "Network Detail: " + net.Name
-		m.DetailHint = ""
-		m.DetailOffset = 0
-		m.ImageDetailContent = strings.Join([]string{
-			"ID: " + net.ID,
-			"Name: " + net.Name,
-			"Driver: " + net.Driver,
-			"Scope: " + net.Scope,
-			"Subnets: " + subnet,
-			fmt.Sprintf("Containers: %d", net.Containers),
-		}, "\n")
-		return m, nil
+		return doNetworkInspect(m)
 	default:
 		return m, nil
 	}

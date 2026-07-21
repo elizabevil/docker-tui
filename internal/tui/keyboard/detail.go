@@ -8,6 +8,7 @@ import (
 // handleDetailKeys handles key presses in detail view mode.
 // Fold/collapse functionality removed — all sections always expanded.
 // Space now acts as Page Down for scrolling.
+// 's' cycles between section/yaml/json source views.
 func handleDetailKeys(key string, m *state.AppModel) bool {
 	if m.Mode != state.ModeDetail {
 		return false
@@ -38,6 +39,19 @@ func handleDetailKeys(key string, m *state.AppModel) bool {
 		}
 	case keys.KeyG:
 		m.DetailOffset = 0
+	case "s":
+		// Cycle through source view modes: section → yaml → json → section
+		m.DetailOffset = 0
+		switch m.DetailSourceType {
+		case "":
+			m.DetailSourceType = "yaml"
+		case "yaml":
+			m.DetailSourceType = "json"
+		case "json":
+			m.DetailSourceType = ""
+		default:
+			m.DetailSourceType = ""
+		}
 	}
 	return true
 }

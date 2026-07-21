@@ -2,14 +2,18 @@ package detail
 
 import (
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"charm.land/lipgloss/v2"
 
+	"github.com/bytedance/sonic"
+	"github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
+	"gopkg.in/yaml.v3"
 )
 
 //go:embed detail.jsonc
@@ -38,17 +42,38 @@ func DefaultDetailConfig() detailConfig {
 	return loader.Load()
 }
 
+// detailSection represents a collapsible section in the detail view.
 type detailSection struct {
 	Title    string
 	Subtitle string
 	Lines    []string
 }
 
+// RenderView renders the detail panel content based on the current resource type.
 func RenderView(m *state.AppModel, panelHeight int) string {
+	// Handle source view modes (YAML/JSON)
+	if m.DetailSourceType == "json" || m.DetailSourceType == "yaml" {
+		return renderSourceView(m, panelHeight)
+	}
+
 	content := m.ImageDetailContent
 	var sections []detailSection
+
+	// Priority: structured image data > raw JSON (container/network/volume) > raw text
 	if m.ImageDetailData != nil {
 		sections = buildImageDetailDataSections(m.ImageDetailData)
+	} else if len(m.DetailRawJSON) > 0 {
+		// Use resource type to select the appropriate build function
+		var dockerSections []docker.DetailSection
+		switch m.DetailResourceType {
+		case state.ResourceNetwork:
+			dockerSections = docker.BuildNetworkDetailSections(m.DetailRawJSON)
+		case state.ResourceVolume:
+			dockerSections = docker.BuildVolumeDetailSections(m.DetailRawJSON)
+		default: // state.ResourceContainer or empty
+			dockerSections = docker.BuildContainerDetailSections(m.DetailRawJSON)
+		}
+		sections = convertDockerSections(dockerSections)
 	} else {
 		if content == "" {
 			content = i18n.T("hint.loading_detail")
@@ -59,7 +84,11 @@ func RenderView(m *state.AppModel, panelHeight int) string {
 		sections = []detailSection{{Title: "Details", Lines: []string{content}}}
 	}
 
-	// 柔和配色样式 — 护眼设计，无背景高亮
+	return renderSections(m, sections, panelHeight)
+}
+
+// renderSections renders detail sections with styles and scroll support.
+func renderSections(m *state.AppModel, sections []detailSection, panelHeight int) string {
 	sectionStyle := component.GetStyle("detailSection")
 	labelStyle := component.GetStyle("detailLabel")
 	valueStyle := component.GetStyle("detailValue")
@@ -67,7 +96,6 @@ func RenderView(m *state.AppModel, panelHeight int) string {
 
 	bodyLines := make([]string, 0, len(sections)*3)
 	for _, sec := range sections {
-		// 区段标题 — 永远展开，无折叠指示器
 		bodyLines = append(bodyLines, sectionStyle.Render(fmt.Sprintf("  \u2500\u2500 %s ", sec.Title)))
 		if sec.Subtitle != "" {
 			bodyLines = append(bodyLines, "    "+dimStyle.Render(sec.Subtitle))
@@ -118,6 +146,87 @@ func RenderView(m *state.AppModel, panelHeight int) string {
 		footer += " \u2502 " + m.DetailHint
 	}
 	return lipgloss.JoinVertical(lipgloss.Top, body, dimStyle.Render(footer))
+}
+
+// renderSourceView renders raw JSON as JSON or YAML source code.
+func renderSourceView(m *state.AppModel, panelHeight int) string {
+	dimStyle := component.GetStyle("detailDim")
+	codeStyle := component.GetStyle("detailValue")
+
+	var text string
+	if m.DetailSourceType == "yaml" {
+		var obj interface{}
+		if err := sonic.Unmarshal(m.DetailRawJSON, &obj); err == nil {
+			if yamlBytes, err := yaml.Marshal(obj); err == nil {
+				text = string(yamlBytes)
+			}
+		}
+		if text == "" {
+			text = string(m.DetailRawJSON)
+		}
+	} else {
+		var obj interface{}
+		if err := sonic.Unmarshal(m.DetailRawJSON, &obj); err == nil {
+			if jsonBytes, err := json.MarshalIndent(obj, "", "  "); err == nil {
+				text = string(jsonBytes)
+			}
+		}
+		if text == "" {
+			text = string(m.DetailRawJSON)
+		}
+	}
+
+	lines := strings.Split(text, "\n")
+	bodyHeight := panelHeight - 1
+	if bodyHeight < 3 {
+		bodyHeight = 3
+	}
+	if m.DetailOffset < 0 {
+		m.DetailOffset = 0
+	}
+	maxOffset := len(lines) - bodyHeight
+	if maxOffset < 0 {
+		maxOffset = 0
+	}
+	if m.DetailOffset > maxOffset {
+		m.DetailOffset = maxOffset
+	}
+
+	visible := lines[m.DetailOffset:]
+	if len(visible) > bodyHeight {
+		visible = visible[:bodyHeight]
+	}
+	for len(visible) < bodyHeight {
+		visible = append(visible, "")
+	}
+
+	rendered := make([]string, len(visible))
+	for i, ln := range visible {
+		rendered[i] = codeStyle.Render(ln)
+	}
+	body := lipgloss.NewStyle().Height(bodyHeight).MaxHeight(bodyHeight).Render(strings.Join(rendered, "\n"))
+
+	footer := fmt.Sprintf(" %d-%d/%d", m.DetailOffset+1, m.DetailOffset+len(visible), len(lines))
+	if m.DetailHint != "" {
+		footer += " \u2502 " + m.DetailHint
+	}
+	return lipgloss.JoinVertical(lipgloss.Top, body, dimStyle.Render(footer))
+}
+
+// convertDockerSections converts docker.DetailSection to detailSection.
+func convertDockerSections(dockerSections []docker.DetailSection) []detailSection {
+	if len(dockerSections) == 0 {
+		return nil
+	}
+	result := make([]detailSection, len(dockerSections))
+	for i, ds := range dockerSections {
+		result[i] = detailSection{
+			Title:    ds.Title,
+			Subtitle: ds.Subtitle,
+			Lines:    ds.Lines,
+		}
+	}
+	return result
 }
 
 func buildDetailSections(content string) []detailSection {

@@ -5,11 +5,13 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/docker"
+	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
 )
 
+// networkRemoveCmd returns a tea.Cmd that removes a network.
 func networkRemoveCmd(client *docker.Client, id string) tea.Cmd {
 	return func() tea.Msg {
 		err := client.RemoveNetwork(id)
@@ -17,6 +19,7 @@ func networkRemoveCmd(client *docker.Client, id string) tea.Cmd {
 	}
 }
 
+// doNetworkSort cycles through sort columns for the networks panel.
 func doNetworkSort(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if m.ActivePanel != state.PanelNetworks {
 		return m, nil
@@ -35,6 +38,27 @@ func doNetworkSort(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		state.NetworkSortByCreated: "created",
 	}
 	m.InfoMessage = fmt.Sprintf("Sort by %s (%v)", labels[m.Networks.SortBy], m.Networks.SortAsc)
+	return m, nil
+}
+
+// doNetworkInspect opens the detail view for the selected network.
+func doNetworkInspect(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	if m.Docker == nil || m.ActivePanel != state.PanelNetworks {
+		return m, nil
+	}
+	net := m.Networks.Selected()
+	if net == nil {
+		return m, nil
+	}
+	rawJSON, err := m.Docker.InspectNetwork(net.ID)
+	if err != nil {
+		m.ErrorMessage = err.Error()
+		m.ErrorCount++
+		return m, nil
+	}
+	m.DetailRawJSON = rawJSON
+	m.DetailResourceType = state.ResourceNetwork
+	ToDetail(m, i18n.T("detail.title.network", net.Name), "")
 	return m, nil
 }
 

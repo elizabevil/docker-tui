@@ -1,6 +1,8 @@
 package view
 
 import (
+	"strings"
+
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/compose"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/containers"
@@ -65,6 +67,14 @@ func projectPage(m *state.AppModel, bodyHeight, bodyWidth int) pageView {
 		view.title = m.DetailTitle
 		if view.title == "" {
 			view.title = state.PanelLabel(state.PanelDetail)
+		}
+		// Adjust title based on source view mode
+		if m.DetailSourceType == "yaml" {
+			view.title = strings.Replace(view.title, "Detail:", "YAML:", 1)
+			view.title = strings.Replace(view.title, "详情:", "YAML:", 1)
+		} else if m.DetailSourceType == "json" {
+			view.title = strings.Replace(view.title, "Detail:", "JSON:", 1)
+			view.title = strings.Replace(view.title, "详情:", "JSON:", 1)
 		}
 		view.summary = ""
 		if m.Mode == state.ModeExecPassthrough {

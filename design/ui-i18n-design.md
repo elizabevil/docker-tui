@@ -11,7 +11,7 @@ dtui 当前支持 `en`、`zh` 以及兼容形式 `zh-CN` / `zh_CN`。国际化�
 
 ## 2. 已确认问题
 
-### 2.1 资源解析失败会伪装成“切换无效”
+### 2.1 资源解析失败会伪装成"切换无效"
 
 `internal/data/i18n/lang.go` 原先在资源读取或 JSONC 解析失败时将语言表置为空，并且没有错误提示。`zh.jsonc` 曾因缺少逗号无法解析，调用 `SetLang("zh")` 后 `Current()` 仍是 `zh`，但所有缺失键都回退到英文表，用户看到的结果像是语言切换没有生效。
 
@@ -94,7 +94,7 @@ func PadDisplay(s string, width int) string
 ### 4.3 布局与渲染层
 
 - 用 `DisplayWidth` 替换所有影响布局的 `len`、Rune 计数和固定格式补齐。
-- Help 页按“快捷键列宽 + 描述列宽”动态分配，并对描述做显示宽度截断或换行。
+- Help 页按"快捷键列宽 + 描述列宽"动态分配，并对描述做显示宽度截断或换行。
 - Header 标签与值分别计算宽度；标签超出列宽时使用紧凑翻译或截断，不允许覆盖相邻列。
 - 表格列宽缓存的 key 必须包含 locale，因为不同语言的表头自然宽度不同。
 - Toast、Footer、Breadcrumb 和 Dialog 在最终输出前统一执行单行宽度裁剪。
@@ -128,7 +128,7 @@ func PadDisplay(s string, width int) string
 ## 6. 验收标准
 
 - `--lang zh`、`--lang zh-CN` 和配置文件 `general.lang: zh` 显示中文；`--lang en` 恢复英文。
-- 任意翻译资源解析失败时，不得静默显示“已切换但仍是英文”；测试能定位具体文件和键。
+- 任意翻译资源解析失败时，不得静默显示"已切换但仍是英文"；测试能定位具体文件和键。
 - 中英文在相同终端宽度下不发生列覆盖、边框错位、Footer 溢出或弹窗超宽。
 - 所有文本截断按终端显示宽度执行，中文字符按实际占用列数计算。
 - 动作分支、事件处理和审计仍使用稳定常量，不依赖翻译结果。
@@ -140,3 +140,476 @@ func PadDisplay(s string, width int) string
 - 已补充语言切换测试。
 - 已引入按终端单元格计算的 `DisplayWidth`、`TruncateVisible` 和 `PadVisible` 路径，并覆盖表格行前缀与 Help 快捷键列。
 - 终端显示宽度的全页面覆盖、硬编码文本迁移和中英文渲染回归仍待实施。
+
+## 8. 详情页 i18n 设计
+
+### 8.1 翻译策略
+
+**Docker 技术术语保持英文**：ID、PID、CPU、IP、MAC、Port、Entrypoint、Cmd 等是行业标准术语，翻译后反而不利于用户理解和与其他工具对照。
+
+**描述性文字翻译**：Section 标题（Resources → 资源）、提示文本（Loading detail → 加载详情中...）、详情页标题等。
+
+### 8.2 容器详情 i18n
+
+当前 `internal/data/docker/inspect.go` 的 `InspectContainer()` 返回硬编码英文文本。需改造为使用 `i18n.T()` 翻译 Section 标题和描述性字段。
+
+**Section 标题翻译**：
+
+| 原始英文 | i18n key | 中文 |
+|---------|----------|------|
+| `── Resources ──` | `inspect.section_resources` | 资源 |
+| `── Networks ──` | `inspect.section_networks` | 网络 |
+| `── Mounts ──` | `inspect.section_mounts` | 挂载 |
+| `── Config ──` | `inspect.section_container_config` | 配置 |
+| `── Labels ──` | `inspect.section_labels` | 标签 |
+
+**字段标签翻译**：
+
+| 原始英文 | i18n key | 中文 |
+|---------|----------|------|
+| `CPUShares` | `inspect.container.cpu_shares` | CPUShares |
+| `Memory` | `inspect.container.memory` | 内存 |
+| `NanoCPUs` | `inspect.container.nano_cpus` | NanoCPUs |
+| `NetworkMode` | `inspect.container.network_mode` | 网络模式 |
+| `RestartPolicy` | `inspect.container.restart_policy` | 重启策略 |
+| `StartedAt` | `inspect.container.started_at` | 启动时间 |
+| `FinishedAt` | `inspect.container.finished_at` | 结束时间 |
+| `RestartCount` | `inspect.container.restart_count` | 重启次数 |
+| `WorkingDir` | `inspect.container.working_dir` | 工作目录 |
+| `User` | `inspect.container.user` | 用户 |
+| `Entrypoint` | `inspect.container.entrypoint` | 入口点 |
+| `Cmd` | `inspect.container.cmd` | 命令 |
+| `ExposedPorts` | `inspect.container.exposed_ports` | 暴露端口 |
+| `Env` | `inspect.container.env` | 环境变量 |
+| `IP` | `inspect.container.ip` | IP |
+| `Gateway` | `inspect.container.gateway` | 网关 |
+| `MAC` | `inspect.container.mac` | MAC |
+| `Ports` | `inspect.container.ports` | 端口映射 |
+
+**注意**：`ID`、`Name`、`Image`、`Created`、`State`、`Pid`、`Platform` 等字段名保持英文不翻译。
+
+**详情页标题 i18n**：
+
+| 原始硬编码 | i18n key | 中文示例 |
+|-----------|----------|---------|
+| `"Container Detail: "+name+" ("+id+")"` | `detail.title.container` | 容器详情: myapp (abc123) |
+| `"Image Detail: "+shortID` | `detail.title.image` | 镜像详情: sha256:abc123 |
+
+### 8.3 网络详情 i18n（新增功能）
+
+网络详情页当前不存在。新增后需 i18n 的字段：
+
+**Section 标题**：
+
+| i18n key | 中文 |
+|----------|------|
+| `inspect.section_network_info` | 网络信息 |
+| `inspect.section_network_ipam` | IP 配置 |
+| `inspect.section_network_containers` | 连接容器 |
+| `inspect.section_labels` | 标签 |
+
+**字段标签**：
+
+| i18n key | 中文 |
+|----------|------|
+| `inspect.network.name` | 名称 |
+| `inspect.network.id` | ID |
+| `inspect.network.driver` | 驱动 |
+| `inspect.network.scope` | 范围 |
+| `inspect.network.subnet` | 子网 |
+| `inspect.network.gateway` | 网关 |
+| `inspect.network.ip_range` | IP 范围 |
+| `inspect.network.internal` | 内部网络 |
+| `inspect.network.ipv6` | IPv6 |
+| `inspect.network.labels` | 标签 |
+| `inspect.network.created` | 创建时间 |
+
+**详情页标题**：
+
+| i18n key | 中文示例 |
+|----------|---------|
+| `detail.title.network` | 网络详情: bridge |
+
+### 8.4 卷详情 i18n（新增功能）
+
+卷详情页当前不存在（当前卷面板的"详情"是子视图，显示卷内容器列表）。新增 inspect 功能后需 i18n 的字段：
+
+**Section 标题**：
+
+| i18n key | 中文 |
+|----------|------|
+| `inspect.section_volume_info` | 卷信息 |
+| `inspect.section_labels` | 标签 |
+| `inspect.section_volume_options` | 选项 |
+
+**字段标签**：
+
+| i18n key | 中文 |
+|----------|------|
+| `inspect.volume.name` | 名称 |
+| `inspect.volume.driver` | 驱动 |
+| `inspect.volume.mountpoint` | 挂载点 |
+| `inspect.volume.scope` | 范围 |
+| `inspect.volume.labels` | 标签 |
+| `inspect.volume.options` | 选项 |
+| `inspect.volume.created` | 创建时间 |
+
+**详情页标题**：
+
+| i18n key | 中文示例 |
+|----------|---------|
+| `detail.title.volume` | 卷详情: my-volume |
+
+### 8.5 镜像详情 i18n（已实现，补充）
+
+镜像详情已通过 `internal/tui/ui/pages/detail/image.go` 使用 `i18n.T()` 翻译。需补充的细节：
+
+- `buildImageDetailSections()` 中的 section 分隔符 `"── System ──"` 等仍为硬编码英文，需改为 `i18n.T()` 调用。
+- `"Fields parsed: %d"` → `i18n.T("inspect.fields_parsed", len(kv))`
+- `"Source: docker image inspect"` → 已有 `inspect.source` key
+
+## 9. 源码视图（JSON/YAML 切换）
+
+### 9.1 需求概述
+
+详情页当前只提供 Section 分组视图。新增源码视图功能，支持 JSON 和 YAML 两种格式，展示 Docker API 返回的完整原始数据，方便用户复制使用。
+
+### 9.2 状态管理
+
+`internal/tui/state/app.go` 的 `AppModel` 新增字段：
+
+```go
+// DetailSourceType 控制详情页显示模式："section" | "yaml" | "json"
+DetailSourceType string
+
+// DetailRawJSON 存储 Docker API 返回的原始 JSON 字节
+DetailRawJSON []byte
+```
+
+默认值：`DetailSourceType = "section"`
+
+### 9.3 快捷键设计
+
+在详情页（`ModeDetail`）中，按 `s` 键循环切换三种显示模式：
+
+```
+Section (默认) → YAML → JSON → Section
+```
+
+切换时重置 `DetailOffset = 0`（滚动到顶部）。
+
+**源码视图中的快捷键**：
+- `j/k` 或 方向键：滚动
+- `g/G`：跳转到顶部/底部
+- `Space/PgDn`：向下翻页
+- `PgUp`：向上翻页
+- `Esc/Enter`：返回上一级
+- `s`：切换到下一个显示模式
+
+### 9.4 Footer 提示
+
+源码视图的 Footer 显示当前模式和操作提示：
+
+```
+1-20/150 │ s:section y:yaml j:json │ Esc:back
+```
+
+使用 i18n key：`detail.source.hint`
+
+### 9.5 数据流改造
+
+#### 容器 inspect 改造
+
+当前 `InspectContainer()` 返回格式化字符串。改造为返回原始 JSON：
+
+```go
+// 改造前
+func (c *Client) InspectContainer(id string) (string, error)
+
+// 改造后
+func (c *Client) InspectContainer(id string) ([]byte, error)
+```
+
+内部调用 `c.cli.ContainerInspectWithRaw(c.ctx, id)` 获取原始 JSON 字节。Section 视图通过解析 JSON 生成（新增 `buildContainerDetailSections(jsonData []byte)` 函数）。
+
+#### 镜像 inspect 改造
+
+当前 `InspectImageDetail()` 已调用 `ImageInspectWithRaw` 但丢弃了原始 JSON。改造为同时返回原始 JSON：
+
+```go
+// 改造前
+func (c *Client) InspectImageDetail(summary ImageSummary) (*ImageDetailData, error)
+
+// 改造后：增加返回值
+func (c *Client) InspectImageDetail(summary ImageSummary) (*ImageDetailData, []byte, error)
+```
+
+#### 新增网络 inspect
+
+```go
+func (c *Client) InspectNetwork(id string) ([]byte, error)
+```
+
+内部调用 `c.cli.NetworkInspectWithRaw(c.ctx, id, ...)` 获取原始 JSON。同时返回结构化数据用于 Section 视图。
+
+#### 新增卷 inspect
+
+```go
+func (c *Client) InspectVolume(name string) ([]byte, error)
+```
+
+内部调用 `c.cli.VolumeInspectWithRaw(c.ctx, name, ...)` 获取原始 JSON。
+
+### 9.6 渲染逻辑
+
+`internal/tui/ui/pages/detail/view.go` 的 `RenderView()` 根据 `DetailSourceType` 分支：
+
+```
+DetailSourceType == "section"  → 当前 Section 渲染（不变）
+DetailSourceType == "yaml"     → JSON → interface{} → yaml.Marshal → 等宽渲染
+DetailSourceType == "json"     → json.MarshalIndent → 等宽渲染
+```
+
+**YAML 转换流程**：
+1. `sonic.Unmarshal(DetailRawJSON, &obj)` 反序列化为 `interface{}`
+2. `yaml.Marshal(obj)` 转换为 YAML
+3. 按行渲染，长行截断
+
+**JSON 渲染流程**：
+1. `json.MarshalIndent(DetailRawJSON, "", "  ")` 格式化
+2. 按行渲染，长行截断
+
+**源码视图标题**：
+
+| 模式 | 标题格式 | i18n key | 中文示例 |
+|------|---------|----------|---------|
+| Section | `Container Detail: name (id)` | `detail.title.container` | 容器详情: myapp (abc123) |
+| YAML | `Container YAML: name (id)` | `detail.title.container_yaml` | 容器 YAML: myapp (abc123) |
+| JSON | `Container JSON: name (id)` | `detail.title.container_json` | 容器 JSON: myapp (abc123) |
+
+## 10. 新增 Docker inspect 方法
+
+### 10.1 方法清单
+
+| 方法 | 文件 | Docker SDK 调用 | 返回 |
+|------|------|----------------|------|
+| `InspectContainer` 改造 | `inspect.go` | `ContainerInspectWithRaw` | `([]byte, error)` |
+| `InspectImageDetail` 改造 | `images.go` | `ImageInspectWithRaw`（已用） | `(*ImageDetailData, []byte, error)` |
+| `InspectNetwork` 新增 | `networks.go` | `NetworkInspectWithRaw` | `([]byte, error)` |
+| `InspectVolume` 新增 | `volumes.go` | `VolumeInspectWithRaw` | `([]byte, error)` |
+
+### 10.2 网络 inspect 结构化数据
+
+新增 `NetworkDetailData` 结构体用于 Section 视图：
+
+```go
+type NetworkDetailData struct {
+    Name       string
+    ID         string
+    Driver     string
+    Scope      string
+    Created    string
+    Internal   bool
+    IPv6       bool
+    IPAM       NetworkIPAM
+    Containers map[string]NetworkContainer
+    Labels     map[string]string
+}
+
+type NetworkIPAM struct {
+    Driver  string
+    Config  []NetworkIPAMConfig
+}
+
+type NetworkIPAMConfig struct {
+    Subnet     string
+    Gateway    string
+    IPRange    string
+    AuxAddress map[string]string
+}
+
+type NetworkContainer struct {
+    Name        string
+    EndpointID  string
+    MacAddress  string
+    IPv4Address string
+    IPv6Address string
+}
+```
+
+### 10.3 卷 inspect 结构化数据
+
+新增 `VolumeDetailData` 结构体用于 Section 视图：
+
+```go
+type VolumeDetailData struct {
+    Name       string
+    Driver     string
+    Mountpoint string
+    Scope      string
+    CreatedAt  string
+    Labels     map[string]string
+    Options    map[string]string
+    Status     map[string]interface{}
+}
+```
+
+### 10.4 网络/卷详情入口
+
+**网络详情**：在 `keyboard/network_action.go` 中新增 `doNetworkInspect` 函数，绑定到 Enter 键。调用 `InspectNetwork` 后通过 `ToDetail()` 进入详情页。
+
+**卷详情**：在 `keyboard/volume_action.go` 中新增 `doVolumeInspect` 函数，绑定到 Enter 键（替代当前的子视图行为）。调用 `InspectVolume` 后通过 `ToDetail()` 进入详情页。
+
+**注意**：卷的 Enter 键当前用于进入"卷内容器"子视图。改为进入 inspect 详情后，"卷内容器"功能需通过其他方式访问（如详情页中列出使用该卷的容器）。
+
+## 11. 新增 i18n key 列表
+
+### 11.1 容器详情新增 key
+
+```jsonc
+// Section 标题
+"inspect.section_resources": "Resources"        // 资源
+"inspect.section_networks": "Networks"          // 网络
+"inspect.section_mounts": "Mounts"              // 挂载
+"inspect.section_container_config": "Config"    // 配置
+"inspect.section_labels": "Labels"              // 标签
+
+// 字段标签
+"inspect.container.cpu_shares": "CPUShares"
+"inspect.container.memory": "Memory"
+"inspect.container.nano_cpus": "NanoCPUs"
+"inspect.container.network_mode": "NetworkMode"
+"inspect.container.restart_policy": "RestartPolicy"
+"inspect.container.started_at": "StartedAt"
+"inspect.container.finished_at": "FinishedAt"
+"inspect.container.restart_count": "RestartCount"
+"inspect.container.working_dir": "WorkingDir"
+"inspect.container.user": "User"
+"inspect.container.entrypoint": "Entrypoint"
+"inspect.container.cmd": "Cmd"
+"inspect.container.exposed_ports": "ExposedPorts"
+"inspect.container.env": "Env"
+"inspect.container.ip": "IP"
+"inspect.container.gateway": "Gateway"
+"inspect.container.mac": "MAC"
+"inspect.container.ports": "Ports"
+"inspect.container.platform": "Platform"
+"inspect.container.pid": "PID"
+
+// 状态描述
+"inspect.container.state.running": "Running"
+"inspect.container.state.exited": "Exited"
+"inspect.container.state.created": "Created"
+```
+
+### 11.2 网络详情新增 key
+
+```jsonc
+"inspect.section_network_info": "Network Info"      // 网络信息
+"inspect.section_network_ipam": "IP Configuration"  // IP 配置
+"inspect.section_network_containers": "Connected Containers"  // 连接容器
+
+"inspect.network.name": "Name"
+"inspect.network.id": "ID"
+"inspect.network.driver": "Driver"
+"inspect.network.scope": "Scope"
+"inspect.network.subnet": "Subnet"
+"inspect.network.gateway": "Gateway"
+"inspect.network.ip_range": "IP Range"
+"inspect.network.internal": "Internal"
+"inspect.network.ipv6": "IPv6"
+"inspect.network.labels": "Labels"
+"inspect.network.created": "Created"
+```
+
+### 11.3 卷详情新增 key
+
+```jsonc
+"inspect.section_volume_info": "Volume Info"    // 卷信息
+"inspect.section_volume_options": "Options"     // 选项
+
+"inspect.volume.name": "Name"
+"inspect.volume.driver": "Driver"
+"inspect.volume.mountpoint": "Mountpoint"
+"inspect.volume.scope": "Scope"
+"inspect.volume.labels": "Labels"
+"inspect.volume.options": "Options"
+"inspect.volume.created": "Created"
+```
+
+### 11.4 源码视图新增 key
+
+```jsonc
+"detail.source.yaml": "YAML"
+"detail.source.json": "JSON"
+"detail.source.hint": "s:section y:yaml j:json"
+
+// 详情页标题
+"detail.title.container": "Container Detail: {0} ({1})"
+"detail.title.container_yaml": "Container YAML: {0} ({1})"
+"detail.title.container_json": "Container JSON: {0} ({1})"
+"detail.title.image": "Image Detail: {0}"
+"detail.title.image_yaml": "Image YAML: {0}"
+"detail.title.image_json": "Image JSON: {0}"
+"detail.title.network": "Network Detail: {0}"
+"detail.title.network_yaml": "Network YAML: {0}"
+"detail.title.network_json": "Network JSON: {0}"
+"detail.title.volume": "Volume Detail: {0}"
+"detail.title.volume_yaml": "Volume YAML: {0}"
+"detail.title.volume_json": "Volume JSON: {0}"
+```
+
+### 11.5 通用新增 key
+
+```jsonc
+// 提示文本
+"inspect.copied_json": "JSON copied to clipboard"
+"inspect.copied_yaml": "YAML copied to clipboard"
+```
+
+## 12. 实施计划
+
+### 阶段 1：容器详情 i18n（改造 inspect.go）
+
+**涉及文件**：
+- `internal/data/docker/inspect.go`：改造 `InspectContainer` 返回 `[]byte`，新增 `buildContainerDetailSections`
+- `internal/data/i18n/en.jsonc`：新增容器详情 key
+- `internal/data/i18n/zh.jsonc`：新增容器详情 key
+- `internal/tui/keyboard/container_action.go`：修改 `doInspectAction` 适配新返回值
+- `internal/tui/ui/pages/detail/view.go`：新增容器 Section 解析路径
+
+**验收**：中英文切换后，容器详情页的 Section 标题和描述性字段正确翻译。
+
+### 阶段 2：源码视图功能
+
+**涉及文件**：
+- `internal/tui/state/app.go`：新增 `DetailSourceType` 和 `DetailRawJSON` 字段
+- `internal/tui/keyboard/detail.go`：新增 `s` 键循环切换逻辑
+- `internal/tui/ui/pages/detail/view.go`：新增 YAML/JSON 渲染分支
+- `internal/tui/ui/pages/detail/view.go`：修改 `RenderView` 支持源码视图
+- `internal/data/i18n/en.jsonc`：新增源码视图 key
+- `internal/data/i18n/zh.jsonc`：新增源码视图 key
+
+**验收**：在容器/镜像详情页按 `s` 键可循环切换 Section → YAML → JSON，三种视图数据一致。
+
+### 阶段 3：网络/卷 inspect 新功能
+
+**涉及文件**：
+- `internal/data/docker/types.go`：新增 `NetworkDetailData`、`VolumeDetailData` 结构体
+- `internal/data/docker/networks.go`：新增 `InspectNetwork` 方法
+- `internal/data/docker/volumes.go`：新增 `InspectVolume` 方法
+- `internal/tui/keyboard/network_action.go`：新增 `doNetworkInspect`
+- `internal/tui/keyboard/volume_action.go`：新增 `doVolumeInspect`，调整 Enter 键行为
+- `internal/tui/ui/pages/detail/image.go`：复用或新增网络/卷 Section 渲染
+- `internal/data/i18n/en.jsonc`：新增网络/卷详情 key
+- `internal/data/i18n/zh.jsonc`：新增网络/卷详情 key
+
+**验收**：在网络/卷面板按 Enter 可进入详情页，支持 Section/YAML/JSON 三种视图。
+
+### 阶段 4：回归测试与收尾
+
+- 补充中英文切换后所有详情页的渲染测试。
+- 验证 YAML/JSON 源码视图的完整性（数据不丢失）。
+- 验证 `s` 键循环切换的边界行为（快速按键、重复按键）。
+- 更新 `image.go` 中遗留的硬编码英文 section 分隔符。
+- CI 中执行 `go vet ./...`、`go test ./...`。

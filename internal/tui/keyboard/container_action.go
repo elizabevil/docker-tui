@@ -8,6 +8,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/docker"
+	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -210,13 +211,15 @@ func doInspectAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if ctr == nil {
 		return m, nil
 	}
-	info, err := m.Docker.InspectContainer(ctr.ID)
+	rawJSON, err := m.Docker.InspectContainer(ctr.ID)
 	if err != nil {
 		m.ErrorMessage = err.Error()
 		m.ErrorCount++
 		return m, nil
 	}
-	ToDetail(m, "Container Detail: "+ctr.Name+" ("+ctr.ID+")", info)
+	m.DetailRawJSON = rawJSON
+	m.DetailResourceType = state.ResourceContainer
+	ToDetail(m, i18n.T("detail.title.container", ctr.Name, ctr.ID), "")
 	return m, nil
 }
 
