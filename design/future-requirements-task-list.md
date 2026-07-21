@@ -22,13 +22,14 @@
 |---|---:|
 | `done` | 10 |
 | `in_progress` | 0 |
-| `todo` | 10 |
+| `todo` | 11 |
 | `blocked` | 0 |
 
 当前执行队列：
 
-1. 执行 `TASK-009`，补齐 Volume / Network 创建与清理。
-2. 执行 `TASK-008`，将 Events 接入主循环并支持局部刷新。
+1. 执行 `TASK-021`，建立 Docker / Podman 独立 adapter 和统一 runtime driver。
+2. 执行 `TASK-009`，补齐 Volume / Network 创建与清理。
+3. 执行 `TASK-008`，将 Events 接入主循环并支持局部刷新。
 
 ## 已完成基础
 
@@ -64,13 +65,14 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 
 | 编号 | 任务 | 优先级 | 状态 | 依赖 | 验收重点 |
 |---|---|---:|---|---|---|
-| `TASK-008` | Docker / Podman Events 接入主循环 | P1 | `todo` | TASK-003、TASK-004 | 生命周期管理、断线恢复、事件合并、局部刷新和无事件降级 |
-| `TASK-009` | Volume / Network 创建与清理 | P1 | `todo` | TASK-004 | create、prune、确认交互、部分失败反馈及双运行时测试 |
+| `TASK-021` | [Docker / Podman 统一 runtime driver](unified-runtime-driver.md) | P0 | `todo` | TASK-004 | 正式双 adapter、统一模型/错误/capabilities、移除 `Raw()` 和上层 SDK 类型，同时保持非 CGO 构建 |
+| `TASK-008` | Docker / Podman Events 接入主循环 | P1 | `todo` | TASK-003、TASK-021 | 生命周期管理、断线恢复、事件合并、局部刷新和无事件降级 |
+| `TASK-009` | Volume / Network 创建与清理 | P1 | `todo` | TASK-021 | create、prune、确认交互、部分失败反馈及双运行时测试 |
 | `TASK-010` | 批量操作扩展与部分成功反馈 | P2 | `todo` | 审计模型、TASK-017 | 每个目标独立终态、汇总提示和可追溯审计 |
 | `TASK-011` | Compose / 容器 / 镜像联动刷新 | P2 | `todo` | TASK-008 | 事件只使相关资源失效，不直接修改复杂 UI 状态 |
 | `TASK-017` | 高频容器操作 | P0 | `done` | TASK-004 | 已实现状态约束的 `pause` / `unpause`、批量跳过汇总、`rename` 输入校验、独立 `top` 页面和结构化 `port` 展示，并通过 Docker / Podman 兼容 API 契约测试 |
-| `TASK-018` | 镜像标签与传输工作流 | P1 | `todo` | TASK-004 | `tag`、`push`、`save`、`load`；进度、取消和错误可见 |
-| `TASK-019` | 高级容器操作 | P2 | `todo` | TASK-017 | 评估并分批实现 `update`、`diff`、`export`、`commit`、`wait`、`cp` |
+| `TASK-018` | 镜像标签与传输工作流 | P1 | `todo` | TASK-021 | `tag`、`push`、`save`、`load`；进度、取消和错误可见 |
+| `TASK-019` | 高级容器操作 | P2 | `todo` | TASK-017、TASK-021 | 评估并分批实现 `update`、`diff`、`export`、`commit`、`wait`、`cp` |
 
 `build` 需要独立输入和进度交互设计，暂不并入 `TASK-018`，待该任务完成后再建立实施项。
 
@@ -90,9 +92,10 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
   |-> TASK-015 状态域拆分
   |-> TASK-016 TLS 错误体验
   |-> TASK-017 高频容器操作 -> TASK-010 / TASK-019
-  |-> TASK-009  Volume / Network
-  |-> TASK-018 镜像工作流
-  `-> TASK-008 Events -> TASK-011 联动刷新
+  `-> TASK-021 统一 runtime driver
+        |-> TASK-009  Volume / Network
+        |-> TASK-018 镜像工作流
+        `-> TASK-008 Events -> TASK-011 联动刷新
 
 独立后续: TASK-012 / TASK-013 / TASK-014 / TASK-020
 ```

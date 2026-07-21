@@ -51,7 +51,7 @@ cmd/docker-tui/
 
 - `audit`：用户操作 trace、强类型目标、通知/操作历史投影和按日 JSONL sink
 - `config`：配置默认值、加载、保存、主题加载
-- `docker`：Docker / Podman 客户端封装、连接池、资源操作、stats、inspect、events
+- `docker`：当前 Docker SDK facade、连接池和少量 Podman image adapter；多数 Podman 能力仍经过 Docker compatibility API，正式双 adapter 迁移见 [`TASK-021`](../design/unified-runtime-driver.md)
 - `i18n`：`zh` / `en` 文案
 
 ### `internal/tui`

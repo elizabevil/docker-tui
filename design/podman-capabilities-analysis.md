@@ -394,6 +394,7 @@
 | `TASK-RUN-005` | `TASK-018` | 镜像标签与传输工作流 | `todo` |
 | `TASK-RUN-006` | `TASK-019` | 高级容器操作 | `todo` |
 | `TASK-RUN-007` | `TASK-020` | Docker / Podman 专有能力评估 | `todo` |
+| `TASK-RUN-008` | `TASK-021` | Docker / Podman 正式双 adapter 与统一 runtime driver | `todo` |
 
 ### 建议结论
 
