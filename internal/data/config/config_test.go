@@ -84,7 +84,7 @@ func TestSaveAndLoad(t *testing.T) {
 		Driver:   "docker",
 		Endpoint: "tcp://192.168.1.1:2376",
 		TLS: RuntimeTLSConfig{
-			Enabled: true, Verify: true, CAFile: "/certs/ca.pem",
+			Enabled: true, Verify: true, CAFile: "/certs/ca.pem", ServerName: "docker.example.com",
 		},
 	}}
 	cfg.UI.Theme.ActiveBorderColor = []string{"red"}
@@ -107,6 +107,9 @@ func TestSaveAndLoad(t *testing.T) {
 	}
 	if loaded.Runtime.Connections[0].TLS.CAFile != "/certs/ca.pem" {
 		t.Errorf("TLS mismatch: %#v", loaded.Runtime.Connections[0].TLS)
+	}
+	if loaded.Runtime.Connections[0].TLS.ServerName != "docker.example.com" {
+		t.Errorf("TLS serverName mismatch: %#v", loaded.Runtime.Connections[0].TLS)
 	}
 	if loaded.UI.Theme.ActiveBorderColor[0] != "red" {
 		t.Errorf("theme mismatch: got %v", loaded.UI.Theme.ActiveBorderColor)
@@ -143,7 +146,7 @@ func TestValidateRuntimeConnections(t *testing.T) {
 	}{
 		{name: "driver", connections: []RuntimeConn{{Name: "remote", Driver: "containerd", Endpoint: "tcp://example:2376"}}},
 		{name: "duplicate", connections: []RuntimeConn{{Name: "remote", Driver: "docker", Endpoint: "tcp://one:2376"}, {Name: "remote", Driver: "docker", Endpoint: "tcp://two:2376"}}},
-		{name: "tls verify", connections: []RuntimeConn{{Name: "remote", Driver: "docker", Endpoint: "tcp://example:2376", TLS: RuntimeTLSConfig{Enabled: true, CAFile: "/ca.pem"}}}},
+		{name: "tls verify", connections: []RuntimeConn{{Name: "remote", Driver: "docker", Endpoint: "tcp://example:2376", TLS: RuntimeTLSConfig{Enabled: true, CAFile: "/ca.pem", ServerName: "example"}}}},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

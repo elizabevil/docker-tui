@@ -63,7 +63,7 @@ just run-podman
 -v, --version        显示版本
 ```
 
-程序会注册本地 Docker 与 Podman 候选，默认优先连接 `local-docker`；Docker 不可用且本地 Podman 可用时自动连接 Podman，并显示切换提示。可通过 `runtime.default` 选择配置连接，或使用 `--podman` 明确选择本地 Podman。
+程序会始终注册本地 Docker 与 Podman 候选，默认优先连接 `local-docker`；Docker 不可用且本地 Podman 可用时自动连接 Podman，并显示切换提示。可通过 `runtime.default` 选择配置连接，或使用 `--podman` 明确选择本地 Podman。`runtime.connections` 支持独立 TLS 配置，远程连接需提供证书与校验参数。
 
 ## 基本使用
 

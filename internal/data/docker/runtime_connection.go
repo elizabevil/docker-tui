@@ -1,0 +1,80 @@
+package docker
+
+import (
+	"fmt"
+	"net/url"
+	"path/filepath"
+	"strings"
+
+	"github.com/elizabevil/docker-tui/internal/data/config"
+)
+
+// ConnectionSpec is the normalized runtime connection model used by the
+// startup flow, connection pool and runtime selector.
+type ConnectionSpec struct {
+	Name    string
+	Host    string
+	Runtime RuntimeType
+	TLS     TLSConfig
+}
+
+// HostEntry preserves the legacy name used by the connection pool API.
+// It aliases ConnectionSpec so existing call sites continue to compile while
+// the codebase moves to the normalized model.
+type HostEntry = ConnectionSpec
+
+// FromRuntimeConn converts the config model into the normalized runtime model.
+func FromRuntimeConn(conn config.RuntimeConn) ConnectionSpec {
+	return ConnectionSpec{
+		Name:    conn.Name,
+		Host:    conn.Endpoint,
+		Runtime: RuntimeType(conn.Driver),
+		TLS: TLSConfig{
+			Enabled:    conn.TLS.Enabled,
+			Verify:     conn.TLS.Verify,
+			CAFile:     conn.TLS.CAFile,
+			CertFile:   conn.TLS.CertFile,
+			KeyFile:    conn.TLS.KeyFile,
+			ServerName: conn.TLS.ServerName,
+		},
+	}
+}
+
+// Key returns the deduplication key for this runtime connection.
+func (c ConnectionSpec) Key() string {
+	return ConnectionKey(c.Runtime, c.Host)
+}
+
+// ConnectionKey normalizes driver and endpoint into a stable deduplication key.
+func ConnectionKey(runtime RuntimeType, endpoint string) string {
+	runtime = NormalizeRuntimeType(string(runtime))
+	endpoint = strings.TrimSpace(endpoint)
+	parsed, err := url.Parse(endpoint)
+	if err != nil || parsed.Scheme == "" {
+		return string(runtime) + "|" + endpoint
+	}
+	parsed.Scheme = strings.ToLower(parsed.Scheme)
+	parsed.Host = strings.ToLower(parsed.Host)
+	if parsed.Scheme == "unix" {
+		parsed.Path = filepath.Clean(parsed.Path)
+	}
+	return string(runtime) + "|" + parsed.String()
+}
+
+// NormalizeRuntimeType canonicalizes runtime labels.
+func NormalizeRuntimeType(runtime string) RuntimeType {
+	switch strings.ToLower(strings.TrimSpace(runtime)) {
+	case string(RuntimePodman):
+		return RuntimePodman
+	default:
+		return RuntimeDocker
+	}
+}
+
+// LocalPodmanEndpoint returns the user-local Podman socket URI.
+func LocalPodmanEndpoint(uid int) string {
+	if uid == 0 {
+		return "unix:///run/podman/podman.sock"
+	}
+	return fmt.Sprintf("unix:///run/user/%d/podman/podman.sock", uid)
+}

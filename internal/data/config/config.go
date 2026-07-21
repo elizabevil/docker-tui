@@ -134,12 +134,6 @@ func Validate(cfg *Config) error {
 			}
 		}
 	}
-	if cfg.Runtime.Default == "local-docker" && !cfg.Runtime.Discovery.LocalDocker {
-		return fmt.Errorf("runtime.default local-docker requires runtime.discovery.localDocker")
-	}
-	if cfg.Runtime.Default == "local-podman" && !cfg.Runtime.Discovery.LocalPodman {
-		return fmt.Errorf("runtime.default local-podman requires runtime.discovery.localPodman")
-	}
 	if cfg.Runtime.Default != "local-docker" && cfg.Runtime.Default != "local-podman" {
 		if _, exists := names[cfg.Runtime.Default]; !exists {
 			return fmt.Errorf("runtime.default %q does not name a connection", cfg.Runtime.Default)

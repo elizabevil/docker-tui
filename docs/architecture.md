@@ -135,8 +135,9 @@ keyboard action
 ## 配置入口
 
 - 默认配置路径：`~/.config/docker-tui/config.yml`
-- 连接配置：`runtime.discovery`、`runtime.default`、`runtime.health`、`runtime.connections`
+- 连接配置：`runtime.default`、`runtime.health`、`runtime.connections`
 - 连接字段：`name`、`driver`、`endpoint` 和独立 `tls` 配置
+- 本地 Docker / Podman 会始终被探测并加入候选，`runtime.discovery` 仅保留为配置结构字段，不再屏蔽本地驱动
 - 旧连接字段不兼容；未知字段与无效连接会在启动前返回配置错误
 - 默认配置模板：`internal/data/config/default.jsonc`
 - 布局窗口配置：`internal/tui/ui/app/app.jsonc`

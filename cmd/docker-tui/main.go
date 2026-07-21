@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -167,9 +166,9 @@ func connectDocker(pool *dockerclient.ConnectionPool, name string) tea.Cmd {
 
 func runtimeConnections(cfg *config.Config, hostOverride string, usePodman bool) ([]dockerclient.HostEntry, string) {
 	if hostOverride != "" {
-		driver := "docker"
+		driver := dockerclient.RuntimeDocker
 		if usePodman {
-			driver = "podman"
+			driver = dockerclient.RuntimePodman
 		}
 		return []dockerclient.HostEntry{{Name: "cli", Host: hostOverride, Runtime: driver}}, "cli"
 	}
@@ -178,7 +177,7 @@ func runtimeConnections(cfg *config.Config, hostOverride string, usePodman bool)
 	seen := make(map[string]int, len(cfg.Runtime.Connections)+2)
 	aliases := make(map[string]string, len(cfg.Runtime.Connections)+2)
 	add := func(entry dockerclient.HostEntry, replace bool) {
-		key := connectionKey(entry.Runtime, entry.Host)
+		key := dockerclient.ConnectionKey(entry.Runtime, entry.Host)
 		if index, exists := seen[key]; exists {
 			if replace {
 				aliases[connections[index].Name] = entry.Name
@@ -191,21 +190,11 @@ func runtimeConnections(cfg *config.Config, hostOverride string, usePodman bool)
 	}
 	// Local runtimes are always candidates; discovery settings do not hide an
 	// installed runtime from the selector. Unavailable sockets fail visibly.
-	add(dockerclient.HostEntry{Name: "local-docker", Host: "unix:///var/run/docker.sock", Runtime: "docker"}, false)
-	add(dockerclient.HostEntry{Name: "local-podman", Host: localPodmanEndpoint(), Runtime: "podman"}, false)
+	add(dockerclient.HostEntry{Name: "local-docker", Host: "unix:///var/run/docker.sock", Runtime: dockerclient.RuntimeDocker}, false)
+	add(dockerclient.HostEntry{Name: "local-podman", Host: dockerclient.LocalPodmanEndpoint(os.Getuid()), Runtime: dockerclient.RuntimePodman}, false)
 	for _, connection := range cfg.Runtime.Connections {
-		add(dockerclient.HostEntry{
-			Name:    connection.Name,
-			Host:    connection.Endpoint,
-			Runtime: connection.Driver,
-			TLS: dockerclient.TLSConfig{
-				Enabled:  connection.TLS.Enabled,
-				Verify:   connection.TLS.Verify,
-				CAFile:   connection.TLS.CAFile,
-				CertFile: connection.TLS.CertFile,
-				KeyFile:  connection.TLS.KeyFile,
-			},
-		}, true)
+		spec := dockerclient.FromRuntimeConn(connection)
+		add(dockerclient.HostEntry(spec), true)
 	}
 	initial := cfg.Runtime.Default
 	if usePodman {
@@ -215,28 +204,6 @@ func runtimeConnections(cfg *config.Config, hostOverride string, usePodman bool)
 		initial = canonical
 	}
 	return connections, initial
-}
-
-func connectionKey(driver, endpoint string) string {
-	driver = strings.ToLower(strings.TrimSpace(driver))
-	endpoint = strings.TrimSpace(endpoint)
-	parsed, err := url.Parse(endpoint)
-	if err != nil || parsed.Scheme == "" {
-		return driver + "|" + endpoint
-	}
-	parsed.Scheme = strings.ToLower(parsed.Scheme)
-	parsed.Host = strings.ToLower(parsed.Host)
-	if parsed.Scheme == "unix" {
-		parsed.Path = filepath.Clean(parsed.Path)
-	}
-	return driver + "|" + parsed.String()
-}
-
-func localPodmanEndpoint() string {
-	if os.Getuid() == 0 {
-		return "unix:///run/podman/podman.sock"
-	}
-	return fmt.Sprintf("unix:///run/user/%d/podman/podman.sock", os.Getuid())
 }
 
 func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

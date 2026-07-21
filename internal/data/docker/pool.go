@@ -16,20 +16,13 @@ const (
 	StateError
 )
 
-type HostEntry struct {
-	Name    string
-	Host    string
-	Runtime string
-	TLS     TLSConfig
-}
-
 type PoolEntry struct {
 	Name    string
 	Host    string
 	Client  *Client
 	State   ConnState
 	Error   error
-	Runtime string
+	Runtime RuntimeType
 	TLS     TLSConfig
 }
 

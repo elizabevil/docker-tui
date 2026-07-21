@@ -2,12 +2,17 @@ package docker
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"net"
+	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/docker/docker/client"
@@ -34,15 +39,16 @@ type ClientConfig struct {
 	Host    string
 	TLS     TLSConfig
 	Timeout time.Duration
-	Runtime string // "docker", "podman", or "" for auto-detect
+	Runtime RuntimeType
 }
 
 type TLSConfig struct {
-	Enabled  bool
-	Verify   bool
-	CAFile   string
-	CertFile string
-	KeyFile  string
+	Enabled    bool
+	Verify     bool
+	CAFile     string
+	CertFile   string
+	KeyFile    string
+	ServerName string
 }
 
 var knownSockets = []struct {
@@ -89,9 +95,9 @@ func resolvePodmanUserSocket() string {
 func detectHost(cfg ClientConfig) (string, RuntimeType) {
 	if cfg.Host != "" {
 		runtimeType := detectRuntimeType(cfg.Host)
-		if cfg.Runtime == string(RuntimeDocker) {
+		if cfg.Runtime == RuntimeDocker {
 			runtimeType = RuntimeDocker
-		} else if cfg.Runtime == string(RuntimePodman) {
+		} else if cfg.Runtime == RuntimePodman {
 			runtimeType = RuntimePodman
 		}
 		return cfg.Host, runtimeType
@@ -99,9 +105,9 @@ func detectHost(cfg ClientConfig) (string, RuntimeType) {
 	// Runtime without an endpoint selects the corresponding local socket.
 	if cfg.Runtime != "" {
 		switch cfg.Runtime {
-		case "docker":
+		case RuntimeDocker:
 			return fmt.Sprintf("unix://%s", "/var/run/docker.sock"), RuntimeDocker
-		case "podman":
+		case RuntimePodman:
 			if sock := firstLivePodmanSocket(); sock != "" {
 				return fmt.Sprintf("unix://%s", sock), RuntimePodman
 			}
@@ -194,7 +200,11 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 		if !cfg.TLS.Verify {
 			return nil, fmt.Errorf("TLS certificate verification is required")
 		}
-		opts = append(opts, client.WithTLSClientConfig(cfg.TLS.CAFile, cfg.TLS.CertFile, cfg.TLS.KeyFile))
+		httpClient, err := tlsHTTPClient(cfg.TLS, host)
+		if err != nil {
+			return nil, err
+		}
+		opts = append(opts, client.WithHTTPClient(httpClient))
 	}
 
 	cli, err := client.NewClientWithOpts(opts...)
@@ -248,6 +258,77 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 	c.ctx, c.cancel = context.WithCancel(context.Background())
 	c.initImageLister()
 	return c, nil
+}
+
+func tlsHTTPClient(cfg TLSConfig, host string) (*http.Client, error) {
+	tlsCfg, err := tlsConfig(cfg, host)
+	if err != nil {
+		return nil, err
+	}
+	return &http.Client{
+		Transport: &http.Transport{TLSClientConfig: tlsCfg},
+	}, nil
+}
+
+func tlsConfig(cfg TLSConfig, host string) (*tls.Config, error) {
+	tlsCfg := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+	if cfg.ServerName != "" {
+		tlsCfg.ServerName = cfg.ServerName
+	} else if inferred := inferServerName(host); inferred != "" {
+		tlsCfg.ServerName = inferred
+	}
+	if cfg.CAFile != "" {
+		caPEM, err := os.ReadFile(cfg.CAFile)
+		if err != nil {
+			return nil, fmt.Errorf("read CA file %s: %w", cfg.CAFile, err)
+		}
+		pool := x509.NewCertPool()
+		if ok := pool.AppendCertsFromPEM(caPEM); !ok {
+			return nil, fmt.Errorf("parse CA file %s: no certificates found", cfg.CAFile)
+		}
+		tlsCfg.RootCAs = pool
+	}
+	if cfg.CertFile != "" || cfg.KeyFile != "" {
+		if cfg.CertFile == "" || cfg.KeyFile == "" {
+			return nil, fmt.Errorf("TLS certFile and keyFile must be configured together")
+		}
+		cert, err := tls.LoadX509KeyPair(cfg.CertFile, cfg.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("load TLS cert pair: %w", err)
+		}
+		tlsCfg.Certificates = []tls.Certificate{cert}
+	}
+	return tlsCfg, nil
+}
+
+func inferServerName(host string) string {
+	if host == "" {
+		return ""
+	}
+	if parsed, err := url.Parse(host); err == nil && parsed.Host != "" {
+		switch parsed.Scheme {
+		case "tcp", "http", "https":
+			if name := parsed.Hostname(); name != "" {
+				return name
+			}
+		}
+	}
+	trimmed := strings.TrimSpace(host)
+	for _, prefix := range []string{"tcp://", "https://", "http://"} {
+		trimmed = strings.TrimPrefix(trimmed, prefix)
+	}
+	if trimmed == "" || strings.Contains(trimmed, "/") {
+		return ""
+	}
+	if name, _, ok := strings.Cut(trimmed, ":"); ok {
+		return name
+	}
+	if trimmed != "" {
+		return trimmed
+	}
+	return ""
 }
 
 func fetchVersion(cli *client.Client, timeout time.Duration) string {

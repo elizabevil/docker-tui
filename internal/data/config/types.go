@@ -10,11 +10,12 @@ const CurrentConfigVersion = 1
 
 // RuntimeTLSConfig defines TLS client authentication for one runtime endpoint.
 type RuntimeTLSConfig struct {
-	Enabled  bool   `json:"enabled" yaml:"enabled"`
-	Verify   bool   `json:"verify" yaml:"verify"`
-	CAFile   string `json:"caFile" yaml:"caFile"`
-	CertFile string `json:"certFile" yaml:"certFile"`
-	KeyFile  string `json:"keyFile" yaml:"keyFile"`
+	Enabled    bool   `json:"enabled" yaml:"enabled"`
+	Verify     bool   `json:"verify" yaml:"verify"`
+	CAFile     string `json:"caFile" yaml:"caFile"`
+	CertFile   string `json:"certFile" yaml:"certFile"`
+	KeyFile    string `json:"keyFile" yaml:"keyFile"`
+	ServerName string `json:"serverName" yaml:"serverName"`
 }
 
 // RuntimeConn defines a named container runtime connection.

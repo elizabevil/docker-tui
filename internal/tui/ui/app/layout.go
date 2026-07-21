@@ -266,13 +266,17 @@ func renderRuntimeSelector(m *state.AppModel) string {
 			marker = "> "
 		}
 		status := "disconnected"
+		runtime := "-"
 		if e != nil && e.State == dockerclient.StateConnected {
 			status = "connected"
+		}
+		if e != nil && e.Runtime != "" {
+			runtime = string(e.Runtime)
 		}
 		if err := m.RuntimeSelectorError[name]; err != "" {
 			status = "error: " + err
 		}
-		rows = append(rows, marker+name+" ["+e.Runtime+"] "+status)
+		rows = append(rows, marker+name+" ["+runtime+"] "+status)
 	}
 	rows = append(rows, "", "Enter connect  Esc cancel")
 	return lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(1, 2).Width(60).Render(strings.Join(rows, "\n"))

@@ -23,9 +23,9 @@
 
 | 编号 | 任务 | 优先级 | 状态 | 依赖 |
 |---|---|---:|---|---|
-| `TASK-004` | Docker / Podman capability 模型 | P1 | `todo` | TASK-002 |
-| `TASK-005` | TLS 完整接线与证书错误状态 | P1 | `todo` | 新 runtime schema 已完成 |
-| `TASK-006` | 连接 endpoint/TLS identity 去重完善 | P1 | `todo` | TASK-002 |
+| `TASK-004` | Docker / Podman capability 模型 | P1 | `done` | TASK-002 |
+| `TASK-005` | TLS 完整接线与证书错误状态 | P1 | `done` | 新 runtime schema 已完成 |
+| `TASK-006` | 连接 endpoint/TLS identity 去重完善 | P1 | `done` | TASK-002 |
 | `TASK-007` | 新配置 schema 版本强制校验 | P1 | `todo` | 当前 schema 已有版本字段 |
 
 ## 实时同步与资源操作

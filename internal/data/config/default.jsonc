@@ -45,7 +45,8 @@
       //     "verify": true,
       //     "caFile": "/etc/docker/certs/ca.pem",
       //     "certFile": "/etc/docker/certs/cert.pem",
-      //     "keyFile": "/etc/docker/certs/key.pem"
+      //     "keyFile": "/etc/docker/certs/key.pem",
+      //     "serverName": "docker.example.com"
       //   }
       // }
     ]
