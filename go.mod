@@ -1,16 +1,16 @@
 module github.com/elizabevil/docker-tui
 
-go 1.26.4
+go 1.26.5
 
 require (
-	charm.land/bubbletea/v2 v2.0.7
-	charm.land/lipgloss/v2 v2.0.4
+	charm.land/bubbletea/v2 v2.0.8
+	charm.land/lipgloss/v2 v2.0.5
 	github.com/bytedance/sonic v1.15.2
 	github.com/docker/docker v28.5.2+incompatible
-	github.com/pelletier/go-toml/v2 v2.3.1
+	github.com/pelletier/go-toml/v2 v2.4.3
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/spf13/cobra v1.10.2
-	go.podman.io/podman/v6 v6.0.0-rc1
+	go.podman.io/podman/v6 v6.0.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -23,11 +23,11 @@ require (
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
-	github.com/bytedance/gopkg v0.1.3 // indirect
+	github.com/bytedance/gopkg v0.1.4 // indirect
 	github.com/bytedance/sonic/loader v0.5.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/charmbracelet/colorprofile v0.4.3 // indirect
-	github.com/charmbracelet/ultraviolet v0.0.0-20260608091853-35bcb7319efa // indirect
+	github.com/charmbracelet/ultraviolet v0.0.0-20260720091822-7cc6674724ac // indirect
 	github.com/charmbracelet/x/ansi v0.11.7 // indirect
 	github.com/charmbracelet/x/term v0.2.2 // indirect
 	github.com/charmbracelet/x/termios v0.1.1 // indirect
@@ -35,7 +35,7 @@ require (
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
-	github.com/cloudwego/base64x v0.1.6 // indirect
+	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
@@ -75,7 +75,7 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kevinburke/ssh_config v1.5.0 // indirect
 	github.com/klauspost/compress v1.18.6 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
+	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.0 // indirect
@@ -144,15 +144,15 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.44.0 // indirect
 	go.opentelemetry.io/otel/trace v1.44.0 // indirect
 	go.podman.io/buildah v1.44.0 // indirect
-	go.podman.io/common v0.68.0 // indirect
+	go.podman.io/common v0.68.1 // indirect
 	go.podman.io/image/v5 v5.40.0 // indirect
 	go.podman.io/storage v1.63.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
-	golang.org/x/arch v0.8.0 // indirect
+	golang.org/x/arch v0.29.0 // indirect
 	golang.org/x/crypto v0.53.0 // indirect
 	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/sync v0.21.0 // indirect
-	golang.org/x/sys v0.46.0 // indirect
+	golang.org/x/sync v0.22.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/term v0.44.0 // indirect
 	golang.org/x/text v0.38.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa // indirect
