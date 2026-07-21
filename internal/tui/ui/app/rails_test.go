@@ -37,10 +37,10 @@ func TestQueryKindFor(t *testing.T) {
 		app  *state.AppModel
 		want queryKind
 	}{
-		{name: "normal", app: &state.AppModel{Mode: state.ModeNormal}, want: queryNone},
-		{name: "filter", app: &state.AppModel{Mode: state.ModeFilter}, want: queryFilter},
-		{name: "search", app: &state.AppModel{Mode: state.ModeSearch, LogContainerID: "abc"}, want: querySearch},
-		{name: "command", app: &state.AppModel{Mode: state.ModeCommand}, want: queryCommand},
+		{name: "normal", app: &state.AppModel{NavigationState: state.NavigationState{Mode: state.ModeNormal}}, want: queryNone},
+		{name: "filter", app: &state.AppModel{NavigationState: state.NavigationState{Mode: state.ModeFilter}}, want: queryFilter},
+		{name: "search", app: &state.AppModel{NavigationState: state.NavigationState{Mode: state.ModeSearch}, LogContainerID: "abc"}, want: querySearch},
+		{name: "command", app: &state.AppModel{NavigationState: state.NavigationState{Mode: state.ModeCommand}}, want: queryCommand},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -117,7 +117,7 @@ func TestRenderAppRegressionMatrix(t *testing.T) {
 				app := state.NewAppModel(config.DefaultConfig(), nil, "test")
 				app.Width, app.Height = size.width, size.height
 				app.ActivePanel, app.Mode = view.panel, view.mode
-				app.FilterText = "query"
+				app.CommandInput.Set("query")
 				app.FilterInput = state.QueryInputState{Text: "query", Cursor: 5}
 				app.SearchInput = state.QueryInputState{Text: "query", Cursor: 5}
 				app.LogContainerID = "container"

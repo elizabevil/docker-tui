@@ -56,7 +56,7 @@ cmd/docker-tui/
 
 ### `internal/tui`
 
-- `state`：顶层模型和资源列表模型
+- `state`：顶层模型、领域子状态和资源列表模型；`AppModel` 当前已下沉 Connection、Navigation 与 Dialog 输入状态，其他状态域按 `TASK-015` 渐进迁移
 - `keyboard`：所有交互入口、模式切换和资源操作命令
 - `update*.go`：Bubble Tea 消息分发与状态更新
 - `ui/app`：顶层布局

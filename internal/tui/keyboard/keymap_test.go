@@ -110,8 +110,8 @@ func TestCommandInputPreservesPrintableKeyCase(t *testing.T) {
 	app.Mode = state.ModeCommand
 
 	updated, _ := HandleKeyPress(keyMessage("A"), app)
-	if updated.FilterText != "A" {
-		t.Fatalf("command text = %q, want uppercase input", updated.FilterText)
+	if updated.CommandInput.Text != "A" {
+		t.Fatalf("command text = %q, want uppercase input", updated.CommandInput.Text)
 	}
 }
 

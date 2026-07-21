@@ -15,7 +15,7 @@ import (
 var execShellOptions = []string{"/bin/sh", "/bin/bash", "/bin/ash"}
 
 // ExecDialog renders the container exec dialog with shell options + custom input.
-// Focus is driven by m.DialogFocus; cursor position by m.DialogCursor.
+// Focus and input cursor are owned by DialogState.
 func ExecDialog(m *state.AppModel, overlayColor string, cfg dialogConfig) string {
 	dialogW := dialogWidth(m.Width, cfg)
 	dialogH := dialogHeight(m.Height, cfg)
@@ -42,25 +42,26 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg dialogConfig) string
 	)
 
 	// Custom input field with cursor
-	inputText := m.FilterText
+	inputText := m.DialogState.Input.Text
 	if inputText == "" {
 		inputText = "/bin/sh"
 	}
-	cursor := m.DialogCursor
+	inputRunes := []rune(inputText)
+	cursor := m.DialogState.Input.Cursor
 	if cursor < 0 {
 		cursor = 0
 	}
-	if cursor > len(inputText) {
-		cursor = len(inputText)
+	if cursor > len(inputRunes) {
+		cursor = len(inputRunes)
 	}
-	inputDisplay := component.GetStyle("dim").Render(i18n.T("inspect.shell")+": ") + inputText[:cursor]
+	inputDisplay := component.GetStyle("dim").Render(i18n.T("inspect.shell")+": ") + string(inputRunes[:cursor])
 	if m.DialogFocus == execFocusInput {
 		inputDisplay += "\u2588" // block cursor when focused
 	} else {
 		inputDisplay += " " // space when not focused
 	}
-	if cursor < len(inputText) {
-		inputDisplay += inputText[cursor:]
+	if cursor < len(inputRunes) {
+		inputDisplay += string(inputRunes[cursor:])
 	}
 
 	// Confirm / Cancel buttons with shortcut hints

@@ -38,9 +38,7 @@ func handleImagePanelKeys(key string, m *state.AppModel) (*state.AppModel, tea.C
 		case keys.ActionContainerExec:
 			syncContainerCursorForSubView(m)
 			m.Mode = state.ModeExec
-			m.DialogFocus = 0
-			m.DialogCursor = 0
-			m.FilterText = "/bin/sh"
+			m.DialogState.OpenInput("/bin/sh", 0)
 			return m, RecordKeyStroke(m, key, "Exec")
 		case keys.ActionContainerStart:
 			mm, cmd := doImageSubContainerCmd(m, containerStartCmd)

@@ -1,6 +1,8 @@
 package keyboard
 
 import (
+	"unicode"
+
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
@@ -9,34 +11,22 @@ import (
 
 var execShellOptions = []string{"/bin/sh", "/bin/bash", "/bin/ash"}
 
-// handleExecDialogKeys handles keyboard input for the exec dialog (ModeExec).
-// Focus positions: 0-2 shell options, 3 custom input, 4 confirm, 5 cancel.
-// When input (3) is focused, supports full line editing with cursor.
+// handleExecDialogKeys routes keys while DialogState owns focus and input.
 func handleExecDialogKeys(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	switch key {
-	// ── Focus navigation ──
 	case keys.KeyTab:
 		m.DialogFocus = (m.DialogFocus + 1) % state.ExecFocusCount
 		return m, nil
-
 	case keys.KeyShiftTab:
 		m.DialogFocus = (m.DialogFocus - 1 + state.ExecFocusCount) % state.ExecFocusCount
 		return m, nil
-
-	// ── Execute / confirm ──
 	case keys.KeyEnter:
 		switch m.DialogFocus {
 		case state.ExecFocusShell1, state.ExecFocusShell2, state.ExecFocusShell3:
 			m.ExecShell = execShellOptions[m.DialogFocus]
 			return doExecAction(m)
-		case state.ExecFocusInput:
-			m.ExecShell = m.FilterText
-			if m.ExecShell == "" {
-				m.ExecShell = "/bin/sh"
-			}
-			return doExecAction(m)
-		case state.ExecFocusConfirm:
-			m.ExecShell = m.FilterText
+		case state.ExecFocusInput, state.ExecFocusConfirm:
+			m.ExecShell = m.DialogState.Input.Text
 			if m.ExecShell == "" {
 				m.ExecShell = "/bin/sh"
 			}
@@ -45,98 +35,24 @@ func handleExecDialogKeys(key string, m *state.AppModel) (*state.AppModel, tea.C
 			clearDialogState(m)
 		}
 		return m, nil
-
 	case keys.KeyEsc:
 		clearDialogState(m)
 		return m, nil
-
-	// ── Input editing (only when input field is focused) ──
-	case keys.KeyLeft:
-		if m.DialogFocus == state.ExecFocusInput && m.DialogCursor > 0 {
-			m.DialogCursor--
-		}
-		return m, nil
-
-	case keys.KeyRight:
-		if m.DialogFocus == state.ExecFocusInput && m.DialogCursor < len(m.FilterText) {
-			m.DialogCursor++
-		}
-		return m, nil
-
-	case keys.KeyHome:
-		if m.DialogFocus == state.ExecFocusInput {
-			m.DialogCursor = 0
-		}
-		return m, nil
-
-	case keys.KeyEnd:
-		if m.DialogFocus == state.ExecFocusInput {
-			m.DialogCursor = len(m.FilterText)
-		}
-		return m, nil
-
-	case keys.KeyBackspace, keys.KeyDelete:
-		if m.DialogFocus == state.ExecFocusInput && len(m.FilterText) > 0 {
-			if key == keys.KeyDelete {
-				// Delete at cursor: remove character AFTER cursor
-				if m.DialogCursor < len(m.FilterText) {
-					m.FilterText = m.FilterText[:m.DialogCursor] + m.FilterText[m.DialogCursor+1:]
-				}
-			} else {
-				// Backspace: remove character BEFORE cursor
-				if m.DialogCursor > 0 {
-					m.FilterText = m.FilterText[:m.DialogCursor-1] + m.FilterText[m.DialogCursor:]
-					m.DialogCursor--
-				}
-			}
-		}
-		return m, nil
-
-	// ── Control editing shortcuts ──
-	case "ctrl+a":
-		if m.DialogFocus == state.ExecFocusInput {
-			m.DialogCursor = 0
-		}
-		return m, nil
-
-	case "ctrl+e":
-		if m.DialogFocus == state.ExecFocusInput {
-			m.DialogCursor = len(m.FilterText)
-		}
-		return m, nil
-
-	case "ctrl+u":
-		if m.DialogFocus == state.ExecFocusInput {
-			m.FilterText = ""
-			m.DialogCursor = 0
-		}
-		return m, nil
-
-	case "ctrl+w":
-		if m.DialogFocus == state.ExecFocusInput && m.DialogCursor > 0 {
-			// Delete word backward: find start of word before cursor
-			pos := m.DialogCursor - 1
-			for pos >= 0 && m.FilterText[pos] == '/' {
-				pos--
-			}
-			for pos >= 0 && m.FilterText[pos] != '/' && m.FilterText[pos] != ' ' {
-				pos--
-			}
-			pos++
-			m.FilterText = m.FilterText[:pos] + m.FilterText[m.DialogCursor:]
-			m.DialogCursor = pos
-		}
-		return m, nil
-
-	// ── Printable character: insert at cursor position ──
 	default:
-		if m.DialogFocus == state.ExecFocusInput && len(key) == 1 && key != " " {
-			// Insert character at cursor position
-			before := m.FilterText[:m.DialogCursor]
-			after := m.FilterText[m.DialogCursor:]
-			m.FilterText = before + key + after
-			m.DialogCursor++
+		if m.DialogFocus != state.ExecFocusInput || key == " " {
+			return m, nil
 		}
+		if key == "ctrl+w" {
+			m.DialogState.Input.DeleteDelimitedBackward(func(r rune) bool {
+				return unicode.IsSpace(r) || r == '/'
+			})
+			return m, nil
+		}
+		if key == "ctrl+u" {
+			m.DialogState.Input.Reset()
+			return m, nil
+		}
+		editQueryInput(key, &m.DialogState.Input)
 		return m, nil
 	}
 }

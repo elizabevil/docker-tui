@@ -111,26 +111,23 @@ func ToFilter(m *state.AppModel) tea.Cmd {
 	m.Mode = state.ModeFilter
 	if m.ActivePanel == state.PanelCompose {
 		if m.ComposeFocus == 1 {
-			m.FilterInput.Text = m.ComposeServiceFilter
+			m.FilterInput.Set(m.ComposeServiceFilter)
 		} else {
-			m.FilterInput.Text = m.ComposeProjectFilter
+			m.FilterInput.Set(m.ComposeProjectFilter)
 		}
 	} else if filter := activeTableFilter(m); filter != nil {
-		m.FilterInput.Text = filter.FilterText()
+		m.FilterInput.Set(filter.FilterText())
 	} else {
-		m.FilterInput.Text = ""
+		m.FilterInput.Reset()
 	}
-	m.FilterInput.Cursor = len([]rune(m.FilterInput.Text))
-	m.FilterExitPending = false
+	m.NavigationState.ClearFilterExit()
 	return nil
 }
 
 // BackFromFilter clears the active filter and closes the filter bar.
 func BackFromFilter(m *state.AppModel) {
-	m.FilterInput.Text = ""
-	m.FilterInput.Cursor = 0
-	m.FilterExitPending = false
-	m.FilterExitToken++
+	m.FilterInput.Reset()
+	m.NavigationState.CancelFilterExit()
 	ApplyFilter(m)
 	m.Mode = state.ModeNormal
 }
@@ -138,38 +135,29 @@ func BackFromFilter(m *state.AppModel) {
 // ToSearch opens log search without changing the underlying log data.
 func ToSearch(m *state.AppModel) {
 	m.Mode = state.ModeSearch
-	m.SearchInput.Text = m.LogSearchText
-	m.SearchInput.Cursor = len([]rune(m.SearchInput.Text))
+	m.SearchInput.Set(m.LogSearchText)
 }
 
 // ToCommand opens the command palette.
 func ToCommand(m *state.AppModel) {
 	m.Mode = state.ModeCommand
-	m.FilterText = ""
-	m.FilterCursor = 0
+	m.CommandInput.Reset()
 }
 
 // BackFromCommand closes the command palette.
 func BackFromCommand(m *state.AppModel) {
 	m.Mode = state.ModeNormal
-	m.FilterText = ""
-	m.FilterCursor = 0
+	m.CommandInput.Reset()
 }
 
 // ToExec opens the exec shell dialog.
 func ToExec(m *state.AppModel) {
 	m.Mode = state.ModeExec
-	m.DialogFocus = 0
-	m.DialogCursor = 0
-	m.FilterText = "/bin/sh"
+	m.DialogState.OpenInput("/bin/sh", 0)
 }
 
 // BackFromExec closes the exec shell dialog.
 func BackFromExec(m *state.AppModel) {
 	m.Mode = state.ModeNormal
-	m.DialogTitle = ""
-	m.DialogBody = ""
-	m.DialogAction = ""
-	m.DialogFocus = 0
-	m.DialogCursor = 0
+	m.DialogState.Reset()
 }

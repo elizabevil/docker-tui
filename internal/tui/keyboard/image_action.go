@@ -45,8 +45,7 @@ func doImagePull(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		return m, nil
 	}
 	m.Mode = state.ModeImagePull
-	m.FilterText = ""
-	m.FilterCursor = 0
+	m.DialogState.Input.Reset()
 	m.InfoMessage = "Type image name (e.g. nginx:latest) and press Enter to pull"
 	return m, nil
 }
@@ -54,22 +53,20 @@ func doImagePull(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 func handleImagePullInput(key string, m *state.AppModel) *state.AppModel {
 	switch key {
 	case keys.KeyEnter:
-		ref := strings.TrimSpace(m.FilterText)
+		ref := strings.TrimSpace(m.DialogState.Input.Text)
 		if ref == "" {
 			ShowToastWarn(m, "Image reference is required")
 			return m
 		}
 		m.PendingImagePull = ref
 		m.PendingImagePullAudit = beginAudit(m, "resource.image.pull", audit.ImageTarget{ID: ref, Name: ref}, "Pulling image "+ref)
-		m.FilterText = ""
-		m.FilterCursor = 0
+		m.DialogState.Input.Reset()
 		m.Mode = state.ModeNormal
 	case keys.KeyEsc:
-		m.FilterText = ""
-		m.FilterCursor = 0
+		m.DialogState.Input.Reset()
 		m.Mode = state.ModeNormal
 	default:
-		editTextInput(key, &m.FilterText, &m.FilterCursor)
+		editQueryInput(key, &m.DialogState.Input)
 	}
 	return m
 }

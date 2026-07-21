@@ -202,7 +202,7 @@ func handleKeyStrokeTick(m *state.AppModel, _ state.KeyStrokeTick) (*state.AppMo
 
 func handleFilterExitTimeout(m *state.AppModel, msg state.FilterExitTimeout) (*state.AppModel, tea.Cmd) {
 	if msg.Token == m.FilterExitToken {
-		m.FilterExitPending = false
+		m.NavigationState.ClearFilterExit()
 	}
 	return m, nil
 }

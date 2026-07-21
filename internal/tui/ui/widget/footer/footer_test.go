@@ -10,9 +10,9 @@ import (
 
 func TestRenderAlwaysUsesThreeRows(t *testing.T) {
 	apps := []*state.AppModel{
-		{Mode: state.ModeNormal, ActivePanel: state.PanelHelp},
-		{Mode: state.ModeMark, ActivePanel: state.PanelContainers},
-		{Mode: state.ModeDetail, ActivePanel: state.PanelImages, InfoMessage: "loaded"},
+		{NavigationState: state.NavigationState{Mode: state.ModeNormal, ActivePanel: state.PanelHelp}},
+		{NavigationState: state.NavigationState{Mode: state.ModeMark, ActivePanel: state.PanelContainers}},
+		{NavigationState: state.NavigationState{Mode: state.ModeDetail, ActivePanel: state.PanelImages}, InfoMessage: "loaded"},
 	}
 	for _, app := range apps {
 		got := Render(app, 120)

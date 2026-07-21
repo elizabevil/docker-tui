@@ -77,8 +77,12 @@ func renderQueryRail(m *state.AppModel, width int) string {
 		return renderQueryInput(kind, m.FilterInput.Text, m.FilterInput.Cursor, width)
 	case querySearch:
 		return renderQueryInput(kind, m.SearchInput.Text, m.SearchInput.Cursor, width)
+	case queryCommand:
+		return renderQueryInput(kind, m.CommandInput.Text, m.CommandInput.Cursor, width)
+	case queryImagePull:
+		return renderQueryInput(kind, m.DialogState.Input.Text, m.DialogState.Input.Cursor, width)
 	default:
-		return renderQueryInput(kind, m.FilterText, m.FilterCursor, width)
+		return ""
 	}
 }
 

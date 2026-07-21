@@ -69,13 +69,6 @@ const (
 	ExecFocusCount
 )
 
-// QueryInputState holds editable text shared by Filter and Search UIs while
-// keeping their business state independent.
-type QueryInputState struct {
-	Text   string
-	Cursor int
-}
-
 // AppModel is the top-level application model.
 // Fields are grouped by concern:
 //
@@ -91,17 +84,10 @@ type AppModel struct {
 	AppVersion string
 	Audit      *audit.Service
 	ConnectionState
+	NavigationState
+	DialogState
 
 	// ── Nav ──
-	ActivePanel           PanelType
-	PrevPanel             PanelType // 进入覆盖层前的面板，返回时恢复
-	Mode                  AppMode
-	FilterText            string
-	FilterCursor          int
-	FilterInput           QueryInputState
-	SearchInput           QueryInputState
-	FilterExitPending     bool
-	FilterExitToken       uint64
 	ErrorMessage          string
 	ErrorCount            int // 累计错误次数，用于状态栏显示
 	InfoMessage           string
@@ -164,14 +150,6 @@ type AppModel struct {
 	DetailSourceType   string       // "section" (default), "yaml", "json"
 	DetailResourceType ResourceType // Resource* constant
 
-	// ── Dialog ──
-	DialogTitle   string
-	DialogBody    string
-	DialogPreview string
-	DialogAction  string
-	DialogFocus   int // 0=confirm, 1=cancel; toggled by Tab
-	DialogCursor  int // cursor position within dialog input text
-
 	// ── Confirm ──
 	ConfirmAction  string
 	ConfirmTarget  string
@@ -214,8 +192,7 @@ func NewAppModel(cfg *config.Config, client *dockerclient.Client, appVersion str
 	return &AppModel{
 		Config:              cfg,
 		ConnectionState:     NewConnectionState(client),
-		ActivePanel:         PanelContainers,
-		Mode:                ModeNormal,
+		NavigationState:     NewNavigationState(),
 		Containers:          NewContainerListModel(),
 		Images:              NewImageListModel(),
 		Volumes:             NewVolumeListModel(),

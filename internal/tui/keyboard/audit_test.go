@@ -34,8 +34,7 @@ func TestImagePullInputCreatesAuditTrace(t *testing.T) {
 	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
 	app.Audit = audit.NewService(nil)
 	app.Mode = state.ModeImagePull
-	app.FilterText = "nginx:alpine"
-	app.FilterCursor = len(app.FilterText)
+	app.DialogState.Input.Set("nginx:alpine")
 
 	updated := handleImagePullInput(keys.KeyEnter, app)
 	if updated.PendingImagePull != "nginx:alpine" || !updated.PendingImagePullAudit.Valid() {

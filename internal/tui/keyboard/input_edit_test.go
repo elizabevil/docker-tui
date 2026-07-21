@@ -7,36 +7,47 @@ import (
 )
 
 func TestEditTextInputShellBindings(t *testing.T) {
-	text, cursor := "hello world", len([]rune("hello world"))
-	if handled, changed := editTextInput("ctrl+w", &text, &cursor); !handled || !changed {
+	input := state.NewQueryInput("hello world")
+	if handled, changed := editQueryInput("ctrl+w", &input); !handled || !changed {
 		t.Fatal("ctrl+w was not handled")
 	}
-	if text != "hello " || cursor != 6 {
-		t.Fatalf("ctrl+w result text=%q cursor=%d", text, cursor)
+	if input.Text != "hello " || input.Cursor != 6 {
+		t.Fatalf("ctrl+w result=%#v", input)
 	}
-	editTextInput("ctrl+a", &text, &cursor)
-	editTextInput("X", &text, &cursor)
-	if text != "Xhello " || cursor != 1 {
-		t.Fatalf("insert result text=%q cursor=%d", text, cursor)
+	editQueryInput("ctrl+a", &input)
+	editQueryInput("X", &input)
+	if input.Text != "Xhello " || input.Cursor != 1 {
+		t.Fatalf("insert result=%#v", input)
 	}
-	editTextInput("ctrl+k", &text, &cursor)
-	if text != "X" {
-		t.Fatalf("ctrl+k result text=%q", text)
+	editQueryInput("ctrl+k", &input)
+	if input.Text != "X" {
+		t.Fatalf("ctrl+k result=%#v", input)
 	}
 }
 
 func TestEditTextInputUsesRuneCursor(t *testing.T) {
-	text, cursor := "世界", 2
-	editTextInput("ctrl+h", &text, &cursor)
-	if text != "世" || cursor != 1 {
-		t.Fatalf("unicode backspace text=%q cursor=%d", text, cursor)
+	input := state.NewQueryInput("世界")
+	editQueryInput("ctrl+h", &input)
+	if input.Text != "世" || input.Cursor != 1 {
+		t.Fatalf("unicode backspace=%#v", input)
 	}
 }
 
 func TestCommandInputEditsAtCursor(t *testing.T) {
-	app := &state.AppModel{Mode: state.ModeCommand, FilterText: "imags", FilterCursor: 4}
+	app := &state.AppModel{NavigationState: state.NavigationState{Mode: state.ModeCommand, CommandInput: state.QueryInputState{Text: "imags", Cursor: 4}}}
 	handleCommandInput("e", app)
-	if app.FilterText != "images" || app.FilterCursor != 5 {
-		t.Fatalf("command edit text=%q cursor=%d", app.FilterText, app.FilterCursor)
+	if app.CommandInput.Text != "images" || app.CommandInput.Cursor != 5 {
+		t.Fatalf("command edit input=%#v", app.CommandInput)
+	}
+}
+
+func TestExecInputDeletesPathSegment(t *testing.T) {
+	app := &state.AppModel{
+		NavigationState: state.NavigationState{Mode: state.ModeExec},
+		DialogState:     state.DialogState{DialogFocus: state.ExecFocusInput, Input: state.NewQueryInput("/usr/bin/sh")},
+	}
+	handleExecDialogKeys("ctrl+w", app)
+	if app.DialogState.Input.Text != "/usr/bin/" {
+		t.Fatalf("exec input = %#v", app.DialogState.Input)
 	}
 }

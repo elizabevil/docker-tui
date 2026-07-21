@@ -9,7 +9,7 @@ import (
 )
 
 func TestContextPrefersModeActions(t *testing.T) {
-	app := &state.AppModel{Mode: state.ModeDetail, ActivePanel: state.PanelImages}
+	app := &state.AppModel{NavigationState: state.NavigationState{Mode: state.ModeDetail, ActivePanel: state.PanelImages}}
 	got := Context(app)
 	if len(got) == 0 || got[0].Key != "Esc/Enter" {
 		t.Fatalf("Context() did not project detail mode actions: %#v", got)

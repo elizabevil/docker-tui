@@ -12,7 +12,7 @@ import (
 )
 
 func TestHandleFilterExitTimeoutKeepsFilterActive(t *testing.T) {
-	app := &state.AppModel{Mode: state.ModeFilter, FilterExitPending: true, FilterExitToken: 2, FilterInput: state.QueryInputState{Text: "api", Cursor: 3}}
+	app := &state.AppModel{NavigationState: state.NavigationState{Mode: state.ModeFilter, FilterExitPending: true, FilterExitToken: 2, FilterInput: state.QueryInputState{Text: "api", Cursor: 3}}}
 	updated, _ := handleFilterExitTimeout(app, state.FilterExitTimeout{Token: 2})
 	if updated.FilterExitPending || updated.Mode != state.ModeFilter || updated.FilterInput.Text != "api" {
 		t.Fatalf("updated=%#v", updated)
@@ -20,7 +20,7 @@ func TestHandleFilterExitTimeoutKeepsFilterActive(t *testing.T) {
 }
 
 func TestHandleFilterExitTimeoutIgnoresStaleWindow(t *testing.T) {
-	app := &state.AppModel{Mode: state.ModeFilter, FilterExitPending: true, FilterExitToken: 3}
+	app := &state.AppModel{NavigationState: state.NavigationState{Mode: state.ModeFilter, FilterExitPending: true, FilterExitToken: 3}}
 	updated, _ := handleFilterExitTimeout(app, state.FilterExitTimeout{Token: 2})
 	if !updated.FilterExitPending {
 		t.Fatal("stale timeout cleared current filter exit window")

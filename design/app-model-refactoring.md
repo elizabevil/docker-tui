@@ -206,9 +206,12 @@ keyboard / update controller
 
 ### Phase 2：输入、Navigation 与 Dialog
 
-- 为 `QueryInputState` 增加 rune-safe 编辑方法。
-- 删除 `FilterText` / `FilterCursor` 共享输入。
-- 拆 `NavigationState` 与 `DialogState`。
+- 状态: `in_progress`
+- 已完成: 为 `QueryInputState` 增加 rune-safe 编辑方法；删除 `FilterText` / `FilterCursor` 共享输入；建立迁移期 `NavigationState` 与 `DialogState`；命令、Filter、Search、镜像 Pull 和 Exec 使用独立输入。
+- 待完成: 使用 `DialogKind` 和 `DialogSpec` 收敛对话框语义；将迁移期匿名嵌入改为命名字段。
+
+实施范围：
+
 - 使用 `DialogKind` 和 `DialogSpec` 代替依赖 `Mode` 解释字段。
 
 这是下一阶段优先项，因为它影响命令、镜像拉取和 Exec，并且是当前最明显的跨功能耦合。

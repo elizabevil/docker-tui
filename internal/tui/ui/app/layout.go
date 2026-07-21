@@ -240,7 +240,7 @@ func RenderApp(m *state.AppModel) string {
 		return component.PlaceOverlay(m.Width, m.Height, component.RenderConfirmMsg(m.ConfirmMessage, m.ConfirmTarget, m.Width, m.Height, overlayColor), overlayColor)
 	}
 	if m.Mode == state.ModeExecShell {
-		return component.PlaceOverlay(m.Width, m.Height, component.RenderShellDialog(m.FilterText, m.Width, m.Height, overlayColor), overlayColor)
+		return component.PlaceOverlay(m.Width, m.Height, component.RenderShellDialog(m.DialogState.Input.Text, m.Width, m.Height, overlayColor), overlayColor)
 	}
 	if m.Mode == state.ModeExport {
 		return dialog.RenderOverlay(result, m, dialogModeExport)

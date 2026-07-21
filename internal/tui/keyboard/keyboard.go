@@ -273,28 +273,26 @@ func keyMode(mode state.AppMode) string {
 }
 
 func handleFilterInput(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	clampQueryCursor(&m.FilterInput)
+	m.FilterInput.Clamp()
 
 	switch key {
 	case keys.KeyEnter:
 		ApplyFilter(m)
 		focusFirstFilteredItem(m)
 		m.Mode = state.ModeNormal
-		m.FilterExitPending = false
+		m.NavigationState.ClearFilterExit()
 	case keys.KeyEsc:
 		if m.FilterExitPending {
 			BackFromFilter(m)
 			return m, nil
 		}
-		m.FilterExitPending = true
-		m.FilterExitToken++
-		token := m.FilterExitToken
+		token := m.NavigationState.BeginFilterExit()
 		ShowToastWarn(m, "Press Esc again within 5s to clear filter and exit")
 		return m, tea.Tick(5*time.Second, func(time.Time) tea.Msg {
 			return state.FilterExitTimeout{Token: token}
 		})
 	default:
-		if handled, changed := editTextInput(key, &m.FilterInput.Text, &m.FilterInput.Cursor); handled && changed {
+		if handled, changed := editQueryInput(key, &m.FilterInput); handled && changed {
 			ApplyFilter(m)
 		}
 	}
@@ -302,7 +300,7 @@ func handleFilterInput(key string, m *state.AppModel) (*state.AppModel, tea.Cmd)
 }
 
 func handleSearchInput(key string, m *state.AppModel) *state.AppModel {
-	clampQueryCursor(&m.SearchInput)
+	m.SearchInput.Clamp()
 	switch key {
 	case keys.KeyEnter:
 		m.LogSearchText = m.SearchInput.Text
@@ -317,26 +315,11 @@ func handleSearchInput(key string, m *state.AppModel) *state.AppModel {
 		}
 	case keys.KeyEsc:
 		m.Mode = state.ModeLogView
-		m.SearchInput.Text = m.LogSearchText
-		m.SearchInput.Cursor = len([]rune(m.SearchInput.Text))
+		m.SearchInput.Set(m.LogSearchText)
 	default:
-		editTextInput(key, &m.SearchInput.Text, &m.SearchInput.Cursor)
+		editQueryInput(key, &m.SearchInput)
 	}
 	return m
-}
-
-func clampQueryCursor(input *state.QueryInputState) {
-	if input == nil {
-		return
-	}
-	max := len([]rune(input.Text))
-	if input.Cursor < 0 {
-		input.Cursor = 0
-		return
-	}
-	if input.Cursor > max {
-		input.Cursor = max
-	}
 }
 
 func focusFirstFilteredItem(m *state.AppModel) {

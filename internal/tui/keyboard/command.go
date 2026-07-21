@@ -15,24 +15,21 @@ func handleCommandInput(key string, m *state.AppModel) (*state.AppModel, tea.Cmd
 		return executeCommand(m)
 	case keys.KeyEsc:
 		m.Mode = state.ModeNormal
-		m.FilterText = ""
-		m.FilterCursor = 0
+		m.CommandInput.Reset()
 		return m, nil
 	case keys.KeyTab:
-		m.FilterText = autocompleteCommand(m.FilterText)
-		m.FilterCursor = len([]rune(m.FilterText))
+		m.CommandInput.Set(autocompleteCommand(m.CommandInput.Text))
 		return m, nil
 	default:
-		editTextInput(key, &m.FilterText, &m.FilterCursor)
+		editQueryInput(key, &m.CommandInput)
 		return m, nil
 	}
 }
 
 func executeCommand(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	cmd := strings.TrimSpace(strings.ToLower(m.FilterText))
+	cmd := strings.TrimSpace(strings.ToLower(m.CommandInput.Text))
 	m.Mode = state.ModeNormal
-	m.FilterText = ""
-	m.FilterCursor = 0
+	m.CommandInput.Reset()
 
 	switch cmd {
 	case keys.CommandCompose:
