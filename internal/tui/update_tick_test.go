@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/footer"
 )
@@ -47,5 +48,45 @@ func TestHandleDockerConnectedErrorProjectsTargetAndMessage(t *testing.T) {
 	status := footer.StatusBar(updated)
 	if !strings.Contains(status, "local-docker") || strings.Contains(status, "docker disconnected") && !strings.Contains(status, "local-docker") {
 		t.Fatalf("status=%q", status)
+	}
+}
+
+func TestRuntimeHealthTransitionsAtThresholdAndRecovers(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.Runtime.Health.FailureThreshold = 2
+	app := state.NewAppModel(cfg, nil, "test")
+	app.Docker = &dockerclient.Client{}
+	app.Connected = true
+	app.ConnectionTarget = "local-docker"
+
+	updated, _ := handleRuntimeHealthResult(app, state.RuntimeHealthResult{Name: "local-docker", Error: errors.New("timeout")})
+	if updated.HealthDegraded || !updated.Connected || updated.HealthFailures != 1 {
+		t.Fatalf("first failure degraded connection: %#v", updated)
+	}
+	updated, _ = handleRuntimeHealthResult(updated, state.RuntimeHealthResult{Name: "local-docker", Error: errors.New("timeout")})
+	if !updated.HealthDegraded || updated.Connected || updated.ErrorCount != 1 {
+		t.Fatalf("threshold did not degrade connection: %#v", updated)
+	}
+	updated, _ = handleRuntimeHealthResult(updated, state.RuntimeHealthResult{Name: "local-docker", Error: errors.New("timeout")})
+	if updated.ErrorCount != 1 {
+		t.Fatalf("repeated failure emitted another transition: errors=%d", updated.ErrorCount)
+	}
+	updated, _ = handleRuntimeHealthResult(updated, state.RuntimeHealthResult{Name: "local-docker"})
+	if updated.HealthDegraded || !updated.Connected || updated.HealthFailures != 0 || updated.ConnectionError != "" {
+		t.Fatalf("successful ping did not recover connection: %#v", updated)
+	}
+	if !strings.Contains(updated.ToastMessage, "recovered") {
+		t.Fatalf("recovery toast=%q", updated.ToastMessage)
+	}
+}
+
+func TestRuntimeHealthIgnoresStaleConnectionResult(t *testing.T) {
+	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app.Docker = &dockerclient.Client{}
+	app.Connected = true
+	app.ConnectionTarget = "podman"
+	updated, _ := handleRuntimeHealthResult(app, state.RuntimeHealthResult{Name: "docker", Error: errors.New("late timeout")})
+	if updated.HealthFailures != 0 || !updated.Connected {
+		t.Fatalf("stale result changed active connection: %#v", updated)
 	}
 }

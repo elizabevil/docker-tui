@@ -132,6 +132,7 @@ func (m *mainModel) Init() tea.Cmd {
 	return tea.Batch(
 		func() tea.Msg { return state.HostStatsTick{} },
 		func() tea.Msg { return state.ToastTick{} },
+		func() tea.Msg { return state.RuntimeHealthTick{} },
 		connectDocker(m.model.Pool, m.initialConnection),
 	)
 }

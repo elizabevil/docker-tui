@@ -139,6 +139,40 @@ func (p *ConnectionPool) Connect(name string, timeout time.Duration) error {
 	return nil
 }
 
+// Probe checks one connection without changing the active runtime.
+func (p *ConnectionPool) Probe(name string, timeout time.Duration) error {
+	p.mu.RLock()
+	entry := p.entries[name]
+	if entry == nil {
+		p.mu.RUnlock()
+		return fmt.Errorf("unknown host: %s", name)
+	}
+	host, runtimeType, tlsConfig, existing := entry.Host, entry.Runtime, entry.TLS, entry.Client
+	p.mu.RUnlock()
+
+	var err error
+	if existing != nil {
+		err = existing.PingTimeout(timeout)
+	} else {
+		var client *Client
+		client, err = NewClient(ClientConfig{Host: host, Timeout: timeout, Runtime: runtimeType, TLS: tlsConfig})
+		if client != nil {
+			_ = client.Close()
+		}
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if current := p.entries[name]; current != nil && current.Client == existing {
+		current.Error = err
+		if err != nil {
+			current.State = StateError
+		} else {
+			current.State = StateConnected
+		}
+	}
+	return err
+}
+
 func (p *ConnectionPool) ActiveClient() *Client {
 	p.mu.RLock()
 	defer p.mu.RUnlock()

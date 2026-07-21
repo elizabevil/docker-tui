@@ -103,7 +103,16 @@ type (
 
 	ToastTick struct{}
 
-	HostStatsTick struct{}
+	HostStatsTick       struct{}
+	RuntimeHealthTick   struct{}
+	RuntimeHealthResult struct {
+		Name  string
+		Error error
+	}
+	RuntimeProbeResult struct {
+		Name  string
+		Error error
+	}
 
 	EscTimeout        struct{}
 	FilterExitTimeout struct{ Token uint64 }

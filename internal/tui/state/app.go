@@ -107,6 +107,8 @@ type AppModel struct {
 	RuntimeSelectorCursor   int
 	RuntimeSelectorError    map[string]string
 	RuntimeSelectorDisabled bool
+	HealthFailures          int
+	HealthDegraded          bool
 	RuntimeType             string
 	EngineVersion           string
 

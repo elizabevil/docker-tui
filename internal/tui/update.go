@@ -127,6 +127,15 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case state.HostStatsTick:
 		return handleHostStatsTick(m, msg)
 
+	case state.RuntimeHealthTick:
+		return handleRuntimeHealthTick(m, msg)
+
+	case state.RuntimeHealthResult:
+		return handleRuntimeHealthResult(m, msg)
+
+	case state.RuntimeProbeResult:
+		return handleRuntimeProbeResult(m, msg)
+
 	case state.EscTimeout:
 		return handleEscTimeout(m, msg)
 

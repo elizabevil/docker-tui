@@ -270,7 +270,12 @@ func (c *Client) Raw() *client.Client {
 }
 
 func (c *Client) Ping() error {
-	ctx, cancel := context.WithTimeout(c.ctx, 2*time.Second)
+	return c.PingTimeout(2 * time.Second)
+}
+
+// PingTimeout verifies the runtime connection with a caller-selected deadline.
+func (c *Client) PingTimeout(timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(c.ctx, timeout)
 	defer cancel()
 	_, err := c.cli.Ping(ctx)
 	return err
