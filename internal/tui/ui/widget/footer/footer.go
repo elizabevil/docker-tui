@@ -17,7 +17,10 @@ func StatusBar(app *state.AppModel) string {
 	}
 	engineLabel := app.RuntimeType
 	if engineLabel == "" {
-		engineLabel = "docker"
+		engineLabel = app.ConnectionTarget
+	}
+	if engineLabel == "" {
+		engineLabel = "no runtime"
 	}
 	hostStr := ""
 	if app.Docker != nil {
@@ -27,7 +30,7 @@ func StatusBar(app *state.AppModel) string {
 	if app.Connecting {
 		status = fmt.Sprintf("%s connecting...", component.GetStyle("toastWarning").Render("○"))
 	} else if !app.Connected {
-		status = fmt.Sprintf("%s disconnected", component.GetStyle("toastError").Render("○"))
+		status = fmt.Sprintf("%s disconnected (%s)", component.GetStyle("toastError").Render("○"), engineLabel)
 	}
 	if hostStr != "" {
 		status += " │ " + hostStr

@@ -157,9 +157,9 @@ func connectDocker(pool *dockerclient.ConnectionPool, name string) tea.Cmd {
 			}
 		}
 		if len(errors) == 0 {
-			return state.DockerConnected{Error: fmt.Errorf("unknown runtime connection %q", name)}
+			return state.DockerConnected{Name: name, Error: fmt.Errorf("unknown runtime connection %q", name)}
 		}
-		return state.DockerConnected{Error: fmt.Errorf("no available runtime (%s)", strings.Join(errors, "; "))}
+		return state.DockerConnected{Name: name, Error: fmt.Errorf("no available runtime (%s)", strings.Join(errors, "; "))}
 	}
 }
 

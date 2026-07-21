@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/elizabevil/docker-tui/internal/data/docker"
@@ -61,11 +62,22 @@ func handleDockerConnected(m *state.AppModel, msg state.DockerConnected) (*state
 	if msg.Error != nil {
 		m.Connecting = false
 		m.Connected = false
+		m.Docker = nil
+		m.ConnectionTarget = msg.Name
+		m.ConnectionError = msg.Error.Error()
+		m.RuntimeType = ""
+		m.EngineVersion = ""
+		m.ErrorMessage = msg.Error.Error()
+		m.ErrorCount++
+		keyboard.ShowToastWarn(m, fmt.Sprintf("Connection failed (%s): %s", msg.Name, msg.Error))
 		return m, nil
 	}
 	m.Docker = msg.Client
 	m.Connecting = false
 	m.Connected = true
+	m.ConnectionTarget = msg.Name
+	m.ConnectionError = ""
+	m.ErrorMessage = ""
 	m.RuntimeType = string(msg.Client.RuntimeType)
 	m.EngineVersion = msg.Client.EngineVersion
 	if msg.Name != "" {

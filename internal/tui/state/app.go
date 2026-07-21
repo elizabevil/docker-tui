@@ -100,9 +100,11 @@ type AppModel struct {
 	Height int
 
 	// ── Connection ──
-	Connected     bool
-	RuntimeType   string
-	EngineVersion string
+	Connected        bool
+	ConnectionTarget string
+	ConnectionError  string
+	RuntimeType      string
+	EngineVersion    string
 
 	// ── Log ──
 	LogContainerID string

@@ -8,6 +8,7 @@
 | `bugfix-design.md` | 历史 bug 修复设计、分层策略、变更约束 |
 | `bugfix-discussion-notes.md` | 历史 bug 修复讨论纪要，保存尚未完全收敛的设计背景 |
 | `future-requirements-discussion.md` | 后续需求与规划讨论纪要，记录候选方案和待确认决策 |
+| `future-requirements-task-list.md` | 后续需求实施任务、依赖、状态和完成定义 |
 | `page-performance-optimization-design.md` | 页面布局优化、页面模板统一与渲染性能优化设计 |
 | `page-performance-approval-proposals.md` | 页面与性能优化审批方案集，供逐项确认方向 |
 | `page-performance-execution-plan.md` | 页面与性能优化执行计划，拆分阶段、依赖与验收边界 |
@@ -22,6 +23,7 @@
 - `bugfix-design.md` 仅用于历史 bug 修复工作流，不替代 UI 设计主文档。
 - `bugfix-discussion-notes.md` 用于保留阶段性讨论，不替代正式设计决策。
 - `future-requirements-discussion.md` 用于后续需求讨论；标为 `approved` 前不代表正式设计或实现承诺。
+- `future-requirements-task-list.md` 用于实施跟踪；任务完成必须经过测试和文档同步。
 - `page-performance-optimization-design.md` 用于记录未来页面与性能优化方案，不代表当前已经实现。
 - `page-performance-approval-proposals.md` 用于逐项审批页面与性能优化方向，不代表已经进入实现。
 - `page-performance-execution-plan.md` 用于将已审批方向拆成实际执行阶段，不代表相关阶段已经开始。

@@ -123,7 +123,10 @@ func Render(app *state.AppModel, usableW int) string {
 		eng = app.RuntimeType
 	}
 	if eng == "" {
-		eng = "docker"
+		eng = app.ConnectionTarget
+	}
+	if eng == "" {
+		eng = "no runtime"
 	}
 	hostStr := ""
 	if app.Docker != nil {
@@ -155,9 +158,19 @@ func Render(app *state.AppModel, usableW int) string {
 	)
 
 	// ── Col 2: Connection + App config (25%) ──────────────────
+	runtimeName := ""
+	if app.Pool != nil {
+		runtimeName = app.Pool.ActiveName()
+	}
+	if runtimeName == "" {
+		runtimeName = app.ConnectionTarget
+	}
+	if runtimeName == "" {
+		runtimeName = "-"
+	}
 	colConn := fmt.Sprintf("%s%s\n%s%s\n%s%s\n%s%s\n",
 		lbl("Engine"), eng+" "+app.EngineVersion,
-		lbl("Runtime"), app.Pool.ActiveName(),
+		lbl("Runtime"), runtimeName,
 		lbl("Socket"), hostStr,
 		lbl("Language"), lang,
 	)
