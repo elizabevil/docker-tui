@@ -13,132 +13,132 @@ import (
 // ToImageContainers enters the container sub-view for the selected image.
 // Sets ContainersViewID so the images panel renders containers using that image.
 func ToImageContainers(m *state.AppModel, imgID string) {
-	m.Images.ContainersViewID = imgID
-	m.Images.ContainerCursor = 0
-	m.InfoMessage = fmt.Sprintf("Containers using %s", shortID(imgID))
+	m.Resources.Images.ContainersViewID = imgID
+	m.Resources.Images.ContainerCursor = 0
+	m.Feedback.InfoMessage = fmt.Sprintf("Containers using %s", shortID(imgID))
 }
 
 // BackFromImageContainers leaves the container sub-view.
 func BackFromImageContainers(m *state.AppModel) {
-	m.Images.ContainersViewID = ""
-	m.Images.ContainerCursor = 0
-	m.InfoMessage = ""
+	m.Resources.Images.ContainersViewID = ""
+	m.Resources.Images.ContainerCursor = 0
+	m.Feedback.InfoMessage = ""
 }
 
 // ToVolumeDetail enters the container sub-view for the selected volume.
 func ToVolumeDetail(m *state.AppModel, volName string) {
-	m.Volumes.DetailName = volName
-	m.Volumes.Cursor = 0
-	m.InfoMessage = "Volume: " + volName
+	m.Resources.Volumes.DetailName = volName
+	m.Resources.Volumes.Cursor = 0
+	m.Feedback.InfoMessage = "Volume: " + volName
 }
 
 // BackFromVolumeDetail leaves the volume container sub-view.
 func BackFromVolumeDetail(m *state.AppModel) {
-	m.Volumes.DetailName = ""
-	m.InfoMessage = ""
+	m.Resources.Volumes.DetailName = ""
+	m.Feedback.InfoMessage = ""
 }
 
 // ── Mode transitions ────────────────────────────────────────
 
 // ToLogView opens the log viewer for a container.
 func ToLogView(m *state.AppModel, containerID string) tea.Cmd {
-	m.Mode = state.ModeLogView
-	m.LogState.Open(containerID)
-	cfg := m.Config.Logs
-	return FetchLogBatch(m.Docker, containerID, cfg.Since, cfg.Tail, cfg.Timestamps)
+	m.Navigation.Mode = state.ModeLogView
+	m.Log.Open(containerID)
+	cfg := m.Dependencies.Config.Logs
+	return FetchLogBatch(m.Connection.Docker, containerID, cfg.Since, cfg.Tail, cfg.Timestamps)
 }
 
 // BackFromLogView closes the log viewer.
 func BackFromLogView(m *state.AppModel) {
-	m.Mode = state.ModeNormal
-	m.LogState.Close()
+	m.Navigation.Mode = state.ModeNormal
+	m.Log.Close()
 }
 
 // ToDetail opens the detail inspector for the current item.
 func ToDetail(m *state.AppModel, title, content string) {
-	m.PrevPanel = m.ActivePanel
-	m.Mode = state.ModeDetail
-	m.DetailState.Open(title, content)
+	m.Navigation.PrevPanel = m.Navigation.ActivePanel
+	m.Navigation.Mode = state.ModeDetail
+	m.Detail.Open(title, content)
 }
 
 // BackFromDetail closes the detail inspector and restores the previous panel.
 func BackFromDetail(m *state.AppModel) {
-	m.Mode = state.ModeNormal
-	if m.PrevPanel != m.ActivePanel {
-		m.ActivePanel = m.PrevPanel
+	m.Navigation.Mode = state.ModeNormal
+	if m.Navigation.PrevPanel != m.Navigation.ActivePanel {
+		m.Navigation.ActivePanel = m.Navigation.PrevPanel
 	}
-	m.DetailState.Close()
+	m.Detail.Close()
 }
 
 // ToHelp opens the help screen.
 func ToHelp(m *state.AppModel) {
-	m.PrevPanel = m.ActivePanel
-	m.Mode = state.ModeHelp
-	m.ActivePanel = state.PanelHelp
+	m.Navigation.PrevPanel = m.Navigation.ActivePanel
+	m.Navigation.Mode = state.ModeHelp
+	m.Navigation.ActivePanel = state.PanelHelp
 }
 
 // BackFromHelp closes the help screen.
 func BackFromHelp(m *state.AppModel) {
-	m.Mode = state.ModeNormal
-	m.ActivePanel = m.PrevPanel
+	m.Navigation.Mode = state.ModeNormal
+	m.Navigation.ActivePanel = m.Navigation.PrevPanel
 }
 
 // ToFilter opens the search filter bar.
 func ToFilter(m *state.AppModel) tea.Cmd {
-	if m.Mode == state.ModeLogView {
+	if m.Navigation.Mode == state.ModeLogView {
 		ToSearch(m)
 		return nil
 	}
-	m.Mode = state.ModeFilter
-	if m.ActivePanel == state.PanelCompose {
-		if m.ComposeFocus == 1 {
-			m.FilterInput.Set(m.ComposeServiceFilter)
+	m.Navigation.Mode = state.ModeFilter
+	if m.Navigation.ActivePanel == state.PanelCompose {
+		if m.Compose.ComposeFocus == 1 {
+			m.Navigation.FilterInput.Set(m.Compose.ComposeServiceFilter)
 		} else {
-			m.FilterInput.Set(m.ComposeProjectFilter)
+			m.Navigation.FilterInput.Set(m.Compose.ComposeProjectFilter)
 		}
 	} else if filter := activeTableFilter(m); filter != nil {
-		m.FilterInput.Set(filter.FilterText())
+		m.Navigation.FilterInput.Set(filter.FilterText())
 	} else {
-		m.FilterInput.Reset()
+		m.Navigation.FilterInput.Reset()
 	}
-	m.NavigationState.ClearFilterExit()
+	m.Navigation.ClearFilterExit()
 	return nil
 }
 
 // BackFromFilter clears the active filter and closes the filter bar.
 func BackFromFilter(m *state.AppModel) {
-	m.FilterInput.Reset()
-	m.NavigationState.CancelFilterExit()
+	m.Navigation.FilterInput.Reset()
+	m.Navigation.CancelFilterExit()
 	ApplyFilter(m)
-	m.Mode = state.ModeNormal
+	m.Navigation.Mode = state.ModeNormal
 }
 
 // ToSearch opens log search without changing the underlying log data.
 func ToSearch(m *state.AppModel) {
-	m.Mode = state.ModeSearch
-	m.SearchInput.Set(m.LogSearchText)
+	m.Navigation.Mode = state.ModeSearch
+	m.Navigation.SearchInput.Set(m.Log.LogSearchText)
 }
 
 // ToCommand opens the command palette.
 func ToCommand(m *state.AppModel) {
-	m.Mode = state.ModeCommand
-	m.CommandInput.Reset()
+	m.Navigation.Mode = state.ModeCommand
+	m.Navigation.CommandInput.Reset()
 }
 
 // BackFromCommand closes the command palette.
 func BackFromCommand(m *state.AppModel) {
-	m.Mode = state.ModeNormal
-	m.CommandInput.Reset()
+	m.Navigation.Mode = state.ModeNormal
+	m.Navigation.CommandInput.Reset()
 }
 
 // ToExec opens the exec shell dialog.
 func ToExec(m *state.AppModel) {
-	m.DialogState.Open(state.DialogSpec{Kind: state.DialogExec, Input: "/bin/sh"})
-	m.Mode = m.DialogState.Kind.Mode()
+	m.Dialog.Open(state.DialogSpec{Kind: state.DialogExec, Input: "/bin/sh"})
+	m.Navigation.Mode = m.Dialog.Kind.Mode()
 }
 
 // BackFromExec closes the exec shell dialog.
 func BackFromExec(m *state.AppModel) {
-	m.Mode = state.ModeNormal
-	m.DialogState.Close()
+	m.Navigation.Mode = state.ModeNormal
+	m.Dialog.Close()
 }

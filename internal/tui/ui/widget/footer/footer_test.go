@@ -10,9 +10,9 @@ import (
 
 func TestRenderAlwaysUsesThreeRows(t *testing.T) {
 	apps := []*state.AppModel{
-		{NavigationState: state.NavigationState{Mode: state.ModeNormal, ActivePanel: state.PanelHelp}},
-		{NavigationState: state.NavigationState{Mode: state.ModeMark, ActivePanel: state.PanelContainers}},
-		{NavigationState: state.NavigationState{Mode: state.ModeDetail, ActivePanel: state.PanelImages}, FeedbackState: state.FeedbackState{InfoMessage: "loaded"}},
+		{Navigation: state.NavigationState{Mode: state.ModeNormal, ActivePanel: state.PanelHelp}},
+		{Navigation: state.NavigationState{Mode: state.ModeMark, ActivePanel: state.PanelContainers}},
+		{Navigation: state.NavigationState{Mode: state.ModeDetail, ActivePanel: state.PanelImages}, Feedback: state.FeedbackState{InfoMessage: "loaded"}},
 	}
 	for _, app := range apps {
 		got := Render(app, 120)
@@ -28,7 +28,7 @@ func TestRenderAlwaysUsesThreeRows(t *testing.T) {
 }
 
 func TestOperationLogPrefersAuditProjection(t *testing.T) {
-	app := &state.AppModel{FeedbackState: state.FeedbackState{InfoMessage: "legacy", AuditOperationMessage: "resource.container.stop: stopped api"}}
+	app := &state.AppModel{Feedback: state.FeedbackState{InfoMessage: "legacy", AuditOperationMessage: "resource.container.stop: stopped api"}}
 	got := OperationLogLine(app)
 	if !strings.Contains(got, "resource.container.stop") {
 		t.Fatalf("operation log=%q", got)

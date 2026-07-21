@@ -11,60 +11,60 @@ import (
 
 func TestFilterInputAppliesImmediately(t *testing.T) {
 	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
-	app.Containers.Items = []dockerclient.ContainerSummary{{Name: "api"}, {Name: "worker"}}
+	app.Resources.Containers.Items = []dockerclient.ContainerSummary{{Name: "api"}, {Name: "worker"}}
 	ToFilter(app)
 
 	updated, _ := handleFilterInput("a", app)
-	if updated.Containers.Filter != "a" || len(updated.Containers.FilteredItems()) != 1 {
-		t.Fatalf("filter=%q items=%d, want immediate match", updated.Containers.Filter, len(updated.Containers.FilteredItems()))
+	if updated.Resources.Containers.Filter != "a" || len(updated.Resources.Containers.FilteredItems()) != 1 {
+		t.Fatalf("filter=%q items=%d, want immediate match", updated.Resources.Containers.Filter, len(updated.Resources.Containers.FilteredItems()))
 	}
 }
 
 func TestFilterRequiresDoubleEscToClearAndExit(t *testing.T) {
 	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
-	app.FilterInput = state.QueryInputState{Text: "api", Cursor: 3}
-	app.Mode = state.ModeFilter
+	app.Navigation.FilterInput = state.QueryInputState{Text: "api", Cursor: 3}
+	app.Navigation.Mode = state.ModeFilter
 	ApplyFilter(app)
 
 	updated, cmd := handleFilterInput(keys.KeyEsc, app)
-	if cmd == nil || !updated.FilterExitPending || updated.Mode != state.ModeFilter || updated.Containers.Filter != "api" {
-		t.Fatalf("first Esc changed filter state: mode=%v pending=%v filter=%q", updated.Mode, updated.FilterExitPending, updated.Containers.Filter)
+	if cmd == nil || !updated.Navigation.FilterExitPending || updated.Navigation.Mode != state.ModeFilter || updated.Resources.Containers.Filter != "api" {
+		t.Fatalf("first Esc changed filter state: mode=%v pending=%v filter=%q", updated.Navigation.Mode, updated.Navigation.FilterExitPending, updated.Resources.Containers.Filter)
 	}
 
 	updated, _ = handleFilterInput(keys.KeyEsc, updated)
-	if updated.Mode != state.ModeNormal || updated.FilterExitPending || updated.Containers.Filter != "" {
-		t.Fatalf("second Esc did not clear filter: mode=%v pending=%v filter=%q", updated.Mode, updated.FilterExitPending, updated.Containers.Filter)
+	if updated.Navigation.Mode != state.ModeNormal || updated.Navigation.FilterExitPending || updated.Resources.Containers.Filter != "" {
+		t.Fatalf("second Esc did not clear filter: mode=%v pending=%v filter=%q", updated.Navigation.Mode, updated.Navigation.FilterExitPending, updated.Resources.Containers.Filter)
 	}
 }
 
 func TestLogSearchAppliesOnEnterAndCancelPreservesCurrentQuery(t *testing.T) {
 	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
-	app.Mode = state.ModeLogView
-	app.LogContainerID = "container"
-	app.LogContent = []string{"ready", "request failed", "failed again"}
+	app.Navigation.Mode = state.ModeLogView
+	app.Log.LogContainerID = "container"
+	app.Log.LogContent = []string{"ready", "request failed", "failed again"}
 	ToSearch(app)
-	app.SearchInput = state.QueryInputState{Text: "failed", Cursor: 6}
+	app.Navigation.SearchInput = state.QueryInputState{Text: "failed", Cursor: 6}
 
 	updated := handleSearchInput(keys.KeyEnter, app)
-	if updated.Mode != state.ModeLogView || updated.LogSearchText != "failed" || updated.LogViewOffset != 1 {
-		t.Fatalf("search apply mode=%v query=%q offset=%d", updated.Mode, updated.LogSearchText, updated.LogViewOffset)
+	if updated.Navigation.Mode != state.ModeLogView || updated.Log.LogSearchText != "failed" || updated.Log.LogViewOffset != 1 {
+		t.Fatalf("search apply mode=%v query=%q offset=%d", updated.Navigation.Mode, updated.Log.LogSearchText, updated.Log.LogViewOffset)
 	}
 
 	ToSearch(updated)
-	updated.SearchInput.Text = "other"
+	updated.Navigation.SearchInput.Text = "other"
 	updated = handleSearchInput(keys.KeyEsc, updated)
-	if updated.Mode != state.ModeLogView || updated.LogSearchText != "failed" {
-		t.Fatalf("search cancel mode=%v query=%q", updated.Mode, updated.LogSearchText)
+	if updated.Navigation.Mode != state.ModeLogView || updated.Log.LogSearchText != "failed" {
+		t.Fatalf("search cancel mode=%v query=%q", updated.Navigation.Mode, updated.Log.LogSearchText)
 	}
 }
 
 func TestLogFilterBindingOpensSearchMode(t *testing.T) {
 	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
-	app.Mode = state.ModeLogView
-	app.LogContainerID = "container"
+	app.Navigation.Mode = state.ModeLogView
+	app.Log.LogContainerID = "container"
 
 	updated, _ := HandleKeyPress(keyMessage(keys.KeySlash), app)
-	if updated.Mode != state.ModeSearch {
-		t.Fatalf("log filter binding mode=%v, want search", updated.Mode)
+	if updated.Navigation.Mode != state.ModeSearch {
+		t.Fatalf("log filter binding mode=%v, want search", updated.Navigation.Mode)
 	}
 }

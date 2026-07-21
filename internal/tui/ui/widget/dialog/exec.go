@@ -17,8 +17,8 @@ var execShellOptions = []string{"/bin/sh", "/bin/bash", "/bin/ash"}
 // ExecDialog renders the container exec dialog with shell options + custom input.
 // Focus and input cursor are owned by DialogState.
 func ExecDialog(m *state.AppModel, overlayColor string, cfg dialogConfig) string {
-	dialogW := dialogWidth(m.Width, cfg)
-	dialogH := dialogHeight(m.Height, cfg)
+	dialogW := dialogWidth(m.Viewport.Width, cfg)
+	dialogH := dialogHeight(m.Viewport.Height, cfg)
 	if overlayColor == "" {
 		overlayColor = "#0d1117cc"
 	}
@@ -31,7 +31,7 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg dialogConfig) string
 	// Shell option buttons
 	var optionBtns []string
 	for i, opt := range execShellOptions {
-		if m.DialogState.Focus == i {
+		if m.Dialog.Focus == i {
 			optionBtns = append(optionBtns, lipgloss.NewStyle().Foreground(style.Colors.Green).Bold(true).Render("\u25b6 "+opt))
 		} else {
 			optionBtns = append(optionBtns, lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(opt))
@@ -42,12 +42,12 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg dialogConfig) string
 	)
 
 	// Custom input field with cursor
-	inputText := m.DialogState.Input.Text
+	inputText := m.Dialog.Input.Text
 	if inputText == "" {
 		inputText = "/bin/sh"
 	}
 	inputRunes := []rune(inputText)
-	cursor := m.DialogState.Input.Cursor
+	cursor := m.Dialog.Input.Cursor
 	if cursor < 0 {
 		cursor = 0
 	}
@@ -55,7 +55,7 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg dialogConfig) string
 		cursor = len(inputRunes)
 	}
 	inputDisplay := component.GetStyle("dim").Render(i18n.T("inspect.shell")+": ") + string(inputRunes[:cursor])
-	if m.DialogState.Focus == execFocusInput {
+	if m.Dialog.Focus == execFocusInput {
 		inputDisplay += "\u2588" // block cursor when focused
 	} else {
 		inputDisplay += " " // space when not focused
@@ -67,10 +67,10 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg dialogConfig) string
 	// Confirm / Cancel buttons with shortcut hints
 	var confirmBtn, cancelBtn string
 	switch {
-	case m.DialogState.Focus == 4:
+	case m.Dialog.Focus == 4:
 		confirmBtn = lipgloss.NewStyle().Foreground(style.Colors.Green).Bold(true).Render(enterKey + " \u25b6 " + confirmLabel)
 		cancelBtn = lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(escKey + " " + cancelLabel)
-	case m.DialogState.Focus == 5:
+	case m.Dialog.Focus == 5:
 		confirmBtn = lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(enterKey + " " + confirmLabel)
 		cancelBtn = lipgloss.NewStyle().Foreground(style.Colors.Green).Bold(true).Render(escKey + " \u25b6 " + cancelLabel)
 	default:

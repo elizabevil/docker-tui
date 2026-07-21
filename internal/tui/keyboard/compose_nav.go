@@ -9,25 +9,25 @@ import (
 )
 
 func handleComposePanelKeys(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.ActivePanel != state.PanelCompose {
+	if m.Navigation.ActivePanel != state.PanelCompose {
 		return nil, nil
 	}
 
 	// 容器子视图模式：Esc 返回
-	if m.ComposeContainerViewID != "" {
+	if m.Compose.ComposeContainerViewID != "" {
 		action, known := resolveAction(key, m)
 		if action == keys.ActionBack || key == keys.KeyLeft {
-			m.ComposeContainerViewID = ""
-			m.ComposeContainerCursor = 0
+			m.Compose.ComposeContainerViewID = ""
+			m.Compose.ComposeContainerCursor = 0
 			return m, RecordKeyStroke(m, key, keys.ActionLabelProjects)
 		}
 		if known && action == keys.ActionDown {
-			m.ComposeContainerCursor++
+			m.Compose.ComposeContainerCursor++
 			return m, nil
 		}
 		if known && action == keys.ActionUp {
-			if m.ComposeContainerCursor > 0 {
-				m.ComposeContainerCursor--
+			if m.Compose.ComposeContainerCursor > 0 {
+				m.Compose.ComposeContainerCursor--
 			}
 			return m, nil
 		}
@@ -36,14 +36,14 @@ func handleComposePanelKeys(key string, m *state.AppModel) (*state.AppModel, tea
 
 	// ← 切到左栏(项目)
 	if key == keys.KeyLeft {
-		m.ComposeFocus = 0
+		m.Compose.ComposeFocus = 0
 		return m, RecordKeyStroke(m, key, keys.ActionLabelProjects)
 	}
 	// → 切到右栏(服务)
 	if key == keys.KeyRight {
-		m.ComposeFocus = 1
-		if m.ComposeServiceCursor < 0 {
-			m.ComposeServiceCursor = 0
+		m.Compose.ComposeFocus = 1
+		if m.Compose.ComposeServiceCursor < 0 {
+			m.Compose.ComposeServiceCursor = 0
 		}
 		return m, RecordKeyStroke(m, key, keys.ActionLabelServices)
 	}
@@ -53,7 +53,7 @@ func handleComposePanelKeys(key string, m *state.AppModel) (*state.AppModel, tea
 	switch key {
 	case keys.KeyD:
 		// 左栏按 d → 项目概览
-		if m.ComposeFocus == 0 {
+		if m.Compose.ComposeFocus == 0 {
 			content := compose.RenderProjectDetail(m)
 			if content != "" {
 				ToDetail(m, "Project: "+currentComposeProject(m), content)
@@ -78,18 +78,18 @@ func handleComposePanelKeys(key string, m *state.AppModel) (*state.AppModel, tea
 }
 
 func doComposeEnter(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.ComposeFocus == 0 {
-		m.ComposeFocus = 1
-		if m.ComposeServiceCursor < 0 {
-			m.ComposeServiceCursor = 0
+	if m.Compose.ComposeFocus == 0 {
+		m.Compose.ComposeFocus = 1
+		if m.Compose.ComposeServiceCursor < 0 {
+			m.Compose.ComposeServiceCursor = 0
 		}
 		return m, RecordKeyStroke(m, keys.KeyEnter, keys.ActionLabelServices)
 	}
 	project := currentComposeProject(m)
 	services := composeServiceNames(m, project)
-	if m.ComposeServiceCursor >= 0 && m.ComposeServiceCursor < len(services) {
-		m.ComposeContainerViewID = services[m.ComposeServiceCursor]
-		m.ComposeContainerCursor = 0
+	if m.Compose.ComposeServiceCursor >= 0 && m.Compose.ComposeServiceCursor < len(services) {
+		m.Compose.ComposeContainerViewID = services[m.Compose.ComposeServiceCursor]
+		m.Compose.ComposeContainerCursor = 0
 	}
 	return m, RecordKeyStroke(m, keys.KeyEnter, keys.ActionLabelContainers)
 }

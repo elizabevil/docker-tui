@@ -10,10 +10,10 @@ import (
 // handleVolumeEnter handles Enter key on the volumes panel.
 // Returns nil, nil if not handled.
 func handleVolumeEnter(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if key != keys.KeyEnter || m.ActivePanel != state.PanelVolumes {
+	if key != keys.KeyEnter || m.Navigation.ActivePanel != state.PanelVolumes {
 		return nil, nil
 	}
-	vol := m.Volumes.Selected()
+	vol := m.Resources.Volumes.Selected()
 	if vol != nil {
 		ToVolumeDetail(m, vol.Name)
 	}

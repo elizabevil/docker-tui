@@ -72,30 +72,30 @@ const (
 //	Terminal  — width, height
 //	State     — UI transient state (toast, dialog, detail, compose, etc.)
 type AppModel struct {
-	Dependencies
-	ConnectionState
-	NavigationState
-	DialogState
-	FeedbackState
-	LogState
-	DetailState
-	ExecState
-	ComposeState
-	ConfirmState
-	SelectionState
-	ResourceState
-	MetricsState
-	ViewportState
+	Dependencies Dependencies
+	Connection   ConnectionState
+	Navigation   NavigationState
+	Dialog       DialogState
+	Feedback     FeedbackState
+	Log          LogState
+	Detail       DetailState
+	Exec         ExecState
+	Compose      ComposeState
+	Confirm      ConfirmState
+	Selection    SelectionState
+	Resources    ResourceState
+	Metrics      MetricsState
+	Viewport     ViewportState
 }
 
 // NewAppModel creates a new application model with default state.
 func NewAppModel(cfg *config.Config, client *dockerclient.Client, appVersion string) *AppModel {
 	return &AppModel{
-		Dependencies:    Dependencies{Config: cfg, AppVersion: appVersion},
-		ConnectionState: NewConnectionState(client),
-		NavigationState: NewNavigationState(),
-		FeedbackState:   NewFeedbackState(),
-		ResourceState:   NewResourceState(),
+		Dependencies: Dependencies{Config: cfg, AppVersion: appVersion},
+		Connection:   NewConnectionState(client),
+		Navigation:   NewNavigationState(),
+		Feedback:     NewFeedbackState(),
+		Resources:    NewResourceState(),
 	}
 }
 

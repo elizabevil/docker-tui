@@ -73,9 +73,10 @@ func RenderList(vm *state.VolumeListModel, cm *state.ContainerListModel, width i
 	}
 
 	rowHeight := component.CalcRowHeight(panelHeight)
-	component.EnsureVisible(&vm.ViewOffset, vm.Cursor, rowHeight, total)
+	viewOffset := vm.ViewOffset
+	component.EnsureVisible(&viewOffset, vm.Cursor, rowHeight, total)
 
-	rows := component.BuildRows(items, colsDef, vm.ViewOffset, rowHeight,
+	rows := component.BuildRows(items, colsDef, viewOffset, rowHeight,
 		func(vol dockerclient.VolumeItem, cd tables.ColumnDef, _ int) string {
 			switch cd.Key {
 			case "name":
@@ -112,7 +113,7 @@ func RenderList(vm *state.VolumeListModel, cm *state.ContainerListModel, width i
 
 	selected := -1
 	if !selectionDisabled {
-		selected = vm.Cursor - vm.ViewOffset
+		selected = vm.Cursor - viewOffset
 	}
 	colStyles := component.GetPageColumnStyles("volume", colsDef)
 	ts := tc.EffectiveTableStyle()
@@ -122,12 +123,12 @@ func RenderList(vm *state.VolumeListModel, cm *state.ContainerListModel, width i
 		Rows:              rows,
 		Selected:          selected,
 		Total:             total,
-		Offset:            vm.ViewOffset,
+		Offset:            viewOffset,
 		Limit:             rowHeight,
 		BodyHeight:        panelHeight,
 		Banner:            banner,
 		BannerW:           w,
-		MarkedRows:        component.BuildMarkedRows(rows, items, vm.ViewOffset, markedIDs, func(v dockerclient.VolumeItem) string { return v.Name }),
+		MarkedRows:        component.BuildMarkedRows(rows, items, viewOffset, markedIDs, func(v dockerclient.VolumeItem) string { return v.Name }),
 		RowPrefix:         ts.RowPrefix,
 		RowPrefixSelected: ts.RowPrefixSelected,
 		ColStyles:         colStyles,

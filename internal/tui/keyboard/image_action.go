@@ -41,47 +41,47 @@ func imageRemoveCmd(client *docker.Client, id string, force bool) tea.Cmd {
 }
 
 func doImagePull(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Docker == nil {
+	if m.Connection.Docker == nil {
 		return m, nil
 	}
-	m.DialogState.Open(state.DialogSpec{Kind: state.DialogImagePull})
-	m.Mode = m.DialogState.Kind.Mode()
-	m.InfoMessage = "Type image name (e.g. nginx:latest) and press Enter to pull"
+	m.Dialog.Open(state.DialogSpec{Kind: state.DialogImagePull})
+	m.Navigation.Mode = m.Dialog.Kind.Mode()
+	m.Feedback.InfoMessage = "Type image name (e.g. nginx:latest) and press Enter to pull"
 	return m, nil
 }
 
 func handleImagePullInput(key string, m *state.AppModel) *state.AppModel {
 	switch key {
 	case keys.KeyEnter:
-		ref := strings.TrimSpace(m.DialogState.Input.Text)
+		ref := strings.TrimSpace(m.Dialog.Input.Text)
 		if ref == "" {
 			ShowToastWarn(m, "Image reference is required")
 			return m
 		}
 		trace := beginAudit(m, "resource.image.pull", audit.ImageTarget{ID: ref, Name: ref}, "Pulling image "+ref)
-		m.SelectionState.QueueImagePull(ref, trace)
+		m.Selection.QueueImagePull(ref, trace)
 		clearDialogState(m)
 	case keys.KeyEsc:
 		clearDialogState(m)
 	default:
-		editQueryInput(key, &m.DialogState.Input)
+		editQueryInput(key, &m.Dialog.Input)
 	}
 	return m
 }
 
 func doImagePrune(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Docker == nil {
+	if m.Connection.Docker == nil {
 		return m, nil
 	}
 	trace := beginAudit(m, "resource.image.prune", audit.ImageTarget{ID: "unused", Name: "unused images"}, "Pruning unused images")
-	return m, withImageAudit(imagePruneCmd(m.Docker), trace)
+	return m, withImageAudit(imagePruneCmd(m.Connection.Docker), trace)
 }
 
 func doImageRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Docker == nil || m.ActivePanel != state.PanelImages {
+	if m.Connection.Docker == nil || m.Navigation.ActivePanel != state.PanelImages {
 		return m, nil
 	}
-	img := m.Images.Selected()
+	img := m.Resources.Images.Selected()
 	if img == nil {
 		return m, nil
 	}
@@ -90,15 +90,15 @@ func doImageRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		tag = img.RepoTags[0]
 	}
 	confirmAction(m, "image-remove", img.ID, fmt.Sprintf("Remove image %s?", tag))
-	m.ConfirmAudit = beginAudit(m, "resource.image.delete", imageTarget(m, img.ID), "Remove image "+tag)
+	m.Confirm.ConfirmAudit = beginAudit(m, "resource.image.delete", imageTarget(m, img.ID), "Remove image "+tag)
 	return m, nil
 }
 
 func doImageDetail(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Docker == nil {
+	if m.Connection.Docker == nil {
 		return m, nil
 	}
-	img := m.Images.Selected()
+	img := m.Resources.Images.Selected()
 	if img == nil {
 		return m, nil
 	}
@@ -106,10 +106,10 @@ func doImageDetail(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if len(titleID) > 12 {
 		titleID = titleID[:12]
 	}
-	m.DetailState.OpenImage(img.ID, "Image Detail: "+titleID, docker.NewImageDetailData(*img))
-	m.PrevPanel = m.ActivePanel
-	m.Mode = state.ModeDetail
-	return m, inspectImageCmd(m.Docker, *img)
+	m.Detail.OpenImage(img.ID, "Image Detail: "+titleID, docker.NewImageDetailData(*img))
+	m.Navigation.PrevPanel = m.Navigation.ActivePanel
+	m.Navigation.Mode = state.ModeDetail
+	return m, inspectImageCmd(m.Connection.Docker, *img)
 }
 
 func inspectImageCmd(client *docker.Client, image docker.ImageSummary) tea.Cmd {
@@ -124,18 +124,18 @@ func inspectImageCmd(client *docker.Client, image docker.ImageSummary) tea.Cmd {
 }
 
 func doImageSort(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.ActivePanel != state.PanelImages {
+	if m.Navigation.ActivePanel != state.PanelImages {
 		return m, nil
 	}
-	if m.Images.SortBy >= state.ImageSortByCreated {
-		m.Images.SortBy = state.ImageSortByRepo
-		m.Images.SortAsc = !m.Images.SortAsc
+	if m.Resources.Images.SortBy >= state.ImageSortByCreated {
+		m.Resources.Images.SortBy = state.ImageSortByRepo
+		m.Resources.Images.SortAsc = !m.Resources.Images.SortAsc
 	} else {
-		m.Images.SortBy++
+		m.Resources.Images.SortBy++
 	}
-	m.Images.Cursor = 0
-	m.Images.ViewOffset = 0
-	m.InfoMessage = fmt.Sprintf("Sort by %s (%v)", imageSortColLabel(state.ImageSortColumn(m.Images.SortBy)), m.Images.SortAsc)
+	m.Resources.Images.Cursor = 0
+	m.Resources.Images.ViewOffset = 0
+	m.Feedback.InfoMessage = fmt.Sprintf("Sort by %s (%v)", imageSortColLabel(state.ImageSortColumn(m.Resources.Images.SortBy)), m.Resources.Images.SortAsc)
 	return m, nil
 }
 
@@ -154,11 +154,11 @@ func imageSortColLabel(col state.ImageSortColumn) string {
 }
 
 func doImageExpand(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	img := m.Images.Selected()
+	img := m.Resources.Images.Selected()
 	if img == nil {
 		return m, nil
 	}
-	if !hasUsingContainers(m.Containers, img.ID, img.RepoTags) {
+	if !hasUsingContainers(m.Resources.Containers, img.ID, img.RepoTags) {
 		ShowToastWarn(m, "no containers using "+shortID(img.ID))
 		return m, nil
 	}
@@ -198,8 +198,8 @@ func doImageCollapse(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 }
 
 func doImageExport(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	img := m.Images.Selected()
-	if img == nil || m.Docker == nil {
+	img := m.Resources.Images.Selected()
+	if img == nil || m.Connection.Docker == nil {
 		return m, nil
 	}
 	tag := tagName(img)
@@ -209,7 +209,7 @@ func doImageExport(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	path := filepath.Join(exportDir, tag+".tar")
 
 	engine := "docker"
-	if m.Docker.RuntimeType == "podman" {
+	if m.Connection.Docker.RuntimeType == "podman" {
 		engine = "podman"
 	}
 	ref := img.ID[:20]
@@ -218,24 +218,24 @@ func doImageExport(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 
 	cmd := fmt.Sprintf("%s save -o %s %s", engine, path, ref)
-	m.DialogState.Open(state.DialogSpec{
+	m.Dialog.Open(state.DialogSpec{
 		Kind:    state.DialogImageExport,
 		Title:   "Export Image",
 		Body:    fmt.Sprintf("Image: %s\nOutput: %s", ref, path),
 		Preview: cmd,
 		Action:  "Export command copied to preview",
 	})
-	m.Mode = m.DialogState.Kind.Mode()
+	m.Navigation.Mode = m.Dialog.Kind.Mode()
 	return m, nil
 }
 
 func doImageDebug(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	img := m.Images.Selected()
-	if img == nil || m.Docker == nil {
+	img := m.Resources.Images.Selected()
+	if img == nil || m.Connection.Docker == nil {
 		return m, nil
 	}
 	engine := "docker"
-	if m.Docker.RuntimeType == "podman" {
+	if m.Connection.Docker.RuntimeType == "podman" {
 		engine = "podman"
 	}
 	ref := img.ID[:20]
@@ -245,14 +245,14 @@ func doImageDebug(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 	cmd := fmt.Sprintf("%s run --rm -it --name debug-%s %s sh",
 		engine, tagName(img), ref)
-	m.DialogState.Open(state.DialogSpec{
+	m.Dialog.Open(state.DialogSpec{
 		Kind:    state.DialogImageDebug,
 		Title:   "Debug Run",
 		Body:    fmt.Sprintf("Image: %s\nContainer: debug-%s", ref, tagName(img)),
 		Preview: cmd,
 		Action:  "Debug command copied to preview",
 	})
-	m.Mode = m.DialogState.Kind.Mode()
+	m.Navigation.Mode = m.Dialog.Kind.Mode()
 	return m, nil
 }
 
@@ -267,10 +267,10 @@ func fullImageRef(img *docker.ImageSummary) string {
 }
 
 func doImageCopyRef(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.ActivePanel != state.PanelImages {
+	if m.Navigation.ActivePanel != state.PanelImages {
 		return m, nil
 	}
-	img := m.Images.Selected()
+	img := m.Resources.Images.Selected()
 	if img == nil {
 		return m, nil
 	}

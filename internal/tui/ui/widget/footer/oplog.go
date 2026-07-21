@@ -14,14 +14,14 @@ func OperationLogLine(app *state.AppModel) string {
 	if app == nil {
 		return ""
 	}
-	if app.ErrorMessage != "" {
-		return "LOG: " + utils.Truncate(app.ErrorMessage, 96)
+	if app.Feedback.ErrorMessage != "" {
+		return "LOG: " + utils.Truncate(app.Feedback.ErrorMessage, 96)
 	}
-	if app.AuditOperationMessage != "" {
-		return "LOG: " + utils.Truncate(app.AuditOperationMessage, 96)
+	if app.Feedback.AuditOperationMessage != "" {
+		return "LOG: " + utils.Truncate(app.Feedback.AuditOperationMessage, 96)
 	}
-	if app.InfoMessage != "" {
-		return "LOG: " + utils.Truncate(app.InfoMessage, 96)
+	if app.Feedback.InfoMessage != "" {
+		return "LOG: " + utils.Truncate(app.Feedback.InfoMessage, 96)
 	}
 	return ""
 }
@@ -30,21 +30,21 @@ func operationLogStatus(app *state.AppModel) string {
 	if app == nil {
 		return ""
 	}
-	if app.ErrorMessage != "" {
-		short := app.ErrorMessage
+	if app.Feedback.ErrorMessage != "" {
+		short := app.Feedback.ErrorMessage
 		if len(short) > 40 {
 			short = short[:37] + "..."
 		}
-		if app.ErrorCount > 1 {
-			short += fmt.Sprintf(" [%d]", app.ErrorCount)
+		if app.Feedback.ErrorCount > 1 {
+			short += fmt.Sprintf(" [%d]", app.Feedback.ErrorCount)
 		}
 		return component.GetStyle("toastError").Render(short)
 	}
-	if app.AuditOperationMessage != "" {
-		return component.GetStyle("toastInfo").Render(utils.Truncate(app.AuditOperationMessage, 40))
+	if app.Feedback.AuditOperationMessage != "" {
+		return component.GetStyle("toastInfo").Render(utils.Truncate(app.Feedback.AuditOperationMessage, 40))
 	}
-	if app.InfoMessage != "" {
-		short := app.InfoMessage
+	if app.Feedback.InfoMessage != "" {
+		short := app.Feedback.InfoMessage
 		if len(short) > 40 {
 			short = short[:37] + "..."
 		}

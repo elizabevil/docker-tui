@@ -48,7 +48,8 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 	}
 
 	rowHeight := component.CalcRowHeight(panelHeight)
-	component.EnsureVisible(&cm.ViewOffset, cm.Cursor, rowHeight, total)
+	viewOffset := cm.ViewOffset
+	component.EnsureVisible(&viewOffset, cm.Cursor, rowHeight, total)
 
 	running, exited, createdSt := 0, 0, 0
 	for _, c := range items {
@@ -73,7 +74,7 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 	}
 
 	rows := make([][]string, 0, rowHeight)
-	for i := cm.ViewOffset; i < total && len(rows) < rowHeight; i++ {
+	for i := viewOffset; i < total && len(rows) < rowHeight; i++ {
 		c := items[i]
 		created := utils.FormatCreated(c.Created)
 		status := c.Status
@@ -132,7 +133,7 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 
 	selected := -1
 	if !selectionDisabled {
-		selected = selectedRowForCursor(items, cm.ViewOffset, cm.Cursor)
+		selected = selectedRowForCursor(items, viewOffset, cm.Cursor)
 	}
 
 	return component.RenderTable(component.TableData{
@@ -141,13 +142,13 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 		Rows:              rows,
 		Selected:          selected,
 		Total:             total,
-		Offset:            cm.ViewOffset,
+		Offset:            viewOffset,
 		Limit:             rowHeight,
 		Banner:            banner,
 		BannerW:           w,
 		FooterHint:        hint,
 		BodyHeight:        panelHeight,
-		MarkedRows:        buildMarkedRows(rows, items, cm.ViewOffset, markedIDs),
+		MarkedRows:        buildMarkedRows(rows, items, viewOffset, markedIDs),
 		RowPrefix:         ts.RowPrefix,
 		RowPrefixSelected: ts.RowPrefixSelected,
 		ColStyles:         colStyles,

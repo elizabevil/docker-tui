@@ -52,26 +52,26 @@ type detailSection struct {
 // RenderView renders the detail panel content based on the current resource type.
 func RenderView(m *state.AppModel, panelHeight int) string {
 	// Handle source view modes (YAML/JSON)
-	if m.DetailSourceType == "json" || m.DetailSourceType == "yaml" {
+	if m.Detail.DetailSourceType == "json" || m.Detail.DetailSourceType == "yaml" {
 		return renderSourceView(m, panelHeight)
 	}
 
-	content := m.ImageDetailContent
+	content := m.Detail.ImageDetailContent
 	var sections []detailSection
 
 	// Priority: structured image data > raw JSON (container/network/volume) > raw text
-	if m.ImageDetailData != nil {
-		sections = buildImageDetailDataSections(m.ImageDetailData)
-	} else if len(m.DetailRawJSON) > 0 {
+	if m.Detail.ImageDetailData != nil {
+		sections = buildImageDetailDataSections(m.Detail.ImageDetailData)
+	} else if len(m.Detail.DetailRawJSON) > 0 {
 		// Use resource type to select the appropriate build function
 		var dockerSections []docker.DetailSection
-		switch m.DetailResourceType {
+		switch m.Detail.DetailResourceType {
 		case state.ResourceNetwork:
-			dockerSections = docker.BuildNetworkDetailSections(m.DetailRawJSON)
+			dockerSections = docker.BuildNetworkDetailSections(m.Detail.DetailRawJSON)
 		case state.ResourceVolume:
-			dockerSections = docker.BuildVolumeDetailSections(m.DetailRawJSON)
+			dockerSections = docker.BuildVolumeDetailSections(m.Detail.DetailRawJSON)
 		default: // state.ResourceContainer or empty
-			dockerSections = docker.BuildContainerDetailSections(m.DetailRawJSON)
+			dockerSections = docker.BuildContainerDetailSections(m.Detail.DetailRawJSON)
 		}
 		sections = convertDockerSections(dockerSections)
 	} else {
@@ -121,7 +121,7 @@ func renderSections(m *state.AppModel, sections []detailSection, panelHeight int
 	if bodyHeight < 3 {
 		bodyHeight = 3
 	}
-	offset := m.DetailState.VisibleOffset(len(bodyLines), bodyHeight)
+	offset := m.Detail.VisibleOffset(len(bodyLines), bodyHeight)
 
 	visible := bodyLines[offset:]
 	if len(visible) > bodyHeight {
@@ -133,8 +133,8 @@ func renderSections(m *state.AppModel, sections []detailSection, panelHeight int
 	body := lipgloss.NewStyle().Height(bodyHeight).MaxHeight(bodyHeight).Render(strings.Join(visible, "\n"))
 
 	footer := fmt.Sprintf(" %d-%d/%d", offset+1, offset+len(visible), len(bodyLines))
-	if m.DetailHint != "" {
-		footer += " \u2502 " + m.DetailHint
+	if m.Detail.DetailHint != "" {
+		footer += " \u2502 " + m.Detail.DetailHint
 	}
 	return lipgloss.JoinVertical(lipgloss.Top, body, dimStyle.Render(footer))
 }
@@ -145,25 +145,25 @@ func renderSourceView(m *state.AppModel, panelHeight int) string {
 	codeStyle := component.GetStyle("detailValue")
 
 	var text string
-	if m.DetailSourceType == "yaml" {
+	if m.Detail.DetailSourceType == "yaml" {
 		var obj interface{}
-		if err := sonic.Unmarshal(m.DetailRawJSON, &obj); err == nil {
+		if err := sonic.Unmarshal(m.Detail.DetailRawJSON, &obj); err == nil {
 			if yamlBytes, err := yaml.Marshal(obj); err == nil {
 				text = string(yamlBytes)
 			}
 		}
 		if text == "" {
-			text = string(m.DetailRawJSON)
+			text = string(m.Detail.DetailRawJSON)
 		}
 	} else {
 		var obj interface{}
-		if err := sonic.Unmarshal(m.DetailRawJSON, &obj); err == nil {
+		if err := sonic.Unmarshal(m.Detail.DetailRawJSON, &obj); err == nil {
 			if jsonBytes, err := json.MarshalIndent(obj, "", "  "); err == nil {
 				text = string(jsonBytes)
 			}
 		}
 		if text == "" {
-			text = string(m.DetailRawJSON)
+			text = string(m.Detail.DetailRawJSON)
 		}
 	}
 
@@ -172,7 +172,7 @@ func renderSourceView(m *state.AppModel, panelHeight int) string {
 	if bodyHeight < 3 {
 		bodyHeight = 3
 	}
-	offset := m.DetailState.VisibleOffset(len(lines), bodyHeight)
+	offset := m.Detail.VisibleOffset(len(lines), bodyHeight)
 
 	visible := lines[offset:]
 	if len(visible) > bodyHeight {
@@ -189,8 +189,8 @@ func renderSourceView(m *state.AppModel, panelHeight int) string {
 	body := lipgloss.NewStyle().Height(bodyHeight).MaxHeight(bodyHeight).Render(strings.Join(rendered, "\n"))
 
 	footer := fmt.Sprintf(" %d-%d/%d", offset+1, offset+len(visible), len(lines))
-	if m.DetailHint != "" {
-		footer += " \u2502 " + m.DetailHint
+	if m.Detail.DetailHint != "" {
+		footer += " \u2502 " + m.Detail.DetailHint
 	}
 	return lipgloss.JoinVertical(lipgloss.Top, body, dimStyle.Render(footer))
 }

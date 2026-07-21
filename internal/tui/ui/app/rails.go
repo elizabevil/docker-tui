@@ -49,12 +49,12 @@ func panelBodyHeight(panelHeight int) int {
 }
 
 func renderMessageRail(m *state.AppModel, width int) string {
-	if m == nil || m.ToastMessage == "" {
+	if m == nil || m.Feedback.ToastMessage == "" {
 		return ""
 	}
 
 	var style lipgloss.Style
-	switch m.ToastLevel {
+	switch m.Feedback.ToastLevel {
 	case state.NotificationSuccess:
 		style = component.GetStyle("toastSuccess")
 	case state.NotificationError:
@@ -64,7 +64,7 @@ func renderMessageRail(m *state.AppModel, width int) string {
 	default:
 		style = component.GetStyle("toastInfo")
 	}
-	return style.Render(component.TruncateVisible(m.ToastMessage, max(1, width)))
+	return style.Render(component.TruncateVisible(m.Feedback.ToastMessage, max(1, width)))
 }
 
 func renderQueryRail(m *state.AppModel, width int) string {
@@ -74,13 +74,13 @@ func renderQueryRail(m *state.AppModel, width int) string {
 	kind := queryKindFor(m)
 	switch kind {
 	case queryFilter:
-		return renderQueryInput(kind, m.FilterInput.Text, m.FilterInput.Cursor, width)
+		return renderQueryInput(kind, m.Navigation.FilterInput.Text, m.Navigation.FilterInput.Cursor, width)
 	case querySearch:
-		return renderQueryInput(kind, m.SearchInput.Text, m.SearchInput.Cursor, width)
+		return renderQueryInput(kind, m.Navigation.SearchInput.Text, m.Navigation.SearchInput.Cursor, width)
 	case queryCommand:
-		return renderQueryInput(kind, m.CommandInput.Text, m.CommandInput.Cursor, width)
+		return renderQueryInput(kind, m.Navigation.CommandInput.Text, m.Navigation.CommandInput.Cursor, width)
 	case queryImagePull:
-		return renderQueryInput(kind, m.DialogState.Input.Text, m.DialogState.Input.Cursor, width)
+		return renderQueryInput(kind, m.Dialog.Input.Text, m.Dialog.Input.Cursor, width)
 	default:
 		return ""
 	}
@@ -100,16 +100,16 @@ func queryKindFor(m *state.AppModel) queryKind {
 	if m == nil {
 		return queryNone
 	}
-	if m.Mode == state.ModeCommand {
+	if m.Navigation.Mode == state.ModeCommand {
 		return queryCommand
 	}
-	if m.Mode == state.ModeImagePull {
+	if m.Navigation.Mode == state.ModeImagePull {
 		return queryImagePull
 	}
-	if m.Mode == state.ModeSearch {
+	if m.Navigation.Mode == state.ModeSearch {
 		return querySearch
 	}
-	if m.Mode == state.ModeFilter {
+	if m.Navigation.Mode == state.ModeFilter {
 		return queryFilter
 	}
 	return queryNone

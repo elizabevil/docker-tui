@@ -1,7 +1,7 @@
 # AppModel 状态域重构方案
 
 > 对应任务: [TASK-015](future-requirements-task-list.md#当前架构任务)
-> 状态: `approved / in_progress`
+> 状态: `done`
 > 最近更新: 2026-07-21
 
 ## 1. 背景
@@ -93,6 +93,8 @@ type AppModel struct {
 	Dialog       DialogState
 	Exec         ExecState
 	Compose      ComposeState
+	Confirm      ConfirmState
+	Selection    SelectionState
 	Feedback     FeedbackState
 	Metrics      MetricsState
 	Viewport     ViewportState
@@ -108,12 +110,14 @@ type AppModel struct {
 | `Dependencies` | Config、Theme、Audit、AppVersion | 配置只读访问 | 业务状态、渲染 |
 | `NavigationState` | ActivePanel、PrevPanel、Mode、FilterInput、退出窗口 | `OpenPanel`、`EnterMode`、`LeaveMode`、`BeginFilterExit` | 加载资源、绘制页面 |
 | `ConnectionState` | Client、Pool、连接状态、目标、错误、健康和选择框 | `Begin`、`ConnectedTo`、`Failed`、`SetProbeResult`、`ApplyHealthResult` | 建立网络连接、Toast |
-| `ResourceState` | Containers、Images、Volumes、Networks、MarkedIDs | `ResetForRuntime`、`ClearMarks` | runtime API 调用 |
+| `ResourceState` | Containers、Images、Volumes、Networks | 构造时初始化各资源列表 | runtime API 调用、跨资源选择 |
 | `LogState` | ContainerID、Lines、Offset、Search、Wrap | `Open`、`Append`、`ApplySearch`、`Scroll`、`Close` | 拉取日志、渲染高亮 |
 | `DetailState` | Resource、TitleKey、Raw、StructuredData、Source、Offset | `Open`、`SetData`、`SetError`、`SwitchSource`、`Scroll`、`Close` | Inspect API、YAML/JSON 渲染 |
 | `DialogState` | Kind、Body、Preview、Input、Focus、Action | `Open`、`EditInput`、`MoveFocus`、`Confirm`、`Close` | 执行业务动作 |
 | `ExecState` | SessionID、Conn、Output、Buffer、Scroll、Shell、Audit | `Start`、`Append`、`Scroll`、`Finish`、`Reset` | Hijack、读写 goroutine 生命周期 |
 | `ComposeState` | 项目/服务光标、过滤、焦点、容器子视图 | `SelectProject`、`SelectService`、`OpenContainers`、`Reset` | labels 聚合和 API 请求 |
+| `ConfirmState` | 待确认操作、目标、提示和审计 trace | `Open`、`Close` | 执行业务动作 |
+| `SelectionState` | 批量标记、待拉取镜像和审计 trace | `Toggle`、`ClearMarks`、`QueueImagePull`、`TakeImagePull` | 资源列表和 runtime API |
 | `FeedbackState` | 当前通知、计时、错误计数、操作摘要、按键提示 | `Show`、`Tick`、`Clear`、`RecordError` | 样式和最终文案排版 |
 | `MetricsState` | StatsActive、HostCPU、内存、磁盘 | `ApplyHostStats`、`EnableContainerStats` | 采样 IO |
 | `ViewportState` | Width、Height、HeaderVisible | `Resize` | 页面布局计算 |
@@ -231,16 +235,16 @@ keyboard / update controller
 
 ### Phase 5：Exec 与 Compose
 
-- 拆 `ExecState`、`ComposeState`。
-- controller 继续负责 goroutine、连接读写和 runtime 请求。
-- 为启动、结束、返回和异常退出补资源释放测试。
+- 状态: `done`
+- 已完成: 拆出 `ExecState`、`ComposeState`；controller 继续负责 goroutine、连接读写和 runtime 请求；Compose renderer 使用只读边界光标和局部 viewport offset，不再修正模型状态。
+- 测试: 覆盖 Exec 启动、输出和重置，以及 Compose 光标边界和容器子视图生命周期。
 
 ### Phase 6：其余状态与显式组合
 
-- 拆 `ResourceState`、`MetricsState`、`ViewportState`。
-- 将 `ConnectionState` 从匿名嵌入改为命名字段。
-- 删除迁移期兼容字段和代理方法。
-- 更新架构文档中的最终状态树。
+- 状态: `done`
+- 已完成: 拆出 `ConfirmState`、`SelectionState`、`ResourceState`、`MetricsState`、`ViewportState` 和 `Dependencies`。
+- 显式组合: 所有状态域均改为命名字段，调用点通过 `m.Connection`、`m.Navigation` 等所有权路径访问；迁移期匿名嵌入和代理字段已删除。
+- 文档与测试: 最终状态树、任务台账和各状态域单元测试已同步。
 
 ## 10. 每阶段实施步骤
 

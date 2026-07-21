@@ -15,7 +15,7 @@ func switchPanel(m *state.AppModel, direction int) {
 	panels := state.PanelList()
 	current := -1
 	for i, p := range panels {
-		if p == m.ActivePanel {
+		if p == m.Navigation.ActivePanel {
 			current = i
 			break
 		}
@@ -24,46 +24,46 @@ func switchPanel(m *state.AppModel, direction int) {
 		current = 0
 	}
 	next := (current + direction + len(panels)) % len(panels)
-	m.ActivePanel = panels[next]
-	m.StatsActive = false
+	m.Navigation.ActivePanel = panels[next]
+	m.Metrics.StatsActive = false
 }
 
 func moveCursor(m *state.AppModel, delta int) {
 	var items int
-	switch m.ActivePanel {
+	switch m.Navigation.ActivePanel {
 	case state.PanelContainers:
-		items = m.Containers.Len()
-		m.Containers.Cursor = clamp(m.Containers.Cursor+delta, items)
+		items = m.Resources.Containers.Len()
+		m.Resources.Containers.Cursor = clamp(m.Resources.Containers.Cursor+delta, items)
 	case state.PanelImages:
-		if m.Images.ContainersViewID != "" {
-			m.Images.ContainerCursor += delta
-			if m.Images.ContainerCursor < 0 {
-				m.Images.ContainerCursor = 0
+		if m.Resources.Images.ContainersViewID != "" {
+			m.Resources.Images.ContainerCursor += delta
+			if m.Resources.Images.ContainerCursor < 0 {
+				m.Resources.Images.ContainerCursor = 0
 			}
 		} else {
-			items = m.Images.Len()
-			m.Images.Cursor = clamp(m.Images.Cursor+delta, items)
+			items = m.Resources.Images.Len()
+			m.Resources.Images.Cursor = clamp(m.Resources.Images.Cursor+delta, items)
 		}
 	case state.PanelVolumes:
-		items = m.Volumes.Len()
-		m.Volumes.Cursor = clamp(m.Volumes.Cursor+delta, items)
+		items = m.Resources.Volumes.Len()
+		m.Resources.Volumes.Cursor = clamp(m.Resources.Volumes.Cursor+delta, items)
 	case state.PanelNetworks:
-		items = m.Networks.Len()
-		m.Networks.Cursor = clamp(m.Networks.Cursor+delta, items)
+		items = m.Resources.Networks.Len()
+		m.Resources.Networks.Cursor = clamp(m.Resources.Networks.Cursor+delta, items)
 	case state.PanelCompose:
-		if m.ComposeFocus == 1 {
+		if m.Compose.ComposeFocus == 1 {
 			// 右栏：服务列表
 			names := composeServiceNames(m, currentComposeProject(m))
 			items = len(names)
-			m.ComposeServiceCursor = clamp(m.ComposeServiceCursor+delta, items)
+			m.Compose.ComposeServiceCursor = clamp(m.Compose.ComposeServiceCursor+delta, items)
 		} else {
 			// 左栏：项目列表
 			names := composeProjectNames(m)
 			items = len(names)
-			m.ComposeCursor = clamp(m.ComposeCursor+delta, items)
+			m.Compose.ComposeCursor = clamp(m.Compose.ComposeCursor+delta, items)
 		}
 	}
-	m.StatsActive = false
+	m.Metrics.StatsActive = false
 }
 
 // ApplyFilter applies the current resource filter to the active panel.
@@ -71,16 +71,16 @@ func ApplyFilter(m *state.AppModel) {
 	if m == nil {
 		return
 	}
-	if m.ActivePanel == state.PanelCompose {
-		if m.ComposeFocus == 1 {
-			m.ComposeServiceFilter = m.FilterInput.Text
+	if m.Navigation.ActivePanel == state.PanelCompose {
+		if m.Compose.ComposeFocus == 1 {
+			m.Compose.ComposeServiceFilter = m.Navigation.FilterInput.Text
 		} else {
-			m.ComposeProjectFilter = m.FilterInput.Text
+			m.Compose.ComposeProjectFilter = m.Navigation.FilterInput.Text
 		}
 		return
 	}
 	if f := activeTableFilter(m); f != nil {
-		f.SetFilter(m.FilterInput.Text)
+		f.SetFilter(m.Navigation.FilterInput.Text)
 	}
 }
 
@@ -88,15 +88,15 @@ func activeTableFilter(m *state.AppModel) state.TableFilter {
 	if m == nil {
 		return nil
 	}
-	switch m.ActivePanel {
+	switch m.Navigation.ActivePanel {
 	case state.PanelContainers:
-		return m.Containers
+		return m.Resources.Containers
 	case state.PanelImages:
-		return m.Images
+		return m.Resources.Images
 	case state.PanelVolumes:
-		return m.Volumes
+		return m.Resources.Volumes
 	case state.PanelNetworks:
-		return m.Networks
+		return m.Resources.Networks
 	default:
 		return nil
 	}
@@ -129,17 +129,17 @@ func clamp(val, max int) int {
 }
 
 func clearDialogState(m *state.AppModel) {
-	m.Mode = state.ModeNormal
-	m.DialogState.Close()
+	m.Navigation.Mode = state.ModeNormal
+	m.Dialog.Close()
 }
 
 func composeProjectNames(m *state.AppModel) []string {
 	filter := ""
 	if m != nil {
-		filter = m.ComposeProjectFilter
+		filter = m.Compose.ComposeProjectFilter
 	}
 	set := make(map[string]bool)
-	for _, c := range m.Containers.Items {
+	for _, c := range m.Resources.Containers.Items {
 		if c.ComposeProject == "" {
 			continue
 		}
@@ -159,10 +159,10 @@ func composeProjectNames(m *state.AppModel) []string {
 func composeServiceNames(m *state.AppModel, project string) []string {
 	filter := ""
 	if m != nil {
-		filter = m.ComposeServiceFilter
+		filter = m.Compose.ComposeServiceFilter
 	}
 	set := make(map[string]bool)
-	for _, c := range m.Containers.Items {
+	for _, c := range m.Resources.Containers.Items {
 		if c.ComposeProject != project {
 			continue
 		}
@@ -188,13 +188,13 @@ func currentComposeProject(m *state.AppModel) string {
 	if len(names) == 0 {
 		return ""
 	}
-	if m.ComposeCursor >= len(names) {
-		m.ComposeCursor = len(names) - 1
+	if m.Compose.ComposeCursor >= len(names) {
+		m.Compose.ComposeCursor = len(names) - 1
 	}
-	if m.ComposeCursor < 0 {
-		m.ComposeCursor = 0
+	if m.Compose.ComposeCursor < 0 {
+		m.Compose.ComposeCursor = 0
 	}
-	return names[m.ComposeCursor]
+	return names[m.Compose.ComposeCursor]
 }
 
 // FormatKeyForDisplay converts a raw key string to a display-friendly label.
@@ -236,19 +236,19 @@ func FormatKeyForDisplay(key string) string {
 func RecordKeyStroke(m *state.AppModel, key, action string) tea.Cmd {
 	evt := state.KeyStrokeEvent{Key: FormatKeyForDisplay(key), Action: action}
 	// FIFO: keep max 3 events
-	if len(m.KeyStrokeBuffer) >= 3 {
-		m.KeyStrokeBuffer = m.KeyStrokeBuffer[1:]
+	if len(m.Feedback.KeyStrokeBuffer) >= 3 {
+		m.Feedback.KeyStrokeBuffer = m.Feedback.KeyStrokeBuffer[1:]
 	}
-	m.KeyStrokeBuffer = append(m.KeyStrokeBuffer, evt)
+	m.Feedback.KeyStrokeBuffer = append(m.Feedback.KeyStrokeBuffer, evt)
 	// 重置计时器：新按键直接显示，旧内容立即消失
-	dur := m.KeyStrokeDuration
+	dur := m.Feedback.KeyStrokeDuration
 	if dur <= 0 {
 		dur = 30
 	}
-	m.KeyStrokeTimer = dur
-	m.KeyStrokeAnim = 0
-	m.KeyStrokeDispTimer = 0
-	m.LastKeyStroke = nil // 旧内容立即销毁
+	m.Feedback.KeyStrokeTimer = dur
+	m.Feedback.KeyStrokeAnim = 0
+	m.Feedback.KeyStrokeDispTimer = 0
+	m.Feedback.LastKeyStroke = nil // 旧内容立即销毁
 	return func() tea.Msg { return state.KeyStrokeTick{} }
 }
 
@@ -287,6 +287,6 @@ func KeyStrokeActionLabel(key string) string {
 
 // confirmAction sets the model to ModeConfirm with the given action, target, and message.
 func confirmAction(m *state.AppModel, action, target, message string) {
-	m.ConfirmState.Open(action, target, message, audit.Trace{})
-	m.Mode = state.ModeConfirm
+	m.Confirm.Open(action, target, message, audit.Trace{})
+	m.Navigation.Mode = state.ModeConfirm
 }

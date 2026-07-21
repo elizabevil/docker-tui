@@ -9,16 +9,16 @@ import (
 )
 
 func handleConfirmKeys(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Mode != state.ModeConfirm {
+	if m.Navigation.Mode != state.ModeConfirm {
 		return nil, nil
 	}
 	switch key {
 	case keys.KeyY, keys.KeyY_upper:
 		return doConfirmYes(m)
 	case keys.KeyN, keys.KeyNUpper, keys.KeyEsc:
-		FinishAudit(m, m.ConfirmAudit, audit.ResultCancelled, "Operation cancelled", audit.Details{})
-		m.Mode = state.ModeNormal
-		m.ConfirmState.Close()
+		FinishAudit(m, m.Confirm.ConfirmAudit, audit.ResultCancelled, "Operation cancelled", audit.Details{})
+		m.Navigation.Mode = state.ModeNormal
+		m.Confirm.Close()
 		return m, nil
 	}
 	return m, nil

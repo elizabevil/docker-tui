@@ -70,7 +70,8 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 	}
 
 	rowHeight := component.CalcRowHeight(panelHeight)
-	component.EnsureVisible(&nm.ViewOffset, nm.Cursor, rowHeight, total)
+	viewOffset := nm.ViewOffset
+	component.EnsureVisible(&viewOffset, nm.Cursor, rowHeight, total)
 
 	// Header overrides with sort arrows
 	arrow := sortArrow(nm.SortAsc)
@@ -92,7 +93,7 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 		}
 	}
 
-	rows := component.BuildRows(items, colsDef, nm.ViewOffset, rowHeight,
+	rows := component.BuildRows(items, colsDef, viewOffset, rowHeight,
 		func(net dockerclient.NetworkItem, cd tables.ColumnDef, _ int) string {
 			switch cd.Key {
 			case "name":
@@ -144,7 +145,7 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 
 	selected := -1
 	if !selectionDisabled {
-		selected = nm.Cursor - nm.ViewOffset
+		selected = nm.Cursor - viewOffset
 	}
 	colStyles := component.GetPageColumnStyles("network", colsDef)
 	ts := tc.EffectiveTableStyle()
@@ -154,13 +155,13 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 		Rows:              rows,
 		Selected:          selected,
 		Total:             total,
-		Offset:            nm.ViewOffset,
+		Offset:            viewOffset,
 		Limit:             rowHeight,
 		Banner:            banner,
 		BannerW:           w,
 		HeaderOverrides:   overrides,
 		BodyHeight:        panelHeight,
-		MarkedRows:        component.BuildMarkedRows(rows, items, nm.ViewOffset, markedIDs, func(n dockerclient.NetworkItem) string { return n.ID }),
+		MarkedRows:        component.BuildMarkedRows(rows, items, viewOffset, markedIDs, func(n dockerclient.NetworkItem) string { return n.ID }),
 		RowPrefix:         ts.RowPrefix,
 		RowPrefixSelected: ts.RowPrefixSelected,
 		ColStyles:         colStyles,

@@ -7,57 +7,57 @@ import (
 )
 
 func handleContainersLoaded(m *state.AppModel, msg state.ContainersLoaded) (*state.AppModel, tea.Cmd) {
-	m.Containers.Loading = false
+	m.Resources.Containers.Loading = false
 	if msg.Error != nil {
-		m.Containers.Error = msg.Error
-		m.FeedbackState.RecordError(msg.Error.Error())
+		m.Resources.Containers.Error = msg.Error
+		m.Feedback.RecordError(msg.Error.Error())
 	} else {
-		m.Containers.Items = msg.Containers
-		m.Containers.Error = nil
-		if m.Containers.Cursor >= len(msg.Containers) {
-			m.Containers.Cursor = 0
+		m.Resources.Containers.Items = msg.Containers
+		m.Resources.Containers.Error = nil
+		if m.Resources.Containers.Cursor >= len(msg.Containers) {
+			m.Resources.Containers.Cursor = 0
 		}
 	}
 	// Start auto-stats polling on first container load
-	if m.Docker != nil && !m.StatsActive {
-		m.StatsActive = true
+	if m.Connection.Docker != nil && !m.Metrics.StatsActive {
+		m.Metrics.StatsActive = true
 		return m, func() tea.Msg { return state.StatsTick{} }
 	}
 	return m, nil
 }
 
 func handleImagesLoaded(m *state.AppModel, msg state.ImagesLoaded) (*state.AppModel, tea.Cmd) {
-	m.Images.Loading = false
+	m.Resources.Images.Loading = false
 	if msg.Error != nil {
-		m.Images.Error = msg.Error
-		m.FeedbackState.RecordError(msg.Error.Error())
+		m.Resources.Images.Error = msg.Error
+		m.Feedback.RecordError(msg.Error.Error())
 	} else {
-		m.Images.Items = msg.Images
-		m.Images.Error = nil
+		m.Resources.Images.Items = msg.Images
+		m.Resources.Images.Error = nil
 	}
 	return m, nil
 }
 
 func handleVolumesLoaded(m *state.AppModel, msg state.VolumesLoaded) (*state.AppModel, tea.Cmd) {
-	m.Volumes.Loading = false
+	m.Resources.Volumes.Loading = false
 	if msg.Error != nil {
-		m.Volumes.Error = msg.Error
-		m.FeedbackState.RecordError(msg.Error.Error())
+		m.Resources.Volumes.Error = msg.Error
+		m.Feedback.RecordError(msg.Error.Error())
 	} else {
-		m.Volumes.Items = msg.Volumes
-		m.Volumes.Error = nil
+		m.Resources.Volumes.Items = msg.Volumes
+		m.Resources.Volumes.Error = nil
 	}
 	return m, nil
 }
 
 func handleNetworksLoaded(m *state.AppModel, msg state.NetworksLoaded) (*state.AppModel, tea.Cmd) {
-	m.Networks.Loading = false
+	m.Resources.Networks.Loading = false
 	if msg.Error != nil {
-		m.Networks.Error = msg.Error
-		m.FeedbackState.RecordError(msg.Error.Error())
+		m.Resources.Networks.Error = msg.Error
+		m.Feedback.RecordError(msg.Error.Error())
 	} else {
-		m.Networks.Items = msg.Networks
-		m.Networks.Error = nil
+		m.Resources.Networks.Items = msg.Networks
+		m.Resources.Networks.Error = nil
 	}
 	return m, nil
 }

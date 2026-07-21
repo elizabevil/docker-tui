@@ -34,13 +34,13 @@ type pageView struct {
 
 func templateFor(m *state.AppModel) pageTemplateKind {
 	switch {
-	case m.Mode == state.ModeLogView || m.Mode == state.ModeSearch:
+	case m.Navigation.Mode == state.ModeLogView || m.Navigation.Mode == state.ModeSearch:
 		return logPageTemplate
-	case m.Mode == state.ModeDetail || m.Mode == state.ModeExecPassthrough:
+	case m.Navigation.Mode == state.ModeDetail || m.Navigation.Mode == state.ModeExecPassthrough:
 		return detailPageTemplate
-	case m.ActivePanel == state.PanelHelp:
+	case m.Navigation.ActivePanel == state.PanelHelp:
 		return helpPageTemplate
-	case m.ActivePanel == state.PanelCompose:
+	case m.Navigation.ActivePanel == state.PanelCompose:
 		return splitPageTemplate
 	default:
 		return listPageTemplate
@@ -50,8 +50,8 @@ func templateFor(m *state.AppModel) pageTemplateKind {
 func projectPage(m *state.AppModel, bodyHeight, bodyWidth int) pageView {
 	view := pageView{
 		template:   templateFor(m),
-		title:      state.PanelLabel(m.ActivePanel),
-		summary:    m.InfoMessage,
+		title:      state.PanelLabel(m.Navigation.ActivePanel),
+		summary:    m.Feedback.InfoMessage,
 		breadcrumb: breadcrumb(m),
 	}
 
@@ -59,25 +59,25 @@ func projectPage(m *state.AppModel, bodyHeight, bodyWidth int) pageView {
 	case logPageTemplate:
 		view.title = state.PanelLabel(state.PanelLogs)
 		view.summary = ""
-		if m.LogContainerID != "" {
-			view.summary = componentShortID(m.LogContainerID)
+		if m.Log.LogContainerID != "" {
+			view.summary = componentShortID(m.Log.LogContainerID)
 		}
 		view.content = logs.RenderView(m, bodyHeight, bodyWidth)
 	case detailPageTemplate:
-		view.title = m.DetailTitle
+		view.title = m.Detail.DetailTitle
 		if view.title == "" {
 			view.title = state.PanelLabel(state.PanelDetail)
 		}
 		// Adjust title based on source view mode
-		if m.DetailSourceType == "yaml" {
+		if m.Detail.DetailSourceType == "yaml" {
 			view.title = strings.Replace(view.title, "Detail:", "YAML:", 1)
 			view.title = strings.Replace(view.title, "详情:", "YAML:", 1)
-		} else if m.DetailSourceType == "json" {
+		} else if m.Detail.DetailSourceType == "json" {
 			view.title = strings.Replace(view.title, "Detail:", "JSON:", 1)
 			view.title = strings.Replace(view.title, "详情:", "JSON:", 1)
 		}
 		view.summary = ""
-		if m.Mode == state.ModeExecPassthrough {
+		if m.Navigation.Mode == state.ModeExecPassthrough {
 			view.title = "Exec"
 			view.content = renderExecPassthroughPanel(m, bodyHeight)
 		} else {
@@ -94,16 +94,16 @@ func projectPage(m *state.AppModel, bodyHeight, bodyWidth int) pageView {
 }
 
 func renderListPage(m *state.AppModel, panelHeight, contentWidth int) string {
-	selectionDisabled := m.Mode == state.ModeFilter
-	switch m.ActivePanel {
+	selectionDisabled := m.Navigation.Mode == state.ModeFilter
+	switch m.Navigation.ActivePanel {
 	case state.PanelContainers:
-		return containers.RenderList(m.Containers, contentWidth, panelHeight, m.MarkedIDs, selectionDisabled)
+		return containers.RenderList(m.Resources.Containers, contentWidth, panelHeight, m.Selection.MarkedIDs, selectionDisabled)
 	case state.PanelImages:
-		return images.RenderList(m.Images, m.Containers, contentWidth, panelHeight, m.MarkedIDs, selectionDisabled)
+		return images.RenderList(m.Resources.Images, m.Resources.Containers, contentWidth, panelHeight, m.Selection.MarkedIDs, selectionDisabled)
 	case state.PanelVolumes:
-		return volumes.RenderList(m.Volumes, m.Containers, contentWidth, panelHeight, m.MarkedIDs, selectionDisabled)
+		return volumes.RenderList(m.Resources.Volumes, m.Resources.Containers, contentWidth, panelHeight, m.Selection.MarkedIDs, selectionDisabled)
 	case state.PanelNetworks:
-		return networks.RenderList(m.Networks, contentWidth, panelHeight, m.MarkedIDs, selectionDisabled)
+		return networks.RenderList(m.Resources.Networks, contentWidth, panelHeight, m.Selection.MarkedIDs, selectionDisabled)
 	default:
 		return ""
 	}

@@ -8,15 +8,15 @@ import (
 )
 
 func enterMarkMode(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	m.Mode = state.ModeMark
-	if m.MarkedIDs == nil {
-		m.MarkedIDs = make(map[string]bool)
+	m.Navigation.Mode = state.ModeMark
+	if m.Selection.MarkedIDs == nil {
+		m.Selection.MarkedIDs = make(map[string]bool)
 	}
 	return m, nil
 }
 
 func exitMarkMode(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	m.Mode = state.ModeNormal
+	m.Navigation.Mode = state.ModeNormal
 	return m, nil
 }
 
@@ -25,7 +25,7 @@ func handleMarkMode(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if known {
 		switch action {
 		case keys.ActionBack:
-			m.MarkedIDs = make(map[string]bool)
+			m.Selection.MarkedIDs = make(map[string]bool)
 			return exitMarkMode(m)
 		case keys.ActionDelete, keys.ActionContainerRemove, keys.ActionImageRemove, keys.ActionVolumeRemove, keys.ActionNetworkRemove:
 			return doBulkDelete(m)

@@ -15,18 +15,18 @@ var execShellOptions = []string{"/bin/sh", "/bin/bash", "/bin/ash"}
 func handleExecDialogKeys(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	switch key {
 	case keys.KeyTab:
-		m.DialogState.MoveFocus(1, state.ExecFocusCount)
+		m.Dialog.MoveFocus(1, state.ExecFocusCount)
 		return m, nil
 	case keys.KeyShiftTab:
-		m.DialogState.MoveFocus(-1, state.ExecFocusCount)
+		m.Dialog.MoveFocus(-1, state.ExecFocusCount)
 		return m, nil
 	case keys.KeyEnter:
-		switch m.DialogState.Focus {
+		switch m.Dialog.Focus {
 		case state.ExecFocusShell1, state.ExecFocusShell2, state.ExecFocusShell3:
-			m.ExecState.SetShell(execShellOptions[m.DialogState.Focus])
+			m.Exec.SetShell(execShellOptions[m.Dialog.Focus])
 			return doExecAction(m)
 		case state.ExecFocusInput, state.ExecFocusConfirm:
-			m.ExecState.SetShell(m.DialogState.Input.Text)
+			m.Exec.SetShell(m.Dialog.Input.Text)
 			return doExecAction(m)
 		case state.ExecFocusCancel:
 			clearDialogState(m)
@@ -36,20 +36,20 @@ func handleExecDialogKeys(key string, m *state.AppModel) (*state.AppModel, tea.C
 		clearDialogState(m)
 		return m, nil
 	default:
-		if m.DialogState.Focus != state.ExecFocusInput || key == " " {
+		if m.Dialog.Focus != state.ExecFocusInput || key == " " {
 			return m, nil
 		}
 		if key == "ctrl+w" {
-			m.DialogState.Input.DeleteDelimitedBackward(func(r rune) bool {
+			m.Dialog.Input.DeleteDelimitedBackward(func(r rune) bool {
 				return unicode.IsSpace(r) || r == '/'
 			})
 			return m, nil
 		}
 		if key == "ctrl+u" {
-			m.DialogState.Input.Reset()
+			m.Dialog.Input.Reset()
 			return m, nil
 		}
-		editQueryInput(key, &m.DialogState.Input)
+		editQueryInput(key, &m.Dialog.Input)
 		return m, nil
 	}
 }

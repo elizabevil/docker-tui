@@ -20,18 +20,17 @@
 
 | 状态 | 数量 |
 |---|---:|
-| `done` | 7 |
-| `in_progress` | 1 |
+| `done` | 8 |
+| `in_progress` | 0 |
 | `todo` | 12 |
 | `blocked` | 0 |
 
 当前执行队列：
 
-1. 完成 `TASK-015`，继续拆分 `AppModel` 的独立状态域。
-2. 执行 `TASK-016`，补齐 TLS / 证书错误的专门状态展示。
-3. 执行 `TASK-017`，补齐高频容器操作。
-4. 执行 `TASK-009`，补齐 Volume / Network 创建与清理。
-5. 执行 `TASK-008`，将 Events 接入主循环并支持局部刷新。
+1. 执行 `TASK-016`，补齐 TLS / 证书错误的专门状态展示。
+2. 执行 `TASK-017`，补齐高频容器操作。
+3. 执行 `TASK-009`，补齐 Volume / Network 创建与清理。
+4. 执行 `TASK-008`，将 Events 接入主循环并支持局部刷新。
 
 ## 已完成基础
 
@@ -51,9 +50,9 @@
 
 | 编号 | 任务 | 优先级 | 状态 | 已完成 / 剩余范围 |
 |---|---|---:|---|---|
-| `TASK-015` | [拆分 `AppModel` 状态域并封装状态方法](app-model-refactoring.md) | P1 | `in_progress` | 已完成 Connection、Navigation、Dialog、Feedback、Detail、Log 与独立输入，View 不再修正详情/日志 offset；下一阶段拆 Exec 与 Compose |
+| `TASK-015` | [拆分 `AppModel` 状态域并封装状态方法](app-model-refactoring.md) | P1 | `done` | `AppModel` 仅组合 14 个命名状态域；状态生命周期、独立输入和只读渲染边界均已落地 |
 
-`TASK-015` 采用逐域迁移，不进行一次性重写。顶层 `AppModel` 继续负责 Bubble Tea 协调，子状态负责维护自身不变量。
+`TASK-015` 已按领域逐步迁移完成。顶层 `AppModel` 负责 Bubble Tea 协调，子状态维护自身不变量。
 
 ## Runtime 与错误体验
 

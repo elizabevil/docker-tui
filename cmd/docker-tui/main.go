@@ -105,15 +105,15 @@ func runTUI() error {
 
 	m := state.NewAppModel(cfg, nil, version)
 	if dir, configErr := config.ConfigDir(); configErr == nil {
-		m.Audit = audit.NewService(audit.NewFileSink(filepath.Join(dir, "logs")))
+		m.Dependencies.Audit = audit.NewService(audit.NewFileSink(filepath.Join(dir, "logs")))
 	} else {
-		m.Audit = audit.NewService(nil)
+		m.Dependencies.Audit = audit.NewService(nil)
 	}
-	m.Pool = pool
-	m.Theme = theme
-	m.HeaderVisible = true
-	m.Connecting = true
-	m.RuntimeSelectorDisabled = dockerHost != ""
+	m.Connection.Pool = pool
+	m.Dependencies.Theme = theme
+	m.Viewport.HeaderVisible = true
+	m.Connection.Connecting = true
+	m.Connection.RuntimeSelectorDisabled = dockerHost != ""
 	p := tea.NewProgram(&mainModel{model: m, initialConnection: initialConnection})
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("TUI error: %w", err)
@@ -132,7 +132,7 @@ func (m *mainModel) Init() tea.Cmd {
 		func() tea.Msg { return state.HostStatsTick{} },
 		func() tea.Msg { return state.ToastTick{} },
 		func() tea.Msg { return state.RuntimeHealthTick{} },
-		connectDocker(m.model.Pool, m.initialConnection),
+		connectDocker(m.model.Connection.Pool, m.initialConnection),
 	)
 }
 

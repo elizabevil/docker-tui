@@ -56,13 +56,35 @@ cmd/docker-tui/
 
 ### `internal/tui`
 
-- `state`：顶层模型、领域子状态和资源列表模型；`AppModel` 当前已下沉 Connection、Navigation、Dialog、Feedback、Detail 与 Log 状态，且不依赖 UI 组件包，其他状态域按 `TASK-015` 渐进迁移
+- `state`：顶层模型、领域子状态和资源列表模型；`AppModel` 只组合命名状态域，且不依赖 UI 组件包
 - `keyboard`：所有交互入口、模式切换和资源操作命令
 - `update*.go`：Bubble Tea 消息分发与状态更新
 - `ui/app`：顶层布局
 - `ui/pages`：各页面渲染
 - `ui/component`、`ui/widget`：复用组件与局部部件
 - `tables`：表格/布局 JSONC 配置
+
+### AppModel 状态树
+
+```text
+AppModel
+├── Dependencies
+├── Connection
+├── Navigation
+├── Dialog
+├── Feedback
+├── Log
+├── Detail
+├── Exec
+├── Compose
+├── Confirm
+├── Selection
+├── Resources
+├── Metrics
+└── Viewport
+```
+
+所有状态域均使用命名字段访问。状态对象维护同步转换和自身不变量；`keyboard` 与 `update*.go` 协调异步命令、runtime IO 和跨域更新；`ui` 只读取状态并渲染。
 
 ## 实际数据流
 

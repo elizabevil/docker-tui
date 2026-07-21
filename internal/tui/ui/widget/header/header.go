@@ -111,28 +111,28 @@ func widthByID(avail int, cols []ColumnDef) map[string]int {
 func RenderHeight() int { return 4 }
 
 func Render(app *state.AppModel, usableW int) string {
-	if !app.HeaderVisible || app.Width < 50 {
+	if !app.Viewport.HeaderVisible || app.Viewport.Width < 50 {
 		return ""
 	}
 
 	eng := ""
-	if app.Pool != nil {
-		eng = app.Pool.ActiveName()
+	if app.Connection.Pool != nil {
+		eng = app.Connection.Pool.ActiveName()
 	}
 	if eng == "" {
-		eng = app.RuntimeType
+		eng = app.Connection.RuntimeType
 	}
 	if eng == "" {
-		eng = app.ConnectionTarget
+		eng = app.Connection.ConnectionTarget
 	}
 	if eng == "" {
 		eng = "no runtime"
 	}
 	hostStr := ""
-	if app.Docker != nil {
-		hostStr = app.Docker.Host
+	if app.Connection.Docker != nil {
+		hostStr = app.Connection.Docker.Host
 	}
-	cpuC := cpuLoadColor(app.HostCPU)
+	cpuC := cpuLoadColor(app.Metrics.HostCPU)
 	lb := component.GetStyle("headerLabel")
 	tz := currentTimezone()
 	lang := i18n.Current()
@@ -148,28 +148,28 @@ func Render(app *state.AppModel, usableW int) string {
 		return lipgloss.NewStyle().Foreground(c).Render(utils.PadVisible(utils.FormatPercent(v), 8))
 	}
 	memStr := fmt.Sprintf("%s/%s",
-		utils.FormatBytes(float64(app.HostMemUsed)),
-		utils.FormatBytes(float64(app.HostMemTotal)))
+		utils.FormatBytes(float64(app.Metrics.HostMemUsed)),
+		utils.FormatBytes(float64(app.Metrics.HostMemTotal)))
 	colDyn := fmt.Sprintf("%s%s %dC\n%s%s\n%s%s\n%s%s\n",
-		lbl("CPU"), pct(app.HostCPU, cpuC), app.HostCPUCores,
+		lbl("CPU"), pct(app.Metrics.HostCPU, cpuC), app.Metrics.HostCPUCores,
 		lbl("Memory"), utils.PadVisible(memStr, 18),
-		lbl("Disk"), utils.PadVisible(app.HostDisk, 18),
+		lbl("Disk"), utils.PadVisible(app.Metrics.HostDisk, 18),
 		lbl("TimeZone"), utils.PadVisible(tz, 18),
 	)
 
 	// ── Col 2: Connection + App config (25%) ──────────────────
 	runtimeName := ""
-	if app.Pool != nil {
-		runtimeName = app.Pool.ActiveName()
+	if app.Connection.Pool != nil {
+		runtimeName = app.Connection.Pool.ActiveName()
 	}
 	if runtimeName == "" {
-		runtimeName = app.ConnectionTarget
+		runtimeName = app.Connection.ConnectionTarget
 	}
 	if runtimeName == "" {
 		runtimeName = "-"
 	}
 	colConn := fmt.Sprintf("%s%s\n%s%s\n%s%s\n%s%s\n",
-		lbl("Engine"), eng+" "+app.EngineVersion,
+		lbl("Engine"), eng+" "+app.Connection.EngineVersion,
 		lbl("Runtime"), runtimeName,
 		lbl("Socket"), hostStr,
 		lbl("Language"), lang,
@@ -178,7 +178,7 @@ func Render(app *state.AppModel, usableW int) string {
 	// ── Column widths from config weights ─────────────────────
 	avail := usableW - 4
 	if avail < 10 {
-		avail = app.Width - 4
+		avail = app.Viewport.Width - 4
 	}
 	hCfg := DefaultHeaderConfig()
 	widths := widthByID(avail, hCfg.Columns)
@@ -194,7 +194,7 @@ func Render(app *state.AppModel, usableW int) string {
 	colKeys := renderKeyStrokeColumn(app, keyW)
 
 	// ── Col 4: Logo ───────────────────────────────────────────
-	verStr := app.AppVersion
+	verStr := app.Dependencies.AppVersion
 	if verStr == "" {
 		verStr = "dev"
 	}
@@ -228,11 +228,11 @@ func renderKeyStrokeColumn(app *state.AppModel, colW int) string {
 	var content string
 
 	switch {
-	case len(app.KeyStrokeBuffer) > 0:
-		content = joinKeyBadges(app.KeyStrokeBuffer)
+	case len(app.Feedback.KeyStrokeBuffer) > 0:
+		content = joinKeyBadges(app.Feedback.KeyStrokeBuffer)
 		content = component.GetStyle("keyBadge").Background(style.Colors.Blue).Padding(0, 1).Bold(true).Render(content)
-	case len(app.LastKeyStroke) > 0:
-		content = joinKeyBadges(app.LastKeyStroke)
+	case len(app.Feedback.LastKeyStroke) > 0:
+		content = joinKeyBadges(app.Feedback.LastKeyStroke)
 		content = component.GetStyle("keyLast").Render(content)
 	default:
 		return "" // 无按键时不留空白

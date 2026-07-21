@@ -36,10 +36,10 @@ func TestQueryKindFor(t *testing.T) {
 		app  *state.AppModel
 		want queryKind
 	}{
-		{name: "normal", app: &state.AppModel{NavigationState: state.NavigationState{Mode: state.ModeNormal}}, want: queryNone},
-		{name: "filter", app: &state.AppModel{NavigationState: state.NavigationState{Mode: state.ModeFilter}}, want: queryFilter},
-		{name: "search", app: &state.AppModel{NavigationState: state.NavigationState{Mode: state.ModeSearch}, LogState: state.LogState{LogContainerID: "abc"}}, want: querySearch},
-		{name: "command", app: &state.AppModel{NavigationState: state.NavigationState{Mode: state.ModeCommand}}, want: queryCommand},
+		{name: "normal", app: &state.AppModel{Navigation: state.NavigationState{Mode: state.ModeNormal}}, want: queryNone},
+		{name: "filter", app: &state.AppModel{Navigation: state.NavigationState{Mode: state.ModeFilter}}, want: queryFilter},
+		{name: "search", app: &state.AppModel{Navigation: state.NavigationState{Mode: state.ModeSearch}, Log: state.LogState{LogContainerID: "abc"}}, want: querySearch},
+		{name: "command", app: &state.AppModel{Navigation: state.NavigationState{Mode: state.ModeCommand}}, want: queryCommand},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -72,15 +72,15 @@ func TestFitRailHeight(t *testing.T) {
 
 func TestRenderAppHeightDoesNotChangeWithQueryOrMessage(t *testing.T) {
 	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
-	app.Width = 120
-	app.Height = 32
+	app.Viewport.Width = 120
+	app.Viewport.Height = 32
 
 	normalHeight := strings.Count(RenderApp(app), "\n") + 1
-	app.Mode = state.ModeFilter
-	app.FilterInput = state.QueryInputState{Text: "nginx", Cursor: 5}
+	app.Navigation.Mode = state.ModeFilter
+	app.Navigation.FilterInput = state.QueryInputState{Text: "nginx", Cursor: 5}
 	filterHeight := strings.Count(RenderApp(app), "\n") + 1
-	app.ToastMessage = "filter applied"
-	app.ToastLevel = state.NotificationInfo
+	app.Feedback.ToastMessage = "filter applied"
+	app.Feedback.ToastLevel = state.NotificationInfo
 	messageHeight := strings.Count(RenderApp(app), "\n") + 1
 
 	if filterHeight != normalHeight || messageHeight != normalHeight {
@@ -114,16 +114,16 @@ func TestRenderAppRegressionMatrix(t *testing.T) {
 		for _, view := range views {
 			t.Run(view.name, func(t *testing.T) {
 				app := state.NewAppModel(config.DefaultConfig(), nil, "test")
-				app.Width, app.Height = size.width, size.height
-				app.ActivePanel, app.Mode = view.panel, view.mode
-				app.CommandInput.Set("query")
-				app.FilterInput = state.QueryInputState{Text: "query", Cursor: 5}
-				app.SearchInput = state.QueryInputState{Text: "query", Cursor: 5}
-				app.LogContainerID = "container"
+				app.Viewport.Width, app.Viewport.Height = size.width, size.height
+				app.Navigation.ActivePanel, app.Navigation.Mode = view.panel, view.mode
+				app.Navigation.CommandInput.Set("query")
+				app.Navigation.FilterInput = state.QueryInputState{Text: "query", Cursor: 5}
+				app.Navigation.SearchInput = state.QueryInputState{Text: "query", Cursor: 5}
+				app.Log.LogContainerID = "container"
 				if view.name != "logs" && view.name != "search" {
-					app.LogContainerID = ""
+					app.Log.LogContainerID = ""
 				}
-				app.ImageDetailContent = "Name: test"
+				app.Detail.ImageDetailContent = "Name: test"
 				rendered := RenderApp(app)
 				if strings.Contains(rendered, "Terminal too small") {
 					t.Fatalf("supported size %dx%d degraded", size.width, size.height)
@@ -141,7 +141,7 @@ func TestRenderAppRegressionMatrix(t *testing.T) {
 
 func TestRenderAppRejectsUnsupportedTerminal(t *testing.T) {
 	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
-	app.Width, app.Height = 79, 19
+	app.Viewport.Width, app.Viewport.Height = 79, 19
 	if got := RenderApp(app); !strings.Contains(got, "minimum 80x20") {
 		t.Fatalf("unexpected degradation message: %q", got)
 	}

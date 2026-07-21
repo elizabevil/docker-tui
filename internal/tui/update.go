@@ -16,18 +16,18 @@ func handleMouseWheel(m *state.AppModel, msg tea.MouseWheelMsg) *state.AppModel 
 	ev := msg.Mouse()
 	switch ev.Button {
 	case tea.MouseWheelUp:
-		switch m.Mode {
+		switch m.Navigation.Mode {
 		case state.ModeDetail:
-			m.DetailState.Scroll(-3)
+			m.Detail.Scroll(-3)
 		case state.ModeLogView:
-			m.LogState.Scroll(-3)
+			m.Log.Scroll(-3)
 		}
 	case tea.MouseWheelDown:
-		switch m.Mode {
+		switch m.Navigation.Mode {
 		case state.ModeDetail:
-			m.DetailState.Scroll(3)
+			m.Detail.Scroll(3)
 		case state.ModeLogView:
-			m.LogState.Scroll(3)
+			m.Log.Scroll(3)
 		}
 	}
 	return m
@@ -37,10 +37,10 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case tea.WindowSizeMsg:
-		m.ViewportState.Resize(msg.Width, msg.Height)
-		if m.Mode == state.ModeExecPassthrough && m.ExecID != "" && m.Docker != nil {
-			cli := m.Docker.Raw()
-			go cli.ContainerExecResize(context.Background(), m.ExecID, container.ResizeOptions{
+		m.Viewport.Resize(msg.Width, msg.Height)
+		if m.Navigation.Mode == state.ModeExecPassthrough && m.Exec.ExecID != "" && m.Connection.Docker != nil {
+			cli := m.Connection.Docker.Raw()
+			go cli.ContainerExecResize(context.Background(), m.Exec.ExecID, container.ResizeOptions{
 				Height: uint(msg.Height),
 				Width:  uint(msg.Width),
 			})
@@ -52,12 +52,12 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 	case tea.KeyPressMsg:
 		updatedModel, cmd := keyboard.HandleKeyPress(msg, m)
-		if updatedModel.PendingImagePull != "" && updatedModel.Mode == state.ModeNormal && updatedModel.Docker != nil {
-			pullRef, trace := updatedModel.SelectionState.TakeImagePull()
+		if updatedModel.Selection.PendingImagePull != "" && updatedModel.Navigation.Mode == state.ModeNormal && updatedModel.Connection.Docker != nil {
+			pullRef, trace := updatedModel.Selection.TakeImagePull()
 			if cmd != nil {
-				return updatedModel, tea.Batch(cmd, keyboard.ImagePullCmdWithAudit(updatedModel.Docker, pullRef, trace))
+				return updatedModel, tea.Batch(cmd, keyboard.ImagePullCmdWithAudit(updatedModel.Connection.Docker, pullRef, trace))
 			}
-			return updatedModel, keyboard.ImagePullCmdWithAudit(updatedModel.Docker, pullRef, trace)
+			return updatedModel, keyboard.ImagePullCmdWithAudit(updatedModel.Connection.Docker, pullRef, trace)
 		}
 		return updatedModel, cmd
 
@@ -142,12 +142,12 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 }
 
 func handleExecOutput(m *state.AppModel, msg state.ExecOutput) (*state.AppModel, tea.Cmd) {
-	m.ExecState.Append(msg.Data)
-	if m.ExecCh == nil {
+	m.Exec.Append(msg.Data)
+	if m.Exec.ExecCh == nil {
 		return m, nil
 	}
 	return m, func() tea.Msg {
-		data, ok := <-m.ExecCh
+		data, ok := <-m.Exec.ExecCh
 		if !ok {
 			return state.ExecDone{}
 		}
@@ -156,8 +156,8 @@ func handleExecOutput(m *state.AppModel, msg state.ExecOutput) (*state.AppModel,
 }
 
 func handleExecDone(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	keyboard.FinishAudit(m, m.ExecAudit, audit.ResultSucceeded, "Exec session finished", audit.Details{Shell: m.ExecShell})
-	m.ExecState.Reset()
-	m.Mode = state.ModeNormal
+	keyboard.FinishAudit(m, m.Exec.ExecAudit, audit.ResultSucceeded, "Exec session finished", audit.Details{Shell: m.Exec.ExecShell})
+	m.Exec.Reset()
+	m.Navigation.Mode = state.ModeNormal
 	return m, nil
 }

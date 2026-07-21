@@ -16,7 +16,7 @@ func handleStatsReceived(m *state.AppModel, msg state.StatsReceived) (*state.App
 	if msg.Error != nil {
 		return m, nil
 	}
-	m.Containers.Stats[msg.ContainerID] = state.ContainerStats{
+	m.Resources.Containers.Stats[msg.ContainerID] = state.ContainerStats{
 		CPU:      msg.CPU,
 		MemUsage: msg.MemUsage,
 		MemLimit: msg.MemLimit,
@@ -28,29 +28,29 @@ func handleStatsReceived(m *state.AppModel, msg state.StatsReceived) (*state.App
 }
 
 func handleStatsTick(m *state.AppModel, _ state.StatsTick) (*state.AppModel, tea.Cmd) {
-	if m.Docker == nil {
-		m.StatsActive = false
+	if m.Connection.Docker == nil {
+		m.Metrics.StatsActive = false
 		return m, nil
 	}
 	// Auto-enable stats when containers panel is active
-	if !m.StatsActive && m.ActivePanel == state.PanelContainers {
-		m.StatsActive = true
+	if !m.Metrics.StatsActive && m.Navigation.ActivePanel == state.PanelContainers {
+		m.Metrics.StatsActive = true
 	}
-	if !m.StatsActive {
+	if !m.Metrics.StatsActive {
 		return m, nil
 	}
 
 	// Fetch stats for all currently visible (filtered) containers
-	items := m.Containers.SortedItems()
+	items := m.Resources.Containers.SortedItems()
 	cmds := make([]tea.Cmd, 0, len(items))
 	for _, c := range items {
-		cmds = append(cmds, keyboard.FetchStats(m.Docker, c.ID))
+		cmds = append(cmds, keyboard.FetchStats(m.Connection.Docker, c.ID))
 	}
 
 	// Schedule next tick
 	pollSec := 3
-	if m.Config != nil && m.Config.Docker.StatsPollSec > 0 {
-		pollSec = m.Config.Docker.StatsPollSec
+	if m.Dependencies.Config != nil && m.Dependencies.Config.Docker.StatsPollSec > 0 {
+		pollSec = m.Dependencies.Config.Docker.StatsPollSec
 	}
 	cmds = append(cmds, tea.Tick(time.Duration(pollSec)*time.Second, func(t time.Time) tea.Msg {
 		return state.StatsTick{}
@@ -61,41 +61,41 @@ func handleStatsTick(m *state.AppModel, _ state.StatsTick) (*state.AppModel, tea
 
 func handleDockerConnected(m *state.AppModel, msg state.DockerConnected) (*state.AppModel, tea.Cmd) {
 	if msg.Error != nil {
-		if m.Mode == state.ModeRuntimeSelect {
-			m.ConnectionState.SelectionFailed(msg.Name, msg.Error)
-			m.FeedbackState.RecordError(msg.Error.Error())
+		if m.Navigation.Mode == state.ModeRuntimeSelect {
+			m.Connection.SelectionFailed(msg.Name, msg.Error)
+			m.Feedback.RecordError(msg.Error.Error())
 			keyboard.ShowToastWarn(m, fmt.Sprintf("Connection failed (%s): %s", msg.Name, msg.Error))
 			return m, nil
 		}
-		m.ConnectionState.Failed(msg.Name, msg.Error)
-		m.FeedbackState.RecordError(msg.Error.Error())
+		m.Connection.Failed(msg.Name, msg.Error)
+		m.Feedback.RecordError(msg.Error.Error())
 		keyboard.ShowToastWarn(m, fmt.Sprintf("Connection failed (%s): %s", msg.Name, msg.Error))
 		return m, nil
 	}
-	m.ConnectionState.ConnectedTo(msg.Name, msg.Client)
-	m.Mode = state.ModeNormal
-	m.FeedbackState.ClearError()
+	m.Connection.ConnectedTo(msg.Name, msg.Client)
+	m.Navigation.Mode = state.ModeNormal
+	m.Feedback.ClearError()
 	if msg.Name != "" {
-		m.RuntimeType = msg.Name
+		m.Connection.RuntimeType = msg.Name
 	}
 	if msg.Notice != "" {
 		keyboard.ShowToastWarn(m, msg.Notice)
 	}
-	m.Containers.Loading = true
-	return m, tea.Batch(keyboard.FetchAll(m.Docker)...)
+	m.Resources.Containers.Loading = true
+	return m, tea.Batch(keyboard.FetchAll(m.Connection.Docker)...)
 }
 
 func handleContainerEvent(m *state.AppModel, msg state.ContainerEvent) (*state.AppModel, tea.Cmd) {
-	if m.Docker != nil {
+	if m.Connection.Docker != nil {
 		if docker.RefreshesContainers(msg.Action) {
-			return m, keyboard.FetchContainers(m.Docker, true)
+			return m, keyboard.FetchContainers(m.Connection.Docker, true)
 		}
 	}
 	return m, nil
 }
 
 func handleToastTick(m *state.AppModel, _ state.ToastTick) (*state.AppModel, tea.Cmd) {
-	m.FeedbackState.TickToast()
+	m.Feedback.TickToast()
 	return m, tea.Tick(100*time.Millisecond, func(t time.Time) tea.Msg {
 		return state.ToastTick{}
 	})
@@ -103,7 +103,7 @@ func handleToastTick(m *state.AppModel, _ state.ToastTick) (*state.AppModel, tea
 
 func handleHostStatsTick(m *state.AppModel, _ state.HostStatsTick) (*state.AppModel, tea.Cmd) {
 	stats := docker.ReadHostStats()
-	m.MetricsState.ApplyHost(stats)
+	m.Metrics.ApplyHost(stats)
 	return m, tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
 		return state.HostStatsTick{}
 	})
@@ -111,14 +111,14 @@ func handleHostStatsTick(m *state.AppModel, _ state.HostStatsTick) (*state.AppMo
 
 func handleRuntimeHealthTick(m *state.AppModel, _ state.RuntimeHealthTick) (*state.AppModel, tea.Cmd) {
 	health := config.DefaultConfig().Runtime.Health
-	if m.Config != nil {
-		health = m.Config.Runtime.Health
+	if m.Dependencies.Config != nil {
+		health = m.Dependencies.Config.Runtime.Health
 	}
 	cmds := []tea.Cmd{tea.Tick(health.Interval(), func(time.Time) tea.Msg {
 		return state.RuntimeHealthTick{}
 	})}
-	if m.Docker != nil {
-		client, name := m.Docker, m.ConnectionTarget
+	if m.Connection.Docker != nil {
+		client, name := m.Connection.Docker, m.Connection.ConnectionTarget
 		cmds = append(cmds, func() tea.Msg {
 			return state.RuntimeHealthResult{Name: name, Error: client.PingTimeout(health.Timeout())}
 		})
@@ -128,39 +128,39 @@ func handleRuntimeHealthTick(m *state.AppModel, _ state.RuntimeHealthTick) (*sta
 
 func handleRuntimeHealthResult(m *state.AppModel, msg state.RuntimeHealthResult) (*state.AppModel, tea.Cmd) {
 	threshold := config.DefaultConfig().Runtime.Health.FailureThreshold
-	if m.Config != nil {
-		threshold = m.Config.Runtime.Health.FailureThreshold
+	if m.Dependencies.Config != nil {
+		threshold = m.Dependencies.Config.Runtime.Health.FailureThreshold
 	}
-	transition := m.ApplyHealthResult(msg.Name, msg.Error, threshold)
+	transition := m.Connection.ApplyHealthResult(msg.Name, msg.Error, threshold)
 	switch transition {
 	case state.HealthDisconnected:
-		m.FeedbackState.RecordError(fmt.Sprintf("runtime health check failed: %v", msg.Error))
-		keyboard.ShowToastWarn(m, fmt.Sprintf("Runtime %s disconnected: %v", m.ConnectionTarget, msg.Error))
+		m.Feedback.RecordError(fmt.Sprintf("runtime health check failed: %v", msg.Error))
+		keyboard.ShowToastWarn(m, fmt.Sprintf("Runtime %s disconnected: %v", m.Connection.ConnectionTarget, msg.Error))
 	case state.HealthRecovered:
-		keyboard.ShowToastNow(m, fmt.Sprintf("Runtime %s recovered", m.ConnectionTarget))
+		keyboard.ShowToastNow(m, fmt.Sprintf("Runtime %s recovered", m.Connection.ConnectionTarget))
 	}
 	return m, nil
 }
 
 func handleRuntimeProbeResult(m *state.AppModel, msg state.RuntimeProbeResult) (*state.AppModel, tea.Cmd) {
-	if m.Mode != state.ModeRuntimeSelect {
+	if m.Navigation.Mode != state.ModeRuntimeSelect {
 		return m, nil
 	}
-	m.ConnectionState.SetProbeResult(msg.Name, msg.Error)
+	m.Connection.SetProbeResult(msg.Name, msg.Error)
 	return m, nil
 }
 
 func handleEscTimeout(m *state.AppModel, _ state.EscTimeout) (*state.AppModel, tea.Cmd) {
-	m.EscPending = false
-	m.InfoMessage = ""
+	m.Navigation.EscPending = false
+	m.Feedback.InfoMessage = ""
 	return m, nil
 }
 
 func handleKeyHintTick(m *state.AppModel, _ state.KeyHintTick) (*state.AppModel, tea.Cmd) {
-	if m.KeyHintTimer > 0 {
-		m.KeyHintTimer--
-		if m.KeyHintTimer <= 0 {
-			m.KeyHint = ""
+	if m.Feedback.KeyHintTimer > 0 {
+		m.Feedback.KeyHintTimer--
+		if m.Feedback.KeyHintTimer <= 0 {
+			m.Feedback.KeyHint = ""
 		} else {
 			return m, tea.Tick(100*time.Millisecond, func(t time.Time) tea.Msg {
 				return state.KeyHintTick{}
@@ -172,13 +172,13 @@ func handleKeyHintTick(m *state.AppModel, _ state.KeyHintTick) (*state.AppModel,
 
 func handleKeyStrokeTick(m *state.AppModel, _ state.KeyStrokeTick) (*state.AppModel, tea.Cmd) {
 	// 倒计时：按键显示 3s 后销毁，不响应过期 Tick
-	if m.KeyStrokeTimer <= 0 {
+	if m.Feedback.KeyStrokeTimer <= 0 {
 		return m, nil
 	}
-	m.KeyStrokeTimer--
-	if m.KeyStrokeTimer <= 0 {
-		m.KeyStrokeBuffer = nil
-		m.LastKeyStroke = nil
+	m.Feedback.KeyStrokeTimer--
+	if m.Feedback.KeyStrokeTimer <= 0 {
+		m.Feedback.KeyStrokeBuffer = nil
+		m.Feedback.LastKeyStroke = nil
 		return m, nil
 	}
 	return m, tea.Tick(100*time.Millisecond, func(t time.Time) tea.Msg {
@@ -187,8 +187,8 @@ func handleKeyStrokeTick(m *state.AppModel, _ state.KeyStrokeTick) (*state.AppMo
 }
 
 func handleFilterExitTimeout(m *state.AppModel, msg state.FilterExitTimeout) (*state.AppModel, tea.Cmd) {
-	if msg.Token == m.FilterExitToken {
-		m.NavigationState.ClearFilterExit()
+	if msg.Token == m.Navigation.FilterExitToken {
+		m.Navigation.ClearFilterExit()
 	}
 	return m, nil
 }

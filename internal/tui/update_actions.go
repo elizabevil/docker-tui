@@ -23,8 +23,8 @@ func handleContainerActioned(m *state.AppModel, msg state.ContainerActioned) (*s
 	} else {
 		keyboard.ShowToastNow(m, display)
 	}
-	if m.Docker != nil {
-		return m, keyboard.FetchContainers(m.Docker, true)
+	if m.Connection.Docker != nil {
+		return m, keyboard.FetchContainers(m.Connection.Docker, true)
 	}
 	return m, nil
 }
@@ -43,19 +43,19 @@ func handleImageActioned(m *state.AppModel, msg state.ImageActioned) (*state.App
 	} else {
 		keyboard.ShowToastNow(m, display)
 	}
-	if m.Docker != nil {
-		return m, keyboard.FetchImages(m.Docker)
+	if m.Connection.Docker != nil {
+		return m, keyboard.FetchImages(m.Connection.Docker)
 	}
 	return m, nil
 }
 
 func handleImageDetailLoaded(m *state.AppModel, msg state.ImageDetailLoaded) (*state.AppModel, tea.Cmd) {
 	if msg.Error != nil {
-		if msg.ImageID != m.ImageDetailID {
+		if msg.ImageID != m.Detail.ImageDetailID {
 			return m, nil
 		}
-		m.FeedbackState.RecordError(msg.Error.Error())
-	} else if !m.DetailState.ApplyImage(msg.ImageID, msg.Detail) {
+		m.Feedback.RecordError(msg.Error.Error())
+	} else if !m.Detail.ApplyImage(msg.ImageID, msg.Detail) {
 		return m, nil
 	}
 	return m, nil
@@ -75,8 +75,8 @@ func handleGenericActioned(m *state.AppModel, msg state.GenericActioned) (*state
 	} else {
 		keyboard.ShowToastNow(m, display)
 	}
-	if m.Docker != nil {
-		return m, tea.Batch(keyboard.FetchAll(m.Docker)...)
+	if m.Connection.Docker != nil {
+		return m, tea.Batch(keyboard.FetchAll(m.Connection.Docker)...)
 	}
 	return m, nil
 }

@@ -10,7 +10,7 @@ import (
 
 func TestComposeProjectAndServiceHelpers(t *testing.T) {
 	m := state.NewAppModel(config.DefaultConfig(), nil, "")
-	m.Containers.Items = []dockermodel.ContainerSummary{
+	m.Resources.Containers.Items = []dockermodel.ContainerSummary{
 		{ID: "c1", ComposeProject: "proj-b", ComposeService: "api"},
 		{ID: "c2", ComposeProject: "proj-a", ComposeService: "web"},
 		{ID: "c3", ComposeProject: "proj-a", ComposeService: "db"},
@@ -27,7 +27,7 @@ func TestComposeProjectAndServiceHelpers(t *testing.T) {
 		t.Fatalf("unexpected services for proj-a: %#v", services)
 	}
 
-	m.ComposeCursor = 1
+	m.Compose.ComposeCursor = 1
 	if got := currentComposeProject(m); got != "proj-b" {
 		t.Fatalf("expected proj-b, got %q", got)
 	}

@@ -210,15 +210,15 @@ func actionLabelForKind(kind state.DialogKind) string {
 
 // Render builds a full-screen modal dialog for export/debug/exec modes.
 func Render(m *state.AppModel) string {
-	tc := titleColorForKind(m.DialogState.Kind)
+	tc := titleColorForKind(m.Dialog.Kind)
 	dlgCfg := LoadDialogConfig()
-	oc := resolveOverlay(m.Config.UI.DialogOverlayColor, dlgCfg)
+	oc := resolveOverlay(m.Dependencies.Config.UI.DialogOverlayColor, dlgCfg)
 
 	dialogBox := SelectionDialog(
-		m.DialogState.Title, m.DialogState.Body, m.DialogState.Preview,
-		actionLabelForKind(m.DialogState.Kind), m.DialogState.Focus, m.Width, m.Height, tc, oc, dlgCfg,
+		m.Dialog.Title, m.Dialog.Body, m.Dialog.Preview,
+		actionLabelForKind(m.Dialog.Kind), m.Dialog.Focus, m.Viewport.Width, m.Viewport.Height, tc, oc, dlgCfg,
 	)
-	return lipgloss.Place(m.Width, m.Height,
+	return lipgloss.Place(m.Viewport.Width, m.Viewport.Height,
 		lipgloss.Center, lipgloss.Center, dialogBox,
 	)
 }
@@ -226,26 +226,26 @@ func Render(m *state.AppModel) string {
 // RenderOverlay renders a scrim (full-screen dim) with a selection dialog
 // centered on top. Background content remains visible but muted behind the dialog.
 func RenderOverlay(content string, m *state.AppModel) string {
-	tc := titleColorForKind(m.DialogState.Kind)
+	tc := titleColorForKind(m.Dialog.Kind)
 	dlgCfg := LoadDialogConfig()
-	oc := resolveOverlay(m.Config.UI.DialogOverlayColor, dlgCfg)
+	oc := resolveOverlay(m.Dependencies.Config.UI.DialogOverlayColor, dlgCfg)
 
 	dialogBox := SelectionDialog(
-		m.DialogState.Title, m.DialogState.Body, m.DialogState.Preview,
-		actionLabelForKind(m.DialogState.Kind), m.DialogState.Focus, m.Width, m.Height, tc, oc, dlgCfg,
+		m.Dialog.Title, m.Dialog.Body, m.Dialog.Preview,
+		actionLabelForKind(m.Dialog.Kind), m.Dialog.Focus, m.Viewport.Width, m.Viewport.Height, tc, oc, dlgCfg,
 	)
 
-	return PlaceDialog(content, dialogBox, m.Width, m.Height, oc, dlgCfg)
+	return PlaceDialog(content, dialogBox, m.Viewport.Width, m.Viewport.Height, oc, dlgCfg)
 }
 
 // RenderExecOverlay renders a full-screen scrim with the exec shell dialog
 // (3 shell options + custom input + confirm/cancel) centered on top.
 func RenderExecOverlay(content string, m *state.AppModel) string {
 	dlgCfg := LoadDialogConfig()
-	oc := resolveOverlay(m.Config.UI.DialogOverlayColor, dlgCfg)
+	oc := resolveOverlay(m.Dependencies.Config.UI.DialogOverlayColor, dlgCfg)
 
 	dialogBox := ExecDialog(m, oc, dlgCfg)
-	return PlaceDialog(content, dialogBox, m.Width, m.Height, oc, dlgCfg)
+	return PlaceDialog(content, dialogBox, m.Viewport.Width, m.Viewport.Height, oc, dlgCfg)
 }
 
 func clamp(v, lo, hi int) int {

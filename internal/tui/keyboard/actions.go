@@ -26,9 +26,9 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 		return m, ToFilter(m)
 
 	case keys.ActionRefresh:
-		if m.Docker != nil {
-			m.Containers.Loading = true
-			cmds = FetchAll(m.Docker)
+		if m.Connection.Docker != nil {
+			m.Resources.Containers.Loading = true
+			cmds = FetchAll(m.Connection.Docker)
 		}
 		return m, tea.Batch(cmds...)
 
@@ -73,7 +73,7 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 		return doStatsAction(m)
 
 	case keys.ActionContainerExec:
-		if m.ActivePanel != state.PanelContainers {
+		if m.Navigation.ActivePanel != state.PanelContainers {
 			return m, nil
 		}
 		ToExec(m)
@@ -106,34 +106,34 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 
 // handleBackAction handles the Esc/Back action with layered context-aware behavior.
 func handleBackAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Mode == state.ModeDetail {
+	if m.Navigation.Mode == state.ModeDetail {
 		BackFromDetail(m)
 		return m, nil
 	}
-	if m.Mode == state.ModeLogView {
+	if m.Navigation.Mode == state.ModeLogView {
 		BackFromLogView(m)
 		return m, nil
 	}
-	if m.Mode == state.ModeFilter {
+	if m.Navigation.Mode == state.ModeFilter {
 		BackFromFilter(m)
 		return m, nil
 	}
-	if m.ActivePanel == state.PanelImages && m.Images.ContainersViewID != "" {
+	if m.Navigation.ActivePanel == state.PanelImages && m.Resources.Images.ContainersViewID != "" {
 		BackFromImageContainers(m)
 		return m, nil
 	}
-	if m.ActivePanel == state.PanelVolumes && m.Volumes.DetailName != "" {
+	if m.Navigation.ActivePanel == state.PanelVolumes && m.Resources.Volumes.DetailName != "" {
 		BackFromVolumeDetail(m)
 		return m, nil
 	}
-	m.Mode = state.ModeNormal
-	m.StatsActive = false
-	if m.EscPending {
-		m.EscPending = false
+	m.Navigation.Mode = state.ModeNormal
+	m.Metrics.StatsActive = false
+	if m.Navigation.EscPending {
+		m.Navigation.EscPending = false
 		return m, tea.Quit
 	}
-	m.EscPending = true
-	m.InfoMessage = "Press Esc again to quit"
+	m.Navigation.EscPending = true
+	m.Feedback.InfoMessage = "Press Esc again to quit"
 	return m, tea.Tick(3*time.Second, func(t time.Time) tea.Msg {
 		return state.EscTimeout{}
 	})

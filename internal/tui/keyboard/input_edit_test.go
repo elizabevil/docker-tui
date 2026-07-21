@@ -34,20 +34,20 @@ func TestEditTextInputUsesRuneCursor(t *testing.T) {
 }
 
 func TestCommandInputEditsAtCursor(t *testing.T) {
-	app := &state.AppModel{NavigationState: state.NavigationState{Mode: state.ModeCommand, CommandInput: state.QueryInputState{Text: "imags", Cursor: 4}}}
+	app := &state.AppModel{Navigation: state.NavigationState{Mode: state.ModeCommand, CommandInput: state.QueryInputState{Text: "imags", Cursor: 4}}}
 	handleCommandInput("e", app)
-	if app.CommandInput.Text != "images" || app.CommandInput.Cursor != 5 {
-		t.Fatalf("command edit input=%#v", app.CommandInput)
+	if app.Navigation.CommandInput.Text != "images" || app.Navigation.CommandInput.Cursor != 5 {
+		t.Fatalf("command edit input=%#v", app.Navigation.CommandInput)
 	}
 }
 
 func TestExecInputDeletesPathSegment(t *testing.T) {
 	app := &state.AppModel{
-		NavigationState: state.NavigationState{Mode: state.ModeExec},
-		DialogState:     state.DialogState{Kind: state.DialogExec, Focus: state.ExecFocusInput, Input: state.NewQueryInput("/usr/bin/sh")},
+		Navigation: state.NavigationState{Mode: state.ModeExec},
+		Dialog:     state.DialogState{Kind: state.DialogExec, Focus: state.ExecFocusInput, Input: state.NewQueryInput("/usr/bin/sh")},
 	}
 	handleExecDialogKeys("ctrl+w", app)
-	if app.DialogState.Input.Text != "/usr/bin/" {
-		t.Fatalf("exec input = %#v", app.DialogState.Input)
+	if app.Dialog.Input.Text != "/usr/bin/" {
+		t.Fatalf("exec input = %#v", app.Dialog.Input)
 	}
 }

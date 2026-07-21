@@ -13,12 +13,12 @@ import (
 // handleImagePanelKeys handles image-panel-specific key bindings.
 // Returns nil, nil if key not handled.
 func handleImagePanelKeys(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.ActivePanel != state.PanelImages {
+	if m.Navigation.ActivePanel != state.PanelImages {
 		return nil, nil
 	}
 
 	// ── Container sub-view (ContainersViewID is set) ─────────
-	if m.Images.ContainersViewID != "" {
+	if m.Resources.Images.ContainersViewID != "" {
 		action, known := resolveAction(key, m)
 		if !known {
 			if key == keys.KeyLeft {
@@ -28,17 +28,17 @@ func handleImagePanelKeys(key string, m *state.AppModel) (*state.AppModel, tea.C
 		}
 		switch action {
 		case keys.ActionDown:
-			m.Images.ContainerCursor++
+			m.Resources.Images.ContainerCursor++
 			return m, nil
 		case keys.ActionUp:
-			if m.Images.ContainerCursor > 0 {
-				m.Images.ContainerCursor--
+			if m.Resources.Images.ContainerCursor > 0 {
+				m.Resources.Images.ContainerCursor--
 			}
 			return m, nil
 		case keys.ActionContainerExec:
 			syncContainerCursorForSubView(m)
-			m.DialogState.Open(state.DialogSpec{Kind: state.DialogExec, Input: "/bin/sh"})
-			m.Mode = m.DialogState.Kind.Mode()
+			m.Dialog.Open(state.DialogSpec{Kind: state.DialogExec, Input: "/bin/sh"})
+			m.Navigation.Mode = m.Dialog.Kind.Mode()
 			return m, RecordKeyStroke(m, key, "Exec")
 		case keys.ActionContainerStart:
 			mm, cmd := doImageSubContainerCmd(m, containerStartCmd)
@@ -78,13 +78,13 @@ func handleImagePanelKeys(key string, m *state.AppModel) (*state.AppModel, tea.C
 }
 
 func imageSubContainerID(m *state.AppModel) string {
-	if m.Docker == nil || m.Images.ContainersViewID == "" {
+	if m.Connection.Docker == nil || m.Resources.Images.ContainersViewID == "" {
 		return ""
 	}
-	imgShort := m.Images.ContainersViewID[:12]
+	imgShort := m.Resources.Images.ContainersViewID[:12]
 	var imgNames []string
-	for _, item := range m.Images.Items {
-		if item.ID == m.Images.ContainersViewID || item.ID[:12] == imgShort {
+	for _, item := range m.Resources.Images.Items {
+		if item.ID == m.Resources.Images.ContainersViewID || item.ID[:12] == imgShort {
 			for _, tag := range item.RepoTags {
 				imgNames = append(imgNames, tag)
 			}
@@ -92,7 +92,7 @@ func imageSubContainerID(m *state.AppModel) string {
 		}
 	}
 	cursor := 0
-	for _, c := range m.Containers.Items {
+	for _, c := range m.Resources.Containers.Items {
 		match := strings.Contains(c.Image, imgShort)
 		if !match {
 			for _, n := range imgNames {
@@ -105,7 +105,7 @@ func imageSubContainerID(m *state.AppModel) string {
 		if !match {
 			continue
 		}
-		if cursor == m.Images.ContainerCursor {
+		if cursor == m.Resources.Images.ContainerCursor {
 			return c.ID
 		}
 		cursor++
@@ -118,36 +118,36 @@ func syncContainerCursorForSubView(m *state.AppModel) {
 	if id == "" {
 		return
 	}
-	for i, c := range m.Containers.FilteredItems() {
+	for i, c := range m.Resources.Containers.FilteredItems() {
 		if c.ID == id {
-			m.Containers.Cursor = i
+			m.Resources.Containers.Cursor = i
 			return
 		}
 	}
 }
 
 func doImageSubContainerCmd(m *state.AppModel, cmdFn func(*docker.Client, string) tea.Cmd) (*state.AppModel, tea.Cmd) {
-	if m.Docker == nil {
+	if m.Connection.Docker == nil {
 		return m, nil
 	}
 	id := imageSubContainerID(m)
 	if id == "" {
 		return m, nil
 	}
-	return m, cmdFn(m.Docker, id)
+	return m, cmdFn(m.Connection.Docker, id)
 }
 
 // doImageContainerLog opens the log view for the selected container in the image sub-view.
 func doImageContainerLog(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Docker == nil {
+	if m.Connection.Docker == nil {
 		return m, nil
 	}
 	// Find the container at ContainerCursor matching ContainersViewID
-	imgShort := m.Images.ContainersViewID[:12]
+	imgShort := m.Resources.Images.ContainersViewID[:12]
 	var matchedID string
 	var imgNames []string
-	for _, item := range m.Images.Items {
-		if item.ID == m.Images.ContainersViewID || item.ID[:12] == imgShort {
+	for _, item := range m.Resources.Images.Items {
+		if item.ID == m.Resources.Images.ContainersViewID || item.ID[:12] == imgShort {
 			for _, tag := range item.RepoTags {
 				imgNames = append(imgNames, tag)
 			}
@@ -155,7 +155,7 @@ func doImageContainerLog(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		}
 	}
 	cursor := 0
-	for _, c := range m.Containers.Items {
+	for _, c := range m.Resources.Containers.Items {
 		match := strings.Contains(c.Image, imgShort)
 		if !match {
 			for _, n := range imgNames {
@@ -168,7 +168,7 @@ func doImageContainerLog(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		if !match {
 			continue
 		}
-		if cursor == m.Images.ContainerCursor {
+		if cursor == m.Resources.Images.ContainerCursor {
 			matchedID = c.ID
 			break
 		}
@@ -177,8 +177,8 @@ func doImageContainerLog(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if matchedID == "" {
 		return m, nil
 	}
-	m.LogState.Open(matchedID)
-	m.Mode = state.ModeLogView
-	cfg := m.Config.Logs
-	return m, FetchLogBatch(m.Docker, matchedID, cfg.Since, cfg.Tail, cfg.Timestamps)
+	m.Log.Open(matchedID)
+	m.Navigation.Mode = state.ModeLogView
+	cfg := m.Dependencies.Config.Logs
+	return m, FetchLogBatch(m.Connection.Docker, matchedID, cfg.Since, cfg.Tail, cfg.Timestamps)
 }

@@ -11,12 +11,12 @@ import (
 
 func handleLogBatchReceived(m *state.AppModel, msg state.LogBatchReceived) (*state.AppModel, tea.Cmd) {
 	if msg.Error != nil {
-		m.FeedbackState.RecordError(msg.Error.Error())
+		m.Feedback.RecordError(msg.Error.Error())
 	} else {
-		m.LogState.Append(msg.Lines)
+		m.Log.Append(msg.Lines)
 	}
 	// Keep polling logs every 2 seconds while in log view
-	if m.Mode == state.ModeLogView && m.LogContainerID == msg.ContainerID {
+	if m.Navigation.Mode == state.ModeLogView && m.Log.LogContainerID == msg.ContainerID {
 		return m, tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
 			return state.LogTick{ContainerID: msg.ContainerID}
 		})
@@ -25,14 +25,14 @@ func handleLogBatchReceived(m *state.AppModel, msg state.LogBatchReceived) (*sta
 }
 
 func handleLogStreamError(m *state.AppModel, msg state.LogStreamError) (*state.AppModel, tea.Cmd) {
-	m.FeedbackState.RecordError(msg.Error.Error())
+	m.Feedback.RecordError(msg.Error.Error())
 	return m, nil
 }
 
 func handleLogTick(m *state.AppModel, _ state.LogTick) (*state.AppModel, tea.Cmd) {
-	if m.Docker != nil && m.LogContainerID != "" {
+	if m.Connection.Docker != nil && m.Log.LogContainerID != "" {
 		// Fetch recent logs on subsequent ticks (use "10s" since to get new lines)
-		return m, keyboard.FetchLogBatch(m.Docker, m.LogContainerID, "10s", "200", true)
+		return m, keyboard.FetchLogBatch(m.Connection.Docker, m.Log.LogContainerID, "10s", "200", true)
 	}
 	return m, nil
 }

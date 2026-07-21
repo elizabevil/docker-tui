@@ -12,52 +12,52 @@ import (
 
 func doToggleMark(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	var id string
-	switch m.ActivePanel {
+	switch m.Navigation.ActivePanel {
 	case state.PanelContainers:
-		if ctr := m.Containers.Selected(); ctr != nil {
+		if ctr := m.Resources.Containers.Selected(); ctr != nil {
 			id = ctr.ID
 		}
 	case state.PanelImages:
-		if img := m.Images.Selected(); img != nil {
+		if img := m.Resources.Images.Selected(); img != nil {
 			id = img.ID
 		}
 	case state.PanelVolumes:
-		if vol := m.Volumes.Selected(); vol != nil {
+		if vol := m.Resources.Volumes.Selected(); vol != nil {
 			id = vol.Name
 		}
 	case state.PanelNetworks:
-		if net := m.Networks.Selected(); net != nil {
+		if net := m.Resources.Networks.Selected(); net != nil {
 			id = net.ID
 		}
 	}
 	if id == "" {
 		return m, nil
 	}
-	m.SelectionState.Toggle(id)
+	m.Selection.Toggle(id)
 	return m, nil
 }
 
 func doBulkDelete(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Docker == nil || len(m.MarkedIDs) == 0 {
+	if m.Connection.Docker == nil || len(m.Selection.MarkedIDs) == 0 {
 		return m, nil
 	}
-	m.ConfirmAction = "bulk-delete"
-	m.ConfirmTarget = fmt.Sprintf("%d items", len(m.MarkedIDs))
-	m.ConfirmMessage = fmt.Sprintf("Delete %d items?", len(m.MarkedIDs))
-	m.ConfirmAudit = beginAudit(m, "resource."+bulkResourceName(m.ActivePanel)+".delete", bulkTarget(m), m.ConfirmMessage)
-	m.Mode = state.ModeConfirm
+	m.Confirm.ConfirmAction = "bulk-delete"
+	m.Confirm.ConfirmTarget = fmt.Sprintf("%d items", len(m.Selection.MarkedIDs))
+	m.Confirm.ConfirmMessage = fmt.Sprintf("Delete %d items?", len(m.Selection.MarkedIDs))
+	m.Confirm.ConfirmAudit = beginAudit(m, "resource."+bulkResourceName(m.Navigation.ActivePanel)+".delete", bulkTarget(m), m.Confirm.ConfirmMessage)
+	m.Navigation.Mode = state.ModeConfirm
 	return m, nil
 }
 
 func doConfirmYes(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	action := m.ConfirmAction
-	target := m.ConfirmTarget
-	trace := m.ConfirmAudit
-	m.Mode = state.ModeNormal
-	m.ConfirmAction = ""
-	m.ConfirmTarget = ""
-	m.ConfirmMessage = ""
-	m.ConfirmAudit = audit.Trace{}
+	action := m.Confirm.ConfirmAction
+	target := m.Confirm.ConfirmTarget
+	trace := m.Confirm.ConfirmAudit
+	m.Navigation.Mode = state.ModeNormal
+	m.Confirm.ConfirmAction = ""
+	m.Confirm.ConfirmTarget = ""
+	m.Confirm.ConfirmMessage = ""
+	m.Confirm.ConfirmAudit = audit.Trace{}
 
 	switch {
 	case strings.HasPrefix(action, "batch-"):
@@ -65,50 +65,50 @@ func doConfirmYes(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case action == "bulk-delete":
 		return executeBulkDelete(m, trace)
 	case action == "container-stop":
-		return m, withContainerAudit(containerStopCmd(m.Docker, target), trace)
+		return m, withContainerAudit(containerStopCmd(m.Connection.Docker, target), trace)
 	case action == "container-kill":
-		return m, withContainerAudit(containerKillCmd(m.Docker, target), trace)
+		return m, withContainerAudit(containerKillCmd(m.Connection.Docker, target), trace)
 	case action == "container-restart":
-		return m, withContainerAudit(containerRestartCmd(m.Docker, target), trace)
+		return m, withContainerAudit(containerRestartCmd(m.Connection.Docker, target), trace)
 	case action == "container-remove":
-		return m, withContainerAudit(containerRemoveCmd(m.Docker, target, true), trace)
+		return m, withContainerAudit(containerRemoveCmd(m.Connection.Docker, target, true), trace)
 	case action == "image-remove":
-		return m, withImageAudit(imageRemoveCmd(m.Docker, target, true), trace)
+		return m, withImageAudit(imageRemoveCmd(m.Connection.Docker, target, true), trace)
 	case action == "volume-remove":
-		return m, withGenericAudit(volumeRemoveCmd(m.Docker, target, true), trace)
+		return m, withGenericAudit(volumeRemoveCmd(m.Connection.Docker, target, true), trace)
 	case action == "network-remove":
-		return m, withGenericAudit(networkRemoveCmd(m.Docker, target), trace)
+		return m, withGenericAudit(networkRemoveCmd(m.Connection.Docker, target), trace)
 	}
 	return m, nil
 }
 
 func executeBulkDelete(m *state.AppModel, trace audit.Trace) (*state.AppModel, tea.Cmd) {
-	if len(m.MarkedIDs) == 0 {
+	if len(m.Selection.MarkedIDs) == 0 {
 		return m, nil
 	}
-	ids := make([]string, 0, len(m.MarkedIDs))
-	for id := range m.MarkedIDs {
+	ids := make([]string, 0, len(m.Selection.MarkedIDs))
+	for id := range m.Selection.MarkedIDs {
 		ids = append(ids, id)
 	}
-	m.MarkedIDs = make(map[string]bool)
+	m.Selection.MarkedIDs = make(map[string]bool)
 
 	var cmds []tea.Cmd
-	switch m.ActivePanel {
+	switch m.Navigation.ActivePanel {
 	case state.PanelContainers:
 		for _, id := range ids {
-			cmds = append(cmds, withContainerAudit(containerRemoveCmd(m.Docker, id, true), trace))
+			cmds = append(cmds, withContainerAudit(containerRemoveCmd(m.Connection.Docker, id, true), trace))
 		}
 	case state.PanelImages:
 		for _, id := range ids {
-			cmds = append(cmds, withImageAudit(imageRemoveCmd(m.Docker, id, true), trace))
+			cmds = append(cmds, withImageAudit(imageRemoveCmd(m.Connection.Docker, id, true), trace))
 		}
 	case state.PanelVolumes:
 		for _, id := range ids {
-			cmds = append(cmds, withGenericAudit(volumeRemoveCmd(m.Docker, id, true), trace))
+			cmds = append(cmds, withGenericAudit(volumeRemoveCmd(m.Connection.Docker, id, true), trace))
 		}
 	case state.PanelNetworks:
 		for _, id := range ids {
-			cmds = append(cmds, withGenericAudit(networkRemoveCmd(m.Docker, id), trace))
+			cmds = append(cmds, withGenericAudit(networkRemoveCmd(m.Connection.Docker, id), trace))
 		}
 	}
 

@@ -17,53 +17,53 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 	var cmds []tea.Cmd
 
 	if key != keys.KeyEsc {
-		m.EscPending = false
-		m.InfoMessage = ""
+		m.Navigation.EscPending = false
+		m.Feedback.InfoMessage = ""
 	}
 
 	// Esc 也清除持久化错误
-	if key == keys.KeyEsc && m.ErrorMessage != "" {
-		m.FeedbackState.ClearError()
+	if key == keys.KeyEsc && m.Feedback.ErrorMessage != "" {
+		m.Feedback.ClearError()
 	}
 
-	if m.Mode == state.ModeHelp {
+	if m.Navigation.Mode == state.ModeHelp {
 		if action, known := resolveAction(key, m); known && (action == keys.ActionHelp || action == keys.ActionBack) {
 			BackFromHelp(m)
 		}
 		return m, nil
 	}
 
-	if m.Mode == state.ModeExecPassthrough {
+	if m.Navigation.Mode == state.ModeExecPassthrough {
 		if key == keys.KeyEsc {
-			FinishAudit(m, m.ExecAudit, audit.ResultCancelled, "Exec session closed by user", audit.Details{Shell: m.ExecShell})
-			if m.ExecConn != nil {
-				m.ExecConn.Close()
+			FinishAudit(m, m.Exec.ExecAudit, audit.ResultCancelled, "Exec session closed by user", audit.Details{Shell: m.Exec.ExecShell})
+			if m.Exec.ExecConn != nil {
+				m.Exec.ExecConn.Close()
 			}
-			m.ExecState.Reset()
-			m.Mode = state.ModeNormal
+			m.Exec.Reset()
+			m.Navigation.Mode = state.ModeNormal
 			return m, nil
 		}
-		if m.ExecConn != nil {
-			m.ExecConn.Write(mapKeyToTerm(key))
+		if m.Exec.ExecConn != nil {
+			m.Exec.ExecConn.Write(mapKeyToTerm(key))
 		}
 		return m, nil
 	}
 
-	if m.Mode == state.ModeFilter {
+	if m.Navigation.Mode == state.ModeFilter {
 		return handleFilterInput(normalizeInputKey(rawKey), m)
 	}
 
-	if m.Mode == state.ModeSearch {
+	if m.Navigation.Mode == state.ModeSearch {
 		return handleSearchInput(normalizeInputKey(rawKey), m), nil
 	}
-	if m.Mode == state.ModeImagePull {
+	if m.Navigation.Mode == state.ModeImagePull {
 		return handleImagePullInput(normalizeInputKey(rawKey), m), nil
 	}
 
-	if m.Mode == state.ModeCommand {
+	if m.Navigation.Mode == state.ModeCommand {
 		return handleCommandInput(normalizeInputKey(rawKey), m)
 	}
-	if m.Mode == state.ModeRuntimeSelect {
+	if m.Navigation.Mode == state.ModeRuntimeSelect {
 		return handleRuntimeSelectorKey(key, m)
 	}
 
@@ -71,13 +71,13 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 		return m, nil
 	}
 
-	if m.DialogState.Kind.IsSelection() {
+	if m.Dialog.Kind.IsSelection() {
 		switch key {
 		case keys.KeyTab:
-			m.DialogState.MoveFocus(1, 2)
+			m.Dialog.MoveFocus(1, 2)
 		case keys.KeyEnter:
-			if m.DialogState.Focus == 0 {
-				ShowToastNow(m, "✓ "+m.DialogState.Action)
+			if m.Dialog.Focus == 0 {
+				ShowToastNow(m, "✓ "+m.Dialog.Action)
 			}
 			clearDialogState(m)
 		case keys.KeyEsc, keys.KeyN:
@@ -86,7 +86,7 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 		return m, nil
 	}
 
-	if m.Mode == state.ModeExec {
+	if m.Navigation.Mode == state.ModeExec {
 		return handleExecDialogKeys(key, m)
 	}
 
@@ -94,16 +94,16 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 		return m, nil
 	}
 
-	if m.Mode == state.ModeConfirm {
+	if m.Navigation.Mode == state.ModeConfirm {
 		return handleConfirmKeys(key, m)
 	}
 
-	if m.Mode == state.ModeMark {
+	if m.Navigation.Mode == state.ModeMark {
 		return handleMarkMode(key, m)
 	}
 
 	if keys.IsSpace(key) {
-		if m.Mode == state.ModeMark {
+		if m.Navigation.Mode == state.ModeMark {
 			cmds = append(cmds, RecordKeyStroke(m, key, keys.ActionLabelToggle))
 			return doToggleMark(m)
 		}
@@ -112,12 +112,12 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 	}
 
 	// Nested views own additional cursor semantics and are resolved first.
-	if m.ActivePanel == state.PanelImages && m.Images.ContainersViewID != "" {
+	if m.Navigation.ActivePanel == state.PanelImages && m.Resources.Images.ContainersViewID != "" {
 		if mm, cmd := handleImagePanelKeys(key, m); mm != nil || cmd != nil {
 			return mm, cmd
 		}
 	}
-	if m.ActivePanel == state.PanelCompose && m.ComposeContainerViewID != "" {
+	if m.Navigation.ActivePanel == state.PanelCompose && m.Compose.ComposeContainerViewID != "" {
 		if mm, cmd := handleComposePanelKeys(key, m); mm != nil || cmd != nil {
 			return mm, cmd
 		}
@@ -136,7 +136,7 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 
 	if key == keys.KeyH {
 		cmds = append(cmds, RecordKeyStroke(m, key, keys.ActionLabelHeader))
-		m.ViewportState.ToggleHeader()
+		m.Viewport.ToggleHeader()
 		return m, tea.Batch(cmds...)
 	}
 
@@ -146,10 +146,10 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 	}
 
 	if key == keys.KeyO {
-		if m.Mode == state.ModeMark {
+		if m.Navigation.Mode == state.ModeMark {
 			return m, nil
 		}
-		switch m.ActivePanel {
+		switch m.Navigation.ActivePanel {
 		case state.PanelContainers:
 			cmds = append(cmds, RecordKeyStroke(m, key, keys.ActionLabelSort))
 			return doContainerSort(m)
@@ -163,26 +163,26 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 	}
 
 	if key == keys.KeyCtrlO {
-		if m.Mode == state.ModeMark {
+		if m.Navigation.Mode == state.ModeMark {
 			return m, nil
 		}
-		switch m.ActivePanel {
+		switch m.Navigation.ActivePanel {
 		case state.PanelContainers:
-			m.Containers.SortAsc = !m.Containers.SortAsc
-			m.Containers.Cursor = 0
-			m.Containers.ViewOffset = 0
+			m.Resources.Containers.SortAsc = !m.Resources.Containers.SortAsc
+			m.Resources.Containers.Cursor = 0
+			m.Resources.Containers.ViewOffset = 0
 			cmds = append(cmds, RecordKeyStroke(m, key, keys.ActionLabelSort))
 			return m, tea.Batch(cmds...)
 		case state.PanelImages:
-			m.Images.SortAsc = !m.Images.SortAsc
-			m.Images.Cursor = 0
-			m.Images.ViewOffset = 0
+			m.Resources.Images.SortAsc = !m.Resources.Images.SortAsc
+			m.Resources.Images.Cursor = 0
+			m.Resources.Images.ViewOffset = 0
 			cmds = append(cmds, RecordKeyStroke(m, key, keys.ActionLabelSort))
 			return m, tea.Batch(cmds...)
 		case state.PanelNetworks:
-			m.Networks.SortAsc = !m.Networks.SortAsc
-			m.Networks.Cursor = 0
-			m.Networks.ViewOffset = 0
+			m.Resources.Networks.SortAsc = !m.Resources.Networks.SortAsc
+			m.Resources.Networks.Cursor = 0
+			m.Resources.Networks.ViewOffset = 0
 			cmds = append(cmds, RecordKeyStroke(m, key, keys.ActionLabelSort))
 			return m, tea.Batch(cmds...)
 		}
@@ -199,18 +199,18 @@ func normalizeInputKey(key string) string {
 }
 
 func resolveAction(key string, m *state.AppModel) (keys.KeyAction, bool) {
-	if m == nil || m.Config == nil {
+	if m == nil || m.Dependencies.Config == nil {
 		return "", false
 	}
-	resolver := keys.NewResolver(keys.CompileBindings(m.Config.Keymap))
+	resolver := keys.NewResolver(keys.CompileBindings(m.Dependencies.Config.Keymap))
 	return resolver.Resolve(key, keyContext(m))
 }
 
 func keyContext(m *state.AppModel) keys.Context {
 	view := "containers"
-	switch m.ActivePanel {
+	switch m.Navigation.ActivePanel {
 	case state.PanelImages:
-		if m.Images.ContainersViewID != "" {
+		if m.Resources.Images.ContainersViewID != "" {
 			view = "image-containers"
 		} else {
 			view = "images"
@@ -220,7 +220,7 @@ func keyContext(m *state.AppModel) keys.Context {
 	case state.PanelNetworks:
 		view = "networks"
 	case state.PanelCompose:
-		if m.ComposeContainerViewID != "" {
+		if m.Compose.ComposeContainerViewID != "" {
 			view = "compose-containers"
 		} else {
 			view = "compose"
@@ -228,7 +228,7 @@ func keyContext(m *state.AppModel) keys.Context {
 	case state.PanelHelp:
 		view = "help"
 	}
-	return keys.Context{App: "app", Surface: keySurface(m.Mode), View: view, Mode: keyMode(m.Mode)}
+	return keys.Context{App: "app", Surface: keySurface(m.Navigation.Mode), View: view, Mode: keyMode(m.Navigation.Mode)}
 }
 
 func keySurface(mode state.AppMode) string {
@@ -264,26 +264,26 @@ func keyMode(mode state.AppMode) string {
 }
 
 func handleFilterInput(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	m.FilterInput.Clamp()
+	m.Navigation.FilterInput.Clamp()
 
 	switch key {
 	case keys.KeyEnter:
 		ApplyFilter(m)
 		focusFirstFilteredItem(m)
-		m.Mode = state.ModeNormal
-		m.NavigationState.ClearFilterExit()
+		m.Navigation.Mode = state.ModeNormal
+		m.Navigation.ClearFilterExit()
 	case keys.KeyEsc:
-		if m.FilterExitPending {
+		if m.Navigation.FilterExitPending {
 			BackFromFilter(m)
 			return m, nil
 		}
-		token := m.NavigationState.BeginFilterExit()
+		token := m.Navigation.BeginFilterExit()
 		ShowToastWarn(m, "Press Esc again within 5s to clear filter and exit")
 		return m, tea.Tick(5*time.Second, func(time.Time) tea.Msg {
 			return state.FilterExitTimeout{Token: token}
 		})
 	default:
-		if handled, changed := editQueryInput(key, &m.FilterInput); handled && changed {
+		if handled, changed := editQueryInput(key, &m.Navigation.FilterInput); handled && changed {
 			ApplyFilter(m)
 		}
 	}
@@ -291,21 +291,21 @@ func handleFilterInput(key string, m *state.AppModel) (*state.AppModel, tea.Cmd)
 }
 
 func handleSearchInput(key string, m *state.AppModel) *state.AppModel {
-	m.SearchInput.Clamp()
+	m.Navigation.SearchInput.Clamp()
 	switch key {
 	case keys.KeyEnter:
-		matches := m.LogState.ApplySearch(m.SearchInput.Text)
-		m.Mode = state.ModeLogView
-		if matches == 0 && m.LogSearchText != "" {
-			ShowToastWarn(m, "No log matches for: "+m.LogSearchText)
+		matches := m.Log.ApplySearch(m.Navigation.SearchInput.Text)
+		m.Navigation.Mode = state.ModeLogView
+		if matches == 0 && m.Log.LogSearchText != "" {
+			ShowToastWarn(m, "No log matches for: "+m.Log.LogSearchText)
 		} else if matches > 0 {
 			ShowToastNow(m, fmt.Sprintf("Log match 1/%d", matches))
 		}
 	case keys.KeyEsc:
-		m.Mode = state.ModeLogView
-		m.SearchInput.Set(m.LogSearchText)
+		m.Navigation.Mode = state.ModeLogView
+		m.Navigation.SearchInput.Set(m.Log.LogSearchText)
 	default:
-		editQueryInput(key, &m.SearchInput)
+		editQueryInput(key, &m.Navigation.SearchInput)
 	}
 	return m
 }
@@ -314,33 +314,33 @@ func focusFirstFilteredItem(m *state.AppModel) {
 	if m == nil {
 		return
 	}
-	switch m.ActivePanel {
+	switch m.Navigation.ActivePanel {
 	case state.PanelContainers:
-		if m.Containers != nil {
-			m.Containers.Cursor = 0
-			m.Containers.ViewOffset = 0
+		if m.Resources.Containers != nil {
+			m.Resources.Containers.Cursor = 0
+			m.Resources.Containers.ViewOffset = 0
 		}
 	case state.PanelImages:
-		if m.Images != nil {
-			m.Images.Cursor = 0
-			m.Images.ViewOffset = 0
+		if m.Resources.Images != nil {
+			m.Resources.Images.Cursor = 0
+			m.Resources.Images.ViewOffset = 0
 		}
 	case state.PanelVolumes:
-		if m.Volumes != nil {
-			m.Volumes.Cursor = 0
-			m.Volumes.ViewOffset = 0
+		if m.Resources.Volumes != nil {
+			m.Resources.Volumes.Cursor = 0
+			m.Resources.Volumes.ViewOffset = 0
 		}
 	case state.PanelNetworks:
-		if m.Networks != nil {
-			m.Networks.Cursor = 0
-			m.Networks.ViewOffset = 0
+		if m.Resources.Networks != nil {
+			m.Resources.Networks.Cursor = 0
+			m.Resources.Networks.ViewOffset = 0
 		}
 	case state.PanelCompose:
-		if m.ComposeFocus == 1 {
-			m.ComposeServiceCursor = 0
+		if m.Compose.ComposeFocus == 1 {
+			m.Compose.ComposeServiceCursor = 0
 		} else {
-			m.ComposeCursor = 0
-			m.ComposeServiceCursor = 0
+			m.Compose.ComposeCursor = 0
+			m.Compose.ComposeServiceCursor = 0
 		}
 	}
 }

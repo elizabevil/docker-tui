@@ -11,62 +11,62 @@ import (
 )
 
 func openRuntimeSelector(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.RuntimeSelectorDisabled || m.Pool == nil {
+	if m.Connection.RuntimeSelectorDisabled || m.Connection.Pool == nil {
 		ShowToastNow(m, "runtime selection unavailable in --host mode")
 		return m, nil
 	}
-	names := m.Pool.KnownHostNames()
+	names := m.Connection.Pool.KnownHostNames()
 	if len(names) == 0 {
 		ShowToastNow(m, "no runtime connections")
 		return m, nil
 	}
-	m.Mode = state.ModeRuntimeSelect
-	m.RuntimeSelectorCursor = 0
+	m.Navigation.Mode = state.ModeRuntimeSelect
+	m.Connection.RuntimeSelectorCursor = 0
 	for i, name := range names {
-		if name == m.Pool.ActiveName() {
-			m.RuntimeSelectorCursor = i
+		if name == m.Connection.Pool.ActiveName() {
+			m.Connection.RuntimeSelectorCursor = i
 			break
 		}
 	}
-	if m.RuntimeSelectorError == nil {
-		m.RuntimeSelectorError = make(map[string]string)
+	if m.Connection.RuntimeSelectorError == nil {
+		m.Connection.RuntimeSelectorError = make(map[string]string)
 	}
 	cmds := make([]tea.Cmd, 0, len(names))
 	for _, name := range names {
-		if name == m.Pool.ActiveName() {
+		if name == m.Connection.Pool.ActiveName() {
 			continue
 		}
 		connectionName := name
 		cmds = append(cmds, func() tea.Msg {
-			return state.RuntimeProbeResult{Name: connectionName, Error: m.Pool.Probe(connectionName, runtimeHealthTimeout(m))}
+			return state.RuntimeProbeResult{Name: connectionName, Error: m.Connection.Pool.Probe(connectionName, runtimeHealthTimeout(m))}
 		})
 	}
 	return m, tea.Batch(cmds...)
 }
 
 func runtimeHealthTimeout(m *state.AppModel) time.Duration {
-	if m.Config != nil {
-		return m.Config.Runtime.Health.Timeout()
+	if m.Dependencies.Config != nil {
+		return m.Dependencies.Config.Runtime.Health.Timeout()
 	}
 	return config.DefaultConfig().Runtime.Health.Timeout()
 }
 
 func handleRuntimeSelectorKey(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	names := m.Pool.KnownHostNames()
+	names := m.Connection.Pool.KnownHostNames()
 	if len(names) == 0 {
-		m.Mode = state.ModeNormal
+		m.Navigation.Mode = state.ModeNormal
 		return m, nil
 	}
 	switch key {
 	case keys.KeyEsc:
-		m.Mode = state.ModeNormal
+		m.Navigation.Mode = state.ModeNormal
 	case keys.KeyUp, keys.KeyK:
-		m.RuntimeSelectorCursor = (m.RuntimeSelectorCursor - 1 + len(names)) % len(names)
+		m.Connection.RuntimeSelectorCursor = (m.Connection.RuntimeSelectorCursor - 1 + len(names)) % len(names)
 	case keys.KeyDown, keys.KeyJ:
-		m.RuntimeSelectorCursor = (m.RuntimeSelectorCursor + 1) % len(names)
+		m.Connection.RuntimeSelectorCursor = (m.Connection.RuntimeSelectorCursor + 1) % len(names)
 	case keys.KeyEnter:
-		name := names[m.RuntimeSelectorCursor]
-		m.ConnectionState.Begin()
+		name := names[m.Connection.RuntimeSelectorCursor]
+		m.Connection.Begin()
 		return m, runtimeConnectionCmd(m, name)
 	}
 	return m, nil
@@ -74,16 +74,16 @@ func handleRuntimeSelectorKey(key string, m *state.AppModel) (*state.AppModel, t
 
 func runtimeConnectionCmd(m *state.AppModel, name string) tea.Cmd {
 	return func() tea.Msg {
-		if err := m.Pool.Connect(name, 2*time.Second); err != nil {
+		if err := m.Connection.Pool.Connect(name, 2*time.Second); err != nil {
 			return state.DockerConnected{Name: name, Error: err}
 		}
-		return state.DockerConnected{Name: name, Client: m.Pool.ActiveClient()}
+		return state.DockerConnected{Name: name, Client: m.Connection.Pool.ActiveClient()}
 	}
 }
 
 func selectorError(m *state.AppModel, name string, err error) {
-	if m.RuntimeSelectorError == nil {
-		m.RuntimeSelectorError = make(map[string]string)
+	if m.Connection.RuntimeSelectorError == nil {
+		m.Connection.RuntimeSelectorError = make(map[string]string)
 	}
-	m.RuntimeSelectorError[name] = fmt.Sprint(err)
+	m.Connection.RuntimeSelectorError[name] = fmt.Sprint(err)
 }

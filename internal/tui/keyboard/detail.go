@@ -10,7 +10,7 @@ import (
 // Space now acts as Page Down for scrolling.
 // 's' cycles between section/yaml/json source views.
 func handleDetailKeys(key string, m *state.AppModel) bool {
-	if m.Mode != state.ModeDetail {
+	if m.Navigation.Mode != state.ModeDetail {
 		return false
 	}
 	action, known := resolveAction(key, m)
@@ -20,22 +20,22 @@ func handleDetailKeys(key string, m *state.AppModel) bool {
 			BackFromDetail(m)
 			return true
 		case keys.ActionDown:
-			m.DetailState.Scroll(1)
+			m.Detail.Scroll(1)
 			return true
 		case keys.ActionUp:
-			m.DetailState.Scroll(-1)
+			m.Detail.Scroll(-1)
 			return true
 		}
 	}
 	switch key {
 	case keys.KeySpace, keys.KeyPgDn:
-		m.DetailState.Scroll(20)
+		m.Detail.Scroll(20)
 	case keys.KeyPgUp:
-		m.DetailState.Scroll(-20)
+		m.Detail.Scroll(-20)
 	case keys.KeyG:
-		m.DetailState.Scroll(-m.DetailOffset)
+		m.Detail.Scroll(-m.Detail.DetailOffset)
 	case "s":
-		m.DetailState.CycleSource()
+		m.Detail.CycleSource()
 	}
 	return true
 }

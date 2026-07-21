@@ -14,42 +14,42 @@ func handleCommandInput(key string, m *state.AppModel) (*state.AppModel, tea.Cmd
 	case keys.KeyEnter:
 		return executeCommand(m)
 	case keys.KeyEsc:
-		m.Mode = state.ModeNormal
-		m.CommandInput.Reset()
+		m.Navigation.Mode = state.ModeNormal
+		m.Navigation.CommandInput.Reset()
 		return m, nil
 	case keys.KeyTab:
-		m.CommandInput.Set(autocompleteCommand(m.CommandInput.Text))
+		m.Navigation.CommandInput.Set(autocompleteCommand(m.Navigation.CommandInput.Text))
 		return m, nil
 	default:
-		editQueryInput(key, &m.CommandInput)
+		editQueryInput(key, &m.Navigation.CommandInput)
 		return m, nil
 	}
 }
 
 func executeCommand(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	cmd := strings.TrimSpace(strings.ToLower(m.CommandInput.Text))
-	m.Mode = state.ModeNormal
-	m.CommandInput.Reset()
+	cmd := strings.TrimSpace(strings.ToLower(m.Navigation.CommandInput.Text))
+	m.Navigation.Mode = state.ModeNormal
+	m.Navigation.CommandInput.Reset()
 
 	switch cmd {
 	case keys.CommandCompose:
-		m.ActivePanel = state.PanelCompose
+		m.Navigation.ActivePanel = state.PanelCompose
 		ShowToastNow(m, "✓ Switched to Compose")
 	case keys.CommandImages:
-		m.ActivePanel = state.PanelImages
+		m.Navigation.ActivePanel = state.PanelImages
 	case keys.CommandContainers:
-		m.ActivePanel = state.PanelContainers
+		m.Navigation.ActivePanel = state.PanelContainers
 	case keys.CommandVolumes:
-		m.ActivePanel = state.PanelVolumes
+		m.Navigation.ActivePanel = state.PanelVolumes
 	case keys.CommandNetworks:
-		m.ActivePanel = state.PanelNetworks
+		m.Navigation.ActivePanel = state.PanelNetworks
 	case keys.CommandLogs:
-		if m.LogContainerID != "" {
-			m.Mode = state.ModeLogView
+		if m.Log.LogContainerID != "" {
+			m.Navigation.Mode = state.ModeLogView
 		}
 	case keys.CommandHelp:
-		m.Mode = state.ModeHelp
-		m.ActivePanel = state.PanelHelp
+		m.Navigation.Mode = state.ModeHelp
+		m.Navigation.ActivePanel = state.PanelHelp
 	}
 	return m, nil
 }

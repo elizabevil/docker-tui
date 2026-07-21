@@ -47,7 +47,8 @@ func RenderList(im *state.ImageListModel, cm *state.ContainerListModel, width in
 	}
 
 	rowHeight := component.CalcRowHeight(panelHeight)
-	component.EnsureVisible(&im.ViewOffset, im.Cursor, rowHeight, total)
+	viewOffset := im.ViewOffset
+	component.EnsureVisible(&viewOffset, im.Cursor, rowHeight, total)
 
 	// Header overrides with sort arrows
 	arrow := sortArrow(im.SortAsc)
@@ -86,7 +87,7 @@ func RenderList(im *state.ImageListModel, cm *state.ContainerListModel, width in
 
 	rows := make([][]string, 0, rowHeight)
 	containerImages := precomputeContainerIDs(cm)
-	for i := im.ViewOffset; i < total && len(rows) < rowHeight; i++ {
+	for i := viewOffset; i < total && len(rows) < rowHeight; i++ {
 		img := items[i]
 		_, name, tag := splitRef(img.RepoTags)
 		registry := img.Registry
@@ -150,7 +151,7 @@ func RenderList(im *state.ImageListModel, cm *state.ContainerListModel, width in
 
 	selected := -1
 	if !selectionDisabled {
-		selected = im.Cursor - im.ViewOffset
+		selected = im.Cursor - viewOffset
 	}
 	colStyles := component.GetPageColumnStyles("image", colsDef)
 	ts := tc.EffectiveTableStyle()
@@ -160,13 +161,13 @@ func RenderList(im *state.ImageListModel, cm *state.ContainerListModel, width in
 		Rows:              rows,
 		Selected:          selected,
 		Total:             total,
-		Offset:            im.ViewOffset,
+		Offset:            viewOffset,
 		Limit:             rowHeight,
 		Banner:            banner,
 		BannerW:           w,
 		HeaderOverrides:   overrides,
 		BodyHeight:        panelHeight,
-		MarkedRows:        component.BuildMarkedRows(rows, items, im.ViewOffset, markedIDs, func(img dockerclient.ImageSummary) string { return img.ID }),
+		MarkedRows:        component.BuildMarkedRows(rows, items, viewOffset, markedIDs, func(img dockerclient.ImageSummary) string { return img.ID }),
 		RowPrefix:         ts.RowPrefix,
 		RowPrefixSelected: ts.RowPrefixSelected,
 		ColStyles:         colStyles,
@@ -227,13 +228,9 @@ func renderContainers(im *state.ImageListModel, cm *state.ContainerListModel, wi
 
 	total := len(matched)
 	rowHeight := component.CalcRowHeight(panelHeight)
-	if im.ContainerCursor >= total {
-		im.ContainerCursor = total - 1
-	}
-	if im.ContainerCursor < 0 {
-		im.ContainerCursor = 0
-	}
-	component.EnsureVisible(&im.ContainerOffset, im.ContainerCursor, rowHeight, total)
+	containerCursor := min(max(0, im.ContainerCursor), total-1)
+	containerOffset := im.ContainerOffset
+	component.EnsureVisible(&containerOffset, containerCursor, rowHeight, total)
 
 	// Override stats header to "CPU/MEM" instead of "STATISTICS"
 	overrides := make([]string, len(colsDef))
@@ -244,7 +241,7 @@ func renderContainers(im *state.ImageListModel, cm *state.ContainerListModel, wi
 	}
 
 	rows := make([][]string, 0, rowHeight)
-	for i := im.ContainerOffset; i < total && len(rows) < rowHeight; i++ {
+	for i := containerOffset; i < total && len(rows) < rowHeight; i++ {
 		c := matched[i]
 		created := utils.FormatCreated(c.Created)
 		ports := c.Ports
@@ -276,7 +273,7 @@ func renderContainers(im *state.ImageListModel, cm *state.ContainerListModel, wi
 		}
 	}
 
-	selRow := selectedContainerSubRow(matched, im.ContainerOffset, im.ContainerCursor)
+	selRow := selectedContainerSubRow(matched, containerOffset, containerCursor)
 
 	selProv := component.NewSelectionProviderFromFn(func() string {
 		items := im.FilteredItems()
@@ -302,7 +299,7 @@ func renderContainers(im *state.ImageListModel, cm *state.ContainerListModel, wi
 			Rows:              rows,
 			Selected:          selRow,
 			Total:             total,
-			Offset:            im.ContainerOffset,
+			Offset:            containerOffset,
 			Limit:             rowHeight,
 			HeaderOverrides:   overrides,
 			FooterHint:        "l:logs Enter:logs Esc:back",

@@ -99,11 +99,11 @@ func sectionBG(global config.BackgroundConfig, section string) config.SectionBac
 }
 
 func RenderApp(m *state.AppModel) string {
-	if m.Width == 0 || m.Height == 0 {
+	if m.Viewport.Width == 0 || m.Viewport.Height == 0 {
 		return i18n.T("msg.loading")
 	}
-	if m.Width < minimumTerminalWidth || m.Height < minimumTerminalHeight {
-		return terminalSizeMessage(m.Width, m.Height)
+	if m.Viewport.Width < minimumTerminalWidth || m.Viewport.Height < minimumTerminalHeight {
+		return terminalSizeMessage(m.Viewport.Width, m.Viewport.Height)
 	}
 
 	// Window margin: percentage of terminal height for top/bottom spacing
@@ -121,11 +121,11 @@ func RenderApp(m *state.AppModel) string {
 	if mb > 15 {
 		mb = 15
 	}
-	marginTop := m.Height * mt / 100
-	marginBot := m.Height * mb / 100
-	usableH := m.Height - marginTop - marginBot
+	marginTop := m.Viewport.Height * mt / 100
+	marginBot := m.Viewport.Height * mb / 100
+	usableH := m.Viewport.Height - marginTop - marginBot
 	if usableH < 10 {
-		usableH = m.Height
+		usableH = m.Viewport.Height
 		marginTop = 0
 		marginBot = 0
 	}
@@ -134,17 +134,17 @@ func RenderApp(m *state.AppModel) string {
 	if contentWidthPct <= 0 || contentWidthPct > 100 {
 		contentWidthPct = 90
 	}
-	usableW := m.Width * contentWidthPct / 100
+	usableW := m.Viewport.Width * contentWidthPct / 100
 	if usableW < 50 {
-		usableW = m.Width
+		usableW = m.Viewport.Width
 	}
-	padH := (m.Width - usableW) / 2
+	padH := (m.Viewport.Width - usableW) / 2
 
 	rails := calculateRailHeights(usableH)
 	totalH := rails.total()
 
 	// Layer 1+2: compute global image colors with overlay
-	bgCfg := m.Config.Layout.Background
+	bgCfg := m.Dependencies.Config.Layout.Background
 	var globalColors []string
 	if bgCfg.Enable {
 		switch bgCfg.Type {
@@ -222,34 +222,34 @@ func RenderApp(m *state.AppModel) string {
 		wrap(panelRendered, panelColors),
 		wrap(footerRendered, footerColors)))
 
-	overlayColor := m.Config.UI.DialogOverlayColor
+	overlayColor := m.Dependencies.Config.UI.DialogOverlayColor
 	if overlayColor == "" {
 		overlayColor = "#0d1117cc"
 	}
-	if m.Mode == state.ModeConfirm {
-		return component.PlaceOverlay(m.Width, m.Height, component.RenderConfirmMsg(m.ConfirmMessage, m.ConfirmTarget, m.Width, m.Height, overlayColor), overlayColor)
+	if m.Navigation.Mode == state.ModeConfirm {
+		return component.PlaceOverlay(m.Viewport.Width, m.Viewport.Height, component.RenderConfirmMsg(m.Confirm.ConfirmMessage, m.Confirm.ConfirmTarget, m.Viewport.Width, m.Viewport.Height, overlayColor), overlayColor)
 	}
-	if m.Mode == state.ModeExecShell {
-		return component.PlaceOverlay(m.Width, m.Height, component.RenderShellDialog(m.DialogState.Input.Text, m.Width, m.Height, overlayColor), overlayColor)
+	if m.Navigation.Mode == state.ModeExecShell {
+		return component.PlaceOverlay(m.Viewport.Width, m.Viewport.Height, component.RenderShellDialog(m.Dialog.Input.Text, m.Viewport.Width, m.Viewport.Height, overlayColor), overlayColor)
 	}
-	if m.DialogState.Kind.IsSelection() {
+	if m.Dialog.Kind.IsSelection() {
 		return dialog.RenderOverlay(result, m)
 	}
-	if m.DialogState.Kind == state.DialogExec {
+	if m.Dialog.Kind == state.DialogExec {
 		return dialog.RenderExecOverlay(result, m)
 	}
-	if m.Mode == state.ModeRuntimeSelect {
-		return component.PlaceOverlay(m.Width, m.Height, renderRuntimeSelector(m), overlayColor)
+	if m.Navigation.Mode == state.ModeRuntimeSelect {
+		return component.PlaceOverlay(m.Viewport.Width, m.Viewport.Height, renderRuntimeSelector(m), overlayColor)
 	}
 	return result
 }
 
 func renderRuntimeSelector(m *state.AppModel) string {
 	rows := []string{"Select runtime connection", ""}
-	for i, name := range m.Pool.KnownHostNames() {
-		e := m.Pool.Get(name)
+	for i, name := range m.Connection.Pool.KnownHostNames() {
+		e := m.Connection.Pool.Get(name)
 		marker := "  "
-		if i == m.RuntimeSelectorCursor {
+		if i == m.Connection.RuntimeSelectorCursor {
 			marker = "> "
 		}
 		status := "disconnected"
@@ -260,7 +260,7 @@ func renderRuntimeSelector(m *state.AppModel) string {
 		if e != nil && e.Runtime != "" {
 			runtime = string(e.Runtime)
 		}
-		if err := m.RuntimeSelectorError[name]; err != "" {
+		if err := m.Connection.RuntimeSelectorError[name]; err != "" {
 			status = "error: " + err
 		}
 		rows = append(rows, marker+name+" ["+runtime+"] "+status)
@@ -271,7 +271,7 @@ func renderRuntimeSelector(m *state.AppModel) string {
 
 func renderMiddlePanel(m *state.AppModel, panelH int, panelW int) string {
 	borderLabel := ""
-	if m.Mode != state.ModeFilter && m.Mode != state.ModeSearch && m.Mode != state.ModeImagePull && m.Mode != state.ModeCommand {
+	if m.Navigation.Mode != state.ModeFilter && m.Navigation.Mode != state.ModeSearch && m.Navigation.Mode != state.ModeImagePull && m.Navigation.Mode != state.ModeCommand {
 		if f := currentTableFilterLabel(m); f != "" {
 			borderLabel = "Filter: " + f
 		}
@@ -285,8 +285,8 @@ func renderMiddlePanel(m *state.AppModel, panelH int, panelW int) string {
 
 func renderExecPassthroughPanel(m *state.AppModel, bodyH int) string {
 	var lines []string
-	if m.ExecBuf != nil {
-		lines = m.ExecBuf.View(bodyH, m.ExecScroll)
+	if m.Exec.ExecBuf != nil {
+		lines = m.Exec.ExecBuf.View(bodyH, m.Exec.ExecScroll)
 	}
 	if len(lines) == 0 {
 		lines = make([]string, bodyH)
@@ -296,9 +296,9 @@ func renderExecPassthroughPanel(m *state.AppModel, bodyH int) string {
 			lines[2] = "  Press Esc to return."
 		}
 	}
-	panelW := m.Width - 8
-	if m.ExecBuf != nil {
-		if vr, vc := m.ExecBuf.CursorVisible(bodyH, m.ExecScroll); vr >= 0 {
+	panelW := m.Viewport.Width - 8
+	if m.Exec.ExecBuf != nil {
+		if vr, vc := m.Exec.ExecBuf.CursorVisible(bodyH, m.Exec.ExecScroll); vr >= 0 {
 			runes := []rune(lines[vr])
 			if vc > len(runes) {
 				vc = len(runes)
@@ -339,34 +339,34 @@ func currentTableFilterLabel(m *state.AppModel) string {
 	if m == nil {
 		return ""
 	}
-	switch m.ActivePanel {
+	switch m.Navigation.ActivePanel {
 	case state.PanelContainers:
-		if m.Containers != nil {
-			return m.Containers.Filter
+		if m.Resources.Containers != nil {
+			return m.Resources.Containers.Filter
 		}
 	case state.PanelImages:
-		if m.Images != nil {
-			return m.Images.Filter
+		if m.Resources.Images != nil {
+			return m.Resources.Images.Filter
 		}
 	case state.PanelVolumes:
-		if m.Volumes != nil {
-			return m.Volumes.Filter
+		if m.Resources.Volumes != nil {
+			return m.Resources.Volumes.Filter
 		}
 	case state.PanelNetworks:
-		if m.Networks != nil {
-			return m.Networks.Filter
+		if m.Resources.Networks != nil {
+			return m.Resources.Networks.Filter
 		}
 	case state.PanelCompose:
-		if m.ComposeFocus == 1 {
-			if m.ComposeServiceFilter == "" {
+		if m.Compose.ComposeFocus == 1 {
+			if m.Compose.ComposeServiceFilter == "" {
 				return ""
 			}
-			return "服务: " + m.ComposeServiceFilter
+			return "服务: " + m.Compose.ComposeServiceFilter
 		}
-		if m.ComposeProjectFilter == "" {
+		if m.Compose.ComposeProjectFilter == "" {
 			return ""
 		}
-		return "项目: " + m.ComposeProjectFilter
+		return "项目: " + m.Compose.ComposeProjectFilter
 	}
 	return ""
 }
@@ -476,7 +476,7 @@ func loadImageRowColors(path string, targetRows int, sampleRate int, position st
 // precomputeGlobalImageColors loads the background image once and returns per-row
 // hex colors for ALL terminal rows. Sections slice into this array for continuity.
 func precomputeGlobalImageColors(m *state.AppModel, totalRows int) []string {
-	bg := m.Config.Layout.Background
+	bg := m.Dependencies.Config.Layout.Background
 	if bg.Type != "image" || bg.Image.Src == "" {
 		return nil
 	}
@@ -539,7 +539,7 @@ func breadcrumb(m *state.AppModel) string {
 	if len(items) == 0 {
 		return ""
 	}
-	bw := m.Width - 6
+	bw := m.Viewport.Width - 6
 	if bw < 10 {
 		bw = 10
 	}
@@ -551,21 +551,21 @@ func buildBreadcrumbItems(m *state.AppModel) []component.BreadcrumbItem {
 		return nil
 	}
 	items := []component.BreadcrumbItem{{
-		Label: state.PanelLabel(m.ActivePanel),
-		ID:    fmt.Sprintf("%d", m.ActivePanel),
+		Label: state.PanelLabel(m.Navigation.ActivePanel),
+		ID:    fmt.Sprintf("%d", m.Navigation.ActivePanel),
 	}}
 
-	if m.ActivePanel == state.PanelImages && m.Images != nil && m.Images.ContainersViewID != "" {
+	if m.Navigation.ActivePanel == state.PanelImages && m.Resources.Images != nil && m.Resources.Images.ContainersViewID != "" {
 		items = append(items, component.BreadcrumbItem{Label: "containers", ID: "images-containers"})
 	}
-	if m.ActivePanel == state.PanelVolumes && m.Volumes != nil && m.Volumes.DetailName != "" {
+	if m.Navigation.ActivePanel == state.PanelVolumes && m.Resources.Volumes != nil && m.Resources.Volumes.DetailName != "" {
 		items = append(items, component.BreadcrumbItem{Label: "containers", ID: "volumes-containers"})
 	}
-	if m.ActivePanel == state.PanelCompose && m.ComposeContainerViewID != "" {
+	if m.Navigation.ActivePanel == state.PanelCompose && m.Compose.ComposeContainerViewID != "" {
 		items = append(items, component.BreadcrumbItem{Label: "containers", ID: "compose-containers"})
 	}
 
-	switch m.Mode {
+	switch m.Navigation.Mode {
 	case state.ModeLogView:
 		items = append(items, component.BreadcrumbItem{Label: "logs", ID: "logs"})
 	case state.ModeDetail:

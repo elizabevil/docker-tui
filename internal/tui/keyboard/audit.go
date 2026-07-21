@@ -10,53 +10,53 @@ import (
 )
 
 func beginAudit(m *state.AppModel, action string, target audit.Target, message string) audit.Trace {
-	if m == nil || m.Audit == nil {
+	if m == nil || m.Dependencies.Audit == nil {
 		return audit.Trace{}
 	}
-	trace := m.Audit.Begin(action, target, audit.RuntimeContext{
-		Type: m.RuntimeType,
+	trace := m.Dependencies.Audit.Begin(action, target, audit.RuntimeContext{
+		Type: m.Connection.RuntimeType,
 		Name: runtimeName(m),
 		Host: runtimeHost(m),
 	}, audit.UIContext{
 		Surface: "main",
-		View:    panelName(m.ActivePanel),
-		Mode:    modeLabel(m.Mode),
+		View:    panelName(m.Navigation.ActivePanel),
+		Mode:    modeLabel(m.Navigation.Mode),
 	}, message)
 	syncAuditProjection(m)
 	return trace
 }
 
 func runtimeName(m *state.AppModel) string {
-	if m != nil && m.Pool != nil {
-		return m.Pool.ActiveName()
+	if m != nil && m.Connection.Pool != nil {
+		return m.Connection.Pool.ActiveName()
 	}
 	return ""
 }
 
 func FinishAudit(m *state.AppModel, trace audit.Trace, result audit.Result, message string, details audit.Details) {
-	if m == nil || m.Audit == nil || !trace.Valid() {
+	if m == nil || m.Dependencies.Audit == nil || !trace.Valid() {
 		return
 	}
-	m.Audit.Finish(trace, result, message, details)
+	m.Dependencies.Audit.Finish(trace, result, message, details)
 	syncAuditProjection(m)
 }
 
 func publishUIMessage(m *state.AppModel, level audit.Level, message string) {
-	if m != nil && m.Audit != nil {
-		m.Audit.PublishUI(level, message)
+	if m != nil && m.Dependencies.Audit != nil {
+		m.Dependencies.Audit.PublishUI(level, message)
 		syncAuditProjection(m)
 	}
 }
 
 func syncAuditProjection(m *state.AppModel) {
-	if m == nil || m.Audit == nil {
+	if m == nil || m.Dependencies.Audit == nil {
 		return
 	}
-	if notification := m.Audit.ConsumeNotification(); notification != nil {
-		m.FeedbackState.ShowToast(notification.Message, toastLevel(notification.Level), 30)
+	if notification := m.Dependencies.Audit.ConsumeNotification(); notification != nil {
+		m.Feedback.ShowToast(notification.Message, toastLevel(notification.Level), 30)
 	}
-	if operation := m.Audit.CurrentOperation(); operation != nil {
-		m.AuditOperationMessage = fmt.Sprintf("%s: %s", operation.Action, operation.Message)
+	if operation := m.Dependencies.Audit.CurrentOperation(); operation != nil {
+		m.Feedback.AuditOperationMessage = fmt.Sprintf("%s: %s", operation.Action, operation.Message)
 	}
 }
 
@@ -72,8 +72,8 @@ func toastLevel(level audit.Level) state.NotificationLevel {
 }
 
 func runtimeHost(m *state.AppModel) string {
-	if m != nil && m.Docker != nil {
-		return m.Docker.Host
+	if m != nil && m.Connection.Docker != nil {
+		return m.Connection.Docker.Host
 	}
 	return ""
 }
@@ -160,8 +160,8 @@ func withGenericAudit(cmd tea.Cmd, trace audit.Trace) tea.Cmd {
 
 func containerTarget(m *state.AppModel, id string) audit.ContainerTarget {
 	target := audit.ContainerTarget{ID: id, Name: id}
-	if m != nil && m.Containers != nil {
-		for _, item := range m.Containers.Items {
+	if m != nil && m.Resources.Containers != nil {
+		for _, item := range m.Resources.Containers.Items {
 			if item.ID == id {
 				target.Name, target.Meta.Image, target.Meta.State = item.Name, item.Image, item.State
 				break
@@ -173,8 +173,8 @@ func containerTarget(m *state.AppModel, id string) audit.ContainerTarget {
 
 func imageTarget(m *state.AppModel, id string) audit.ImageTarget {
 	target := audit.ImageTarget{ID: id, Name: id}
-	if m != nil && m.Images != nil {
-		for _, item := range m.Images.Items {
+	if m != nil && m.Resources.Images != nil {
+		for _, item := range m.Resources.Images.Items {
 			if item.ID == id {
 				target.Name, target.Meta.RepoTags = firstTag(item.RepoTags), append([]string(nil), item.RepoTags...)
 				break
@@ -200,8 +200,8 @@ func bulkResourceName(panel state.PanelType) string {
 }
 
 func bulkTarget(m *state.AppModel) audit.Target {
-	name := fmt.Sprintf("%d items", len(m.MarkedIDs))
-	switch m.ActivePanel {
+	name := fmt.Sprintf("%d items", len(m.Selection.MarkedIDs))
+	switch m.Navigation.ActivePanel {
 	case state.PanelContainers:
 		return audit.ContainerTarget{ID: "bulk", Name: name}
 	case state.PanelImages:

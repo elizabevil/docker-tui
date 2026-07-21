@@ -11,25 +11,25 @@ import (
 )
 
 func StatusBar(app *state.AppModel) string {
-	if app.Mode == state.ModeMark {
+	if app.Navigation.Mode == state.ModeMark {
 		status := fmt.Sprintf("%s Mark mode", component.GetStyle("toastWarning").Render("●"))
 		return component.GetStyle("statusBar").Render(status)
 	}
-	engineLabel := app.RuntimeType
+	engineLabel := app.Connection.RuntimeType
 	if engineLabel == "" {
-		engineLabel = app.ConnectionTarget
+		engineLabel = app.Connection.ConnectionTarget
 	}
 	if engineLabel == "" {
 		engineLabel = "no runtime"
 	}
 	hostStr := ""
-	if app.Docker != nil {
-		hostStr = app.Docker.Host
+	if app.Connection.Docker != nil {
+		hostStr = app.Connection.Docker.Host
 	}
 	status := fmt.Sprintf("%s %s", component.GetStyle("toastSuccess").Render("●"), engineLabel)
-	if app.Connecting {
+	if app.Connection.Connecting {
 		status = fmt.Sprintf("%s connecting...", component.GetStyle("toastWarning").Render("○"))
-	} else if !app.Connected {
+	} else if !app.Connection.Connected {
 		status = fmt.Sprintf("%s disconnected (%s)", component.GetStyle("toastError").Render("○"), engineLabel)
 	}
 	if hostStr != "" {

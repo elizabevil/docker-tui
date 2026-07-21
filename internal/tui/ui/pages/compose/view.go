@@ -34,7 +34,7 @@ type composeSvc struct {
 
 func gatherComposeProjects(m *state.AppModel) ([]composeProj, map[string]*composeProj) {
 	projects := map[string]*composeProj{}
-	for _, c := range m.Containers.Items {
+	for _, c := range m.Resources.Containers.Items {
 		p := c.ComposeProject
 		if p == "" {
 			continue
@@ -77,21 +77,19 @@ func gatherComposeProjects(m *state.AppModel) ([]composeProj, map[string]*compos
 
 func RenderPanel(m *state.AppModel, panelWidth int, panelHeight int) string {
 	// 容器子视图模式
-	if m.ComposeContainerViewID != "" {
+	if m.Compose.ComposeContainerViewID != "" {
 		return renderComposeContainers(m, panelWidth, panelHeight)
 	}
 
 	ordered, _ := gatherComposeProjects(m)
-	ordered = filterProjects(ordered, m.ComposeProjectFilter)
+	ordered = filterProjects(ordered, m.Compose.ComposeProjectFilter)
 	if len(ordered) == 0 {
-		if m.ComposeProjectFilter != "" {
+		if m.Compose.ComposeProjectFilter != "" {
 			return component.GetStyle("dim").Render("(no compose projects match filter)")
 		}
 		return component.GetStyle("dim").Render("(no compose projects found)")
 	}
-	if m.ComposeCursor >= len(ordered) {
-		m.ComposeCursor = 0
-	}
+	projectCursor := m.Compose.ProjectCursor(len(ordered))
 
 	totalW := panelWidth - 4
 
@@ -116,7 +114,7 @@ func RenderPanel(m *state.AppModel, panelWidth int, panelHeight int) string {
 	}
 
 	left := renderProjectList(m, ordered, leftW, bodyH)
-	right := renderServicePanel(m, ordered[m.ComposeCursor], rightW, bodyH)
+	right := renderServicePanel(m, ordered[projectCursor], rightW, bodyH)
 
 	// 顶部焦点色条：聚焦面板上方显示彩色横线
 	focus := tc.Layout.Focus
@@ -138,8 +136,8 @@ func RenderPanel(m *state.AppModel, panelWidth int, panelHeight int) string {
 		}
 		return lipgloss.NewStyle().Foreground(c).Render(strings.Repeat("\u2500", w))
 	}
-	leftBar := topBar(m.ComposeFocus == 0, leftW)
-	rightBar := topBar(m.ComposeFocus == 1, rightW)
+	leftBar := topBar(m.Compose.ComposeFocus == 0, leftW)
+	rightBar := topBar(m.Compose.ComposeFocus == 1, rightW)
 
 	left = leftBar + "\n" + left
 	right = rightBar + "\n" + right
@@ -189,7 +187,8 @@ func renderProjectList(m *state.AppModel, ordered []composeProj, w, panelHeight 
 		rows = append(rows, cells)
 	}
 
-	banner := ordered[m.ComposeCursor].name
+	projectCursor := m.Compose.ProjectCursor(total)
+	banner := ordered[projectCursor].name
 
 	colStyles := component.GetPageColumnStyles("container", colsDef)
 	ts := tc.EffectiveTableStyle()
@@ -198,7 +197,7 @@ func renderProjectList(m *state.AppModel, ordered []composeProj, w, panelHeight 
 		Cols:              colsDef,
 		Widths:            widths,
 		Rows:              rows,
-		Selected:          m.ComposeCursor,
+		Selected:          projectCursor,
 		Total:             total,
 		Limit:             rowHeight,
 		BodyHeight:        panelHeight,
@@ -226,7 +225,7 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 
 	svcNames := make([]string, 0, len(proj.svcs))
 	for name := range proj.svcs {
-		if m.ComposeServiceFilter != "" && !strings.Contains(name, m.ComposeServiceFilter) {
+		if m.Compose.ComposeServiceFilter != "" && !strings.Contains(name, m.Compose.ComposeServiceFilter) {
 			continue
 		}
 		svcNames = append(svcNames, name)
@@ -234,7 +233,7 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 	sort.Strings(svcNames)
 	if len(svcNames) == 0 {
 		msg := "(no services found)"
-		if m.ComposeServiceFilter != "" {
+		if m.Compose.ComposeServiceFilter != "" {
 			msg = "(no services match filter)"
 		}
 		return lipgloss.JoinVertical(lipgloss.Top,
@@ -244,9 +243,7 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 			component.GetStyle("dim").Render(msg),
 		)
 	}
-	if m.ComposeServiceCursor >= len(svcNames) {
-		m.ComposeServiceCursor = 0
-	}
+	serviceCursor := m.Compose.ServiceCursor(len(svcNames))
 
 	widths := tc.ColumnWidths("services_sub", w)
 	colsDef := tc.Columns["services_sub"]
@@ -277,7 +274,7 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 		Cols:              colsDef,
 		Widths:            widths,
 		Rows:              rows,
-		Selected:          m.ComposeServiceCursor,
+		Selected:          serviceCursor,
 		Total:             total,
 		Limit:             rowHeight,
 		BodyHeight:        panelHeight - 3,
@@ -302,10 +299,7 @@ func RenderProjectDetail(m *state.AppModel) string {
 	if len(ordered) == 0 {
 		return ""
 	}
-	if m.ComposeCursor >= len(ordered) {
-		m.ComposeCursor = 0
-	}
-	return BuildProjectDetail(ordered[m.ComposeCursor])
+	return BuildProjectDetail(ordered[m.Compose.ProjectCursor(len(ordered))])
 }
 
 // BuildProjectDetail 生成 compose 项目概览文本，供给 ModeDetail 渲染。
@@ -350,9 +344,9 @@ func renderComposeContainers(m *state.AppModel, panelWidth int, panelHeight int)
 
 	// 收集该服务的容器
 	project := currentProjectName(m)
-	service := m.ComposeContainerViewID
+	service := m.Compose.ComposeContainerViewID
 	matched := make([]dockerclient.ContainerSummary, 0, 8)
-	for _, c := range m.Containers.Items {
+	for _, c := range m.Resources.Containers.Items {
 		if c.ComposeProject == project && c.ComposeService == service {
 			matched = append(matched, c)
 		}
@@ -364,9 +358,11 @@ func renderComposeContainers(m *state.AppModel, panelWidth int, panelHeight int)
 	}
 
 	rowHeight := component.CalcRowHeight(panelHeight - 2) // title + breadcrumb
-	component.EnsureVisible(&m.ComposeContainerCursor, m.ComposeContainerCursor, rowHeight, total)
+	containerCursor := m.Compose.ContainerCursor(total)
+	viewOffset := 0
+	component.EnsureVisible(&viewOffset, containerCursor, rowHeight, total)
 
-	rows := component.BuildRows(matched, colsDef, 0, rowHeight,
+	rows := component.BuildRows(matched, colsDef, viewOffset, rowHeight,
 		func(c dockerclient.ContainerSummary, col tables.ColumnDef, idx int) string {
 			switch col.Key {
 			case "id":
@@ -396,7 +392,7 @@ func renderComposeContainers(m *state.AppModel, panelWidth int, panelHeight int)
 			Cols:              colsDef,
 			Widths:            widths,
 			Rows:              rows,
-			Selected:          m.ComposeContainerCursor,
+			Selected:          containerCursor - viewOffset,
 			Total:             total,
 			Limit:             rowHeight,
 			BodyHeight:        panelHeight - 2,
@@ -426,14 +422,11 @@ func tableBannerWidth(totalW int, ts tables.TableStyle) int {
 // currentProjectName 返回当前 Compose 光标所在的项目名。
 func currentProjectName(m *state.AppModel) string {
 	ordered, _ := gatherComposeProjects(m)
-	ordered = filterProjects(ordered, m.ComposeProjectFilter)
+	ordered = filterProjects(ordered, m.Compose.ComposeProjectFilter)
 	if len(ordered) == 0 {
 		return ""
 	}
-	if m.ComposeCursor >= len(ordered) {
-		m.ComposeCursor = 0
-	}
-	return ordered[m.ComposeCursor].name
+	return ordered[m.Compose.ProjectCursor(len(ordered))].name
 }
 
 func filterProjects(projects []composeProj, query string) []composeProj {

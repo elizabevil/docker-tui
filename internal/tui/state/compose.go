@@ -21,6 +21,18 @@ func (s *ComposeState) MoveService(delta, count int) {
 	s.ComposeServiceCursor = boundedCursor(s.ComposeServiceCursor+delta, count)
 }
 
+func (s ComposeState) ProjectCursor(count int) int {
+	return boundedCursor(s.ComposeCursor, count)
+}
+
+func (s ComposeState) ServiceCursor(count int) int {
+	return boundedCursor(s.ComposeServiceCursor, count)
+}
+
+func (s ComposeState) ContainerCursor(count int) int {
+	return boundedCursor(s.ComposeContainerCursor, count)
+}
+
 func (s *ComposeState) OpenContainers(service string) {
 	s.ComposeContainerViewID = service
 	s.ComposeContainerCursor = 0

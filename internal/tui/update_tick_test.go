@@ -12,17 +12,17 @@ import (
 )
 
 func TestHandleFilterExitTimeoutKeepsFilterActive(t *testing.T) {
-	app := &state.AppModel{NavigationState: state.NavigationState{Mode: state.ModeFilter, FilterExitPending: true, FilterExitToken: 2, FilterInput: state.QueryInputState{Text: "api", Cursor: 3}}}
+	app := &state.AppModel{Navigation: state.NavigationState{Mode: state.ModeFilter, FilterExitPending: true, FilterExitToken: 2, FilterInput: state.QueryInputState{Text: "api", Cursor: 3}}}
 	updated, _ := handleFilterExitTimeout(app, state.FilterExitTimeout{Token: 2})
-	if updated.FilterExitPending || updated.Mode != state.ModeFilter || updated.FilterInput.Text != "api" {
+	if updated.Navigation.FilterExitPending || updated.Navigation.Mode != state.ModeFilter || updated.Navigation.FilterInput.Text != "api" {
 		t.Fatalf("updated=%#v", updated)
 	}
 }
 
 func TestHandleFilterExitTimeoutIgnoresStaleWindow(t *testing.T) {
-	app := &state.AppModel{NavigationState: state.NavigationState{Mode: state.ModeFilter, FilterExitPending: true, FilterExitToken: 3}}
+	app := &state.AppModel{Navigation: state.NavigationState{Mode: state.ModeFilter, FilterExitPending: true, FilterExitToken: 3}}
 	updated, _ := handleFilterExitTimeout(app, state.FilterExitTimeout{Token: 2})
-	if !updated.FilterExitPending {
+	if !updated.Navigation.FilterExitPending {
 		t.Fatal("stale timeout cleared current filter exit window")
 	}
 }
@@ -36,14 +36,14 @@ func TestHandleDockerConnectedErrorProjectsTargetAndMessage(t *testing.T) {
 	if cmd != nil {
 		t.Fatal("connection failure should not schedule resource fetch")
 	}
-	if updated.Connected || updated.Connecting || updated.Docker != nil {
+	if updated.Connection.Connected || updated.Connection.Connecting || updated.Connection.Docker != nil {
 		t.Fatalf("connection state=%#v", updated)
 	}
-	if updated.ConnectionTarget != "local-docker" || !strings.Contains(updated.ConnectionError, "no such file") {
-		t.Fatalf("connection error=%q target=%q", updated.ConnectionError, updated.ConnectionTarget)
+	if updated.Connection.ConnectionTarget != "local-docker" || !strings.Contains(updated.Connection.ConnectionError, "no such file") {
+		t.Fatalf("connection error=%q target=%q", updated.Connection.ConnectionError, updated.Connection.ConnectionTarget)
 	}
-	if updated.ToastMessage == "" || !strings.Contains(updated.ToastMessage, "local-docker") {
-		t.Fatalf("toast=%q", updated.ToastMessage)
+	if updated.Feedback.ToastMessage == "" || !strings.Contains(updated.Feedback.ToastMessage, "local-docker") {
+		t.Fatalf("toast=%q", updated.Feedback.ToastMessage)
 	}
 	status := footer.StatusBar(updated)
 	if !strings.Contains(status, "local-docker") || strings.Contains(status, "docker disconnected") && !strings.Contains(status, "local-docker") {
@@ -55,38 +55,38 @@ func TestRuntimeHealthTransitionsAtThresholdAndRecovers(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.Runtime.Health.FailureThreshold = 2
 	app := state.NewAppModel(cfg, nil, "test")
-	app.Docker = &dockerclient.Client{}
-	app.Connected = true
-	app.ConnectionTarget = "local-docker"
+	app.Connection.Docker = &dockerclient.Client{}
+	app.Connection.Connected = true
+	app.Connection.ConnectionTarget = "local-docker"
 
 	updated, _ := handleRuntimeHealthResult(app, state.RuntimeHealthResult{Name: "local-docker", Error: errors.New("timeout")})
-	if updated.HealthDegraded || !updated.Connected || updated.HealthFailures != 1 {
+	if updated.Connection.HealthDegraded || !updated.Connection.Connected || updated.Connection.HealthFailures != 1 {
 		t.Fatalf("first failure degraded connection: %#v", updated)
 	}
 	updated, _ = handleRuntimeHealthResult(updated, state.RuntimeHealthResult{Name: "local-docker", Error: errors.New("timeout")})
-	if !updated.HealthDegraded || updated.Connected || updated.ErrorCount != 1 {
+	if !updated.Connection.HealthDegraded || updated.Connection.Connected || updated.Feedback.ErrorCount != 1 {
 		t.Fatalf("threshold did not degrade connection: %#v", updated)
 	}
 	updated, _ = handleRuntimeHealthResult(updated, state.RuntimeHealthResult{Name: "local-docker", Error: errors.New("timeout")})
-	if updated.ErrorCount != 1 {
-		t.Fatalf("repeated failure emitted another transition: errors=%d", updated.ErrorCount)
+	if updated.Feedback.ErrorCount != 1 {
+		t.Fatalf("repeated failure emitted another transition: errors=%d", updated.Feedback.ErrorCount)
 	}
 	updated, _ = handleRuntimeHealthResult(updated, state.RuntimeHealthResult{Name: "local-docker"})
-	if updated.HealthDegraded || !updated.Connected || updated.HealthFailures != 0 || updated.ConnectionError != "" {
+	if updated.Connection.HealthDegraded || !updated.Connection.Connected || updated.Connection.HealthFailures != 0 || updated.Connection.ConnectionError != "" {
 		t.Fatalf("successful ping did not recover connection: %#v", updated)
 	}
-	if !strings.Contains(updated.ToastMessage, "recovered") {
-		t.Fatalf("recovery toast=%q", updated.ToastMessage)
+	if !strings.Contains(updated.Feedback.ToastMessage, "recovered") {
+		t.Fatalf("recovery toast=%q", updated.Feedback.ToastMessage)
 	}
 }
 
 func TestRuntimeHealthIgnoresStaleConnectionResult(t *testing.T) {
 	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
-	app.Docker = &dockerclient.Client{}
-	app.Connected = true
-	app.ConnectionTarget = "podman"
+	app.Connection.Docker = &dockerclient.Client{}
+	app.Connection.Connected = true
+	app.Connection.ConnectionTarget = "podman"
 	updated, _ := handleRuntimeHealthResult(app, state.RuntimeHealthResult{Name: "docker", Error: errors.New("late timeout")})
-	if updated.HealthFailures != 0 || !updated.Connected {
+	if updated.Connection.HealthFailures != 0 || !updated.Connection.Connected {
 		t.Fatalf("stale result changed active connection: %#v", updated)
 	}
 }

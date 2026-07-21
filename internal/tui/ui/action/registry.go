@@ -42,7 +42,7 @@ func ForMode(app *state.AppModel) []Shortcut {
 	if app == nil {
 		return nil
 	}
-	switch app.Mode {
+	switch app.Navigation.Mode {
 	case state.ModeFilter:
 		return shortcuts("Enter", "Keep", "Esc Esc", "Clear & exit", "Ctrl+A/E", "Home/End", "Ctrl+W/U/K", "Edit")
 	case state.ModeSearch:
@@ -55,7 +55,7 @@ func ForMode(app *state.AppModel) []Shortcut {
 		return []Shortcut{
 			{bindingLabel(app, keys.ActionBack, keys.KEsc), "Cancel"},
 			{fmt.Sprintf("Space/%s", bindingLabel(app, keys.ActionEnter, keys.KEnter)), "Toggle"},
-			{bindingLabel(app, removeAction(app.ActivePanel), keys.KCtrlD), "Delete marked"},
+			{bindingLabel(app, removeAction(app.Navigation.ActivePanel), keys.KCtrlD), "Delete marked"},
 		}
 	case state.ModeConfirm:
 		return shortcuts("y", "Confirm", "n", "Cancel")
@@ -77,7 +77,7 @@ func Context(app *state.AppModel) []Shortcut {
 	if app == nil {
 		return nil
 	}
-	return ForPanel(app.ActivePanel, len(app.MarkedIDs), app)
+	return ForPanel(app.Navigation.ActivePanel, len(app.Selection.MarkedIDs), app)
 }
 
 func ForPanel(panel state.PanelType, marked int, app ...*state.AppModel) []Shortcut {
@@ -157,10 +157,10 @@ func Sections(app ...*state.AppModel) []Section {
 }
 
 func bindingLabel(app *state.AppModel, action keys.KeyAction, fallback string) string {
-	if app == nil || app.Config == nil {
+	if app == nil || app.Dependencies.Config == nil {
 		return fallback
 	}
-	bindings := keys.EffectiveKeys(app.Config.Keymap, action)
+	bindings := keys.EffectiveKeys(app.Dependencies.Config.Keymap, action)
 	if len(bindings) == 0 {
 		return fallback
 	}

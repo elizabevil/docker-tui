@@ -10,20 +10,20 @@ import (
 )
 
 func doDeleteAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Docker == nil {
+	if m.Connection.Docker == nil {
 		return m, nil
 	}
-	if len(m.MarkedIDs) > 0 {
+	if len(m.Selection.MarkedIDs) > 0 {
 		return doBulkDelete(m)
 	}
-	switch m.ActivePanel {
+	switch m.Navigation.ActivePanel {
 	case state.PanelContainers:
-		ctr := m.Containers.Selected()
+		ctr := m.Resources.Containers.Selected()
 		if ctr != nil {
 			confirmAction(m, "container-remove", ctr.ID, fmt.Sprintf("Remove container %s?", ctr.Name))
 		}
 	case state.PanelImages:
-		img := m.Images.Selected()
+		img := m.Resources.Images.Selected()
 		if img != nil {
 			tag := ""
 			if len(img.RepoTags) > 0 {
@@ -32,12 +32,12 @@ func doDeleteAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 			confirmAction(m, "image-remove", img.ID, fmt.Sprintf("Remove image %s?", tag))
 		}
 	case state.PanelVolumes:
-		vol := m.Volumes.Selected()
+		vol := m.Resources.Volumes.Selected()
 		if vol != nil {
 			confirmAction(m, "volume-remove", vol.Name, fmt.Sprintf("Remove volume %s?", vol.Name))
 		}
 	case state.PanelNetworks:
-		net := m.Networks.Selected()
+		net := m.Resources.Networks.Selected()
 		if net != nil {
 			confirmAction(m, "network-remove", net.ID, fmt.Sprintf("Remove network %s?", net.Name))
 		}
@@ -46,33 +46,33 @@ func doDeleteAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 }
 
 func doEnterAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Mode == state.ModeDetail {
+	if m.Navigation.Mode == state.ModeDetail {
 		BackFromDetail(m)
 		return m, nil
 	}
-	if m.Mode == state.ModeMark {
+	if m.Navigation.Mode == state.ModeMark {
 		return doToggleMark(m)
 	}
-	if m.ActivePanel == state.PanelContainers && m.Docker != nil {
+	if m.Navigation.ActivePanel == state.PanelContainers && m.Connection.Docker != nil {
 		return doLogAction(m)
 	}
-	if m.ActivePanel == state.PanelImages && m.Docker != nil {
+	if m.Navigation.ActivePanel == state.PanelImages && m.Connection.Docker != nil {
 		return doImageExpand(m)
 	}
-	if m.ActivePanel == state.PanelVolumes {
-		if vol := m.Volumes.Selected(); vol != nil {
+	if m.Navigation.ActivePanel == state.PanelVolumes {
+		if vol := m.Resources.Volumes.Selected(); vol != nil {
 			ToVolumeDetail(m, vol.Name)
 		}
 		return m, nil
 	}
-	if m.ActivePanel == state.PanelCompose {
+	if m.Navigation.ActivePanel == state.PanelCompose {
 		return doComposeEnter(m)
 	}
 	return m, nil
 }
 
 func doDetailAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	switch m.ActivePanel {
+	switch m.Navigation.ActivePanel {
 	case state.PanelContainers:
 		return doInspectAction(m)
 	case state.PanelImages:
@@ -87,8 +87,8 @@ func doDetailAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 }
 
 func showConnectionInfo(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Docker != nil {
-		ShowToastNow(m, fmt.Sprintf("Connected: %s @ %s", m.Docker.RuntimeType, m.Docker.Host))
+	if m.Connection.Docker != nil {
+		ShowToastNow(m, fmt.Sprintf("Connected: %s @ %s", m.Connection.Docker.RuntimeType, m.Connection.Docker.Host))
 	} else {
 		ShowToastNow(m, "Disconnected — no container engine available")
 	}
@@ -97,34 +97,34 @@ func showConnectionInfo(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 func ShowToastNow(m *state.AppModel, msg string) {
 	publishUIMessage(m, audit.LevelInfo, msg)
-	if m != nil && m.Audit != nil {
+	if m != nil && m.Dependencies.Audit != nil {
 		return
 	}
-	m.FeedbackState.ShowToast(msg, state.NotificationInfo, 30)
+	m.Feedback.ShowToast(msg, state.NotificationInfo, 30)
 }
 
 func ShowToastSuccess(m *state.AppModel, msg string) {
 	publishUIMessage(m, audit.LevelInfo, msg)
-	if m != nil && m.Audit != nil {
+	if m != nil && m.Dependencies.Audit != nil {
 		return
 	}
-	m.FeedbackState.ShowToast(msg, state.NotificationSuccess, 20)
+	m.Feedback.ShowToast(msg, state.NotificationSuccess, 20)
 }
 
 func ShowToastWarn(m *state.AppModel, msg string) {
 	publishUIMessage(m, audit.LevelWarn, msg)
-	if m != nil && m.Audit != nil {
+	if m != nil && m.Dependencies.Audit != nil {
 		return
 	}
-	m.FeedbackState.ShowToast(msg, state.NotificationWarning, 40)
+	m.Feedback.ShowToast(msg, state.NotificationWarning, 40)
 }
 
 // ShowKeyHint sets a hint in the header gap area. Returns a cmd to start the auto-clear timer.
 func ShowKeyHint(m *state.AppModel, msg string) tea.Cmd {
-	sec := m.Config.UI.HintTimeout
+	sec := m.Dependencies.Config.UI.HintTimeout
 	if sec <= 0 {
 		sec = 3
 	}
-	m.FeedbackState.SetKeyHint(msg, sec*10)
+	m.Feedback.SetKeyHint(msg, sec*10)
 	return func() tea.Msg { return state.KeyHintTick{} }
 }

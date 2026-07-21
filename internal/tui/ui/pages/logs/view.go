@@ -48,12 +48,12 @@ func DefaultLogsConfig() logsConfig {
 
 // RenderView renders the log streaming view with search highlight and word wrap.
 func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
-	lines := m.LogContent
+	lines := m.Log.LogContent
 	headerExtras := fmt.Sprintf("  %d lines", len(lines))
-	if m.LogSearchText != "" {
-		headerExtras += fmt.Sprintf(" │ search: \"%s\"", m.LogSearchText)
+	if m.Log.LogSearchText != "" {
+		headerExtras += fmt.Sprintf(" │ search: \"%s\"", m.Log.LogSearchText)
 	}
-	if m.LogWrapEnabled {
+	if m.Log.LogWrapEnabled {
 		headerExtras += " │ wrap"
 	}
 	header := component.GetStyle("dim").Render(headerExtras)
@@ -63,7 +63,7 @@ func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
 		rowHeight = 1
 	}
 
-	if m.LogContainerID == "" {
+	if m.Log.LogContainerID == "" {
 		return renderLogPanel(header, []string{
 			component.GetStyle("dim").Render("  Select a container and press 'l' to view logs"),
 			component.GetStyle("dim").Render("  Press Esc to return to container list"),
@@ -77,10 +77,10 @@ func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
 	}
 
 	visibleRows := rowHeight
-	if m.LogWrapEnabled {
+	if m.Log.LogWrapEnabled {
 		visibleRows = 1
 	}
-	offset := m.LogState.VisibleOffset(len(lines), visibleRows)
+	offset := m.Log.VisibleOffset(len(lines), visibleRows)
 
 	lineNumStyle := component.GetStyle("dim")
 	timestampStyle := component.GetStyle("logTimestamp")
@@ -100,7 +100,7 @@ func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
 
 		timestamp, text := splitLogLine(raw)
 		segments := []string{text}
-		if m.LogWrapEnabled {
+		if m.Log.LogWrapEnabled {
 			segments = wrapLine(text, logWidth)
 		}
 
@@ -108,7 +108,7 @@ func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
 		if strings.Contains(strings.ToLower(text), "stderr") {
 			textStyle = stderrStyle
 		}
-		matched := m.LogSearchText != "" && strings.Contains(strings.ToLower(raw), strings.ToLower(m.LogSearchText))
+		matched := m.Log.LogSearchText != "" && strings.Contains(strings.ToLower(raw), strings.ToLower(m.Log.LogSearchText))
 		for segmentIndex, segment := range segments {
 			if len(rendered) >= rowHeight {
 				break

@@ -9,7 +9,7 @@ import (
 )
 
 func TestContextPrefersModeActions(t *testing.T) {
-	app := &state.AppModel{NavigationState: state.NavigationState{Mode: state.ModeDetail, ActivePanel: state.PanelImages}}
+	app := &state.AppModel{Navigation: state.NavigationState{Mode: state.ModeDetail, ActivePanel: state.PanelImages}}
 	got := Context(app)
 	if len(got) == 0 || got[0].Key != "Esc/Enter" {
 		t.Fatalf("Context() did not project detail mode actions: %#v", got)
@@ -28,7 +28,7 @@ func TestSectionsUseRegistryActions(t *testing.T) {
 
 func TestGlobalProjectsConfiguredBindings(t *testing.T) {
 	app := &state.AppModel{Dependencies: state.Dependencies{Config: config.DefaultConfig()}}
-	app.Config.Keymap.Help = []string{"f3"}
+	app.Dependencies.Config.Keymap.Help = []string{"f3"}
 	shortcuts := Global(app)
 	for _, shortcut := range shortcuts {
 		if shortcut.Description == i18n.T("key.help") && shortcut.Key == "F3" {
