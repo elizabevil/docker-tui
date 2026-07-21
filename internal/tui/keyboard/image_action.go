@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/docker"
+	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -18,6 +20,10 @@ func ImagePullCmd(client *docker.Client, ref string) tea.Cmd {
 		err := client.PullImage(ref)
 		return state.ImageActioned{Action: state.ActionPulled, Ref: ref, Success: err == nil, Error: err}
 	}
+}
+
+func ImagePullCmdWithAudit(client *docker.Client, ref string, trace audit.Trace) tea.Cmd {
+	return withImageAudit(ImagePullCmd(client, ref), trace)
 }
 
 func imagePruneCmd(client *docker.Client) tea.Cmd {
@@ -38,17 +44,42 @@ func doImagePull(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if m.Docker == nil {
 		return m, nil
 	}
-	m.Mode = state.ModeFilter
+	m.Mode = state.ModeImagePull
 	m.FilterText = ""
+	m.FilterCursor = 0
 	m.InfoMessage = "Type image name (e.g. nginx:latest) and press Enter to pull"
 	return m, nil
+}
+
+func handleImagePullInput(key string, m *state.AppModel) *state.AppModel {
+	switch key {
+	case keys.KeyEnter:
+		ref := strings.TrimSpace(m.FilterText)
+		if ref == "" {
+			ShowToastWarn(m, "Image reference is required")
+			return m
+		}
+		m.PendingImagePull = ref
+		m.PendingImagePullAudit = beginAudit(m, "resource.image.pull", audit.ImageTarget{ID: ref, Name: ref}, "Pulling image "+ref)
+		m.FilterText = ""
+		m.FilterCursor = 0
+		m.Mode = state.ModeNormal
+	case keys.KeyEsc:
+		m.FilterText = ""
+		m.FilterCursor = 0
+		m.Mode = state.ModeNormal
+	default:
+		editTextInput(key, &m.FilterText, &m.FilterCursor)
+	}
+	return m
 }
 
 func doImagePrune(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if m.Docker == nil {
 		return m, nil
 	}
-	return m, imagePruneCmd(m.Docker)
+	trace := beginAudit(m, "resource.image.prune", audit.ImageTarget{ID: "unused", Name: "unused images"}, "Pruning unused images")
+	return m, withImageAudit(imagePruneCmd(m.Docker), trace)
 }
 
 func doImageRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {
@@ -64,6 +95,7 @@ func doImageRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		tag = img.RepoTags[0]
 	}
 	confirmAction(m, "image-remove", img.ID, fmt.Sprintf("Remove image %s?", tag))
+	m.ConfirmAudit = beginAudit(m, "resource.image.delete", imageTarget(m, img.ID), "Remove image "+tag)
 	return m, nil
 }
 

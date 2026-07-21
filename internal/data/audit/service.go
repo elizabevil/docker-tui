@@ -65,6 +65,7 @@ func (s *Service) PublishUI(level Level, message string) {
 }
 
 func (s *Service) CurrentNotification() *UIMessage { return s.notifications.Current() }
+func (s *Service) ConsumeNotification() *UIMessage { return s.notifications.Consume() }
 func (s *Service) CurrentOperation() *Record       { return s.operations.Current() }
 func (s *Service) RecentOperations() []Record      { return s.operations.Recent() }
 

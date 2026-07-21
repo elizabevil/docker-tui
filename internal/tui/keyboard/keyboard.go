@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
@@ -35,6 +36,7 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 
 	if m.Mode == state.ModeExecPassthrough {
 		if key == keys.KeyEsc {
+			FinishAudit(m, m.ExecAudit, audit.ResultCancelled, "Exec session closed by user", audit.Details{Shell: m.ExecShell})
 			if m.ExecConn != nil {
 				m.ExecConn.Close()
 			}
@@ -46,6 +48,7 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 				m.ExecBuf.Reset()
 			}
 			m.ExecScroll = 0
+			m.ExecAudit = audit.Trace{}
 			m.Mode = state.ModeNormal
 			return m, nil
 		}
@@ -61,6 +64,9 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 
 	if m.Mode == state.ModeSearch {
 		return handleSearchInput(normalizeInputKey(rawKey), m), nil
+	}
+	if m.Mode == state.ModeImagePull {
+		return handleImagePullInput(normalizeInputKey(rawKey), m), nil
 	}
 
 	if m.Mode == state.ModeCommand {
@@ -233,7 +239,7 @@ func keyContext(m *state.AppModel) keys.Context {
 
 func keySurface(mode state.AppMode) string {
 	switch mode {
-	case state.ModeFilter, state.ModeSearch, state.ModeCommand:
+	case state.ModeFilter, state.ModeSearch, state.ModeImagePull, state.ModeCommand:
 		return "input"
 	case state.ModeConfirm, state.ModeExport, state.ModeDebug, state.ModeExec, state.ModeExecShell:
 		return "dialog"
@@ -248,6 +254,8 @@ func keyMode(mode state.AppMode) string {
 		return "filter"
 	case state.ModeSearch:
 		return "search"
+	case state.ModeImagePull:
+		return "image-pull"
 	case state.ModeCommand:
 		return "command"
 	case state.ModeLogView:

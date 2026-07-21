@@ -41,7 +41,8 @@ go build -o ./dist/docker-tui ./cmd/docker-tui
 - 覆盖层/模式：`logs`、`detail`、`help`、`filter`、`command`、`exec`
 - 运行时支持：Docker / Podman，启动时通过连接池依次尝试本地 Podman 和 Docker
 - 主题与语言：内置主题加载与 `zh` / `en` i18n 已接入
-- 快捷键自定义：配置结构已存在，但默认键位当前仍由代码内置映射驱动
+- 快捷键自定义：`keymap.*` 已接入统一动作注册表，Help 与 Footer 显示当前有效绑定
+- 用户操作审计：资源操作使用统一 trace，终态投影到通知与 Footer，并写入按日 JSONL
 
 ## 文档约定
 

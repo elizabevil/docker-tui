@@ -89,6 +89,7 @@ const (
 	queryFilter
 	querySearch
 	queryCommand
+	queryImagePull
 )
 
 func queryKindFor(m *state.AppModel) queryKind {
@@ -97,6 +98,9 @@ func queryKindFor(m *state.AppModel) queryKind {
 	}
 	if m.Mode == state.ModeCommand {
 		return queryCommand
+	}
+	if m.Mode == state.ModeImagePull {
+		return queryImagePull
 	}
 	if m.Mode == state.ModeSearch {
 		return querySearch
@@ -128,6 +132,8 @@ func renderQueryInput(kind queryKind, text string, cursor int, width int) string
 		}
 	case querySearch:
 		input = component.GetStyle("searchBar").Render("Search: " + insertCursor(text, cursor))
+	case queryImagePull:
+		input = component.GetStyle("searchBar").Render("Pull: " + insertCursor(text, cursor))
 	default:
 		input = component.GetStyle("searchBar").Render("Filter: " + insertCursor(text, cursor))
 	}

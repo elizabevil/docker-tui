@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types/container"
+	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
@@ -26,10 +27,12 @@ func doContainerAction(m *state.AppModel, action string, cmdFn func(*docker.Clie
 	// "start" is non-destructive — execute immediately
 	if action == "start" {
 		m.InfoMessage = "starting " + ctr.Name + "..."
-		return m, cmdFn(m.Docker, ctr.ID)
+		trace := beginAudit(m, "resource.container.start", containerTarget(m, ctr.ID), "Starting "+ctr.Name)
+		return m, withContainerAudit(cmdFn(m.Docker, ctr.ID), trace)
 	}
 	// Destructive actions (stop/kill/restart) require confirmation
 	confirmAction(m, "container-"+action, ctr.ID, fmt.Sprintf("%s container %s?", action, ctr.Name))
+	m.ConfirmAudit = beginAudit(m, "resource.container."+action, containerTarget(m, ctr.ID), fmt.Sprintf("%s container %s", action, ctr.Name))
 	return m, nil
 }
 
@@ -41,10 +44,11 @@ func doBatchContainerAction(m *state.AppModel, action string, cmdFn func(*docker
 	m.ConfirmAction = "batch-" + action
 	m.ConfirmTarget = fmt.Sprintf("%d items", len(m.MarkedIDs))
 	m.ConfirmMessage = fmt.Sprintf("Batch %s %d containers?", action, len(m.MarkedIDs))
+	m.ConfirmAudit = beginAudit(m, "resource.container."+action, audit.ContainerTarget{ID: fmt.Sprintf("batch-%d", len(m.MarkedIDs)), Name: fmt.Sprintf("%d containers", len(m.MarkedIDs))}, m.ConfirmMessage)
 	return m, nil
 }
 
-func executeBatchAction(m *state.AppModel, action string) (*state.AppModel, tea.Cmd) {
+func executeBatchAction(m *state.AppModel, action string, trace audit.Trace) (*state.AppModel, tea.Cmd) {
 	ids := make([]string, 0, len(m.MarkedIDs))
 	for id := range m.MarkedIDs {
 		ids = append(ids, id)
@@ -68,7 +72,7 @@ func executeBatchAction(m *state.AppModel, action string) (*state.AppModel, tea.
 
 	var cmds []tea.Cmd
 	for _, id := range ids {
-		cmds = append(cmds, cmdFn(m.Docker, id))
+		cmds = append(cmds, withContainerAudit(cmdFn(m.Docker, id), trace))
 	}
 	ShowToastNow(m, fmt.Sprintf("✓ batch %s %d containers", action, len(ids)))
 	return m, tea.Batch(cmds...)
@@ -83,6 +87,7 @@ func doContainerRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		return m, nil
 	}
 	confirmAction(m, "container-remove", ctr.ID, fmt.Sprintf("Remove container %s?", ctr.Name))
+	m.ConfirmAudit = beginAudit(m, "resource.container.delete", containerTarget(m, ctr.ID), "Remove container "+ctr.Name)
 	return m, nil
 }
 
@@ -126,6 +131,7 @@ func doExecAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		shell = "/bin/sh"
 	}
 	m.ExecShell = ""
+	trace := beginAudit(m, "resource.container.exec", audit.ExecTarget{ID: ctr.ID, Name: ctr.Name, Meta: audit.ExecMeta{ContainerID: ctr.ID}}, "Starting exec session in "+ctr.Name)
 
 	cli := m.Docker.Raw()
 	ctx := context.Background()
@@ -139,17 +145,21 @@ func doExecAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	execCreate, err := cli.ContainerExecCreate(ctx, ctr.ID, execConfig)
 	if err != nil {
+		FinishAudit(m, trace, audit.ResultFailed, "Exec session creation failed", audit.Details{Error: err.Error(), Shell: shell})
 		ShowToastNow(m, fmt.Sprintf("✕ exec create: %v", err))
 		return m, nil
 	}
 
 	resp, err := cli.ContainerExecAttach(ctx, execCreate.ID, container.ExecAttachOptions{Tty: true})
 	if err != nil {
+		FinishAudit(m, trace, audit.ResultFailed, "Exec session attach failed", audit.Details{Error: err.Error(), Shell: shell})
 		ShowToastNow(m, fmt.Sprintf("✕ exec attach: %v", err))
 		return m, nil
 	}
 
 	m.ExecID = execCreate.ID
+	m.ExecAudit = trace
+	m.ExecShell = shell
 	m.ExecConn = resp.Conn
 	m.Mode = state.ModeExecPassthrough
 
@@ -231,7 +241,9 @@ func doSwitchRuntime(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if current == next {
 		next = names[0]
 	}
+	trace := beginAudit(m, "panel.runtime.switch", audit.RuntimeTarget{Name: next, Meta: audit.RuntimeMeta{Previous: current}}, fmt.Sprintf("Switching runtime from %s to %s", current, next))
 	if err := m.Pool.Connect(next, 10*time.Second); err != nil {
+		FinishAudit(m, trace, audit.ResultFailed, "Runtime switch failed", audit.Details{Error: err.Error()})
 		ShowToastNow(m, fmt.Sprintf("switch failed: %v", err))
 		return m, nil
 	}
@@ -240,6 +252,7 @@ func doSwitchRuntime(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		m.RuntimeType = string(m.Docker.RuntimeType)
 		m.EngineVersion = m.Docker.EngineVersion
 	}
+	FinishAudit(m, trace, audit.ResultSucceeded, "Switched runtime to "+next, audit.Details{})
 	cmds := FetchAll(m.Docker)
 	cmds = append(cmds, ShowKeyHint(m, fmt.Sprintf("F2: Switched to %s (%s)", next, m.RuntimeType)))
 	return m, tea.Batch(cmds...)

@@ -4,6 +4,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -290,6 +291,7 @@ func KeyStrokeActionLabel(key string) string {
 
 // confirmAction sets the model to ModeConfirm with the given action, target, and message.
 func confirmAction(m *state.AppModel, action, target, message string) {
+	m.ConfirmAudit = audit.Trace{}
 	m.ConfirmAction = action
 	m.ConfirmTarget = target
 	m.ConfirmMessage = message

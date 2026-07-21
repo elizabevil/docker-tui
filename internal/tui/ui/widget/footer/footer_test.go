@@ -26,3 +26,11 @@ func TestRenderAlwaysUsesThreeRows(t *testing.T) {
 		}
 	}
 }
+
+func TestOperationLogPrefersAuditProjection(t *testing.T) {
+	app := &state.AppModel{InfoMessage: "legacy", AuditOperationMessage: "resource.container.stop: stopped api"}
+	got := OperationLogLine(app)
+	if !strings.Contains(got, "resource.container.stop") {
+		t.Fatalf("operation log=%q", got)
+	}
+}

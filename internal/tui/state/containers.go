@@ -4,6 +4,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/elizabevil/docker-tui/internal/data/audit"
 	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 )
 
@@ -47,6 +48,7 @@ type (
 		ID      string
 		Success bool
 		Error   error
+		Audit   audit.Trace
 	}
 
 	LogBatchReceived struct {
@@ -88,6 +90,7 @@ type (
 		Ref     string
 		Success bool
 		Error   error
+		Audit   audit.Trace
 	}
 
 	GenericActioned struct {
@@ -95,6 +98,7 @@ type (
 		ID      string
 		Success bool
 		Error   error
+		Audit   audit.Trace
 	}
 
 	ToastTick struct{}

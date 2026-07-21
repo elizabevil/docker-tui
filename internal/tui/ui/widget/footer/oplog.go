@@ -17,6 +17,9 @@ func OperationLogLine(app *state.AppModel) string {
 	if app.ErrorMessage != "" {
 		return "LOG: " + utils.Truncate(app.ErrorMessage, 96)
 	}
+	if app.AuditOperationMessage != "" {
+		return "LOG: " + utils.Truncate(app.AuditOperationMessage, 96)
+	}
 	if app.InfoMessage != "" {
 		return "LOG: " + utils.Truncate(app.InfoMessage, 96)
 	}
@@ -36,6 +39,9 @@ func operationLogStatus(app *state.AppModel) string {
 			short += fmt.Sprintf(" [%d]", app.ErrorCount)
 		}
 		return component.GetStyle("toastError").Render(short)
+	}
+	if app.AuditOperationMessage != "" {
+		return component.GetStyle("toastInfo").Render(utils.Truncate(app.AuditOperationMessage, 40))
 	}
 	if app.InfoMessage != "" {
 		short := app.InfoMessage

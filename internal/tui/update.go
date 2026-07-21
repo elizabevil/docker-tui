@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/docker/docker/api/types/container"
+	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/tui/keyboard"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/term"
@@ -65,11 +66,13 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		updatedModel, cmd := keyboard.HandleKeyPress(msg, m)
 		if updatedModel.PendingImagePull != "" && updatedModel.Mode == state.ModeNormal && updatedModel.Docker != nil {
 			pullRef := updatedModel.PendingImagePull
+			trace := updatedModel.PendingImagePullAudit
 			updatedModel.PendingImagePull = ""
+			updatedModel.PendingImagePullAudit = audit.Trace{}
 			if cmd != nil {
-				return updatedModel, tea.Batch(cmd, keyboard.ImagePullCmd(updatedModel.Docker, pullRef))
+				return updatedModel, tea.Batch(cmd, keyboard.ImagePullCmdWithAudit(updatedModel.Docker, pullRef, trace))
 			}
-			return updatedModel, keyboard.ImagePullCmd(updatedModel.Docker, pullRef)
+			return updatedModel, keyboard.ImagePullCmdWithAudit(updatedModel.Docker, pullRef, trace)
 		}
 		return updatedModel, cmd
 
@@ -168,6 +171,7 @@ func handleExecOutput(m *state.AppModel, msg state.ExecOutput) (*state.AppModel,
 }
 
 func handleExecDone(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	keyboard.FinishAudit(m, m.ExecAudit, audit.ResultSucceeded, "Exec session finished", audit.Details{Shell: m.ExecShell})
 	m.ExecConn = nil
 	m.ExecID = ""
 	m.ExecCh = nil
@@ -176,6 +180,7 @@ func handleExecDone(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		m.ExecBuf.Reset()
 	}
 	m.ExecScroll = 0
+	m.ExecAudit = audit.Trace{}
 	m.Mode = state.ModeNormal
 	return m, nil
 }

@@ -31,6 +31,17 @@ func (p *NotificationProjector) Current() *UIMessage {
 	return &copy
 }
 
+func (p *NotificationProjector) Consume() *UIMessage {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.active == nil {
+		return nil
+	}
+	message := p.active
+	p.active = nil
+	return message
+}
+
 type OperationLogProjector struct {
 	mu      sync.RWMutex
 	history []Record

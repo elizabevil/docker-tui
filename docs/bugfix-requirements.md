@@ -104,12 +104,12 @@
 
 ### BR-005 消息 / 日志管理缺少统一审计模型
 
-- 状态: `designing`
+- 状态: `done`
 - 优先级: `high`
 - 症状:
   当前消息通知、底部操作日志、状态提示、正文日志和潜在落盘日志彼此分散，缺少统一事件模型和追溯链路。
 - 当前行为:
-  顶部通知主要依赖 `ToastMessage/ToastTimer`，底部操作行主要依赖 `InfoMessage/ErrorMessage`，应用本身尚未形成以用户操作为中心的审计日志方案。
+  用户显式触发的资源操作已统一生成 requested / started / terminal 审计记录；终态记录投影到顶部通知和 Footer，并按日写入 JSONL。普通查询、导航和非审计提示只进入 UI 消息投影，不污染审计历史。
 - 代码锚点:
   [internal/tui/state/app.go](/home/debi/IdeaProjects/docker-tui/internal/tui/state/app.go:58)
   [internal/tui/ui/component/toast.go](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/component/toast.go:1)
@@ -121,6 +121,7 @@
   2. 审计日志包含被操作对象的最小统一字段 `type/id/name`。
   3. 资源对象扩展字段使用强类型 `struct + interface` 约束，而不是松散 map。
   4. 落盘日志与界面通知/操作历史基于同一事件来源派生。
+  5. 容器、镜像、卷、网络、Compose、运行时切换和 Exec 操作均携带完整 trace。
 
 ## 新增条目模板
 

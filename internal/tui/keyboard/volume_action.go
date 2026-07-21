@@ -3,6 +3,7 @@ package keyboard
 import (
 	"fmt"
 
+	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
@@ -25,5 +26,6 @@ func doVolumeRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		return m, nil
 	}
 	confirmAction(m, "volume-remove", vol.Name, fmt.Sprintf("Remove volume %s?", vol.Name))
+	m.ConfirmAudit = beginAudit(m, "resource.volume.delete", audit.VolumeTarget{Name: vol.Name, Meta: audit.VolumeMeta{Driver: vol.Driver}}, "Remove volume "+vol.Name)
 	return m, nil
 }

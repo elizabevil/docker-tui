@@ -1003,7 +1003,7 @@
   11. `resource.compose_project.down`
   12. `panel.runtime.switch`
   13. `resource.container.exec` 的 session start / finish / fail
-- 后续实现清单:
+- 实现记录（2026-07-20）:
   1. 新增 `AuditRecord`、`AuditTarget`、`AuditTargetDTO`、`RuntimeContext`、`UIContext`、`Details` 结构定义
   2. 新增 `AuditResult` 与 `AuditLevel` 枚举
   3. 为 container / image / volume / network / compose / runtime / exec_session 建立强类型 target struct
@@ -1016,6 +1016,11 @@
   10. 将底部操作历史从 `InfoMessage/ErrorMessage` 逐步切换到投影结果
   11. 为第一版落地动作接入 audit trace 写入
   12. 为非审计型提示补 `UI Message Event` 通道
+  13. 已完成上述第一版实现，并额外覆盖 volume / network delete 与批量资源动作。
+  14. 异步动作消息显式携带 `audit.Trace`，完成、失败或取消时写入同一 trace 的终态记录。
+  15. `NotificationProjector` 使用一次性消费，避免旧通知在后续投影同步时重新出现；`OperationLogProjector` 保留最近 100 条记录。
+  16. `ui.view` 使用稳定面板机器名，`runtime.name` 使用连接池活动连接名，避免本地化标题或 runtime type 污染审计上下文。
+  17. 审计文件写入 `~/.config/docker-tui/logs/audit-YYYY-MM-DD.jsonl`；写入失败保留在 service 的 `LastError()`，不阻断用户操作。
 - 后续考虑清单:
   1. 是否增加 `actor`、`session_id`、`app_version` 等增强审计字段
   2. 是否引入 `runtime` 日志的独立结构和落盘策略

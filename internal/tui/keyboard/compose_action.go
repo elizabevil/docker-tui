@@ -3,6 +3,7 @@ package keyboard
 import (
 	"fmt"
 
+	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
@@ -71,15 +72,16 @@ func doComposeStart(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		return m, nil
 	}
 	containers := composeProjectContainers(m, project)
+	target := audit.ComposeTarget{Name: project, Meta: audit.ComposeMeta{Containers: len(containers)}}
+	trace := beginAudit(m, "resource.compose_project.start", target, "Starting compose project "+project)
 	if len(containers) == 0 {
-		ShowToastNow(m, "✕ compose start failed: no containers")
+		FinishAudit(m, trace, audit.ResultFailed, "Compose start failed: no containers", audit.Details{Error: "no containers"})
 		return m, nil
 	}
 	cmds := make([]tea.Cmd, 0, len(containers))
 	for _, c := range containers {
-		cmds = append(cmds, containerStartCmd(m.Docker, c.ID))
+		cmds = append(cmds, withContainerAudit(containerStartCmd(m.Docker, c.ID), trace))
 	}
-	ShowToastNow(m, "✓ compose start "+project)
 	return m, tea.Batch(cmds...)
 }
 
@@ -92,15 +94,16 @@ func doComposeStop(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		return m, nil
 	}
 	containers := composeProjectContainers(m, project)
+	target := audit.ComposeTarget{Name: project, Meta: audit.ComposeMeta{Containers: len(containers)}}
+	trace := beginAudit(m, "resource.compose_project.stop", target, "Stopping compose project "+project)
 	if len(containers) == 0 {
-		ShowToastNow(m, "✕ compose stop failed: no containers")
+		FinishAudit(m, trace, audit.ResultFailed, "Compose stop failed: no containers", audit.Details{Error: "no containers"})
 		return m, nil
 	}
 	cmds := make([]tea.Cmd, 0, len(containers))
 	for _, c := range containers {
-		cmds = append(cmds, containerStopCmd(m.Docker, c.ID))
+		cmds = append(cmds, withContainerAudit(containerStopCmd(m.Docker, c.ID), trace))
 	}
-	ShowToastNow(m, "✓ compose stop "+project)
 	return m, tea.Batch(cmds...)
 }
 
@@ -115,21 +118,22 @@ func doComposeDown(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	containers := composeProjectContainers(m, project)
 	volumes := composeProjectVolumes(m, project)
 	networks := composeProjectNetworks(m, project)
+	target := audit.ComposeTarget{Name: project, Meta: audit.ComposeMeta{Containers: len(containers), Volumes: len(volumes), Networks: len(networks)}}
+	trace := beginAudit(m, "resource.compose_project.down", target, "Removing compose project "+project)
 	if len(containers) == 0 && len(volumes) == 0 && len(networks) == 0 {
-		ShowToastNow(m, "✕ compose down failed: no compose resources")
+		FinishAudit(m, trace, audit.ResultFailed, "Compose down failed: no resources", audit.Details{Error: "no compose resources"})
 		return m, nil
 	}
 	cmds := make([]tea.Cmd, 0, len(containers)+len(volumes)+len(networks))
 	for _, c := range containers {
-		cmds = append(cmds, containerRemoveCmd(m.Docker, c.ID, true))
+		cmds = append(cmds, withContainerAudit(containerRemoveCmd(m.Docker, c.ID, true), trace))
 	}
 	for _, name := range volumes {
-		cmds = append(cmds, volumeRemoveCmd(m.Docker, name, true))
+		cmds = append(cmds, withGenericAudit(volumeRemoveCmd(m.Docker, name, true), trace))
 	}
 	for _, id := range networks {
-		cmds = append(cmds, networkRemoveCmd(m.Docker, id))
+		cmds = append(cmds, withGenericAudit(networkRemoveCmd(m.Docker, id), trace))
 	}
-	ShowToastNow(m, fmt.Sprintf("✓ compose down %s (containers:%d volumes:%d networks:%d)", project, len(containers), len(volumes), len(networks)))
 	return m, tea.Batch(cmds...)
 }
 

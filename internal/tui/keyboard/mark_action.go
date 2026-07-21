@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -50,6 +51,7 @@ func doBulkDelete(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	m.ConfirmAction = "bulk-delete"
 	m.ConfirmTarget = fmt.Sprintf("%d items", len(m.MarkedIDs))
 	m.ConfirmMessage = fmt.Sprintf("Delete %d items?", len(m.MarkedIDs))
+	m.ConfirmAudit = beginAudit(m, "resource."+bulkResourceName(m.ActivePanel)+".delete", bulkTarget(m), m.ConfirmMessage)
 	m.Mode = state.ModeConfirm
 	return m, nil
 }
@@ -57,35 +59,37 @@ func doBulkDelete(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 func doConfirmYes(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	action := m.ConfirmAction
 	target := m.ConfirmTarget
+	trace := m.ConfirmAudit
 	m.Mode = state.ModeNormal
 	m.ConfirmAction = ""
 	m.ConfirmTarget = ""
 	m.ConfirmMessage = ""
+	m.ConfirmAudit = audit.Trace{}
 
 	switch {
 	case strings.HasPrefix(action, "batch-"):
-		return executeBatchAction(m, strings.TrimPrefix(action, "batch-"))
+		return executeBatchAction(m, strings.TrimPrefix(action, "batch-"), trace)
 	case action == "bulk-delete":
-		return executeBulkDelete(m)
+		return executeBulkDelete(m, trace)
 	case action == "container-stop":
-		return m, containerStopCmd(m.Docker, target)
+		return m, withContainerAudit(containerStopCmd(m.Docker, target), trace)
 	case action == "container-kill":
-		return m, containerKillCmd(m.Docker, target)
+		return m, withContainerAudit(containerKillCmd(m.Docker, target), trace)
 	case action == "container-restart":
-		return m, containerRestartCmd(m.Docker, target)
+		return m, withContainerAudit(containerRestartCmd(m.Docker, target), trace)
 	case action == "container-remove":
-		return m, containerRemoveCmd(m.Docker, target, true)
+		return m, withContainerAudit(containerRemoveCmd(m.Docker, target, true), trace)
 	case action == "image-remove":
-		return m, imageRemoveCmd(m.Docker, target, true)
+		return m, withImageAudit(imageRemoveCmd(m.Docker, target, true), trace)
 	case action == "volume-remove":
-		return m, volumeRemoveCmd(m.Docker, target, true)
+		return m, withGenericAudit(volumeRemoveCmd(m.Docker, target, true), trace)
 	case action == "network-remove":
-		return m, networkRemoveCmd(m.Docker, target)
+		return m, withGenericAudit(networkRemoveCmd(m.Docker, target), trace)
 	}
 	return m, nil
 }
 
-func executeBulkDelete(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+func executeBulkDelete(m *state.AppModel, trace audit.Trace) (*state.AppModel, tea.Cmd) {
 	if len(m.MarkedIDs) == 0 {
 		return m, nil
 	}
@@ -99,19 +103,19 @@ func executeBulkDelete(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	switch m.ActivePanel {
 	case state.PanelContainers:
 		for _, id := range ids {
-			cmds = append(cmds, containerRemoveCmd(m.Docker, id, true))
+			cmds = append(cmds, withContainerAudit(containerRemoveCmd(m.Docker, id, true), trace))
 		}
 	case state.PanelImages:
 		for _, id := range ids {
-			cmds = append(cmds, imageRemoveCmd(m.Docker, id, true))
+			cmds = append(cmds, withImageAudit(imageRemoveCmd(m.Docker, id, true), trace))
 		}
 	case state.PanelVolumes:
 		for _, id := range ids {
-			cmds = append(cmds, volumeRemoveCmd(m.Docker, id, true))
+			cmds = append(cmds, withGenericAudit(volumeRemoveCmd(m.Docker, id, true), trace))
 		}
 	case state.PanelNetworks:
 		for _, id := range ids {
-			cmds = append(cmds, networkRemoveCmd(m.Docker, id))
+			cmds = append(cmds, withGenericAudit(networkRemoveCmd(m.Docker, id), trace))
 		}
 	}
 

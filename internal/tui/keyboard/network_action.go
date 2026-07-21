@@ -3,6 +3,7 @@ package keyboard
 import (
 	"fmt"
 
+	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
@@ -46,5 +47,6 @@ func doNetworkRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		return m, nil
 	}
 	confirmAction(m, "network-remove", net.ID, fmt.Sprintf("Remove network %s?", net.Name))
+	m.ConfirmAudit = beginAudit(m, "resource.network.delete", audit.NetworkTarget{ID: net.ID, Name: net.Name, Meta: audit.NetworkMeta{Driver: net.Driver}}, "Remove network "+net.Name)
 	return m, nil
 }

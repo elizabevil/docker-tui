@@ -33,6 +33,7 @@ const (
 	ModeNormal AppMode = iota
 	ModeFilter
 	ModeSearch
+	ModeImagePull
 	ModeLogView
 	ModeDetail
 	ModeHelp
@@ -159,11 +160,13 @@ type AppModel struct {
 	ConfirmAction  string
 	ConfirmTarget  string
 	ConfirmMessage string
+	ConfirmAudit   audit.Trace
 
 	// ── Select ──
-	MarkedIDs        map[string]bool
-	PendingImagePull string
-	Spinner          *component.Spinner
+	MarkedIDs             map[string]bool
+	PendingImagePull      string
+	PendingImagePullAudit audit.Trace
+	Spinner               *component.Spinner
 
 	// ── Exec Passthrough ──
 	ExecConn   net.Conn      // hijacked connection for exec stdin

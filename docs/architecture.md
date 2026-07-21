@@ -49,6 +49,7 @@ cmd/docker-tui/
 
 ### `internal/data`
 
+- `audit`：用户操作 trace、强类型目标、通知/操作历史投影和按日 JSONL sink
 - `config`：配置默认值、加载、保存、主题加载
 - `docker`：Docker / Podman 客户端封装、连接池、资源操作、stats、inspect、events
 - `i18n`：`zh` / `en` 文案
@@ -96,6 +97,18 @@ state.StatsTick
   -> state.StatsReceived
 ```
 
+### 用户操作审计
+
+```
+keyboard action
+  -> audit.Service.Begin() (requested / started)
+  -> async XxxActioned carries audit.Trace
+  -> audit.Service.Finish() (succeeded / failed / cancelled)
+  -> NotificationProjector + OperationLogProjector + FileSink
+```
+
+审计目标使用 `type / id / name` 统一字段和资源专属强类型 meta。顶部 Toast 消费终态通知，Footer 显示最近操作记录；普通 UI 提示只经过通知投影。日志默认写入 `~/.config/docker-tui/logs/audit-YYYY-MM-DD.jsonl`。
+
 ## 当前已实现能力
 
 - 多资源面板：容器、镜像、卷、网络、Compose
@@ -105,6 +118,7 @@ state.StatsTick
 - 卷/网络：列表、删除、详情
 - Compose：从容器标签聚合项目与服务视图
 - UI 能力：搜索、命令模式、帮助页、主题、i18n、Header 开关
+- 用户操作审计：资源操作 trace、通知与 Footer 投影、按日 JSONL 落盘
 
 镜像详情优先使用 `InspectImageDetail()` 的结构化模型。普通镜像通过 runtime `ImageHistory` API 加载 layer history；manifest list 使用列表阶段解析的平台变体，不调用不适用的 layer history API。
 

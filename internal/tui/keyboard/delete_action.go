@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 
@@ -134,18 +135,30 @@ func showConnectionInfo(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 }
 
 func ShowToastNow(m *state.AppModel, msg string) {
+	publishUIMessage(m, audit.LevelInfo, msg)
+	if m != nil && m.Audit != nil {
+		return
+	}
 	m.ToastMessage = msg
 	m.ToastLevel = component.ToastInfo
 	m.ToastTimer = 30
 }
 
 func ShowToastSuccess(m *state.AppModel, msg string) {
+	publishUIMessage(m, audit.LevelInfo, msg)
+	if m != nil && m.Audit != nil {
+		return
+	}
 	m.ToastMessage = msg
 	m.ToastLevel = component.ToastSuccess
 	m.ToastTimer = 20
 }
 
 func ShowToastWarn(m *state.AppModel, msg string) {
+	publishUIMessage(m, audit.LevelWarn, msg)
+	if m != nil && m.Audit != nil {
+		return
+	}
 	m.ToastMessage = msg
 	m.ToastLevel = component.ToastWarning
 	m.ToastTimer = 40
