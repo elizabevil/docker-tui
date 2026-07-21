@@ -48,6 +48,17 @@ const (
 	ModeRuntimeSelect
 )
 
+// ExecDialogFocus identifies focusable regions in the exec dialog.
+const (
+	ExecFocusShell1 = iota
+	ExecFocusShell2
+	ExecFocusShell3
+	ExecFocusInput
+	ExecFocusConfirm
+	ExecFocusCancel
+	ExecFocusCount
+)
+
 // QueryInputState holds editable text shared by Filter and Search UIs while
 // keeping their business state independent.
 type QueryInputState struct {
