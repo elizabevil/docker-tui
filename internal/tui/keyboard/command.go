@@ -9,8 +9,6 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-var availableCommands = []string{"compose", "images", "containers", "volumes", "networks", "logs", "help"}
-
 func handleCommandInput(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	switch key {
 	case keys.KeyEnter:
@@ -37,22 +35,22 @@ func executeCommand(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	m.FilterCursor = 0
 
 	switch cmd {
-	case "compose":
+	case keys.CommandCompose:
 		m.ActivePanel = state.PanelCompose
 		ShowToastNow(m, "✓ Switched to Compose")
-	case "images":
+	case keys.CommandImages:
 		m.ActivePanel = state.PanelImages
-	case "containers":
+	case keys.CommandContainers:
 		m.ActivePanel = state.PanelContainers
-	case "volumes":
+	case keys.CommandVolumes:
 		m.ActivePanel = state.PanelVolumes
-	case "networks":
+	case keys.CommandNetworks:
 		m.ActivePanel = state.PanelNetworks
-	case "logs":
+	case keys.CommandLogs:
 		if m.LogContainerID != "" {
 			m.Mode = state.ModeLogView
 		}
-	case "help":
+	case keys.CommandHelp:
 		m.Mode = state.ModeHelp
 		m.ActivePanel = state.PanelHelp
 	}
@@ -61,7 +59,7 @@ func executeCommand(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 func autocompleteCommand(input string) string {
 	input = strings.ToLower(input)
-	for _, cmd := range availableCommands {
+	for _, cmd := range keys.Commands() {
 		if strings.HasPrefix(cmd, input) {
 			return cmd
 		}

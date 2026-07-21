@@ -18,6 +18,11 @@ type lang struct {
 	data map[string]string
 }
 
+const (
+	LanguageEnglish = "en"
+	LanguageChinese = "zh"
+)
+
 var (
 	global *lang
 	enData map[string]string
@@ -56,32 +61,30 @@ func Init(code string) {
 }
 
 func SetLang(code string) {
-	if code == "" {
-		code = "en"
-	}
+	code = strings.ToLower(strings.TrimSpace(code))
 	switch code {
-	case "zh":
-		global = &lang{code: code, data: zhData}
+	case LanguageChinese, "zh-cn", "zh_cn":
+		global = &lang{code: LanguageChinese, data: zhData}
 	default:
-		global = &lang{code: "en", data: enData}
+		global = &lang{code: LanguageEnglish, data: enData}
 	}
 }
 
 func Current() string {
 	if global == nil {
-		return "en"
+		return LanguageEnglish
 	}
 	return global.code
 }
 
 func T(key string, args ...any) string {
 	if global == nil {
-		Init("en")
+		Init(LanguageEnglish)
 	}
 	if msg, ok := global.data[key]; ok {
 		return interpolate(msg, args)
 	}
-	if global.code != "en" {
+	if global.code != LanguageEnglish {
 		if msg, ok := enData[key]; ok {
 			return interpolate(msg, args)
 		}

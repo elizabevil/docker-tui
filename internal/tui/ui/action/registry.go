@@ -178,9 +178,9 @@ func displayKey(key string) string {
 	parts := strings.Split(key, "+")
 	for index, part := range parts {
 		switch part {
-		case "ctrl", "alt", "shift":
+		case string(keys.ModCtrl), string(keys.ModAlt), string(keys.ModShift):
 			parts[index] = strings.ToUpper(part[:1]) + part[1:]
-		case "tab", "enter", "esc", "home", "end", "delete":
+		case keys.KeyTab, keys.KeyEnter, keys.KeyEsc, keys.KeyHome, keys.KeyEnd, keys.KeyDelete:
 			parts[index] = strings.ToUpper(part[:1]) + part[1:]
 		default:
 			if len(part) == 1 || (len(part) > 1 && part[0] == 'f') {

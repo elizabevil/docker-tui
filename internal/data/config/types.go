@@ -290,7 +290,7 @@ func DefaultConfig() *Config {
 func fallbackConfig() *Config {
 	return &Config{
 		ConfigVersion: CurrentConfigVersion,
-		General:       GeneralConfig{ScrollHeight: 2, Reporting: "off"},
+		General:       GeneralConfig{ScrollHeight: 2, Reporting: "off", Lang: "en"},
 		Docker:        DockerConfig{Timeout: 30 * time.Second, StatsPollSec: 3},
 		Runtime: RuntimeConfig{
 			Default:   "local-docker",

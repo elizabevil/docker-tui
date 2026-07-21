@@ -196,7 +196,7 @@
   "hint.loading_detail": "加载详情中...",
   "hint.compose_detail": "Enter:详情",
   "hint.compose_pods": "Enter: 容器",
-  "hint.start_stop_logs": "s:启动 S:停止 l:日志"
+  "hint.start_stop_logs": "s:启动 S:停止 l:日志",
   // Container states
   "container.state.running": "运行中",
   "container.state.exited": "已退出",

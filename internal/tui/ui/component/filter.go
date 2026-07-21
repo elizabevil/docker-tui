@@ -3,6 +3,8 @@ package component
 import (
 	_ "embed"
 	"strings"
+
+	"github.com/elizabevil/docker-tui/internal/tui/keys"
 )
 
 //go:embed filter.jsonc
@@ -64,7 +66,7 @@ func AutocompleteHint(input string, _ int) string {
 		return "compose/images/..."
 	}
 	lower := strings.ToLower(input)
-	for _, cmd := range []string{"compose", "images", "containers", "volumes", "networks", "logs", "help"} {
+	for _, cmd := range keys.Commands() {
 		if strings.HasPrefix(cmd, lower) {
 			return cmd
 		}
@@ -81,7 +83,7 @@ func AutocompleteSuffix(input string) string {
 		return "compose/images/..."
 	}
 	lower := strings.ToLower(input)
-	for _, cmd := range []string{"compose", "images", "containers", "volumes", "networks", "logs", "help"} {
+	for _, cmd := range keys.Commands() {
 		if strings.HasPrefix(cmd, lower) && len(cmd) > len(lower) {
 			return cmd[len(lower):]
 		}

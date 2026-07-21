@@ -6,6 +6,7 @@
   "general": {
     "scrollHeight": 2,
     "reporting": "off",
+    "lang": "en",
     "sizeFormat": "binary"
     // "binary" = 1024-base (MiB/GiB), "si" = 1000-base (MB/GB, matches podman/docker CLI)
   },
