@@ -5,6 +5,7 @@
 | 文件                  | 内容                              |
 |---------------------|---------------------------------|
 | `current-design.md` | **唯一设计参考** — 布局/组件/表格/搜索/快捷键/样式 |
+| `ui-i18n-design.md` | UI 国际化、翻译资源、终端显示宽度和中英文布局约束 |
 | `bugfix-design.md` | 历史 bug 修复设计、分层策略、变更约束 |
 | `bugfix-discussion-notes.md` | 历史 bug 修复讨论纪要，保存尚未完全收敛的设计背景 |
 | `future-requirements-discussion.md` | 后续需求与规划讨论纪要，记录候选方案和待确认决策 |
