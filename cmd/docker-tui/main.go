@@ -114,6 +114,7 @@ func runTUI() error {
 	m.Theme = theme
 	m.HeaderVisible = true
 	m.Connecting = true
+	m.RuntimeSelectorDisabled = dockerHost != ""
 	p := tea.NewProgram(&mainModel{model: m, initialConnection: initialConnection})
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("TUI error: %w", err)

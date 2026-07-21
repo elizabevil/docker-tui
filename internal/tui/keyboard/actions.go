@@ -94,7 +94,7 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 	case keys.ActionNetworkRemove:
 		return doNetworkRemove(m)
 	case keys.ActionSwitchRuntime:
-		return doSwitchRuntime(m)
+		return openRuntimeSelector(m)
 
 	case keys.ActionCommand:
 		ToCommand(m)

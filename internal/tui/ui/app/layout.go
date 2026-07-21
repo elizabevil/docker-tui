@@ -13,6 +13,7 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/elizabevil/docker-tui/internal/data/config"
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
@@ -250,7 +251,31 @@ func RenderApp(m *state.AppModel) string {
 	if m.Mode == state.ModeExec {
 		return dialog.RenderExecOverlay(result, m)
 	}
+	if m.Mode == state.ModeRuntimeSelect {
+		return component.PlaceOverlay(m.Width, m.Height, renderRuntimeSelector(m), overlayColor)
+	}
 	return result
+}
+
+func renderRuntimeSelector(m *state.AppModel) string {
+	rows := []string{"Select runtime connection", ""}
+	for i, name := range m.Pool.KnownHostNames() {
+		e := m.Pool.Get(name)
+		marker := "  "
+		if i == m.RuntimeSelectorCursor {
+			marker = "> "
+		}
+		status := "disconnected"
+		if e != nil && e.State == dockerclient.StateConnected {
+			status = "connected"
+		}
+		if err := m.RuntimeSelectorError[name]; err != "" {
+			status = "error: " + err
+		}
+		rows = append(rows, marker+name+" ["+e.Runtime+"] "+status)
+	}
+	rows = append(rows, "", "Enter connect  Esc cancel")
+	return lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(1, 2).Width(60).Render(strings.Join(rows, "\n"))
 }
 
 func renderMiddlePanel(m *state.AppModel, panelH int, panelW int) string {

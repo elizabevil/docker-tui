@@ -60,6 +60,17 @@ func handleStatsTick(m *state.AppModel, _ state.StatsTick) (*state.AppModel, tea
 
 func handleDockerConnected(m *state.AppModel, msg state.DockerConnected) (*state.AppModel, tea.Cmd) {
 	if msg.Error != nil {
+		if m.Mode == state.ModeRuntimeSelect {
+			m.Connecting = false
+			m.ErrorMessage = msg.Error.Error()
+			m.ErrorCount++
+			if m.RuntimeSelectorError == nil {
+				m.RuntimeSelectorError = make(map[string]string)
+			}
+			m.RuntimeSelectorError[msg.Name] = msg.Error.Error()
+			keyboard.ShowToastWarn(m, fmt.Sprintf("Connection failed (%s): %s", msg.Name, msg.Error))
+			return m, nil
+		}
 		m.Connecting = false
 		m.Connected = false
 		m.Docker = nil
@@ -77,6 +88,10 @@ func handleDockerConnected(m *state.AppModel, msg state.DockerConnected) (*state
 	m.Connected = true
 	m.ConnectionTarget = msg.Name
 	m.ConnectionError = ""
+	m.Mode = state.ModeNormal
+	if m.RuntimeSelectorError != nil {
+		delete(m.RuntimeSelectorError, msg.Name)
+	}
 	m.ErrorMessage = ""
 	m.RuntimeType = string(msg.Client.RuntimeType)
 	m.EngineVersion = msg.Client.EngineVersion

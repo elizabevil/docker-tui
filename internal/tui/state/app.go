@@ -45,6 +45,7 @@ const (
 	ModeCommand
 	ModeExecShell
 	ModeExecPassthrough
+	ModeRuntimeSelect
 )
 
 // QueryInputState holds editable text shared by Filter and Search UIs while
@@ -100,11 +101,14 @@ type AppModel struct {
 	Height int
 
 	// ── Connection ──
-	Connected        bool
-	ConnectionTarget string
-	ConnectionError  string
-	RuntimeType      string
-	EngineVersion    string
+	Connected               bool
+	ConnectionTarget        string
+	ConnectionError         string
+	RuntimeSelectorCursor   int
+	RuntimeSelectorError    map[string]string
+	RuntimeSelectorDisabled bool
+	RuntimeType             string
+	EngineVersion           string
 
 	// ── Log ──
 	LogContainerID string

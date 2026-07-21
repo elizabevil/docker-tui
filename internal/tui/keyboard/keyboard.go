@@ -72,6 +72,9 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 	if m.Mode == state.ModeCommand {
 		return handleCommandInput(normalizeInputKey(rawKey), m)
 	}
+	if m.Mode == state.ModeRuntimeSelect {
+		return handleRuntimeSelectorKey(key, m)
+	}
 
 	if handleDetailKeys(key, m) {
 		return m, nil

@@ -36,6 +36,7 @@ type PoolEntry struct {
 type ConnectionPool struct {
 	mu      sync.RWMutex
 	entries map[string]*PoolEntry
+	order   []string
 	active  string // currently active host name
 }
 
@@ -59,16 +60,14 @@ func (p *ConnectionPool) AddHost(he HostEntry) {
 		TLS:     he.TLS,
 		State:   StateDisconnected,
 	}
+	p.order = append(p.order, he.Name)
 }
 
 // KnownHostNames returns all host names.
 func (p *ConnectionPool) KnownHostNames() []string {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
-	names := make([]string, 0, len(p.entries))
-	for n := range p.entries {
-		names = append(names, n)
-	}
+	names := append([]string(nil), p.order...)
 	return names
 }
 
@@ -159,6 +158,7 @@ func (p *ConnectionPool) Close() {
 		}
 	}
 	p.entries = make(map[string]*PoolEntry)
+	p.order = nil
 }
 
 func (p *ConnectionPool) PingLoop(ctx context.Context, interval time.Duration) {
