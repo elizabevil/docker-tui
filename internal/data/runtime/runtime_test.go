@@ -100,3 +100,11 @@ func TestImageListOptionsCopiesNativeFilters(t *testing.T) {
 		t.Fatal("native filters mutated input options")
 	}
 }
+
+func TestContainerListOptionsPreservesANDSemantics(t *testing.T) {
+	options := ContainerListOptions{Filters: FilterSet{ContainerFilterLabel: {"app=api", "tier=backend"}}}
+	_, err := options.NativeFilters()
+	if !IsErrorKind(err, ErrorUnsupported) {
+		t.Fatalf("expected unsupported error, got %v", err)
+	}
+}

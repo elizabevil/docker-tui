@@ -412,7 +412,11 @@ func (c *Client) Capabilities() runtimeapi.CapabilitySet {
 			Support: runtimeapi.Degraded,
 			Reason:  "native filtering is currently exposed only by container lists",
 		},
-		runtimeapi.CapabilityContainerListFilter: {Support: support, Reason: reason},
+		runtimeapi.CapabilityContainerListFilter: {
+			Support:    runtimeapi.Degraded,
+			Reason:     "single-value filters are native; same-field AND filters are not yet available",
+			ReasonCode: "same_field_and_unsupported",
+		},
 		runtimeapi.CapabilityImageListFilter: {
 			Support:    runtimeapi.Degraded,
 			Reason:     "single-value filters are native; same-field AND filters are not yet available",

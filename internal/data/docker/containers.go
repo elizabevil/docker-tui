@@ -16,8 +16,19 @@ func (c *Client) ListContainers(opts ContainerListOptions) ([]ContainerSummary, 
 }
 
 func (c *Client) ListContainersContext(ctx context.Context, opts ContainerListOptions) ([]ContainerSummary, error) {
+	if c.RuntimeType == RuntimePodman {
+		return c.listContainersPodman(ctx, opts)
+	}
+	return c.listContainersDocker(ctx, opts)
+}
+
+func (c *Client) listContainersDocker(ctx context.Context, opts ContainerListOptions) ([]ContainerSummary, error) {
+	nativeFilters, err := opts.NativeFilters()
+	if err != nil {
+		return nil, err
+	}
 	f := filters.NewArgs()
-	for k, vs := range opts.Filters {
+	for k, vs := range nativeFilters {
 		for _, v := range vs {
 			f.Add(k, v)
 		}

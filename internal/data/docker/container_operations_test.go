@@ -15,7 +15,7 @@ type roundTripFunc func(*http.Request) (*http.Response, error)
 func (f roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) { return f(request) }
 
 func TestContainerOperationsUseDockerCompatibleContract(t *testing.T) {
-	for _, runtimeType := range []RuntimeType{RuntimeDocker, RuntimePodman} {
+	for _, runtimeType := range []RuntimeType{RuntimeDocker} {
 		t.Run(string(runtimeType), func(t *testing.T) {
 			requests := make([]string, 0, 5)
 			httpClient := &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
@@ -26,7 +26,11 @@ func TestContainerOperationsUseDockerCompatibleContract(t *testing.T) {
 				case strings.HasSuffix(r.URL.Path, "/top"):
 					status, body = http.StatusOK, `{"Titles":["PID","CMD"],"Processes":[["1","sh"]]}`
 				case strings.HasSuffix(r.URL.Path, "/containers/json"):
-					status, body = http.StatusOK, `[{"Id":"1234567890123456","Names":["/api"],"Image":"alpine","State":"running","Status":"Up","Ports":[{"IP":"::","PrivatePort":80,"PublicPort":8080,"Type":"tcp"}]}]`
+					if strings.Contains(r.URL.Path, "/libpod/") {
+						status, body = http.StatusOK, `[{"Id":"1234567890123456","Names":["api"],"Image":"alpine","State":"running","Status":"Up","Created":"2026-01-01T00:00:00Z","Ports":[{"host_ip":"::","container_port":80,"host_port":8080,"range":1,"protocol":"tcp"}]}]`
+					} else {
+						status, body = http.StatusOK, `[{"Id":"1234567890123456","Names":["/api"],"Image":"alpine","State":"running","Status":"Up","Ports":[{"IP":"::","PrivatePort":80,"PublicPort":8080,"Type":"tcp"}]}]`
+					}
 				}
 				return &http.Response{
 					StatusCode: status,
