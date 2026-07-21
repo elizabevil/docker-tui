@@ -90,10 +90,53 @@ type ConnectionSpec struct {
     Name     string
     Host     string
     Runtime  RuntimeType
-    TLS      bool
-    CertPath string
+    TLS      RuntimeTLSConfig
     Source   ConnectionSource
 }
+
+type RuntimeTLSConfig struct {
+    Enabled  bool
+    Verify   bool
+    CAFile   string
+    CertFile string
+    KeyFile  string
+}
+```
+
+对应配置层建议直接扩展 `RuntimeConn`，并将健康检查放在 runtime 全局配置中:
+
+```go
+type RuntimeConn struct {
+    Name    string
+    Addr    string
+    Runtime string
+    TLS     RuntimeTLSConfig
+}
+
+type RuntimeHealthConfig struct {
+    IntervalSec      int
+    TimeoutSec       int
+    FailureThreshold int
+}
+```
+
+```yaml
+runtime:
+  default: local-docker
+  health:
+    intervalSec: 3
+    timeoutSec: 2
+    failureThreshold: 2
+  connections:
+    - name: remote-docker
+      addr: tcp://docker.example.com:2376
+      runtime: docker
+      tls:
+        enabled: true
+        verify: true
+        caFile: /etc/docker/certs/ca.pem
+        certFile: /etc/docker/certs/cert.pem
+        keyFile: /etc/docker/certs/key.pem
 ```
 
 其中 `Source` 用于说明连接来自:
@@ -115,9 +158,9 @@ type ConnectionState struct {
 
 ### 已确认的产品决策
 
-1. 未指定 CLI 连接或 `runtime.default` 时，默认启动连接为本地连接；连接失败时必须同时提供用户提示和可见状态，不允许静默吞掉失败。
+1. 未指定 CLI 连接或 `runtime.default` 时，默认只检测本地 Docker；连接失败时必须同时提供用户提示和可见状态，不允许静默吞掉失败，也不自动切换到本地 Podman。
 2. `--host` 表示用户明确指定本次目标，进入单连接模式，不提供 `F2` 连接切换。
-3. 未使用 `--host` 时，连接选择范围包含配置中的全部连接。
+3. 未使用 `--host` 时，连接选择范围包含配置中的全部连接，Podman 通过配置或用户操作显式选择。
 4. TLS 连接能力纳入 FR-001 第一阶段。
 5. `F2` 改为打开连接选择框；使用上下键移动，`Enter` 连接并切换，`Esc` 取消。
 
@@ -127,13 +170,13 @@ type ConnectionState struct {
 
 1. CLI `--host` 显式连接，进入单连接模式
 2. `runtime.default` 指向的配置连接
-3. 内置本地 Docker / Podman 候选
+3. 内置本地 Docker 候选
 4. `runtime.connections` 中的其他有序连接
 
 具体语义:
 
 - `--host` 创建仅对本次进程有效的 `cli` 连接，不写回配置，也不加载其他连接供切换。
-- `--podman` 是 runtime hint；未同时提供 `--host` 时使用默认 Podman socket。
+- `--podman` 是 runtime hint；未同时提供 `--host` 时使用默认 Podman socket，但只有用户显式指定或配置默认连接为 Podman 时才尝试 Podman。
 - `runtime.default` 表示首选连接名，不等同于 runtime 类型。
 - `general.runtime` 仅作为连接未声明 runtime 时的探测提示；后续评估是否废弃。
 
@@ -143,7 +186,7 @@ type ConnectionState struct {
 
 1. 若存在 CLI `--host`，只尝试该 CLI 连接。
 2. 若配置了有效的 `runtime.default`，优先尝试该连接。
-3. 未配置显式默认连接时，尝试内置本地候选。
+3. 未配置显式默认连接时，只尝试内置本地 Docker 候选，不自动切换到本地 Podman。
 4. 连接失败后进入可恢复的 `disconnected` / `error` 状态，不退出 TUI。
 5. Header、连接信息区和提示消息必须展示当前状态、目标连接和最后错误。
 6. 普通配置模式下，用户可打开 `F2` 选择框，手动选择其他配置连接并重试。
@@ -169,7 +212,7 @@ type ConnectionState struct {
 - `c` 显示活动连接的 name / runtime / host / engine version。
 - `F2` 打开连接选择框；选择框支持上下键、Enter 和 Esc。
 - `--host` 模式明确显示“用户指定连接”，隐藏连接切换入口。
-- 失败通知显示连接名和简化错误，状态区保留 `disconnected` / `error` 状态。
+- 失败通知显示连接名和简化错误；选择框保持打开并在对应连接项展示错误，状态区保留 `disconnected` / `error` 状态。
 - TLS 连接显示安全连接状态，但不得展示证书内容或凭据。
 
 后续阶段:
@@ -192,10 +235,10 @@ type ConnectionState struct {
 2. 让 `runtime.default` 生效。
 3. 保留连接声明顺序。
 4. 修复 `--host` / `--podman` 接线，并在 `--host` 模式禁用 F2。
-5. 自定义连接名可参与首次连接。
+5. 自定义连接名可参与选择框和首次连接；零配置启动不自动探测 Podman。
 6. 使用连接选择框替代 F2 循环。
 7. 接通 TLS 参数、证书路径和安全错误提示。
-8. 补解析、启动选择、选择框、TLS 和切换测试。
+8. 补解析、启动选择、选择框、TLS、Docker/Podman 驱动和切换测试。
 9. 同步 README、配置示例和架构文档。
 
 不包含:
@@ -211,12 +254,12 @@ type ConnectionState struct {
 
 1. `--host` 指定的连接进入实际连接池并独占本次会话。
 2. `--host` 模式下 `F2` 不打开连接选择框。
-3. `--podman` 在没有 `--host` 时生成正确的本地 Podman 连接。
+3. `--podman` 在没有 `--host` 时生成正确的本地 Podman 连接，并且只有显式选择时才尝试。
 4. `runtime.default` 能选择任意自定义连接名。
 5. 本地默认连接失败时，状态区和提示消息都能显示目标和错误。
 6. 普通配置模式下选择框按配置顺序展示全部连接。
 7. 上下键、Enter、Esc 的选择框行为有测试。
-8. TLS 连接成功、证书错误和连接失败均有可区分状态。
+8. TLS 连接成功、证书错误和连接失败均有可区分状态，Docker 与 Podman 驱动分别有测试覆盖。
 9. 切换失败不会丢失当前可用连接。
 10. 活动连接名、runtime type、host 在 Header、Footer、连接信息和审计记录中语义一致。
 11. 旧的本地零配置启动方式继续工作。
@@ -252,27 +295,38 @@ type ConnectionState struct {
 
 #### D-006 本地 Docker / Podman 优先级
 
-- 推荐: 若二者同时可用，默认先尝试 Docker；用户可用 `runtime.default` 或 `--podman` 明确选择 Podman。
-- 备选: 保持当前 Podman 优先。
-- 状态: `pending`
+- 决定: 零配置默认只尝试本地 Docker，不自动切换到本地 Podman；Podman 必须由 `--podman`、`runtime.default` 或选择框显式选择。
+- 状态: `approved`
 
 #### D-007 TLS 配置形式
 
-- 推荐: 每条连接显式提供 `tls.verify`、`tls.caFile`、`tls.certFile`、`tls.keyFile`；远程 TLS 默认必须校验证书。
+- 决定: 在 `RuntimeConn` 中添加独立 TLS 配置，包含 `enabled`、`verify`、`caFile`、`certFile`、`keyFile`；远程 TLS 默认必须校验证书。
 - 兼容: 可兼容 Docker 常用证书目录中的 `ca.pem`、`cert.pem`、`key.pem`。
 - 安全约束: 私钥路径可以进入配置，但私钥内容和凭据不得进入 UI、普通日志或审计记录。
-- 状态: `pending`
+- 状态: `approved`
 
 #### D-008 选择连接失败后的对话框行为
 
-- 推荐: 对话框保持打开，失败项显示 error 和简化错误；原活动连接继续工作，用户可以改选或按 `Esc` 退出。
-- 备选: 失败后自动关闭对话框，仅显示 Toast。
-- 状态: `pending`
+- 决定: 对话框保持打开，失败项显示 error 和简化错误；原活动连接继续工作，用户可以改选或按 `Esc` 退出。
+- 状态: `approved`
 
 #### D-009 连接健康状态来源
 
-- 推荐: 启动 `ConnectionPool.PingLoop()` 或等价健康检查，状态至少区分 connecting / connected / disconnected / error；健康检查不自动切换活动连接。
-- 待讨论: 检查间隔、失败阈值和恢复策略。
+- 决定: 健康检查默认每 3 秒执行一次并允许配置；状态至少区分 connecting / connected / disconnected / error，健康检查不自动切换活动连接。
+- 状态: `approved`
+
+#### D-010 Docker / Podman 驱动适配
+
+- 决定: 连接声明统一使用 `ConnectionSpec`，由驱动工厂分别创建 Docker 与 Podman client；不得只通过 socket 名称猜测运行时行为。
+- 验收: Docker socket、Podman socket、TCP/TLS Docker 和 TCP/TLS Podman 的连接解析、Ping、资源 Fetch 和切换分别覆盖测试。
+- 状态: `approved`
+
+#### D-011 健康检查失败与恢复阈值
+
+- 推荐: 单次 Ping 超时 2 秒，连续 2 次失败后标记 error / disconnected，成功 1 次即可恢复。
+- 推荐: 只在连接状态变化时发送提示，不对每次失败重复 Toast。
+- 推荐: 活动连接按配置间隔检查；非活动连接不持续高频 Ping，在选择框打开或用户选中时按需检查。
+- 理由: 3 秒间隔下，2 次阈值约 6 秒即可发现断线，同时能过滤一次瞬时超时；对所有远程连接每 3 秒 Ping 会随连接数线性增加负载。
 - 状态: `pending`
 
 ---
