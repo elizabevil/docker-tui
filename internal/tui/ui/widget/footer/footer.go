@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
+	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/action"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
@@ -31,6 +32,9 @@ func StatusBar(app *state.AppModel) string {
 		status = fmt.Sprintf("%s connecting...", component.GetStyle("toastWarning").Render("○"))
 	} else if !app.Connection.Connected {
 		status = fmt.Sprintf("%s disconnected (%s)", component.GetStyle("toastError").Render("○"), engineLabel)
+		if app.Connection.ConnectionFailure.Kind != "" {
+			status += ": " + i18n.ConnectionFailureMessage(string(app.Connection.ConnectionFailure.Kind))
+		}
 	}
 	if hostStr != "" {
 		status += " │ " + hostStr

@@ -39,14 +39,17 @@ func TestHandleDockerConnectedErrorProjectsTargetAndMessage(t *testing.T) {
 	if updated.Connection.Connected || updated.Connection.Connecting || updated.Connection.Docker != nil {
 		t.Fatalf("connection state=%#v", updated)
 	}
-	if updated.Connection.ConnectionTarget != "local-docker" || !strings.Contains(updated.Connection.ConnectionError, "no such file") {
-		t.Fatalf("connection error=%q target=%q", updated.Connection.ConnectionError, updated.Connection.ConnectionTarget)
+	if updated.Connection.ConnectionTarget != "local-docker" || updated.Connection.ConnectionFailure.Kind != dockerclient.ConnectionErrorUnknown {
+		t.Fatalf("connection failure=%#v target=%q", updated.Connection.ConnectionFailure, updated.Connection.ConnectionTarget)
 	}
 	if updated.Feedback.ToastMessage == "" || !strings.Contains(updated.Feedback.ToastMessage, "local-docker") {
 		t.Fatalf("toast=%q", updated.Feedback.ToastMessage)
 	}
+	if strings.Contains(updated.Feedback.ToastMessage, "no such file") {
+		t.Fatalf("toast exposed raw connection error: %q", updated.Feedback.ToastMessage)
+	}
 	status := footer.StatusBar(updated)
-	if !strings.Contains(status, "local-docker") || strings.Contains(status, "docker disconnected") && !strings.Contains(status, "local-docker") {
+	if !strings.Contains(status, "local-docker") || !strings.Contains(status, "Connection failed") {
 		t.Fatalf("status=%q", status)
 	}
 }
@@ -72,7 +75,7 @@ func TestRuntimeHealthTransitionsAtThresholdAndRecovers(t *testing.T) {
 		t.Fatalf("repeated failure emitted another transition: errors=%d", updated.Feedback.ErrorCount)
 	}
 	updated, _ = handleRuntimeHealthResult(updated, state.RuntimeHealthResult{Name: "local-docker"})
-	if updated.Connection.HealthDegraded || !updated.Connection.Connected || updated.Connection.HealthFailures != 0 || updated.Connection.ConnectionError != "" {
+	if updated.Connection.HealthDegraded || !updated.Connection.Connected || updated.Connection.HealthFailures != 0 || updated.Connection.ConnectionFailure.Kind != "" {
 		t.Fatalf("successful ping did not recover connection: %#v", updated)
 	}
 	if !strings.Contains(updated.Feedback.ToastMessage, "recovered") {

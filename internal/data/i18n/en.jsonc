@@ -278,5 +278,13 @@
   "inspect.volume.scope": "Scope",
   "inspect.volume.labels": "Labels",
   "inspect.volume.options": "Options",
-  "inspect.volume.created": "Created"
+  "inspect.volume.created": "Created",
+  "connection.error.unknown": "Connection failed",
+  "connection.error.ca": "TLS CA certificate validation failed",
+  "connection.error.client_certificate": "TLS client certificate or key is invalid",
+  "connection.error.hostname": "TLS certificate hostname mismatch",
+  "connection.error.handshake": "TLS handshake failed",
+  "connection.error.network": "Network connection failed",
+  "connection.tls_configured": "TLS configured",
+  "connection.tls_verified": "TLS verified"
 }

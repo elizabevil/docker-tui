@@ -266,5 +266,13 @@
   "inspect.volume.scope": "范围",
   "inspect.volume.labels": "标签",
   "inspect.volume.options": "选项",
-  "inspect.volume.created": "创建时间"
+  "inspect.volume.created": "创建时间",
+  "connection.error.unknown": "连接失败",
+  "connection.error.ca": "TLS CA 证书验证失败",
+  "connection.error.client_certificate": "TLS 客户端证书或密钥无效",
+  "connection.error.hostname": "TLS 证书主机名不匹配",
+  "connection.error.handshake": "TLS 握手失败",
+  "connection.error.network": "网络连接失败",
+  "connection.tls_configured": "TLS 已配置",
+  "connection.tls_verified": "TLS 已验证"
 }

@@ -1,6 +1,7 @@
 package state
 
 import (
+	"crypto/x509"
 	"errors"
 	"testing"
 
@@ -28,11 +29,11 @@ func TestConnectionStateOwnsConnectionTransitions(t *testing.T) {
 func TestConnectionStateKeepsActiveClientOnSelectionFailure(t *testing.T) {
 	client := &dockerclient.Client{}
 	connection := NewConnectionState(client)
-	connection.SelectionFailed("remote", errors.New("certificate expired"))
+	connection.SelectionFailed("remote", x509.UnknownAuthorityError{})
 	if connection.Docker != client || !connection.Connected {
 		t.Fatal("selection failure discarded the active connection")
 	}
-	if connection.RuntimeSelectorError["remote"] != "certificate expired" {
+	if connection.RuntimeSelectorError["remote"].Kind != dockerclient.ConnectionErrorCA {
 		t.Fatalf("selector errors = %#v", connection.RuntimeSelectorError)
 	}
 }

@@ -198,7 +198,7 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 
 	if cfg.TLS.Enabled {
 		if !cfg.TLS.Verify {
-			return nil, fmt.Errorf("TLS certificate verification is required")
+			return nil, connectionError(ConnectionErrorCA, fmt.Errorf("TLS certificate verification is required"))
 		}
 		httpClient, err := tlsHTTPClient(cfg.TLS, host)
 		if err != nil {
@@ -282,21 +282,21 @@ func tlsConfig(cfg TLSConfig, host string) (*tls.Config, error) {
 	if cfg.CAFile != "" {
 		caPEM, err := os.ReadFile(cfg.CAFile)
 		if err != nil {
-			return nil, fmt.Errorf("read CA file %s: %w", cfg.CAFile, err)
+			return nil, connectionError(ConnectionErrorCA, fmt.Errorf("read CA file: %w", err))
 		}
 		pool := x509.NewCertPool()
 		if ok := pool.AppendCertsFromPEM(caPEM); !ok {
-			return nil, fmt.Errorf("parse CA file %s: no certificates found", cfg.CAFile)
+			return nil, connectionError(ConnectionErrorCA, fmt.Errorf("parse CA file: no certificates found"))
 		}
 		tlsCfg.RootCAs = pool
 	}
 	if cfg.CertFile != "" || cfg.KeyFile != "" {
 		if cfg.CertFile == "" || cfg.KeyFile == "" {
-			return nil, fmt.Errorf("TLS certFile and keyFile must be configured together")
+			return nil, connectionError(ConnectionErrorClientCert, fmt.Errorf("TLS certFile and keyFile must be configured together"))
 		}
 		cert, err := tls.LoadX509KeyPair(cfg.CertFile, cfg.KeyFile)
 		if err != nil {
-			return nil, fmt.Errorf("load TLS cert pair: %w", err)
+			return nil, connectionError(ConnectionErrorClientCert, fmt.Errorf("load TLS cert pair: %w", err))
 		}
 		tlsCfg.Certificates = []tls.Certificate{cert}
 	}

@@ -135,6 +135,7 @@ keyboard action
 
 - 多资源面板：容器、镜像、卷、网络、Compose
 - 连接池：本地 Podman / Docker 自动尝试，可运行时切换
+- TLS 连接：强制证书验证，区分 CA、客户端证书、主机名、握手和网络错误；UI 仅展示安全分类文案及 TLS 配置/验证状态
 - 容器操作：启动、停止、重启、Kill、Logs、Exec、Inspect
 - 镜像操作：拉取、删除、Prune、Detail、导出/调试入口
 - 卷/网络：列表、删除、详情

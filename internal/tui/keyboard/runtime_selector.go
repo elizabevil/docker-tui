@@ -1,11 +1,11 @@
 package keyboard
 
 import (
-	"fmt"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/elizabevil/docker-tui/internal/data/config"
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
@@ -29,7 +29,7 @@ func openRuntimeSelector(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		}
 	}
 	if m.Connection.RuntimeSelectorError == nil {
-		m.Connection.RuntimeSelectorError = make(map[string]string)
+		m.Connection.RuntimeSelectorError = make(map[string]dockerclient.ConnectionFailure)
 	}
 	cmds := make([]tea.Cmd, 0, len(names))
 	for _, name := range names {
@@ -83,7 +83,7 @@ func runtimeConnectionCmd(m *state.AppModel, name string) tea.Cmd {
 
 func selectorError(m *state.AppModel, name string, err error) {
 	if m.Connection.RuntimeSelectorError == nil {
-		m.Connection.RuntimeSelectorError = make(map[string]string)
+		m.Connection.RuntimeSelectorError = make(map[string]dockerclient.ConnectionFailure)
 	}
-	m.Connection.RuntimeSelectorError[name] = fmt.Sprint(err)
+	m.Connection.RuntimeSelectorError[name] = dockerclient.ClassifyConnectionError(err)
 }

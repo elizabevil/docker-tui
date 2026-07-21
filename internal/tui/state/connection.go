@@ -9,9 +9,9 @@ type ConnectionState struct {
 	Connecting              bool
 	Connected               bool
 	ConnectionTarget        string
-	ConnectionError         string
+	ConnectionFailure       dockerclient.ConnectionFailure
 	RuntimeSelectorCursor   int
-	RuntimeSelectorError    map[string]string
+	RuntimeSelectorError    map[string]dockerclient.ConnectionFailure
 	RuntimeSelectorDisabled bool
 	HealthFailures          int
 	HealthDegraded          bool
@@ -37,7 +37,7 @@ func (s *ConnectionState) ConnectedTo(name string, client *dockerclient.Client) 
 	s.Connecting = false
 	s.Connected = client != nil
 	s.ConnectionTarget = name
-	s.ConnectionError = ""
+	s.ConnectionFailure = dockerclient.ConnectionFailure{}
 	s.HealthFailures = 0
 	s.HealthDegraded = false
 	if s.RuntimeSelectorError != nil {
@@ -57,7 +57,7 @@ func (s *ConnectionState) Failed(name string, err error) {
 	s.Connecting = false
 	s.Connected = false
 	s.ConnectionTarget = name
-	s.ConnectionError = err.Error()
+	s.ConnectionFailure = dockerclient.ClassifyConnectionError(err)
 	s.RuntimeType = ""
 	s.EngineVersion = ""
 	s.HealthFailures = 0
@@ -71,11 +71,11 @@ func (s *ConnectionState) SelectionFailed(name string, err error) {
 
 func (s *ConnectionState) SetProbeResult(name string, err error) {
 	if s.RuntimeSelectorError == nil {
-		s.RuntimeSelectorError = make(map[string]string)
+		s.RuntimeSelectorError = make(map[string]dockerclient.ConnectionFailure)
 	}
 	if err == nil {
 		delete(s.RuntimeSelectorError, name)
 		return
 	}
-	s.RuntimeSelectorError[name] = err.Error()
+	s.RuntimeSelectorError[name] = dockerclient.ClassifyConnectionError(err)
 }

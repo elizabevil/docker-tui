@@ -1,5 +1,7 @@
 package state
 
+import dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
+
 // HealthTransition describes a meaningful runtime health state change.
 type HealthTransition int
 
@@ -23,7 +25,7 @@ func (s *ConnectionState) ApplyHealthResult(name string, err error, threshold in
 		if s.HealthFailures >= threshold && !s.HealthDegraded {
 			s.HealthDegraded = true
 			s.Connected = false
-			s.ConnectionError = err.Error()
+			s.ConnectionFailure = dockerclient.ClassifyConnectionError(err)
 			return HealthDisconnected
 		}
 		return HealthNoChange
@@ -33,7 +35,7 @@ func (s *ConnectionState) ApplyHealthResult(name string, err error, threshold in
 	s.HealthDegraded = false
 	if wasDegraded {
 		s.Connected = true
-		s.ConnectionError = ""
+		s.ConnectionFailure = dockerclient.ConnectionFailure{}
 		return HealthRecovered
 	}
 	return HealthNoChange

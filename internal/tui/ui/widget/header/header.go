@@ -168,6 +168,11 @@ func Render(app *state.AppModel, usableW int) string {
 	if runtimeName == "" {
 		runtimeName = "-"
 	}
+	if app.Connection.Pool != nil {
+		if active := app.Connection.Pool.Active(); active != nil && active.TLS.Enabled {
+			runtimeName += " [" + i18n.T("connection.tls_verified") + "]"
+		}
+	}
 	colConn := fmt.Sprintf("%s%s\n%s%s\n%s%s\n%s%s\n",
 		lbl("Engine"), eng+" "+app.Connection.EngineVersion,
 		lbl("Runtime"), runtimeName,

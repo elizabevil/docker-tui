@@ -239,8 +239,9 @@ func doSwitchRuntime(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	trace := beginAudit(m, "panel.runtime.switch", audit.RuntimeTarget{Name: next, Meta: audit.RuntimeMeta{Previous: current}}, fmt.Sprintf("Switching runtime from %s to %s", current, next))
 	if err := m.Connection.Pool.Connect(next, 10*time.Second); err != nil {
-		FinishAudit(m, trace, audit.ResultFailed, "Runtime switch failed", audit.Details{Error: err.Error()})
-		ShowToastNow(m, fmt.Sprintf("switch failed: %v", err))
+		safeError := i18n.ConnectionFailureMessage(string(docker.ClassifyConnectionError(err).Kind))
+		FinishAudit(m, trace, audit.ResultFailed, "Runtime switch failed", audit.Details{Error: safeError})
+		ShowToastNow(m, fmt.Sprintf("switch failed: %s", safeError))
 		return m, nil
 	}
 	m.Connection.Docker = m.Connection.Pool.ActiveClient()

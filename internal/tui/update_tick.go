@@ -6,6 +6,7 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/data/docker"
+	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/keyboard"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
@@ -61,15 +62,16 @@ func handleStatsTick(m *state.AppModel, _ state.StatsTick) (*state.AppModel, tea
 
 func handleDockerConnected(m *state.AppModel, msg state.DockerConnected) (*state.AppModel, tea.Cmd) {
 	if msg.Error != nil {
+		failureMessage := i18n.ConnectionFailureMessage(string(docker.ClassifyConnectionError(msg.Error).Kind))
 		if m.Navigation.Mode == state.ModeRuntimeSelect {
 			m.Connection.SelectionFailed(msg.Name, msg.Error)
-			m.Feedback.RecordError(msg.Error.Error())
-			keyboard.ShowToastWarn(m, fmt.Sprintf("Connection failed (%s): %s", msg.Name, msg.Error))
+			m.Feedback.RecordError(failureMessage)
+			keyboard.ShowToastWarn(m, fmt.Sprintf("Connection failed (%s): %s", msg.Name, failureMessage))
 			return m, nil
 		}
 		m.Connection.Failed(msg.Name, msg.Error)
-		m.Feedback.RecordError(msg.Error.Error())
-		keyboard.ShowToastWarn(m, fmt.Sprintf("Connection failed (%s): %s", msg.Name, msg.Error))
+		m.Feedback.RecordError(failureMessage)
+		keyboard.ShowToastWarn(m, fmt.Sprintf("Connection failed (%s): %s", msg.Name, failureMessage))
 		return m, nil
 	}
 	m.Connection.ConnectedTo(msg.Name, msg.Client)

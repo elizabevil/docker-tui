@@ -254,16 +254,23 @@ func renderRuntimeSelector(m *state.AppModel) string {
 		}
 		status := "disconnected"
 		runtime := "-"
+		security := ""
 		if e != nil && e.State == dockerclient.StateConnected {
 			status = "connected"
 		}
 		if e != nil && e.Runtime != "" {
 			runtime = string(e.Runtime)
 		}
-		if err := m.Connection.RuntimeSelectorError[name]; err != "" {
-			status = "error: " + err
+		if e != nil && e.TLS.Enabled {
+			security = " " + i18n.T("connection.tls_configured")
+			if e.State == dockerclient.StateConnected {
+				security = " " + i18n.T("connection.tls_verified")
+			}
 		}
-		rows = append(rows, marker+name+" ["+runtime+"] "+status)
+		if failure, ok := m.Connection.RuntimeSelectorError[name]; ok {
+			status = "error: " + i18n.ConnectionFailureMessage(string(failure.Kind))
+		}
+		rows = append(rows, marker+name+" ["+runtime+"]"+security+" "+status)
 	}
 	rows = append(rows, "", "Enter connect  Esc cancel")
 	return lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(1, 2).Width(60).Render(strings.Join(rows, "\n"))
