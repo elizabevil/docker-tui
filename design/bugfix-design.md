@@ -377,6 +377,12 @@
   1. 若继续沿用纯文本 detail 链路，后续普通镜像 / manifest 差异化排版会越来越脆弱。
   2. 若一次性把所有资源详情页都纳入重构，范围会明显失控；本轮应收敛在镜像详情链路。
   3. 若仍尝试从 `InspectImage()` 文本反推 history，字段稳定性和跨 runtime 兼容性都会很差。
+- 实现记录（2026-07-20）:
+  1. 新增 `ImageDetailData` 结构化详情模型，基础信息、运行配置、标签与 History 不再依赖文本反解析。
+  2. 普通镜像通过 runtime `ImageHistory` API 获取 `Created / CreatedBy / Size / Comment`。
+  3. manifest list 复用 `ImageManifestEntry` 展示平台、digest、size 与本地可用性，不再调用 layer history API。
+  4. `ImageHistorySource` 显式区分 `pending / layer_api / manifest`，加载中、无记录和 runtime 失败拥有不同反馈。
+  5. 已覆盖普通 layer、manifest variant、空数据、加载中与失败状态的最小回归测试。
 
 ### BR-002 自定义键位配置接线
 

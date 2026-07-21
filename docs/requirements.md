@@ -9,7 +9,7 @@
 | 容器列表、启停、重启、Kill、删除 | 已实现 | `internal/tui/keyboard/container_action.go` |
 | 实时日志 | 已实现 | 当前为按需拉取/显示，不是启动即常驻事件流 |
 | 容器 stats | 已实现 | 定时轮询当前容器列表，不是只轮询单个聚焦容器 |
-| 镜像列表、Pull、Prune、详情 | 已实现 | Export / Debug 目前提供命令预览对话框；详情页已分区渲染，但 History 区块仍是占位提示 |
+| 镜像列表、Pull、Prune、详情 | 已实现 | Export / Debug 目前提供命令预览对话框；详情页按普通镜像 layer history 或 manifest 平台变体分区渲染 |
 | Volume / Network 列表、删除、详情 | 已实现 | 当前没有“创建”入口 |
 | Compose 项目视图 | 已实现 | 基于 `com.docker.compose.*` labels 聚合，不解析 `compose.yaml` |
 | 主题、i18n、帮助页、命令模式、过滤 | 已实现 | `zh` / `en` 已接入 |
@@ -23,7 +23,7 @@
 
 这些点适合作为后续 bug / 需求跟踪入口，均已按代码核对：
 
-- 镜像详情页的 `History` 区块已经预留，但 `internal/data/docker/InspectImage()` 还没有接入镜像 layer history 数据，当前只显示“暂不可用”占位文案。
+- 镜像详情使用结构化数据链路；普通镜像 History 来自 runtime layer API，manifest list History 展示平台变体，并区分加载、空数据与获取失败。
 - `config.Keymap` 已接入动作注册表和上下文解析器；当前开放动作级默认绑定覆盖，用户级上下文规则仍属于后续能力。
 - 默认配置、运行时、Help 和 Footer 已统一为 `Ctrl+S`、`Ctrl+K`、`Ctrl+P` 等默认键位语义。
 - Filter 与 Search 已拆分：资源列表输入即时过滤并使用双 `Esc` 清除退出，日志搜索按 Enter 应用且不改变原始数据集。

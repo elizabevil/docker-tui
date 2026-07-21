@@ -27,15 +27,15 @@
 
 ### BR-001 镜像详情 `History` 区块没有真实数据
 
-- 状态: `designing`
+- 状态: `done`
 - 优先级: `high`
 - 症状:
   镜像详情页已经渲染出 `History` 分区，但当前始终显示占位文案，无法查看 layer history。
 - 当前行为:
-  `detail/image.go` 会构造 `inspect.section_history` 区块，但当内容为空时回退到 `inspect.no_history`。
+  `InspectImageDetail()` 为普通镜像调用 runtime layer history API，为 manifest list 投影平台变体；详情页根据显式来源状态渲染真实记录、空数据、加载中或获取失败。
 - 代码锚点:
-  [internal/data/docker/images.go](/home/debi/IdeaProjects/docker-tui/internal/data/docker/images.go:141)
-  [internal/tui/ui/pages/detail/image.go](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/pages/detail/image.go:22)
+  [internal/data/docker/images.go](/home/debi/IdeaProjects/docker-tui/internal/data/docker/images.go:277)
+  [internal/tui/ui/pages/detail/image.go](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/pages/detail/image.go:14)
 - 期望行为:
   镜像详情中的 `History` 应作为一级区段保留；普通镜像与 manifest list 允许使用不同子语义和排版模型。镜像引擎可提供历史数据时，普通镜像至少展示 `CreatedBy`、`Size`、`Comment` 等核心字段；manifest list 则展示其平台变体结构。确实拿不到时，后续再定义降级语义。
 - 验收标准:

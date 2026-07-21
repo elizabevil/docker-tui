@@ -89,9 +89,9 @@ func buildImageDetailDataSections(data *dockerclient.ImageDetailData) []detailSe
 		sections = append(sections, labels)
 	}
 
-	history := detailSection{Title: "History"}
+	history := detailSection{Title: i18n.T("inspect.section_history")}
 	if data.IsManifest {
-		history.Subtitle = "Manifest variants"
+		history.Subtitle = i18n.T("inspect.history_variants")
 		for _, variant := range data.ManifestVariants {
 			platform := variant.Platform.OS + "/" + variant.Platform.Architecture
 			if variant.Platform.Variant != "" {
@@ -103,22 +103,40 @@ func buildImageDetailDataSections(data *dockerclient.ImageDetailData) []detailSe
 			}
 			history.Lines = append(history.Lines, fmt.Sprintf("%s: %s, %s, %s", platform, variant.Digest, utils.FormatBytes(float64(variant.Size)), availability))
 		}
+		if len(data.ManifestVariants) == 0 && data.HistoryError == "" {
+			history.Lines = append(history.Lines, i18n.T("inspect.history_no_variants"))
+		}
 	} else {
-		history.Subtitle = "Layers"
+		history.Subtitle = i18n.T("inspect.history_layers")
 		for index, layer := range data.History {
 			created := ""
 			if layer.Created > 0 {
 				created = time.Unix(layer.Created, 0).Format(time.RFC3339)
 			}
-			history.Lines = append(history.Lines, fmt.Sprintf("%d: %s | %s | %s", index+1, utils.FormatBytes(float64(layer.Size)), created, layer.CreatedBy))
+			parts := []string{utils.FormatBytes(float64(layer.Size))}
+			if created != "" {
+				parts = append(parts, created)
+			}
+			if layer.CreatedBy != "" {
+				parts = append(parts, layer.CreatedBy)
+			}
+			if layer.Comment != "" {
+				parts = append(parts, i18n.T("inspect.comment")+": "+layer.Comment)
+			}
+			history.Lines = append(history.Lines, fmt.Sprintf("%d: %s", index+1, strings.Join(parts, " | ")))
+		}
+		if len(data.History) == 0 && data.HistoryError == "" {
+			if data.HistorySource == dockerclient.ImageHistoryPending {
+				history.Lines = append(history.Lines, i18n.T("inspect.history_loading"))
+			} else {
+				history.Lines = append(history.Lines, i18n.T("inspect.history_empty"))
+			}
 		}
 	}
 	if data.HistoryError != "" {
-		history.Lines = append(history.Lines, "Unavailable: "+data.HistoryError)
+		history.Lines = append(history.Lines, i18n.T("inspect.history_unavailable")+": "+data.HistoryError)
 	}
-	if len(history.Lines) > 0 {
-		sections = append(sections, history)
-	}
+	sections = append(sections, history)
 	return sections
 }
 

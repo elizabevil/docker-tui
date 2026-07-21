@@ -163,6 +163,12 @@
   "inspect.fields_parsed": "Fields parsed: {0}",
   "inspect.no_metadata": "Raw metadata is not available from the engine payload.",
   "inspect.no_history": "Layer history preview is not available yet.",
+  "inspect.history_layers": "Layers",
+  "inspect.history_variants": "Manifest variants",
+  "inspect.history_loading": "Loading layer history...",
+  "inspect.history_empty": "The runtime returned no layer history records.",
+  "inspect.history_no_variants": "The runtime returned no manifest variants.",
+  "inspect.history_unavailable": "History unavailable from runtime",
   // Image detail section titles
   "inspect.section_basic": "Basic Info",
   "inspect.section_system": "System",

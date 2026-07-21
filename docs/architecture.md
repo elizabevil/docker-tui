@@ -106,6 +106,8 @@ state.StatsTick
 - Compose：从容器标签聚合项目与服务视图
 - UI 能力：搜索、命令模式、帮助页、主题、i18n、Header 开关
 
+镜像详情优先使用 `InspectImageDetail()` 的结构化模型。普通镜像通过 runtime `ImageHistory` API 加载 layer history；manifest list 使用列表阶段解析的平台变体，不调用不适用的 layer history API。
+
 ## 代码验证后的注意点
 
 这些内容在旧文档里容易被写错，这里按当前代码记录：

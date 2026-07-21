@@ -173,6 +173,12 @@
   "inspect.fields_parsed": "已解析字段: {0}",
   "inspect.no_metadata": "引擎未返回原始元数据。",
   "inspect.no_history": "镜像历史预览暂不可用。",
+  "inspect.history_layers": "镜像层",
+  "inspect.history_variants": "Manifest 变体",
+  "inspect.history_loading": "正在加载镜像层历史...",
+  "inspect.history_empty": "运行时未返回镜像层历史记录。",
+  "inspect.history_no_variants": "运行时未返回 Manifest 变体。",
+  "inspect.history_unavailable": "无法从运行时获取历史",
   // Image detail section titles
   "inspect.section_basic": "基本信息",
   "inspect.section_system": "系统信息",

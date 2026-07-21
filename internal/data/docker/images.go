@@ -335,6 +335,12 @@ func (c *Client) InspectImageDetail(summary ImageSummary) (*ImageDetailData, err
 		detail.Labels = cloneStringMap(info.ContainerConfig.Labels)
 	}
 
+	if detail.IsManifest {
+		detail.HistorySource = ImageHistoryManifest
+		return detail, nil
+	}
+
+	detail.HistorySource = ImageHistoryLayerAPI
 	history, historyErr := c.cli.ImageHistory(c.ctx, summary.ID)
 	if historyErr != nil {
 		detail.HistoryError = historyErr.Error()
@@ -357,7 +363,15 @@ func NewImageDetailData(summary ImageSummary) *ImageDetailData {
 		Architecture: summary.Arch, Labels: cloneStringMap(summary.Labels),
 		IsManifest:       summary.IsManifest,
 		ManifestVariants: append([]ImageManifestEntry(nil), summary.Manifests...),
+		HistorySource:    imageHistorySource(summary.IsManifest),
 	}
+}
+
+func imageHistorySource(isManifest bool) ImageHistorySource {
+	if isManifest {
+		return ImageHistoryManifest
+	}
+	return ImageHistoryPending
 }
 
 func cloneStringMap(source map[string]string) map[string]string {

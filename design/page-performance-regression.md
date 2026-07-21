@@ -82,7 +82,7 @@ Panel body 高度只由 `Panel Rail - border(2) - title(1)` 决定，不再读�
 
 - 日期: 2026-07-20
 - Detail: UI 主链路改为 `ImageDetailData`，inspect、history、manifest variants 均为结构化数据。
-- History: 普通镜像使用 `History / Layers`；manifest 使用 `History / Manifest variants`；空历史不生成占位 section。
+- History: 普通镜像使用 `History / Layers`；manifest 使用 `History / Manifest variants`；空数据、加载中与 runtime 获取失败显示明确且不同的状态。
 - Table cache: cache key 覆盖 schema、container width、resolved headers、sort、width profile 和 viewport rows，容量上限 256。
 - Benchmark:
   - cached: 约 `3.22 us/op`、`72 B/op`、`2 allocs/op`。

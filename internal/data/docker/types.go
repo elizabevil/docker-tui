@@ -70,6 +70,14 @@ type ImageHistoryLayer struct {
 	Comment   string
 }
 
+type ImageHistorySource string
+
+const (
+	ImageHistoryPending  ImageHistorySource = "pending"
+	ImageHistoryLayerAPI ImageHistorySource = "layer_api"
+	ImageHistoryManifest ImageHistorySource = "manifest"
+)
+
 type ImageDetailData struct {
 	ID               string
 	RepoTags         []string
@@ -91,6 +99,7 @@ type ImageDetailData struct {
 	IsManifest       bool
 	ManifestVariants []ImageManifestEntry
 	History          []ImageHistoryLayer
+	HistorySource    ImageHistorySource
 	HistoryError     string
 }
 
