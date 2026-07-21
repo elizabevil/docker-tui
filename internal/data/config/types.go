@@ -121,6 +121,7 @@ type KeymapConfig struct {
 	ContainerExec    []string `json:"containerExec" yaml:"containerExec"`
 	ContainerInspect []string `json:"containerInspect" yaml:"containerInspect"`
 	ContainerStats   []string `json:"containerStats" yaml:"containerStats"`
+	ContainerPause   []string `json:"containerPause" yaml:"containerPause"`
 
 	ImagePull   []string `json:"imagePull" yaml:"imagePull"`
 	ImageRemove []string `json:"imageRemove" yaml:"imageRemove"`

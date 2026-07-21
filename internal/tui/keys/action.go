@@ -17,6 +17,7 @@ const (
 	ActionContainerExec    KeyAction = "containerExec"
 	ActionContainerInspect KeyAction = "containerInspect"
 	ActionContainerStats   KeyAction = "containerStats"
+	ActionContainerPause   KeyAction = "containerPause"
 	ActionImagePull        KeyAction = "imagePull"
 	ActionImageRemove      KeyAction = "imageRemove"
 	ActionImagePrune       KeyAction = "imagePrune"

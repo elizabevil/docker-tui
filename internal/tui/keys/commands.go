@@ -8,9 +8,12 @@ const (
 	CommandNetworks   = "networks"
 	CommandLogs       = "logs"
 	CommandHelp       = "help"
+	CommandRename     = "rename"
+	CommandTop        = "top"
+	CommandPort       = "port"
 )
 
 // Commands returns command-mode entries in autocomplete order.
 func Commands() []string {
-	return []string{CommandCompose, CommandImages, CommandContainers, CommandVolumes, CommandNetworks, CommandLogs, CommandHelp}
+	return []string{CommandCompose, CommandImages, CommandContainers, CommandVolumes, CommandNetworks, CommandLogs, CommandRename, CommandTop, CommandPort, CommandHelp}
 }

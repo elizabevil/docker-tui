@@ -108,6 +108,25 @@ func RenderShellDialog(shell string, termW, termH int, overlayColor string) stri
 	return PlaceOverlay(termW, termH, dialog, overlayColor)
 }
 
+func RenderTextInput(title, value string, cursor, termW, termH int, overlayColor string) string {
+	if overlayColor == "" {
+		overlayColor = DefaultDialogConfig().OverlayColor
+	}
+	runes := []rune(value)
+	cursor = min(max(0, cursor), len(runes))
+	input := string(runes[:cursor]) + "\u2588" + string(runes[cursor:])
+	dialogW := min(60, max(40, termW*25/100))
+	inner := lipgloss.JoinVertical(lipgloss.Top,
+		lipgloss.NewStyle().Foreground(lipgloss.Color("cyan")).Render(title),
+		"",
+		lipgloss.NewStyle().Render(input),
+		"",
+		lipgloss.NewStyle().Faint(true).Render("[Enter] Confirm  [Esc] Cancel"),
+	)
+	dialog := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(1, 2).Width(dialogW).Render(inner)
+	return PlaceOverlay(termW, termH, dialog, overlayColor)
+}
+
 // PlaceOverlay centers a dialog over the terminal area WITHOUT a full-screen
 // backdrop. The dialog's own background provides contrast; surrounding content
 // remains visible through the terminal background.

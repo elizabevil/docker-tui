@@ -14,6 +14,15 @@ func handleContainersLoaded(m *state.AppModel, msg state.ContainersLoaded) (*sta
 	} else {
 		m.Resources.Containers.Items = msg.Containers
 		m.Resources.Containers.Error = nil
+		if anchor := m.Resources.Containers.SelectionAnchorID; anchor != "" {
+			for i, container := range msg.Containers {
+				if container.ID == anchor {
+					m.Resources.Containers.Cursor = i
+					break
+				}
+			}
+			m.Resources.Containers.SelectionAnchorID = ""
+		}
 		if m.Resources.Containers.Cursor >= len(msg.Containers) {
 			m.Resources.Containers.Cursor = 0
 		}

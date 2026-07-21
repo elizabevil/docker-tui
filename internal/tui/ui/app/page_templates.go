@@ -11,6 +11,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/images"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/logs"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/networks"
+	processes "github.com/elizabevil/docker-tui/internal/tui/ui/pages/processes"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/volumes"
 )
 
@@ -37,6 +38,8 @@ func templateFor(m *state.AppModel) pageTemplateKind {
 	case m.Navigation.Mode == state.ModeLogView || m.Navigation.Mode == state.ModeSearch:
 		return logPageTemplate
 	case m.Navigation.Mode == state.ModeDetail || m.Navigation.Mode == state.ModeExecPassthrough:
+		return detailPageTemplate
+	case m.Navigation.Mode == state.ModeTop:
 		return detailPageTemplate
 	case m.Navigation.ActivePanel == state.PanelHelp:
 		return helpPageTemplate
@@ -80,6 +83,9 @@ func projectPage(m *state.AppModel, bodyHeight, bodyWidth int) pageView {
 		if m.Navigation.Mode == state.ModeExecPassthrough {
 			view.title = "Exec"
 			view.content = renderExecPassthroughPanel(m, bodyHeight)
+		} else if m.Navigation.Mode == state.ModeTop {
+			view.title = "Top: " + m.Processes.ContainerName
+			view.content = processes.Render(m.Processes, bodyWidth, bodyHeight)
 		} else {
 			view.content = detail.RenderView(m, bodyHeight)
 		}

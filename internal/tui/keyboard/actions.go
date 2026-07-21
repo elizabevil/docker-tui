@@ -71,6 +71,8 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 
 	case keys.ActionContainerStats:
 		return doStatsAction(m)
+	case keys.ActionContainerPause:
+		return doPauseAction(m)
 
 	case keys.ActionContainerExec:
 		if m.Navigation.ActivePanel != state.PanelContainers {

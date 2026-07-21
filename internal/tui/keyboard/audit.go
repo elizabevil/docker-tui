@@ -88,6 +88,10 @@ func modeLabel(mode state.AppMode) string {
 		return "filter"
 	case state.ModeConfirm:
 		return "confirm"
+	case state.ModeTop:
+		return "top"
+	case state.ModeRename:
+		return "rename"
 	default:
 		return "normal"
 	}

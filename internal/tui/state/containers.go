@@ -13,6 +13,9 @@ const (
 	ActionStopped   = "stopped"
 	ActionRestarted = "restarted"
 	ActionKilled    = "killed"
+	ActionPaused    = "paused"
+	ActionUnpaused  = "unpaused"
+	ActionRenamed   = "renamed"
 	ActionRemoved   = "removed"
 	ActionPulled    = "pulled"
 	ActionPruned    = "pruned"
@@ -23,6 +26,7 @@ const (
 	ContainerStateCreated  = "created"
 	ContainerStateStopped  = "stopped"
 	ContainerStateStopping = "stopping"
+	ContainerStatePaused   = "paused"
 )
 
 // ContainerSortColumn identifies which column to sort by on the containers page.
@@ -49,6 +53,21 @@ type (
 		Success bool
 		Error   error
 		Audit   audit.Trace
+	}
+
+	ContainerBatchActioned struct {
+		Action  string
+		Success int
+		Skipped int
+		Failed  int
+		Error   error
+		Audit   audit.Trace
+	}
+
+	ContainerProcessesLoaded struct {
+		ContainerID string
+		Processes   dockerclient.ContainerProcesses
+		Error       error
 	}
 
 	LogBatchReceived struct {
@@ -139,15 +158,16 @@ type ExecOutput struct {
 type ExecDone struct{}
 
 type ContainerListModel struct {
-	Items      []dockerclient.ContainerSummary
-	Cursor     int
-	ViewOffset int
-	Loading    bool
-	Error      error
-	Stats      map[string]ContainerStats
-	Filter     string
-	SortBy     ContainerSortColumn
-	SortAsc    bool
+	Items             []dockerclient.ContainerSummary
+	Cursor            int
+	ViewOffset        int
+	Loading           bool
+	Error             error
+	Stats             map[string]ContainerStats
+	Filter            string
+	SortBy            ContainerSortColumn
+	SortAsc           bool
+	SelectionAnchorID string
 }
 
 type ContainerStats struct {

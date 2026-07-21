@@ -37,28 +37,26 @@ func (c *Client) ListContainers(opts ContainerListOptions) ([]ContainerSummary, 
 			}
 		}
 
-		portsStr := ""
-		for i, p := range ctr.Ports {
-			if i > 0 {
-				portsStr += ", "
-			}
-			if p.PublicPort > 0 {
-				portsStr += fmt.Sprintf("%d:%d/%s", p.PublicPort, p.PrivatePort, p.Type)
-			} else {
-				portsStr += fmt.Sprintf("%d/%s", p.PrivatePort, p.Type)
-			}
+		portBindings := make([]PortBinding, 0, len(ctr.Ports))
+		for _, p := range ctr.Ports {
+			portBindings = append(portBindings, PortBinding{
+				ContainerPort: p.PrivatePort,
+				Protocol:      p.Type,
+				HostIP:        p.IP,
+				HostPort:      p.PublicPort,
+			})
 		}
 
 		summary := ContainerSummary{
-			ID:         ctr.ID[:12],
-			Name:       name,
-			Image:      ctr.Image,
-			Status:     ctr.Status,
-			State:      ctr.State,
-			Created:    ctr.Created,
-			Ports:      portsStr,
-			Labels:     ctr.Labels,
-			MountCount: len(ctr.Mounts),
+			ID:           ctr.ID[:12],
+			Name:         name,
+			Image:        ctr.Image,
+			Status:       ctr.Status,
+			State:        ctr.State,
+			Created:      ctr.Created,
+			PortBindings: portBindings,
+			Labels:       ctr.Labels,
+			MountCount:   len(ctr.Mounts),
 		}
 
 		if ctr.NetworkSettings != nil {
@@ -95,6 +93,31 @@ func (c *Client) ContainerRestart(id string) error {
 
 func (c *Client) ContainerKill(id string) error {
 	return c.cli.ContainerKill(c.ctx, id, "")
+}
+
+func (c *Client) ContainerPause(id string) error {
+	return c.cli.ContainerPause(c.ctx, id)
+}
+
+func (c *Client) ContainerUnpause(id string) error {
+	return c.cli.ContainerUnpause(c.ctx, id)
+}
+
+func (c *Client) ContainerRename(id, name string) error {
+	return c.cli.ContainerRename(c.ctx, id, name)
+}
+
+type ContainerProcesses struct {
+	Titles    []string
+	Processes [][]string
+}
+
+func (c *Client) ContainerTop(id string) (ContainerProcesses, error) {
+	response, err := c.cli.ContainerTop(c.ctx, id, nil)
+	if err != nil {
+		return ContainerProcesses{}, fmt.Errorf("top container: %w", err)
+	}
+	return ContainerProcesses{Titles: response.Titles, Processes: response.Processes}, nil
 }
 
 func (c *Client) ContainerRemove(id string, force bool) error {

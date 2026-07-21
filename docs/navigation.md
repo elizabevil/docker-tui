@@ -23,6 +23,8 @@
 - `exec passthrough`
 - `confirm`
 - `mark`
+- `rename`
+- `top`
 
 ## 全局默认按键
 
@@ -56,6 +58,7 @@
 | `Ctrl+K` | Kill |
 | `l` | 打开日志视图 |
 | `m` | 开关容器 stats |
+| `p` | 运行中容器 Pause；已暂停容器 Unpause |
 | `d` | 详情视图 |
 | `i` | Inspect |
 | `e` | 打开 exec shell 对话框 |
@@ -133,6 +136,9 @@ Compose 面板是双栏：
 - `volumes`
 - `networks`
 - `logs`
+- `rename`：打开当前容器重命名输入框
+- `top`：打开运行中容器的独立进程页面
+- `port`：打开当前容器的结构化端口详情
 - `help`
 
 支持 `Tab` 自动补全。
@@ -152,6 +158,13 @@ Compose 面板是双栏：
 - `Space` / `PgDn` 向下翻页
 - `PgUp` 向上翻页
 - `g` 回到顶部
+
+### Top
+
+- 仅运行中的容器可以进入
+- `j` / `k` / `↑` / `↓` 移动进程行
+- `r` 重新读取进程列表
+- `Esc` 返回容器列表
 
 ### Logs
 

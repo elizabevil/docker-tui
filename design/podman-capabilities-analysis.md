@@ -389,7 +389,7 @@
 |---|---|---|---|
 | `TASK-RUN-001` | `TASK-004`、`TASK-006` | 连接模型统一与本地驱动去重 | `done` |
 | `TASK-RUN-002` | `TASK-005`、`TASK-016` | TLS 接线与错误展示 | `done` |
-| `TASK-RUN-003` | `TASK-017` | 容器 `pause` / `unpause` / `rename` / `top` / `port` | `todo` |
+| `TASK-RUN-003` | `TASK-017` | 容器 `pause` / `unpause` / `rename` / `top` / `port` | `done` |
 | `TASK-RUN-004` | `TASK-009` | 卷 / 网络创建与清理 | `todo` |
 | `TASK-RUN-005` | `TASK-018` | 镜像标签与传输工作流 | `todo` |
 | `TASK-RUN-006` | `TASK-019` | 高级容器操作 | `todo` |

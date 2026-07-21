@@ -50,6 +50,8 @@ const (
 	ModeExecShell
 	ModeExecPassthrough
 	ModeRuntimeSelect
+	ModeRename
+	ModeTop
 )
 
 // ExecDialogFocus identifies focusable regions in the exec dialog.
@@ -86,6 +88,7 @@ type AppModel struct {
 	Resources    ResourceState
 	Metrics      MetricsState
 	Viewport     ViewportState
+	Processes    ProcessState
 }
 
 // NewAppModel creates a new application model with default state.

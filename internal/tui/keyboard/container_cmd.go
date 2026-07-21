@@ -37,6 +37,32 @@ func containerKillCmd(client *docker.Client, id string) tea.Cmd {
 	}
 }
 
+func containerPauseCmd(client *docker.Client, id string, unpause bool) tea.Cmd {
+	return func() tea.Msg {
+		action := state.ActionPaused
+		err := client.ContainerPause(id)
+		if unpause {
+			action = state.ActionUnpaused
+			err = client.ContainerUnpause(id)
+		}
+		return state.ContainerActioned{Action: action, ID: id, Success: err == nil, Error: err}
+	}
+}
+
+func containerRenameCmd(client *docker.Client, id, name string) tea.Cmd {
+	return func() tea.Msg {
+		err := client.ContainerRename(id, name)
+		return state.ContainerActioned{Action: state.ActionRenamed, ID: id, Success: err == nil, Error: err}
+	}
+}
+
+func fetchContainerProcesses(client *docker.Client, id string) tea.Cmd {
+	return func() tea.Msg {
+		processes, err := client.ContainerTop(id)
+		return state.ContainerProcessesLoaded{ContainerID: id, Processes: processes, Error: err}
+	}
+}
+
 func containerRemoveCmd(client *docker.Client, id string, force bool) tea.Cmd {
 	return func() tea.Msg {
 		err := client.ContainerRemove(id, force)

@@ -2,13 +2,16 @@ package keyboard
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -115,6 +118,144 @@ func doStatsAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if m.Metrics.StatsActive {
 		return m, FetchStats(m.Connection.Docker, ctr.ID)
 	}
+	return m, nil
+}
+
+func doPauseAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	if m.Connection.Docker == nil {
+		return m, nil
+	}
+	if len(m.Selection.MarkedIDs) > 0 {
+		return doBatchPauseAction(m)
+	}
+	ctr := m.Resources.Containers.Selected()
+	if ctr == nil {
+		return m, nil
+	}
+	unpause := ctr.State == state.ContainerStatePaused
+	if ctr.State != state.ContainerStateRunning && !unpause {
+		ShowToastWarn(m, i18n.T("container.pause.unavailable"))
+		return m, nil
+	}
+	action := docker.ContainerActionPause
+	if unpause {
+		action = docker.ContainerActionUnpause
+	}
+	trace := beginAudit(m, "resource.container."+action, containerTarget(m, ctr.ID), action+" "+ctr.Name)
+	return m, withContainerAudit(containerPauseCmd(m.Connection.Docker, ctr.ID, unpause), trace)
+}
+
+func doBatchPauseAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	type target struct {
+		id      string
+		unpause bool
+	}
+	marked := m.Selection.MarkedIDs
+	targets := make([]target, 0, len(marked))
+	skipped := 0
+	for _, ctr := range m.Resources.Containers.Items {
+		if !marked[ctr.ID] {
+			continue
+		}
+		switch ctr.State {
+		case state.ContainerStateRunning:
+			targets = append(targets, target{id: ctr.ID})
+		case state.ContainerStatePaused:
+			targets = append(targets, target{id: ctr.ID, unpause: true})
+		default:
+			skipped++
+		}
+	}
+	m.Selection.ClearMarks()
+	trace := beginAudit(m, "resource.container.pause_toggle", audit.ContainerTarget{ID: "batch", Name: fmt.Sprintf("%d containers", len(marked))}, "Toggle pause for selected containers")
+	client := m.Connection.Docker
+	return m, func() tea.Msg {
+		result := state.ContainerBatchActioned{Action: "pause", Skipped: skipped, Audit: trace}
+		var failures []error
+		for _, item := range targets {
+			err := client.ContainerPause(item.id)
+			if item.unpause {
+				err = client.ContainerUnpause(item.id)
+			}
+			if err != nil {
+				result.Failed++
+				failures = append(failures, err)
+			} else {
+				result.Success++
+			}
+		}
+		result.Error = errors.Join(failures...)
+		return result
+	}
+}
+
+func openRenameDialog(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	ctr := m.Resources.Containers.Selected()
+	if m.Connection.Docker == nil || m.Navigation.ActivePanel != state.PanelContainers || ctr == nil {
+		return m, nil
+	}
+	m.Dialog.Open(state.DialogSpec{Kind: state.DialogContainerRename, Title: i18n.T("container.rename.title"), Body: ctr.ID, Input: ctr.Name})
+	m.Navigation.Mode = state.ModeRename
+	return m, nil
+}
+
+func handleRenameDialogKey(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	if key == keys.KeyEsc {
+		clearDialogState(m)
+		return m, nil
+	}
+	if key != keys.KeyEnter {
+		editQueryInput(key, &m.Dialog.Input)
+		return m, nil
+	}
+	name := strings.TrimSpace(strings.TrimPrefix(m.Dialog.Input.Text, "/"))
+	if name == "" || strings.ContainsAny(name, " /\\") {
+		ShowToastWarn(m, i18n.T("container.rename.invalid"))
+		return m, nil
+	}
+	id := m.Dialog.Body
+	trace := beginAudit(m, "resource.container.rename", containerTarget(m, id), "Rename container to "+name)
+	clearDialogState(m)
+	return m, withContainerAudit(containerRenameCmd(m.Connection.Docker, id, name), trace)
+}
+
+func openTopView(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	ctr := m.Resources.Containers.Selected()
+	if m.Connection.Docker == nil || m.Navigation.ActivePanel != state.PanelContainers || ctr == nil {
+		return m, nil
+	}
+	if ctr.State != state.ContainerStateRunning {
+		ShowToastWarn(m, i18n.T("container.top.unavailable"))
+		return m, nil
+	}
+	m.Processes.Open(ctr.ID, ctr.Name)
+	m.Navigation.Mode = state.ModeTop
+	return m, fetchContainerProcesses(m.Connection.Docker, ctr.ID)
+}
+
+func openPortDetail(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	ctr := m.Resources.Containers.Selected()
+	if m.Navigation.ActivePanel != state.PanelContainers || ctr == nil {
+		return m, nil
+	}
+	lines := make([]string, 0, len(ctr.PortBindings))
+	for _, binding := range ctr.PortBindings {
+		containerPort := fmt.Sprintf("%d/%s", binding.ContainerPort, binding.Protocol)
+		if binding.HostPort == 0 {
+			lines = append(lines, containerPort)
+		} else {
+			host := binding.HostIP
+			if strings.Contains(host, ":") && !strings.HasPrefix(host, "[") {
+				host = "[" + host + "]"
+			}
+			lines = append(lines, fmt.Sprintf("%s -> %s:%d", containerPort, host, binding.HostPort))
+		}
+	}
+	if len(lines) == 0 {
+		lines = append(lines, i18n.T("container.ports.empty"))
+	}
+	m.Detail.Open(i18n.T("container.ports.title", ctr.Name), strings.Join(lines, "\n"))
+	m.Navigation.Mode = state.ModeDetail
 	return m, nil
 }
 

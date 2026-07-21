@@ -9,6 +9,7 @@ const (
 	DialogImageExport
 	DialogImageDebug
 	DialogExec
+	DialogContainerRename
 )
 
 func (k DialogKind) Mode() AppMode {
@@ -21,6 +22,8 @@ func (k DialogKind) Mode() AppMode {
 		return ModeDebug
 	case DialogExec:
 		return ModeExec
+	case DialogContainerRename:
+		return ModeRename
 	default:
 		return ModeNormal
 	}

@@ -66,6 +66,12 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 	if m.Navigation.Mode == state.ModeRuntimeSelect {
 		return handleRuntimeSelectorKey(key, m)
 	}
+	if m.Navigation.Mode == state.ModeRename {
+		return handleRenameDialogKey(normalizeInputKey(rawKey), m)
+	}
+	if m.Navigation.Mode == state.ModeTop {
+		return handleTopKey(key, m)
+	}
 
 	if handleDetailKeys(key, m) {
 		return m, nil
@@ -235,7 +241,7 @@ func keySurface(mode state.AppMode) string {
 	switch mode {
 	case state.ModeFilter, state.ModeSearch, state.ModeImagePull, state.ModeCommand:
 		return "input"
-	case state.ModeConfirm, state.ModeExport, state.ModeDebug, state.ModeExec, state.ModeExecShell:
+	case state.ModeConfirm, state.ModeExport, state.ModeDebug, state.ModeExec, state.ModeExecShell, state.ModeRename:
 		return "dialog"
 	default:
 		return "main"
@@ -258,6 +264,10 @@ func keyMode(mode state.AppMode) string {
 		return "detail"
 	case state.ModeMark:
 		return "mark"
+	case state.ModeTop:
+		return "top"
+	case state.ModeRename:
+		return "rename"
 	default:
 		return "normal"
 	}

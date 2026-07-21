@@ -7,6 +7,9 @@ const (
 	ContainerActionStop    = "stop"
 	ContainerActionRestart = "restart"
 	ContainerActionKill    = "kill"
+	ContainerActionPause   = "pause"
+	ContainerActionUnpause = "unpause"
+	ContainerActionRename  = "rename"
 	ContainerActionRemove  = "remove"
 	ContainerActionCreate  = "create"
 	ContainerActionDestroy = "destroy"
@@ -17,7 +20,8 @@ const (
 func RefreshesContainers(action string) bool {
 	switch action {
 	case ContainerActionStart, ContainerActionStop, ContainerActionDie,
-		ContainerActionKill, ContainerActionDestroy, ContainerActionCreate:
+		ContainerActionKill, ContainerActionPause, ContainerActionUnpause,
+		ContainerActionRename, ContainerActionDestroy, ContainerActionCreate:
 		return true
 	default:
 		return false

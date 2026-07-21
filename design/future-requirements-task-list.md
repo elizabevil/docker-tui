@@ -20,16 +20,15 @@
 
 | 状态 | 数量 |
 |---|---:|
-| `done` | 9 |
+| `done` | 10 |
 | `in_progress` | 0 |
-| `todo` | 11 |
+| `todo` | 10 |
 | `blocked` | 0 |
 
 当前执行队列：
 
-1. 执行 `TASK-017`，补齐高频容器操作。
-2. 执行 `TASK-009`，补齐 Volume / Network 创建与清理。
-3. 执行 `TASK-008`，将 Events 接入主循环并支持局部刷新。
+1. 执行 `TASK-009`，补齐 Volume / Network 创建与清理。
+2. 执行 `TASK-008`，将 Events 接入主循环并支持局部刷新。
 
 ## 已完成基础
 
@@ -69,7 +68,7 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 | `TASK-009` | Volume / Network 创建与清理 | P1 | `todo` | TASK-004 | create、prune、确认交互、部分失败反馈及双运行时测试 |
 | `TASK-010` | 批量操作扩展与部分成功反馈 | P2 | `todo` | 审计模型、TASK-017 | 每个目标独立终态、汇总提示和可追溯审计 |
 | `TASK-011` | Compose / 容器 / 镜像联动刷新 | P2 | `todo` | TASK-008 | 事件只使相关资源失效，不直接修改复杂 UI 状态 |
-| `TASK-017` | 高频容器操作 | P0 | `todo` | TASK-004 | `pause`、`unpause`、`rename`、`top`、`port`，Docker / Podman 行为一致 |
+| `TASK-017` | 高频容器操作 | P0 | `done` | TASK-004 | 已实现状态约束的 `pause` / `unpause`、批量跳过汇总、`rename` 输入校验、独立 `top` 页面和结构化 `port` 展示，并通过 Docker / Podman 兼容 API 契约测试 |
 | `TASK-018` | 镜像标签与传输工作流 | P1 | `todo` | TASK-004 | `tag`、`push`、`save`、`load`；进度、取消和错误可见 |
 | `TASK-019` | 高级容器操作 | P2 | `todo` | TASK-017 | 评估并分批实现 `update`、`diff`、`export`、`commit`、`wait`、`cp` |
 

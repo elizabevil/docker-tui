@@ -63,6 +63,10 @@ func ForMode(app *state.AppModel) []Shortcut {
 		return shortcuts(bindingLabel(app, keys.ActionBack, keys.KEsc), "Back", navigationLabel(app), "Scroll", "PgUp/Dn", "Page", "g/Ctrl+G", "Top/Bot", "n/Ctrl+N", "Match", "w", "Wrap")
 	case state.ModeDetail:
 		return shortcuts(bindingLabel(app, keys.ActionBack, keys.KEsc)+"/"+bindingLabel(app, keys.ActionEnter, keys.KEnter), "Back", navigationLabel(app), "Scroll", "Space/PgDn", "Page", "PgUp", "Page up", "g", "Top")
+	case state.ModeTop:
+		return shortcuts("Esc", "Back", "j/k", "Move", "r", "Refresh")
+	case state.ModeRename:
+		return shortcuts("Enter", "Rename", "Esc", "Cancel")
 	case state.ModeHelp:
 		return shortcuts(bindingLabel(app, keys.ActionHelp, keys.KeyQmark)+"/"+bindingLabel(app, keys.ActionBack, keys.KEsc), "Close")
 	default:
@@ -91,6 +95,7 @@ func ForPanel(panel state.PanelType, marked int, app ...*state.AppModel) []Short
 				{bindingLabel(model, keys.ActionContainerStart, keys.KeyS), i18n.T("key.batch_start")},
 				{bindingLabel(model, keys.ActionContainerStop, keys.KCtrlS), i18n.T("key.batch_stop")},
 				{bindingLabel(model, keys.ActionContainerRestart, keys.KCtrlR), i18n.T("key.batch_restart")},
+				{bindingLabel(model, keys.ActionContainerPause, keys.KeyP), i18n.T("key.pause")},
 				{bindingLabel(model, keys.ActionContainerRemove, keys.KCtrlD), i18n.T("key.batch_delete")},
 			}
 		}
@@ -104,6 +109,7 @@ func ForPanel(panel state.PanelType, marked int, app ...*state.AppModel) []Short
 			{bindingLabel(model, keys.ActionContainerExec, keys.KeyE), i18n.T("key.exec")},
 			{bindingLabel(model, keys.ActionContainerInspect, keys.KeyI), "Inspect"},
 			{bindingLabel(model, keys.ActionContainerStats, keys.KeyM), i18n.T("key.stats")},
+			{bindingLabel(model, keys.ActionContainerPause, keys.KeyP), pauseLabel(model)},
 			{bindingLabel(model, keys.ActionContainerRemove, keys.KCtrlD), i18n.T("key.delete")},
 		}
 	case state.PanelImages:
@@ -143,6 +149,15 @@ func ForPanel(panel state.PanelType, marked int, app ...*state.AppModel) []Short
 	default:
 		return nil
 	}
+}
+
+func pauseLabel(model *state.AppModel) string {
+	if model != nil && model.Resources.Containers != nil {
+		if selected := model.Resources.Containers.Selected(); selected != nil && selected.State == state.ContainerStatePaused {
+			return i18n.T("key.unpause")
+		}
+	}
+	return i18n.T("key.pause")
 }
 
 func Sections(app ...*state.AppModel) []Section {

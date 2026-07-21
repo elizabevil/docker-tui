@@ -244,11 +244,7 @@ func renderContainers(im *state.ImageListModel, cm *state.ContainerListModel, wi
 	for i := containerOffset; i < total && len(rows) < rowHeight; i++ {
 		c := matched[i]
 		created := utils.FormatCreated(c.Created)
-		ports := c.Ports
-		if ports == "" {
-			ports = "\u2014"
-		}
-		portList := containers.SplitPorts(c.Ports)
+		portList := containers.FormatPorts(c.PortBindings, w < 80)
 
 		for pi, p := range portList {
 			if len(rows) >= rowHeight {
@@ -264,7 +260,7 @@ func renderContainers(im *state.ImageListModel, cm *state.ContainerListModel, wi
 						}
 					}
 				case pi == 0:
-					cells[j] = containers.CellValue(cd.Key, &c, c.Status, ports, created)
+					cells[j] = containers.CellValue(cd.Key, &c, c.Status, p, created)
 				case cd.Key == "ports":
 					cells[j] = p
 				}
@@ -317,7 +313,7 @@ func selectedContainerSubRow(items []dockerclient.ContainerSummary, offset, curs
 	}
 	row := 0
 	for i := offset; i < len(items) && i < cursor; i++ {
-		row += len(containers.SplitPorts(items[i].Ports))
+		row += len(containers.FormatPorts(items[i].PortBindings, false))
 	}
 	return row
 }

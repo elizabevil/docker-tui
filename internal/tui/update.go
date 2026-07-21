@@ -75,6 +75,11 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 	case state.ContainerActioned:
 		return handleContainerActioned(m, msg)
+	case state.ContainerBatchActioned:
+		return handleContainerBatchActioned(m, msg)
+	case state.ContainerProcessesLoaded:
+		m.Processes.Apply(msg.ContainerID, msg.Processes.Titles, msg.Processes.Processes, msg.Error)
+		return m, nil
 
 	case state.ImageActioned:
 		return handleImageActioned(m, msg)

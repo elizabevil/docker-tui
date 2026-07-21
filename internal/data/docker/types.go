@@ -13,12 +13,19 @@ type ContainerSummary struct {
 	Status         string
 	State          string
 	Created        int64
-	Ports          string
+	PortBindings   []PortBinding
 	IPs            []string
 	MountCount     int
 	Labels         map[string]string
 	ComposeProject string
 	ComposeService string
+}
+
+type PortBinding struct {
+	ContainerPort uint16
+	Protocol      string
+	HostIP        string
+	HostPort      uint16
 }
 
 // ManifestPlatform holds platform info for a single manifest entry.

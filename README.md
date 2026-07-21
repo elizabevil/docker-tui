@@ -6,7 +6,7 @@
 
 ## 功能
 
-- 管理容器：列表、启动、停止、重启、Kill、删除、日志、Stats、Inspect 和 Exec
+- 管理容器：列表、启动、停止、重启、Pause/Unpause、Rename、Top、Port、Kill、删除、日志、Stats、Inspect 和 Exec
 - 管理镜像：列表、Pull、Prune、删除和结构化详情
 - 查看和删除 Volume / Network，并查看关联资源
 - 基于容器 labels 聚合 Compose 项目与服务，支持 start、stop、down 和日志
@@ -87,13 +87,15 @@ just run-podman
 
 | 面板 | 常用按键 |
 |---|---|
-| Containers | `s` 启动、`Ctrl+S` 停止、`Ctrl+R` 重启、`Ctrl+K` Kill、`l` 日志、`e` Exec、`d` 详情、`m` Stats |
+| Containers | `s` 启动、`Ctrl+S` 停止、`Ctrl+R` 重启、`p` Pause/Unpause、`Ctrl+K` Kill、`l` 日志、`e` Exec、`d` 详情、`m` Stats |
 | Images | `Ctrl+P` Pull、`p` Prune、`d` 详情、`Ctrl+D` 删除 |
 | Volumes | `Enter` 展开、`d` 详情、`Ctrl+D` 删除 |
 | Networks | `d` 详情、`Ctrl+D` 删除 |
 | Compose | `s` start、`Ctrl+S` stop、`Ctrl+D` down、`l` 日志、`d` 详情 |
 
 资源过滤会随输入即时生效。`Enter` 保留过滤并退出编辑；5 秒内连续按两次 `Esc` 会清空过滤并退出。日志搜索在按下 `Enter` 后应用，使用 `n` / `Ctrl+N` 跳转到下一个 / 上一个匹配。
+
+容器命令模式提供 `:rename`、`:top` 和 `:port`。Top 仅允许运行中的容器进入，支持 `j` / `k` 滚动和 `r` 刷新；Port 详情显示结构化的容器端口、协议、Host IP 与 Host Port。批量 Pause/Unpause 会跳过状态不适用的容器并汇总成功、跳过和失败数量。
 
 完整按键和模式说明见 [交互与导航](docs/navigation.md)。运行时 Help 与 Footer 是当前有效快捷键的权威展示。
 
@@ -145,6 +147,7 @@ keymap:
   help: [f1]
   containerStart: [s]
   containerStop: [ctrl+s]
+  containerPause: [p]
   imagePull: [ctrl+p]
 ```
 

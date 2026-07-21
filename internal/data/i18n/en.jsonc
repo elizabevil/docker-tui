@@ -54,6 +54,8 @@
   "key.export": "Export",
   "key.logs": "Logs",
   "key.stats": "Statistics",
+  "key.pause": "Pause",
+  "key.unpause": "Unpause",
   "key.exec": "Execute",
   "key.expand": "Containers",
   "key.collapse": "Collapse",
@@ -84,6 +86,9 @@
   "key.batch_prune": "B.Prune",
   // Toast messages
   "toast.started": "Started {0}",
+  "toast.paused": "Paused {0}",
+  "toast.unpaused": "Unpaused {0}",
+  "toast.renamed": "Renamed {0}",
   "toast.stopped": "Stopped {0}",
   "toast.restarted": "Restarted {0}",
   "toast.killed": "Killed {0}",
@@ -286,5 +291,16 @@
   "connection.error.handshake": "TLS handshake failed",
   "connection.error.network": "Network connection failed",
   "connection.tls_configured": "TLS configured",
-  "connection.tls_verified": "TLS verified"
+  "connection.tls_verified": "TLS verified",
+  "container.pause.unavailable": "Only running or paused containers support this action",
+  "container.rename.title": "Rename container",
+  "container.rename.invalid": "Container name cannot be empty or contain spaces or slashes",
+  "container.top.unavailable": "Top is only available for running containers",
+  "container.top.empty": "No container processes",
+  "container.top.hint": "r refresh  Esc back",
+  "container.ports.title": "Ports: {0}",
+  "container.ports.empty": "No exposed ports",
+  "batch.succeeded": "succeeded",
+  "batch.skipped": "skipped",
+  "batch.failed": "failed"
 }

@@ -81,7 +81,8 @@ AppModel
 ├── Selection
 ├── Resources
 ├── Metrics
-└── Viewport
+├── Viewport
+└── Processes
 ```
 
 所有状态域均使用命名字段访问。状态对象维护同步转换和自身不变量；`keyboard` 与 `update*.go` 协调异步命令、runtime IO 和跨域更新；`ui` 只读取状态并渲染。
@@ -136,6 +137,7 @@ keyboard action
 - 多资源面板：容器、镜像、卷、网络、Compose
 - 连接池：本地 Podman / Docker 自动尝试，可运行时切换
 - TLS 连接：强制证书验证，区分 CA、客户端证书、主机名、握手和网络错误；UI 仅展示安全分类文案及 TLS 配置/验证状态
+- 高频容器操作：Pause/Unpause、Rename、Top 和结构化 Port bindings 通过 Docker-compatible API 同时适配 Docker 与 Podman
 - 容器操作：启动、停止、重启、Kill、Logs、Exec、Inspect
 - 镜像操作：拉取、删除、Prune、Detail、导出/调试入口
 - 卷/网络：列表、删除、详情

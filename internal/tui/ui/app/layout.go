@@ -232,6 +232,10 @@ func RenderApp(m *state.AppModel) string {
 	if m.Navigation.Mode == state.ModeExecShell {
 		return component.PlaceOverlay(m.Viewport.Width, m.Viewport.Height, component.RenderShellDialog(m.Dialog.Input.Text, m.Viewport.Width, m.Viewport.Height, overlayColor), overlayColor)
 	}
+	if m.Navigation.Mode == state.ModeRename {
+		return component.PlaceOverlay(m.Viewport.Width, m.Viewport.Height,
+			component.RenderTextInput(m.Dialog.Title, m.Dialog.Input.Text, m.Dialog.Input.Cursor, m.Viewport.Width, m.Viewport.Height, overlayColor), overlayColor)
+	}
 	if m.Dialog.Kind.IsSelection() {
 		return dialog.RenderOverlay(result, m)
 	}
@@ -577,6 +581,8 @@ func buildBreadcrumbItems(m *state.AppModel) []component.BreadcrumbItem {
 		items = append(items, component.BreadcrumbItem{Label: "logs", ID: "logs"})
 	case state.ModeDetail:
 		items = append(items, component.BreadcrumbItem{Label: "detail", ID: "detail"})
+	case state.ModeTop:
+		items = append(items, component.BreadcrumbItem{Label: "top", ID: "top"})
 	case state.ModeExecPassthrough:
 		items = append(items, component.BreadcrumbItem{Label: "exec", ID: "exec"})
 	case state.ModeHelp:

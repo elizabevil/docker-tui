@@ -89,7 +89,7 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 			status = status[:stateColW-6] + "..."
 		}
 
-		portList := SplitPorts(c.Ports)
+		portList := FormatPorts(c.PortBindings, w < 80)
 		for pi, p := range portList {
 			if len(rows) >= rowHeight {
 				break
@@ -164,7 +164,7 @@ func selectedRowForCursor(items []dockerclient.ContainerSummary, offset, cursor 
 	}
 	row := 0
 	for i := offset; i < len(items) && i < cursor; i++ {
-		row += len(SplitPorts(items[i].Ports))
+		row += len(FormatPorts(items[i].PortBindings, false))
 	}
 	return row
 }
@@ -176,7 +176,7 @@ func buildMarkedRows(rows [][]string, items []dockerclient.ContainerSummary, off
 	result := make(map[int]bool)
 	rowIdx := 0
 	for i := offset; i < len(items) && rowIdx < len(rows); i++ {
-		portsRows := len(SplitPorts(items[i].Ports))
+		portsRows := len(FormatPorts(items[i].PortBindings, false))
 		if markedIDs[items[i].ID] {
 			for k := 0; k < portsRows && rowIdx+k < len(rows); k++ {
 				result[rowIdx+k] = true
@@ -233,16 +233,28 @@ func statsString(st state.ContainerStats, cfg *tables.TableConfig) string {
 	return strings.Join(parts, " ")
 }
 
-func SplitPorts(raw string) []string {
-	if raw == "" {
+func FormatPorts(bindings []dockerclient.PortBinding, compact bool) []string {
+	if len(bindings) == 0 {
 		return []string{"\u2014"}
 	}
-	parts := strings.Split(raw, ",")
-	result := make([]string, len(parts))
-	for i, p := range parts {
-		p = strings.TrimSpace(p)
-		p = strings.ReplaceAll(p, "/tcp", "")
-		result[i] = p
+	result := make([]string, 0, len(bindings))
+	for _, binding := range bindings {
+		container := fmt.Sprintf("%d/%s", binding.ContainerPort, binding.Protocol)
+		if binding.HostPort == 0 {
+			result = append(result, container)
+			continue
+		}
+		if compact {
+			result = append(result, fmt.Sprintf("%d:%s", binding.HostPort, container))
+			continue
+		}
+		host := binding.HostIP
+		if host == "" || host == "0.0.0.0" {
+			host = ""
+		} else if strings.Contains(host, ":") && !strings.HasPrefix(host, "[") {
+			host = "[" + host + "]"
+		}
+		result = append(result, fmt.Sprintf("%s -> %s:%d", container, host, binding.HostPort))
 	}
 	return result
 }

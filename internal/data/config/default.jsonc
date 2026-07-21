@@ -113,6 +113,9 @@
     "containerStats": [
       "m"
     ],
+    "containerPause": [
+      "p"
+    ],
     "imagePull": [
       "ctrl+p"
     ],

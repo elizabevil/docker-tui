@@ -50,6 +50,12 @@ func executeCommand(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case keys.CommandHelp:
 		m.Navigation.Mode = state.ModeHelp
 		m.Navigation.ActivePanel = state.PanelHelp
+	case keys.CommandRename:
+		return openRenameDialog(m)
+	case keys.CommandTop:
+		return openTopView(m)
+	case keys.CommandPort:
+		return openPortDetail(m)
 	}
 	return m, nil
 }
