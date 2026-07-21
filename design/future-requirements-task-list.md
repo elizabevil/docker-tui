@@ -65,7 +65,7 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 
 | 编号 | 任务 | 优先级 | 状态 | 依赖 | 验收重点 |
 |---|---|---:|---|---|---|
-| `TASK-021` | [Docker / Podman 统一 runtime driver](unified-runtime-driver.md) | P0 | `todo` | TASK-004 | 正式双 adapter、统一模型/错误/capabilities、移除 `Raw()` 和上层 SDK 类型，同时保持非 CGO 构建 |
+| `TASK-021` | [Docker / Podman 统一 runtime driver](unified-runtime-driver.md) | P0 | `in progress` | TASK-004 | Phase 0 已确认 Podman bindings 不满足非 CGO 构建；采用统一契约、Docker SDK adapter 与 Podman REST adapter |
 | `TASK-008` | Docker / Podman Events 接入主循环 | P1 | `todo` | TASK-003、TASK-021 | 生命周期管理、断线恢复、事件合并、局部刷新和无事件降级 |
 | `TASK-009` | Volume / Network 创建与清理 | P1 | `todo` | TASK-021 | create、prune、确认交互、部分失败反馈及双运行时测试 |
 | `TASK-010` | 批量操作扩展与部分成功反馈 | P2 | `todo` | 审计模型、TASK-017 | 每个目标独立终态、汇总提示和可追溯审计 |

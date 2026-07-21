@@ -1,7 +1,7 @@
 # Docker / Podman 统一驱动方案
 
 > 对应任务: `TASK-021`
-> 状态: `proposed / todo`
+> 状态: `in progress`（Phase 0 已完成）
 > 建立日期: 2026-07-21
 
 ## 1. 目标
@@ -143,13 +143,13 @@ type Engine interface {
 
 仓库 `just check` 使用 `CGO_ENABLED=0`，这是验收门，不得因 native Podman driver 被破坏。
 
-现状中 Podman bindings image 实现受 `//go:build cgo` 限制，非 CGO 使用手写 HTTP。初步 `go list` 表明 containers / volumes / network / system bindings 本身可被解析，但当前依赖图缺少 `github.com/gorilla/schema` 的 go.sum 记录，尚未证明完整无 CGO 构建通过。
+现状中 Podman bindings image 实现受 `//go:build cgo` 限制，非 CGO 使用手写 HTTP。Phase 0 编译探针已确认：即使补齐 `github.com/gorilla/schema`，同时导入 containers/images/volumes/network/system bindings 的 `CGO_ENABLED=0` 构建仍会在 `github.com/proglottis/gpgme` 处失败（其全部 Go 文件受构建约束排除）。因此 native bindings 不能作为本项目默认发布路径。
 
-Phase 0 必须先做最小编译探针并决定：
+Phase 0 决策：
 
-1. 首选：Podman bindings 全部支持 `CGO_ENABLED=0`，删除 image 特殊 build-tag 分叉。
-2. 若部分能力确实要求 CGO：建立同一 `podman.Driver` 接口的 `bindings` 与 `remote REST` 两个底层 transport；mapper 和业务语义只保留一份。
-3. 不接受：继续为每个功能单独添加 `*_nocgo.go` 手写业务实现。
+1. 默认 Podman driver 使用集中式 remote REST transport，保持纯 Go 与交叉编译能力。
+2. bindings 可作为后续可选 transport 或实现参考，但必须实现同一 driver 契约；mapper 和业务语义只保留一份。
+3. 不再为单项功能添加分散的 `*_nocgo.go` 实现；现有 image 分叉在 Podman REST adapter 覆盖后删除。
 
 TLS transport、超时和错误分类必须由 driver factory 统一注入，Podman adapter 不得另建绕过 TLS 配置的 `http.Client`。
 
