@@ -3,12 +3,14 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/spf13/cobra"
 
+	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/config"
 	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
@@ -123,6 +125,11 @@ func runTUI() error {
 	}
 
 	m := state.NewAppModel(cfg, nil, version)
+	if dir, configErr := config.ConfigDir(); configErr == nil {
+		m.Audit = audit.NewService(audit.NewFileSink(filepath.Join(dir, "logs")))
+	} else {
+		m.Audit = audit.NewService(nil)
+	}
 	m.Pool = pool
 	m.Theme = theme
 	m.HeaderVisible = true

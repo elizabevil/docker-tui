@@ -3,6 +3,7 @@ package state
 import (
 	"net"
 
+	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
@@ -67,23 +68,25 @@ type AppModel struct {
 	Docker     *dockerclient.Client
 	Pool       *dockerclient.ConnectionPool
 	AppVersion string
+	Audit      *audit.Service
 
 	// Connection state.
 	Connecting bool
 
 	// ── Nav ──
-	ActivePanel       PanelType
-	PrevPanel         PanelType // 进入覆盖层前的面板，返回时恢复
-	Mode              AppMode
-	FilterText        string
-	FilterCursor      int
-	FilterInput       QueryInputState
-	SearchInput       QueryInputState
-	FilterExitPending bool
-	FilterExitToken   uint64
-	ErrorMessage      string
-	ErrorCount        int // 累计错误次数，用于状态栏显示
-	InfoMessage       string
+	ActivePanel           PanelType
+	PrevPanel             PanelType // 进入覆盖层前的面板，返回时恢复
+	Mode                  AppMode
+	FilterText            string
+	FilterCursor          int
+	FilterInput           QueryInputState
+	SearchInput           QueryInputState
+	FilterExitPending     bool
+	FilterExitToken       uint64
+	ErrorMessage          string
+	ErrorCount            int // 累计错误次数，用于状态栏显示
+	InfoMessage           string
+	AuditOperationMessage string
 
 	// ── Resources ──
 	Containers *ContainerListModel
@@ -170,6 +173,7 @@ type AppModel struct {
 	ExecBuf    *term.Buffer  // terminal output buffer with scrollback
 	ExecScroll int           // scroll offset (0 = bottom, >0 = scrolled up)
 	ExecShell  string        // shell to use for exec
+	ExecAudit  audit.Trace
 
 	// ── Header ──
 	HeaderVisible bool
