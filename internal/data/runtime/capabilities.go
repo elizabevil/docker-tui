@@ -19,6 +19,7 @@ const (
 	CapabilityNetworks   Capability = "networks"
 	CapabilityEvents     Capability = "events"
 	CapabilityExec       Capability = "exec"
+	CapabilityFiltering  Capability = "native_filtering"
 )
 
 type CapabilityInfo struct {

@@ -36,3 +36,16 @@ func TestErrorPreservesKindAndCause(t *testing.T) {
 		t.Fatalf("unexpected error text: %q", got)
 	}
 }
+
+func TestFilterSetCloneDoesNotShareValues(t *testing.T) {
+	filters := FilterSet{"label": {"app=api"}}
+	clone := filters.Clone()
+	clone.Add("label", "tier=backend")
+
+	if got := len(filters.Values("label")); got != 1 {
+		t.Fatalf("clone mutated source values: got %d", got)
+	}
+	if got := len(clone.Values("label")); got != 2 {
+		t.Fatalf("expected two cloned values, got %d", got)
+	}
+}

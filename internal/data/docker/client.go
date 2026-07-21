@@ -385,6 +385,10 @@ func (c *Client) Capabilities() runtimeapi.CapabilitySet {
 		runtimeapi.CapabilityNetworks:   {Support: support, Reason: reason},
 		runtimeapi.CapabilityEvents:     {Support: support, Reason: reason},
 		runtimeapi.CapabilityExec:       {Support: support, Reason: reason},
+		runtimeapi.CapabilityFiltering: {
+			Support: runtimeapi.Degraded,
+			Reason:  "native filtering is currently exposed only by container lists",
+		},
 	}
 }
 

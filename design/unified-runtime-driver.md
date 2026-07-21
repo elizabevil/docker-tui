@@ -102,6 +102,7 @@ type Engine interface {
 2. 接收统一 options，禁止上层导入 Docker / Podman options。
 3. 返回统一模型，禁止返回 SDK struct、原始 response 或任意 JSON。
 4. 将 not found、conflict、invalid、unsupported、permission、connection 等错误转换为统一错误类型。
+5. List 方法接收统一 `FilterSet`，adapter 将可支持的条件转换为运行时原生 filters，禁止 UI 为方便而先拉取全部资源再筛选。
 
 `Raw()` 必须删除。Exec create / attach / resize / close 由 `ExecService` 和统一 `ExecSession` 封装。
 
@@ -115,7 +116,16 @@ type Engine interface {
 - Ports、IPAM、mount、stats、process table 使用结构化模型。
 - Inspect 转为结构化 detail DTO；不得让 UI 解析两端原始 JSON。
 
-### 6.2 Capability
+### 6.2 筛选下推
+
+- Container、Image、Volume、Network 和 Event 的 list options 都包含统一 `FilterSet`；筛选字段由各 service 定义常量和校验规则。
+- adapter 优先使用 Docker SDK filters 或 Podman bindings/Libpod API query filters，由运行时完成筛选，以减少传输、映射与 UI 内存开销。
+- 同一字段有不同名称或编码方式时，由 adapter 翻译，调用方不得传入 Docker/Podman 原生 key。
+- 运行时不支持某个筛选条件时，driver 可在数据层后置筛选，但必须将 `CapabilityFiltering` 标记为 `Degraded` 并说明未下推的字段；不能静默改变筛选语义。
+- 无法保证等价语义的条件返回 `ErrorUnsupported`，不得返回看似完整但实际错误的结果。
+- mapper 只负责数据转换；filter 编码、能力判断和必要的后置筛选分别放在 adapter 的 query/filter 层。
+
+### 6.3 Capability
 
 能力至少区分：
 
@@ -125,7 +135,7 @@ type Engine interface {
 
 能力由连接成功后的版本与 driver 探测产生，不允许在 UI 使用 `runtime == "podman"` 判断。
 
-### 6.3 已知差异
+### 6.4 已知差异
 
 | 能力 | 需要归一化的差异 |
 |---|---|
@@ -138,6 +148,7 @@ type Engine interface {
 | Remove / Prune | Podman 常返回逐项 report，Docker 可能返回单 error；统一为逐目标 result |
 | Image metadata | manifest、architecture、dangling 表示不同，需要统一 mapper |
 | Exec attach | Hijacked connection 与 Podman stream API 生命周期不同，必须封装 session，不能暴露 `net.Conn` 或 Docker response |
+| List filters | 两端支持的字段名、正则/精确匹配和多值语义不同；统一条件由 adapter 下推，不等价条件必须降级或拒绝 |
 
 ## 7. CGO 与发布约束
 
@@ -173,6 +184,7 @@ TLS transport、超时和错误分类必须由 driver factory 统一注入，Pod
 ### Phase 2：只读资源
 
 - 迁移 container/image/volume/network list、inspect、stats、top。
+- 为各资源建立统一 list options 和筛选字段，添加 native query 编码及降级 contract tests。
 - adapter 内完成 mapper；删除 UI 对原始 JSON 的依赖。
 - 用 golden/contract fixtures 覆盖两端字段差异。
 
