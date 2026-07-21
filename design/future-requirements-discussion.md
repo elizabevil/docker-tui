@@ -104,14 +104,14 @@ type RuntimeTLSConfig struct {
 }
 ```
 
-对应配置层建议直接扩展 `RuntimeConn`，并将健康检查放在 runtime 全局配置中:
+配置层采用全新的 `RuntimeConn`，旧连接字段不再进入新模型:
 
 ```go
 type RuntimeConn struct {
-    Name    string
-    Addr    string
-    Runtime string
-    TLS     RuntimeTLSConfig
+    Name     string
+    Driver   RuntimeType
+    Endpoint string
+    TLS      RuntimeTLSConfig
 }
 
 type RuntimeHealthConfig struct {
@@ -122,16 +122,20 @@ type RuntimeHealthConfig struct {
 ```
 
 ```yaml
+configVersion: 1
 runtime:
   default: local-docker
+  discovery:
+    localDocker: true
+    localPodman: true
   health:
     intervalSec: 3
     timeoutSec: 2
     failureThreshold: 2
   connections:
     - name: remote-docker
-      addr: tcp://docker.example.com:2376
-      runtime: docker
+      driver: docker
+      endpoint: tcp://docker.example.com:2376
       tls:
         enabled: true
         verify: true
@@ -181,7 +185,7 @@ type ConnectionState struct {
 - `--podman` 明确将本地 Podman 设为本次启动的活动目标。
 - `runtime.default` 表示首选连接名，不等同于 runtime 类型。
 - 配置连接和内置本地连接先归一化为同一 `ConnectionSpec`，再进入连接池。
-- `general.runtime` 仅作为连接未声明 runtime 时的探测提示；后续评估是否废弃。
+- 新配置不读取 `general.runtime`、`docker.host` 或旧 Docker TLS 字段。
 
 ### 已确认启动策略
 
@@ -348,11 +352,18 @@ type ConnectionState struct {
 - 待确认: 第一阶段是否需要完整 capability matrix，还是只覆盖当前已经使用的操作。
 - 状态: `pending`
 
-#### D-014 旧连接配置迁移
+#### D-014 旧连接配置处理
 
-- 推荐: 将 `docker.host`、`docker.tlsVerify`、`docker.tlsCertPath` 和 `general.runtime` 视为兼容输入，启动时转换成统一 `ConnectionSpec`。
-- 推荐: 新文档只使用 `runtime.connections`；旧字段至少保留一个发布周期，并在检测到时显示一次弃用提示。
-- 待确认: 是否提供自动写回迁移，还是只做内存转换。
+- 决定: 不兼容、不转换、不写回 `docker.host`、`docker.tlsVerify`、`docker.tlsCertPath`、`general.runtime` 等旧连接参数。
+- 决定: 新连接配置只使用 `runtime.discovery`、`runtime.default`、`runtime.health` 和 `runtime.connections`。
+- 决定: 检测到旧连接字段时返回带字段名和新配置入口的明确校验错误，不允许静默忽略。
+- 说明: CLI `--host` / `--podman` 是本次启动覆盖，不属于旧配置兼容层。
+- 状态: `approved`
+
+#### D-015 配置 schema 版本
+
+- 推荐: 新配置增加必填 `configVersion: 1`，加载器按版本选择 schema；不支持的版本直接给出错误，不尝试猜测或自动改写。
+- 理由: 本轮明确不维护旧参数，schema 版本可以让后续破坏性调整保持可诊断，而不是再次依赖字段推断。
 - 状态: `pending`
 
 ---
@@ -409,4 +420,4 @@ Events 流必须明确归属于哪个活动连接，也必须在连接切换、�
 - 建立后续规划总览。
 - 确认优先讨论 FR-001，再讨论 FR-002。
 - 完成 FR-001 的代码事实、候选模型、范围和验收草案。
-- D-001～D-010 已根据讨论确认；D-011～D-014 继续讨论，FR-001 总体方向保持 `approved`。
+- D-001～D-010、D-014 已根据讨论确认；D-011～D-013、D-015 继续讨论，FR-001 总体方向保持 `approved`。
