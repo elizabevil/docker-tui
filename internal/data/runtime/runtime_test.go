@@ -80,3 +80,23 @@ func TestRetryableErrorKinds(t *testing.T) {
 		}
 	}
 }
+
+func TestImageListOptionsRejectsMultipleValuesForANDSemantics(t *testing.T) {
+	options := ImageListOptions{Filters: FilterSet{ImageFilterLabel: {"app=api", "tier=backend"}}}
+	_, err := options.NativeFilters()
+	if !IsErrorKind(err, ErrorUnsupported) {
+		t.Fatalf("expected unsupported error, got %v", err)
+	}
+}
+
+func TestImageListOptionsCopiesNativeFilters(t *testing.T) {
+	options := ImageListOptions{Filters: FilterSet{ImageFilterReference: {"example/*"}}}
+	filters, err := options.NativeFilters()
+	if err != nil {
+		t.Fatalf("NativeFilters() error = %v", err)
+	}
+	filters[ImageFilterReference][0] = "changed"
+	if options.Filters.Values(ImageFilterReference)[0] != "example/*" {
+		t.Fatal("native filters mutated input options")
+	}
+}

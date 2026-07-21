@@ -8,20 +8,35 @@ import (
 
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
 var _ ImageLister = (*dockerImageLister)(nil) // compile-time check
 
 func (c *Client) ListImages() ([]ImageSummary, error) {
+	return c.ListImagesWithOptions(runtimeapi.ImageListOptions{})
+}
+
+func (c *Client) ListImagesWithOptions(options runtimeapi.ImageListOptions) ([]ImageSummary, error) {
 	if c.imageLister != nil {
-		return c.imageLister.ListImages()
+		return c.imageLister.ListImages(options)
 	}
-	return c.listImagesDocker()
+	return c.listImagesDocker(options)
 }
 
 // listImagesDocker uses the Docker SDK's ImageList (compat API).
-func (c *Client) listImagesDocker() ([]ImageSummary, error) {
-	images, err := c.cli.ImageList(c.ctx, image.ListOptions{})
+func (c *Client) listImagesDocker(options runtimeapi.ImageListOptions) ([]ImageSummary, error) {
+	nativeFilters, err := options.NativeFilters()
+	if err != nil {
+		return nil, err
+	}
+	filterArgs := filters.NewArgs()
+	for field, values := range nativeFilters {
+		for _, value := range values {
+			filterArgs.Add(field, value)
+		}
+	}
+	images, err := c.cli.ImageList(c.ctx, image.ListOptions{All: options.All, Filters: filterArgs})
 	if err != nil {
 		return nil, fmt.Errorf("list images: %w", err)
 	}

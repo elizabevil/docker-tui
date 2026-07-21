@@ -1,10 +1,12 @@
 package docker
 
+import runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+
 // ImageLister provides image listing with full metadata.
 // Different runtimes (Docker SDK vs Podman SDK) implement this interface
 // to provide runtime-specific metadata (architecture, manifest info, etc.).
 type ImageLister interface {
-	ListImages() ([]ImageSummary, error)
+	ListImages(runtimeapi.ImageListOptions) ([]ImageSummary, error)
 }
 
 // dockerImageLister uses the Docker SDK to list images.
@@ -14,8 +16,8 @@ type dockerImageLister struct {
 	client *Client
 }
 
-func (l *dockerImageLister) ListImages() ([]ImageSummary, error) {
-	return l.client.listImagesDocker()
+func (l *dockerImageLister) ListImages(options runtimeapi.ImageListOptions) ([]ImageSummary, error) {
+	return l.client.listImagesDocker(options)
 }
 
 // podmanImageLister uses the Podman Go SDK's native bindings.
@@ -24,6 +26,6 @@ type podmanImageLister struct {
 	client *Client
 }
 
-func (l *podmanImageLister) ListImages() ([]ImageSummary, error) {
-	return l.client.listImagesPodman()
+func (l *podmanImageLister) ListImages(options runtimeapi.ImageListOptions) ([]ImageSummary, error) {
+	return l.client.listImagesPodman(options)
 }

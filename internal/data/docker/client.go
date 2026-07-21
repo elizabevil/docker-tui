@@ -414,9 +414,9 @@ func (c *Client) Capabilities() runtimeapi.CapabilitySet {
 		},
 		runtimeapi.CapabilityContainerListFilter: {Support: support, Reason: reason},
 		runtimeapi.CapabilityImageListFilter: {
-			Support:    runtimeapi.Unsupported,
-			Reason:     "unified image list filters have not been migrated",
-			ReasonCode: "adapter_not_migrated",
+			Support:    runtimeapi.Degraded,
+			Reason:     "single-value filters are native; same-field AND filters are not yet available",
+			ReasonCode: "same_field_and_unsupported",
 		},
 		runtimeapi.CapabilityVolumeListFilter: {
 			Support:    runtimeapi.Unsupported,
