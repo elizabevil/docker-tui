@@ -165,7 +165,75 @@ Phase 0 决策：
 
 TLS transport、超时和错误分类必须由 driver factory 统一注入，Podman adapter 不得另建绕过 TLS 配置的 `http.Client`。
 
-## 8. 实施阶段
+TLS 证书采用懒加载：配置读取阶段只校验字段组合，首次连接时才读取 CA、客户端证书和私钥并构造 transport。默认必须校验证书；仅当连接显式配置 `insecureSkipVerify: true` 时允许跳过服务端证书校验，并将连接安全状态标为 insecure。`verify` 与 `insecureSkipVerify` 不得同时为 true。
+
+筛选语义确定为：不同字段之间使用 AND；同一字段的多个值也使用 AND。UI 只提供简单条件，adapter 必须检查底层 driver 的多值语义；若原生 API 对同字段只能表达 OR，则不得直接下推为错误语义，应采用可下推的最小条件加数据层后置筛选，并将筛选能力标记为 degraded。
+
+## 8. 已确认的实现决策
+
+### 8.1 筛选
+
+- 不同字段之间为 AND，同一字段的多个值同样为 AND。
+- UI 只提供简单筛选，不暴露 Docker/Podman 原生 filter key、正则表达式方言或复杂布尔表达式。
+- adapter 优先将条件下推给 driver；底层只支持同字段 OR 时，先下推不会改变结果集的条件，再在数据层完成剩余 AND 筛选。
+- 后置筛选必须通过细粒度 capability 和诊断原因标记为 degraded；无法保证等价语义时返回 `ErrorUnsupported`。
+
+### 8.2 API 版本
+
+- Docker 使用 SDK API negotiation；Podman REST 在建立连接时查询 version endpoint，并选择服务端支持的 Libpod API 版本。
+- 默认自动协商，连接配置允许可选的 API 版本覆盖，用于兼容和问题诊断。
+- 版本低于某项能力要求时降低对应 capability，不允许靠请求失败后猜测能力。
+- CGO bindings 与非 CGO REST transport 必须根据相同的服务端版本生成一致 capability。
+
+### 8.3 超时与 context
+
+- 健康检测默认间隔 3 秒，单次超时 2 秒，继续允许配置。
+- 普通 list/inspect 查询默认超时 10 秒；生命周期操作默认超时 30 秒。
+- Pull、Push、Logs、Events、Stats stream 和 Exec 不设置固定短超时，由调用方 context 控制取消。
+- driver 不保存永久业务 context；应用退出和连接切换时必须取消该连接的全部流式任务。
+
+### 8.4 流式接口
+
+- Logs、Events、Stats、镜像传输进度和 Exec 使用强类型事件或 session，不向上层暴露 SDK stream、hijacked connection 或原始 JSON。
+- 统一定义 stdout/stderr 来源、时间、进度、EOF、取消、断线和关闭语义。
+- Events 可在临时连接错误时按退避策略重连；交互式 Exec 不自动重放，断线后明确结束 session。
+- 创建 stream 的一方负责返回关闭句柄，消费方负责调用 Close；driver 必须保证 context 取消后 goroutine 退出。
+
+### 8.5 批量操作与状态
+
+- Remove、Prune 等批量操作返回逐资源 `OperationResult`，允许部分成功，不用首个错误覆盖其余结果。
+- 容器状态、健康状态和 event action 转换为统一枚举，同时保留 `NativeState`/`NativeAction` 用于诊断。
+- 未识别的新状态映射为 `Unknown`，不得导致 mapper 或 UI 失败。
+
+### 8.6 Capability 粒度
+
+- capability 按资源和操作声明，例如 `container.list.filter`、`image.list.filter`、`events.filter`、`exec.resize`，不使用一个全局布尔值代表全部能力。
+- 每项能力包含 `Available`、`Degraded` 或 `Unsupported` 以及稳定 reason code；UI 根据状态禁用入口或展示提示。
+- capability 来自 driver 类型、服务端版本与连接探测，不在 UI 中判断 Docker/Podman 类型。
+
+### 8.7 TLS
+
+- TLS 默认验证服务端证书，支持 CA、客户端证书、私钥和 ServerName。
+- 显式支持 `insecureSkipVerify`；它默认 false，且不能与 `verify: true` 同时设置。启用时 UI 和连接状态必须显示 insecure，不得显示为 verified。
+- TLS 材料懒加载：读取配置时只校验字段组合，首次连接时读取文件并创建 transport。配置变更或重连时创建新 transport，不复用旧证书状态。
+- Unix socket 配置 TLS 视为无效配置并提前报错，禁止静默忽略。
+- 日志和 UI 不输出证书正文、私钥内容或认证凭据。
+
+### 8.8 重试与健康检测
+
+- 仅对 connection、timeout、unavailable 和明确的临时网络错误自动重试。
+- permission、authentication、invalid、conflict 和 unsupported 不自动重试。
+- 健康检测使用失败阈值、指数退避和 jitter，避免全部连接每 3 秒同时请求；成功后恢复正常间隔。
+- 用户主动选择连接时立即尝试，不等待后台健康检测；失败后保持选择框打开并展示统一错误状态。
+
+### 8.9 错误与测试
+
+- Docker SDK、Podman bindings 和 REST 错误统一映射为 `runtime.Error`；UI 只根据稳定 ErrorKind 和 operation 生成 i18n 文案，原始 cause 仅进入安全诊断日志。
+- contract tests 必须覆盖 API 版本、filter 编码和 AND 语义、错误映射、TLS verified/insecure、超时取消、断线、批量部分失败及未知状态。
+- mapper fixtures 分别取自 Docker 和 Podman API；Podman CGO bindings 与非 CGO REST 对同一语义必须得到一致领域结果。
+- `CGO_ENABLED=0` 与 `CGO_ENABLED=1` 测试矩阵均为验收项。
+
+## 9. 实施阶段
 
 ### Phase 0：依赖与契约探针
 
@@ -206,7 +274,7 @@ TLS transport、超时和错误分类必须由 driver factory 统一注入，Pod
 - 重命名 package/import alias，更新架构与开发文档。
 - 检查生产代码中不再存在上层 `RuntimeType` 行为分支。
 
-## 9. 测试策略
+## 10. 测试策略
 
 - Interface contract：同一测试套件分别运行 Docker 与 Podman adapter fixture。
 - Mapper golden：对两端真实 API fixture 断言统一 DTO。
@@ -215,7 +283,7 @@ TLS transport、超时和错误分类必须由 driver factory 统一注入，Pod
 - Live integration：可用时分别连接 Docker 与 Podman socket；缺失一端时明确 skip。
 - Build matrix：`CGO_ENABLED=0 go test ./...` 与 `CGO_ENABLED=1 go test ./...` 均为必选，分别覆盖 REST 与 bindings transport。
 
-## 10. 完成标准
+## 11. 完成标准
 
 1. TUI 与 state 不导入 Docker / Podman SDK。
 2. 不存在 `Raw()` 或上层 SDK类型。
@@ -226,9 +294,9 @@ TLS transport、超时和错误分类必须由 driver factory 统一注入，Pod
 7. `TASK-009` 所需 create/prune 统一 options/results 已具备。
 8. CGO/非 CGO 策略明确，`just check` 与构建矩阵通过。
 
-## 11. 非目标
+## 12. 非目标
 
 - 本任务不实现 Podman pod / secret / kube 或 Docker buildx / plugin。
-- 不修改现有连接配置 schema。
+- 除可选 API 版本覆盖和 `tls.insecureSkipVerify` 外，不扩展现有连接配置 schema；这两个字段必须同步更新默认配置、README 和配置校验测试。
 - 不在第一阶段重写 TUI 页面。
 - 不用最低公共能力掩盖 runtime 专有能力；专有能力由后续任务基于 capability 扩展。
