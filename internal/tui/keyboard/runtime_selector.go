@@ -5,6 +5,7 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
@@ -44,11 +45,10 @@ func openRuntimeSelector(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 }
 
 func runtimeHealthTimeout(m *state.AppModel) time.Duration {
-	seconds := 2
 	if m.Config != nil {
-		_, seconds, _ = m.Config.Runtime.Health.Effective()
+		return m.Config.Runtime.Health.Timeout()
 	}
-	return time.Duration(seconds) * time.Second
+	return config.DefaultConfig().Runtime.Health.Timeout()
 }
 
 func handleRuntimeSelectorKey(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
@@ -66,7 +66,7 @@ func handleRuntimeSelectorKey(key string, m *state.AppModel) (*state.AppModel, t
 		m.RuntimeSelectorCursor = (m.RuntimeSelectorCursor + 1) % len(names)
 	case keys.KeyEnter:
 		name := names[m.RuntimeSelectorCursor]
-		m.Connecting = true
+		m.ConnectionState.Begin()
 		return m, runtimeConnectionCmd(m, name)
 	}
 	return m, nil

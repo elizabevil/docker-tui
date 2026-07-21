@@ -37,6 +37,9 @@ func ConfigFile() (string, error) {
 // Load reads the configuration from the default path, merging with defaults.
 func Load(path string) (*Config, error) {
 	cfg := DefaultConfig()
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("validate default config: %w", err)
+	}
 
 	if path == "" {
 		var err error
@@ -59,7 +62,7 @@ func Load(path string) (*Config, error) {
 	if err := decoder.Decode(cfg); err != nil {
 		return nil, fmt.Errorf("parse config %s: %w", path, err)
 	}
-	if err := Validate(cfg); err != nil {
+	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("validate config %s: %w", path, err)
 	}
 
@@ -68,7 +71,7 @@ func Load(path string) (*Config, error) {
 
 // Save writes the configuration to the given path.
 func Save(cfg *Config, path string) error {
-	if err := Validate(cfg); err != nil {
+	if err := cfg.Validate(); err != nil {
 		return fmt.Errorf("validate config: %w", err)
 	}
 	if path == "" {
@@ -97,47 +100,75 @@ func Save(cfg *Config, path string) error {
 }
 
 func Validate(cfg *Config) error {
+	return cfg.Validate()
+}
+
+// Validate checks the complete configuration after decoding. Callers may use
+// values directly after Load succeeds without repeating defensive fallbacks.
+func (cfg *Config) Validate() error {
 	if cfg == nil {
 		return fmt.Errorf("config is nil")
 	}
 	if cfg.ConfigVersion != CurrentConfigVersion {
 		return fmt.Errorf("configVersion must be %d", CurrentConfigVersion)
 	}
-	if cfg.Runtime.Health.IntervalSec <= 0 || cfg.Runtime.Health.TimeoutSec <= 0 || cfg.Runtime.Health.FailureThreshold <= 0 {
-		return fmt.Errorf("runtime.health values must be greater than zero")
+	return cfg.Runtime.Validate()
+}
+
+func (r RuntimeConfig) Validate() error {
+	if err := r.Health.Validate(); err != nil {
+		return err
 	}
-	names := make(map[string]struct{}, len(cfg.Runtime.Connections))
-	for i, connection := range cfg.Runtime.Connections {
-		prefix := fmt.Sprintf("runtime.connections[%d]", i)
-		if strings.TrimSpace(connection.Name) == "" {
-			return fmt.Errorf("%s.name is required", prefix)
+	names := make(map[string]struct{}, len(r.Connections))
+	for i, connection := range r.Connections {
+		if err := connection.Validate(); err != nil {
+			return fmt.Errorf("runtime.connections[%d]: %w", i, err)
 		}
 		if _, exists := names[connection.Name]; exists {
-			return fmt.Errorf("%s.name %q is duplicated", prefix, connection.Name)
+			return fmt.Errorf("runtime.connections[%d].name %q is duplicated", i, connection.Name)
 		}
 		names[connection.Name] = struct{}{}
-		if connection.Driver != "docker" && connection.Driver != "podman" {
-			return fmt.Errorf("%s.driver must be docker or podman", prefix)
-		}
-		if strings.TrimSpace(connection.Endpoint) == "" {
-			return fmt.Errorf("%s.endpoint is required", prefix)
-		}
-		if connection.TLS.Enabled {
-			if !connection.TLS.Verify {
-				return fmt.Errorf("%s.tls.verify must be true", prefix)
-			}
-			if connection.TLS.CAFile == "" {
-				return fmt.Errorf("%s.tls.caFile is required", prefix)
-			}
-			if (connection.TLS.CertFile == "") != (connection.TLS.KeyFile == "") {
-				return fmt.Errorf("%s.tls.certFile and keyFile must be configured together", prefix)
-			}
+	}
+	if r.Default != "local-docker" && r.Default != "local-podman" {
+		if _, exists := names[r.Default]; !exists {
+			return fmt.Errorf("runtime.default %q does not name a connection", r.Default)
 		}
 	}
-	if cfg.Runtime.Default != "local-docker" && cfg.Runtime.Default != "local-podman" {
-		if _, exists := names[cfg.Runtime.Default]; !exists {
-			return fmt.Errorf("runtime.default %q does not name a connection", cfg.Runtime.Default)
-		}
+	return nil
+}
+
+func (h RuntimeHealthConfig) Validate() error {
+	if h.IntervalSec <= 0 || h.TimeoutSec <= 0 || h.FailureThreshold <= 0 {
+		return fmt.Errorf("runtime.health values must be greater than zero")
+	}
+	return nil
+}
+
+func (c RuntimeConn) Validate() error {
+	if strings.TrimSpace(c.Name) == "" {
+		return fmt.Errorf("name is required")
+	}
+	if c.Driver != "docker" && c.Driver != "podman" {
+		return fmt.Errorf("driver must be docker or podman")
+	}
+	if strings.TrimSpace(c.Endpoint) == "" {
+		return fmt.Errorf("endpoint is required")
+	}
+	return c.TLS.Validate()
+}
+
+func (tls RuntimeTLSConfig) Validate() error {
+	if !tls.Enabled {
+		return nil
+	}
+	if !tls.Verify {
+		return fmt.Errorf("tls.verify must be true")
+	}
+	if strings.TrimSpace(tls.CAFile) == "" {
+		return fmt.Errorf("tls.caFile is required")
+	}
+	if (strings.TrimSpace(tls.CertFile) == "") != (strings.TrimSpace(tls.KeyFile) == "") {
+		return fmt.Errorf("tls.certFile and keyFile must be configured together")
 	}
 	return nil
 }

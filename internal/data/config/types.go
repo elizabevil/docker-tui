@@ -37,19 +37,14 @@ type RuntimeHealthConfig struct {
 	FailureThreshold int `json:"failureThreshold" yaml:"failureThreshold"`
 }
 
-// Effective returns validated runtime health values with application defaults.
-func (h RuntimeHealthConfig) Effective() (intervalSec, timeoutSec, failureThreshold int) {
-	intervalSec, timeoutSec, failureThreshold = h.IntervalSec, h.TimeoutSec, h.FailureThreshold
-	if intervalSec <= 0 {
-		intervalSec = 3
-	}
-	if timeoutSec <= 0 {
-		timeoutSec = 2
-	}
-	if failureThreshold <= 0 {
-		failureThreshold = 2
-	}
-	return
+// Interval is safe to use directly because loaded configurations are validated.
+func (h RuntimeHealthConfig) Interval() time.Duration {
+	return time.Duration(h.IntervalSec) * time.Second
+}
+
+// Timeout is safe to use directly because loaded configurations are validated.
+func (h RuntimeHealthConfig) Timeout() time.Duration {
+	return time.Duration(h.TimeoutSec) * time.Second
 }
 
 // RuntimeConfig configures container runtime connections.

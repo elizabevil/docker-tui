@@ -11,29 +11,29 @@ const (
 
 // ApplyHealthResult updates health counters and returns only state transitions;
 // presentation decisions remain in the TUI update layer.
-func (m *AppModel) ApplyHealthResult(name string, err error, threshold int) HealthTransition {
-	if m == nil || name != m.ConnectionTarget || m.Docker == nil {
+func (s *ConnectionState) ApplyHealthResult(name string, err error, threshold int) HealthTransition {
+	if s == nil || name != s.ConnectionTarget || s.Docker == nil {
 		return HealthNoChange
 	}
 	if threshold <= 0 {
 		threshold = 2
 	}
 	if err != nil {
-		m.HealthFailures++
-		if m.HealthFailures >= threshold && !m.HealthDegraded {
-			m.HealthDegraded = true
-			m.Connected = false
-			m.ConnectionError = err.Error()
+		s.HealthFailures++
+		if s.HealthFailures >= threshold && !s.HealthDegraded {
+			s.HealthDegraded = true
+			s.Connected = false
+			s.ConnectionError = err.Error()
 			return HealthDisconnected
 		}
 		return HealthNoChange
 	}
-	wasDegraded := m.HealthDegraded
-	m.HealthFailures = 0
-	m.HealthDegraded = false
+	wasDegraded := s.HealthDegraded
+	s.HealthFailures = 0
+	s.HealthDegraded = false
 	if wasDegraded {
-		m.Connected = true
-		m.ConnectionError = ""
+		s.Connected = true
+		s.ConnectionError = ""
 		return HealthRecovered
 	}
 	return HealthNoChange

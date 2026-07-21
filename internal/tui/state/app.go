@@ -88,13 +88,9 @@ type AppModel struct {
 	// ── Config ──
 	Config     *config.Config
 	Theme      *config.Theme
-	Docker     *dockerclient.Client
-	Pool       *dockerclient.ConnectionPool
 	AppVersion string
 	Audit      *audit.Service
-
-	// Connection state.
-	Connecting bool
+	ConnectionState
 
 	// ── Nav ──
 	ActivePanel           PanelType
@@ -120,18 +116,6 @@ type AppModel struct {
 	// ── Terminal ──
 	Width  int
 	Height int
-
-	// ── Connection ──
-	Connected               bool
-	ConnectionTarget        string
-	ConnectionError         string
-	RuntimeSelectorCursor   int
-	RuntimeSelectorError    map[string]string
-	RuntimeSelectorDisabled bool
-	HealthFailures          int
-	HealthDegraded          bool
-	RuntimeType             string
-	EngineVersion           string
 
 	// ── Log ──
 	LogContainerID string
@@ -176,7 +160,7 @@ type AppModel struct {
 	DetailTitle        string
 	DetailHint         string
 	DetailOffset       int
-	DetailRawJSON      []byte // raw JSON from Docker inspect API
+	DetailRawJSON      []byte       // raw JSON from Docker inspect API
 	DetailSourceType   string       // "section" (default), "yaml", "json"
 	DetailResourceType ResourceType // Resource* constant
 
@@ -227,22 +211,11 @@ type AppModel struct {
 
 // NewAppModel creates a new application model with default state.
 func NewAppModel(cfg *config.Config, client *dockerclient.Client, appVersion string) *AppModel {
-	engineType := ""
-	engineVersion := ""
-	connected := false
-	if client != nil {
-		connected = true
-		engineType = string(client.RuntimeType)
-		engineVersion = client.EngineVersion
-	}
 	return &AppModel{
 		Config:              cfg,
-		Docker:              client,
+		ConnectionState:     NewConnectionState(client),
 		ActivePanel:         PanelContainers,
 		Mode:                ModeNormal,
-		Connected:           connected,
-		RuntimeType:         engineType,
-		EngineVersion:       engineVersion,
 		Containers:          NewContainerListModel(),
 		Images:              NewImageListModel(),
 		Volumes:             NewVolumeListModel(),

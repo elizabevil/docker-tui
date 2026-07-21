@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/tui/keyboard"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
@@ -61,44 +62,21 @@ func handleStatsTick(m *state.AppModel, _ state.StatsTick) (*state.AppModel, tea
 func handleDockerConnected(m *state.AppModel, msg state.DockerConnected) (*state.AppModel, tea.Cmd) {
 	if msg.Error != nil {
 		if m.Mode == state.ModeRuntimeSelect {
-			m.Connecting = false
+			m.ConnectionState.SelectionFailed(msg.Name, msg.Error)
 			m.ErrorMessage = msg.Error.Error()
 			m.ErrorCount++
-			if m.RuntimeSelectorError == nil {
-				m.RuntimeSelectorError = make(map[string]string)
-			}
-			m.RuntimeSelectorError[msg.Name] = msg.Error.Error()
 			keyboard.ShowToastWarn(m, fmt.Sprintf("Connection failed (%s): %s", msg.Name, msg.Error))
 			return m, nil
 		}
-		m.Connecting = false
-		m.Connected = false
-		m.Docker = nil
-		m.ConnectionTarget = msg.Name
-		m.ConnectionError = msg.Error.Error()
-		m.RuntimeType = ""
-		m.EngineVersion = ""
+		m.ConnectionState.Failed(msg.Name, msg.Error)
 		m.ErrorMessage = msg.Error.Error()
 		m.ErrorCount++
-		m.HealthFailures = 0
-		m.HealthDegraded = false
 		keyboard.ShowToastWarn(m, fmt.Sprintf("Connection failed (%s): %s", msg.Name, msg.Error))
 		return m, nil
 	}
-	m.Docker = msg.Client
-	m.Connecting = false
-	m.Connected = true
-	m.ConnectionTarget = msg.Name
-	m.ConnectionError = ""
-	m.HealthFailures = 0
-	m.HealthDegraded = false
+	m.ConnectionState.ConnectedTo(msg.Name, msg.Client)
 	m.Mode = state.ModeNormal
-	if m.RuntimeSelectorError != nil {
-		delete(m.RuntimeSelectorError, msg.Name)
-	}
 	m.ErrorMessage = ""
-	m.RuntimeType = string(msg.Client.RuntimeType)
-	m.EngineVersion = msg.Client.EngineVersion
 	if msg.Name != "" {
 		m.RuntimeType = msg.Name
 	}
@@ -145,26 +123,26 @@ func handleHostStatsTick(m *state.AppModel, _ state.HostStatsTick) (*state.AppMo
 }
 
 func handleRuntimeHealthTick(m *state.AppModel, _ state.RuntimeHealthTick) (*state.AppModel, tea.Cmd) {
-	interval, timeout := 3, 2
+	health := config.DefaultConfig().Runtime.Health
 	if m.Config != nil {
-		interval, timeout, _ = m.Config.Runtime.Health.Effective()
+		health = m.Config.Runtime.Health
 	}
-	cmds := []tea.Cmd{tea.Tick(time.Duration(interval)*time.Second, func(time.Time) tea.Msg {
+	cmds := []tea.Cmd{tea.Tick(health.Interval(), func(time.Time) tea.Msg {
 		return state.RuntimeHealthTick{}
 	})}
 	if m.Docker != nil {
 		client, name := m.Docker, m.ConnectionTarget
 		cmds = append(cmds, func() tea.Msg {
-			return state.RuntimeHealthResult{Name: name, Error: client.PingTimeout(time.Duration(timeout) * time.Second)}
+			return state.RuntimeHealthResult{Name: name, Error: client.PingTimeout(health.Timeout())}
 		})
 	}
 	return m, tea.Batch(cmds...)
 }
 
 func handleRuntimeHealthResult(m *state.AppModel, msg state.RuntimeHealthResult) (*state.AppModel, tea.Cmd) {
-	threshold := 2
-	if m.Config != nil && m.Config.Runtime.Health.FailureThreshold > 0 {
-		_, _, threshold = m.Config.Runtime.Health.Effective()
+	threshold := config.DefaultConfig().Runtime.Health.FailureThreshold
+	if m.Config != nil {
+		threshold = m.Config.Runtime.Health.FailureThreshold
 	}
 	transition := m.ApplyHealthResult(msg.Name, msg.Error, threshold)
 	switch transition {
@@ -182,14 +160,7 @@ func handleRuntimeProbeResult(m *state.AppModel, msg state.RuntimeProbeResult) (
 	if m.Mode != state.ModeRuntimeSelect {
 		return m, nil
 	}
-	if m.RuntimeSelectorError == nil {
-		m.RuntimeSelectorError = make(map[string]string)
-	}
-	if msg.Error != nil {
-		m.RuntimeSelectorError[msg.Name] = msg.Error.Error()
-	} else {
-		delete(m.RuntimeSelectorError, msg.Name)
-	}
+	m.ConnectionState.SetProbeResult(msg.Name, msg.Error)
 	return m, nil
 }
 

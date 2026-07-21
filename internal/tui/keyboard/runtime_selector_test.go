@@ -30,7 +30,7 @@ func TestRuntimeSelectorNavigationAndCancel(t *testing.T) {
 }
 
 func TestRuntimeSelectorDisabledForHostOverride(t *testing.T) {
-	m := &state.AppModel{RuntimeSelectorDisabled: true}
+	m := &state.AppModel{ConnectionState: state.ConnectionState{RuntimeSelectorDisabled: true}}
 	updated, cmd := openRuntimeSelector(m)
 	if cmd != nil || updated.Mode != state.ModeNormal || updated.ToastMessage == "" {
 		t.Fatal("disabled selector changed state unexpectedly")

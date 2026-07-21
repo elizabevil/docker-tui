@@ -160,6 +160,16 @@ func TestValidateRuntimeConnections(t *testing.T) {
 	}
 }
 
+func TestRuntimeHealthDurationsUseValidatedValues(t *testing.T) {
+	health := RuntimeHealthConfig{IntervalSec: 7, TimeoutSec: 4, FailureThreshold: 3}
+	if err := health.Validate(); err != nil {
+		t.Fatalf("Validate failed: %v", err)
+	}
+	if health.Interval() != 7*time.Second || health.Timeout() != 4*time.Second {
+		t.Fatalf("durations = %s, %s", health.Interval(), health.Timeout())
+	}
+}
+
 func TestConfigKeymapDefaults(t *testing.T) {
 	cfg := DefaultConfig()
 	if len(cfg.Keymap.TabNext) == 0 || cfg.Keymap.TabNext[0] != "tab" {
