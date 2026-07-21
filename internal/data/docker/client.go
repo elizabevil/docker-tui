@@ -434,6 +434,18 @@ func (c *Client) Capabilities() runtimeapi.CapabilitySet {
 	}
 }
 
+func (c *Client) Containers() runtimeapi.ContainerService {
+	return containerService{client: c}
+}
+
+type containerService struct {
+	client *Client
+}
+
+func (s containerService) List(ctx context.Context, options runtimeapi.ContainerListOptions) ([]runtimeapi.ContainerSummary, error) {
+	return s.client.ListContainersContext(ctx, options)
+}
+
 // PingTimeout verifies the runtime connection with a caller-selected deadline.
 func (c *Client) PingTimeout(timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(c.ctx, timeout)

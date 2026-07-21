@@ -2,6 +2,7 @@ package docker
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 
@@ -11,6 +12,10 @@ import (
 )
 
 func (c *Client) ListContainers(opts ContainerListOptions) ([]ContainerSummary, error) {
+	return c.ListContainersContext(c.ctx, opts)
+}
+
+func (c *Client) ListContainersContext(ctx context.Context, opts ContainerListOptions) ([]ContainerSummary, error) {
 	f := filters.NewArgs()
 	for k, vs := range opts.Filters {
 		for _, v := range vs {
@@ -18,7 +23,7 @@ func (c *Client) ListContainers(opts ContainerListOptions) ([]ContainerSummary, 
 		}
 	}
 
-	containers, err := c.cli.ContainerList(c.ctx, container.ListOptions{
+	containers, err := c.cli.ContainerList(ctx, container.ListOptions{
 		All:     opts.All,
 		Limit:   opts.Limit,
 		Filters: f,

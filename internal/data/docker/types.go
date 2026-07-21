@@ -1,32 +1,10 @@
 package docker
 
-type ContainerListOptions struct {
-	All     bool
-	Limit   int
-	Filters map[string][]string
-}
+import runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 
-type ContainerSummary struct {
-	ID             string
-	Name           string
-	Image          string
-	Status         string
-	State          string
-	Created        int64
-	PortBindings   []PortBinding
-	IPs            []string
-	MountCount     int
-	Labels         map[string]string
-	ComposeProject string
-	ComposeService string
-}
-
-type PortBinding struct {
-	ContainerPort uint16
-	Protocol      string
-	HostIP        string
-	HostPort      uint16
-}
+type ContainerListOptions = runtimeapi.ContainerListOptions
+type ContainerSummary = runtimeapi.ContainerSummary
+type PortBinding = runtimeapi.PortBinding
 
 // ManifestPlatform holds platform info for a single manifest entry.
 type ManifestPlatform struct {

@@ -8,5 +8,6 @@ type Engine interface {
 	Identity() Identity
 	Capabilities() CapabilitySet
 	PingContext(context.Context) error
+	Containers() ContainerService
 	Close() error
 }
