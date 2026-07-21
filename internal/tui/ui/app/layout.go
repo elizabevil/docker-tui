@@ -51,12 +51,6 @@ func init() {
 // Key is struct{path string; rows int} to avoid returning wrong-sized slices after resize.
 var imageColorCache sync.Map
 
-const (
-	dialogModeExport = "export"
-	dialogModeDebug  = "debug"
-	dialogModeExec   = "exec"
-)
-
 // sectionBG resolves the effective background for a section by merging the global
 // background config with any per-section override. Inherits from global when not overridden.
 func sectionBG(global config.BackgroundConfig, section string) config.SectionBackground {
@@ -242,13 +236,10 @@ func RenderApp(m *state.AppModel) string {
 	if m.Mode == state.ModeExecShell {
 		return component.PlaceOverlay(m.Width, m.Height, component.RenderShellDialog(m.DialogState.Input.Text, m.Width, m.Height, overlayColor), overlayColor)
 	}
-	if m.Mode == state.ModeExport {
-		return dialog.RenderOverlay(result, m, dialogModeExport)
+	if m.DialogState.Kind.IsSelection() {
+		return dialog.RenderOverlay(result, m)
 	}
-	if m.Mode == state.ModeDebug {
-		return dialog.RenderOverlay(result, m, dialogModeDebug)
-	}
-	if m.Mode == state.ModeExec {
+	if m.DialogState.Kind == state.DialogExec {
 		return dialog.RenderExecOverlay(result, m)
 	}
 	if m.Mode == state.ModeRuntimeSelect {

@@ -44,7 +44,7 @@ func TestCommandInputEditsAtCursor(t *testing.T) {
 func TestExecInputDeletesPathSegment(t *testing.T) {
 	app := &state.AppModel{
 		NavigationState: state.NavigationState{Mode: state.ModeExec},
-		DialogState:     state.DialogState{DialogFocus: state.ExecFocusInput, Input: state.NewQueryInput("/usr/bin/sh")},
+		DialogState:     state.DialogState{Kind: state.DialogExec, Focus: state.ExecFocusInput, Input: state.NewQueryInput("/usr/bin/sh")},
 	}
 	handleExecDialogKeys("ctrl+w", app)
 	if app.DialogState.Input.Text != "/usr/bin/" {

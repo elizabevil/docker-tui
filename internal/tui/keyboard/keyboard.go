@@ -80,13 +80,13 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 		return m, nil
 	}
 
-	if m.Mode == state.ModeExport || m.Mode == state.ModeDebug {
+	if m.DialogState.Kind.IsSelection() {
 		switch key {
 		case keys.KeyTab:
-			m.DialogFocus = 1 - m.DialogFocus // toggle 0↔1
+			m.DialogState.MoveFocus(1, 2)
 		case keys.KeyEnter:
-			if m.DialogFocus == 0 { // confirm
-				ShowToastNow(m, "✓ "+m.DialogAction)
+			if m.DialogState.Focus == 0 {
+				ShowToastNow(m, "✓ "+m.DialogState.Action)
 			}
 			clearDialogState(m)
 		case keys.KeyEsc, keys.KeyN:

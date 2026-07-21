@@ -15,15 +15,15 @@ var execShellOptions = []string{"/bin/sh", "/bin/bash", "/bin/ash"}
 func handleExecDialogKeys(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	switch key {
 	case keys.KeyTab:
-		m.DialogFocus = (m.DialogFocus + 1) % state.ExecFocusCount
+		m.DialogState.MoveFocus(1, state.ExecFocusCount)
 		return m, nil
 	case keys.KeyShiftTab:
-		m.DialogFocus = (m.DialogFocus - 1 + state.ExecFocusCount) % state.ExecFocusCount
+		m.DialogState.MoveFocus(-1, state.ExecFocusCount)
 		return m, nil
 	case keys.KeyEnter:
-		switch m.DialogFocus {
+		switch m.DialogState.Focus {
 		case state.ExecFocusShell1, state.ExecFocusShell2, state.ExecFocusShell3:
-			m.ExecShell = execShellOptions[m.DialogFocus]
+			m.ExecShell = execShellOptions[m.DialogState.Focus]
 			return doExecAction(m)
 		case state.ExecFocusInput, state.ExecFocusConfirm:
 			m.ExecShell = m.DialogState.Input.Text
@@ -39,7 +39,7 @@ func handleExecDialogKeys(key string, m *state.AppModel) (*state.AppModel, tea.C
 		clearDialogState(m)
 		return m, nil
 	default:
-		if m.DialogFocus != state.ExecFocusInput || key == " " {
+		if m.DialogState.Focus != state.ExecFocusInput || key == " " {
 			return m, nil
 		}
 		if key == "ctrl+w" {

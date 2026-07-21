@@ -130,7 +130,7 @@ func clamp(val, max int) int {
 
 func clearDialogState(m *state.AppModel) {
 	m.Mode = state.ModeNormal
-	m.DialogState.Reset()
+	m.DialogState.Close()
 }
 
 func composeProjectNames(m *state.AppModel) []string {

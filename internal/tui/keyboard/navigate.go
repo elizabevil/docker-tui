@@ -152,12 +152,12 @@ func BackFromCommand(m *state.AppModel) {
 
 // ToExec opens the exec shell dialog.
 func ToExec(m *state.AppModel) {
-	m.Mode = state.ModeExec
-	m.DialogState.OpenInput("/bin/sh", 0)
+	m.DialogState.Open(state.DialogSpec{Kind: state.DialogExec, Input: "/bin/sh"})
+	m.Mode = m.DialogState.Kind.Mode()
 }
 
 // BackFromExec closes the exec shell dialog.
 func BackFromExec(m *state.AppModel) {
 	m.Mode = state.ModeNormal
-	m.DialogState.Reset()
+	m.DialogState.Close()
 }

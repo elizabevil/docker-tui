@@ -31,7 +31,7 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg dialogConfig) string
 	// Shell option buttons
 	var optionBtns []string
 	for i, opt := range execShellOptions {
-		if m.DialogFocus == i {
+		if m.DialogState.Focus == i {
 			optionBtns = append(optionBtns, lipgloss.NewStyle().Foreground(style.Colors.Green).Bold(true).Render("\u25b6 "+opt))
 		} else {
 			optionBtns = append(optionBtns, lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(opt))
@@ -55,7 +55,7 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg dialogConfig) string
 		cursor = len(inputRunes)
 	}
 	inputDisplay := component.GetStyle("dim").Render(i18n.T("inspect.shell")+": ") + string(inputRunes[:cursor])
-	if m.DialogFocus == execFocusInput {
+	if m.DialogState.Focus == execFocusInput {
 		inputDisplay += "\u2588" // block cursor when focused
 	} else {
 		inputDisplay += " " // space when not focused
@@ -67,10 +67,10 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg dialogConfig) string
 	// Confirm / Cancel buttons with shortcut hints
 	var confirmBtn, cancelBtn string
 	switch {
-	case m.DialogFocus == 4:
+	case m.DialogState.Focus == 4:
 		confirmBtn = lipgloss.NewStyle().Foreground(style.Colors.Green).Bold(true).Render(enterKey + " \u25b6 " + confirmLabel)
 		cancelBtn = lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(escKey + " " + cancelLabel)
-	case m.DialogFocus == 5:
+	case m.DialogState.Focus == 5:
 		confirmBtn = lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(enterKey + " " + confirmLabel)
 		cancelBtn = lipgloss.NewStyle().Foreground(style.Colors.Green).Bold(true).Render(escKey + " \u25b6 " + cancelLabel)
 	default:

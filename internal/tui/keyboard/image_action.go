@@ -44,8 +44,8 @@ func doImagePull(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if m.Docker == nil {
 		return m, nil
 	}
-	m.Mode = state.ModeImagePull
-	m.DialogState.Input.Reset()
+	m.DialogState.Open(state.DialogSpec{Kind: state.DialogImagePull})
+	m.Mode = m.DialogState.Kind.Mode()
 	m.InfoMessage = "Type image name (e.g. nginx:latest) and press Enter to pull"
 	return m, nil
 }
@@ -60,11 +60,9 @@ func handleImagePullInput(key string, m *state.AppModel) *state.AppModel {
 		}
 		m.PendingImagePull = ref
 		m.PendingImagePullAudit = beginAudit(m, "resource.image.pull", audit.ImageTarget{ID: ref, Name: ref}, "Pulling image "+ref)
-		m.DialogState.Input.Reset()
-		m.Mode = state.ModeNormal
+		clearDialogState(m)
 	case keys.KeyEsc:
-		m.DialogState.Input.Reset()
-		m.Mode = state.ModeNormal
+		clearDialogState(m)
 	default:
 		editQueryInput(key, &m.DialogState.Input)
 	}
@@ -225,11 +223,14 @@ func doImageExport(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 
 	cmd := fmt.Sprintf("%s save -o %s %s", engine, path, ref)
-	m.Mode = state.ModeExport
-	m.DialogTitle = "Export Image"
-	m.DialogBody = fmt.Sprintf("Image: %s\nOutput: %s", ref, path)
-	m.DialogPreview = cmd
-	m.DialogAction = "Export command copied to preview"
+	m.DialogState.Open(state.DialogSpec{
+		Kind:    state.DialogImageExport,
+		Title:   "Export Image",
+		Body:    fmt.Sprintf("Image: %s\nOutput: %s", ref, path),
+		Preview: cmd,
+		Action:  "Export command copied to preview",
+	})
+	m.Mode = m.DialogState.Kind.Mode()
 	return m, nil
 }
 
@@ -249,11 +250,14 @@ func doImageDebug(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 	cmd := fmt.Sprintf("%s run --rm -it --name debug-%s %s sh",
 		engine, tagName(img), ref)
-	m.Mode = state.ModeDebug
-	m.DialogTitle = "Debug Run"
-	m.DialogBody = fmt.Sprintf("Image: %s\nContainer: debug-%s", ref, tagName(img))
-	m.DialogPreview = cmd
-	m.DialogAction = "Debug command copied to preview"
+	m.DialogState.Open(state.DialogSpec{
+		Kind:    state.DialogImageDebug,
+		Title:   "Debug Run",
+		Body:    fmt.Sprintf("Image: %s\nContainer: debug-%s", ref, tagName(img)),
+		Preview: cmd,
+		Action:  "Debug command copied to preview",
+	})
+	m.Mode = m.DialogState.Kind.Mode()
 	return m, nil
 }
 

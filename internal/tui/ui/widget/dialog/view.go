@@ -186,24 +186,22 @@ func resolveOverlay(appColor string, cfg dialogConfig) string {
 	return base + alpha
 }
 
-// titleColorForMode returns the dialog title color for a given mode.
-func titleColorForMode(mode string) color.Color {
-	switch mode {
-	case "debug":
+func titleColorForKind(kind state.DialogKind) color.Color {
+	switch kind {
+	case state.DialogImageDebug:
 		return style.Colors.Orange
-	case "exec":
+	case state.DialogExec:
 		return style.Colors.Green
 	default:
 		return style.Colors.Cyan
 	}
 }
 
-// actionLabelForMode returns the Enter action label for a given mode.
-func actionLabelForMode(mode string) string {
-	switch mode {
-	case "debug":
+func actionLabelForKind(kind state.DialogKind) string {
+	switch kind {
+	case state.DialogImageDebug:
 		return i18n.T("hint.enter_run")
-	case "exec":
+	case state.DialogExec:
 		return i18n.T("hint.enter_shell")
 	default:
 		return i18n.T("hint.enter_confirm")
@@ -211,14 +209,14 @@ func actionLabelForMode(mode string) string {
 }
 
 // Render builds a full-screen modal dialog for export/debug/exec modes.
-func Render(m *state.AppModel, mode string) string {
-	tc := titleColorForMode(mode)
+func Render(m *state.AppModel) string {
+	tc := titleColorForKind(m.DialogState.Kind)
 	dlgCfg := LoadDialogConfig()
 	oc := resolveOverlay(m.Config.UI.DialogOverlayColor, dlgCfg)
 
 	dialogBox := SelectionDialog(
-		m.DialogTitle, m.DialogBody, m.DialogPreview,
-		actionLabelForMode(mode), m.DialogFocus, m.Width, m.Height, tc, oc, dlgCfg,
+		m.DialogState.Title, m.DialogState.Body, m.DialogState.Preview,
+		actionLabelForKind(m.DialogState.Kind), m.DialogState.Focus, m.Width, m.Height, tc, oc, dlgCfg,
 	)
 	return lipgloss.Place(m.Width, m.Height,
 		lipgloss.Center, lipgloss.Center, dialogBox,
@@ -227,14 +225,14 @@ func Render(m *state.AppModel, mode string) string {
 
 // RenderOverlay renders a scrim (full-screen dim) with a selection dialog
 // centered on top. Background content remains visible but muted behind the dialog.
-func RenderOverlay(content string, m *state.AppModel, mode string) string {
-	tc := titleColorForMode(mode)
+func RenderOverlay(content string, m *state.AppModel) string {
+	tc := titleColorForKind(m.DialogState.Kind)
 	dlgCfg := LoadDialogConfig()
 	oc := resolveOverlay(m.Config.UI.DialogOverlayColor, dlgCfg)
 
 	dialogBox := SelectionDialog(
-		m.DialogTitle, m.DialogBody, m.DialogPreview,
-		actionLabelForMode(mode), m.DialogFocus, m.Width, m.Height, tc, oc, dlgCfg,
+		m.DialogState.Title, m.DialogState.Body, m.DialogState.Preview,
+		actionLabelForKind(m.DialogState.Kind), m.DialogState.Focus, m.Width, m.Height, tc, oc, dlgCfg,
 	)
 
 	return PlaceDialog(content, dialogBox, m.Width, m.Height, oc, dlgCfg)
