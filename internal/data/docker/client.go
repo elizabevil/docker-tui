@@ -17,6 +17,7 @@ import (
 
 	"github.com/docker/docker/client"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	podmanapi "github.com/elizabevil/docker-tui/internal/data/runtime/podman"
 )
 
 type RuntimeType string
@@ -34,6 +35,7 @@ type Client struct {
 	Host          string
 	EngineVersion string
 	imageLister   ImageLister // nil = use Docker SDK default
+	podmanREST    *podmanapi.RESTClient
 }
 
 type ClientConfig struct {
@@ -201,6 +203,7 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 		opts = append(opts, client.WithAPIVersionNegotiation())
 	}
 
+	var transportHTTPClient *http.Client
 	if cfg.TLS.Enabled {
 		if !cfg.TLS.Verify && !cfg.TLS.InsecureSkipVerify {
 			return nil, connectionError(ConnectionErrorCA, fmt.Errorf("TLS certificate verification is required"))
@@ -210,6 +213,7 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 			return nil, err
 		}
 		opts = append(opts, client.WithHTTPClient(httpClient))
+		transportHTTPClient = httpClient
 	}
 
 	cli, err := client.NewClientWithOpts(opts...)
@@ -243,6 +247,11 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 							Host:          sock,
 							EngineVersion: fetchVersion(cli2, 2*time.Second),
 						}
+						c.podmanREST, err2 = podmanapi.NewRESTClient(podmanapi.RESTConfig{Endpoint: sock})
+						if err2 != nil {
+							_ = cli2.Close()
+							return nil, fmt.Errorf("create Podman transport: %w", err2)
+						}
 						c.ctx, c.cancel = context.WithCancel(context.Background())
 						c.initImageLister()
 						return c, nil
@@ -259,6 +268,15 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 		RuntimeType:   rt,
 		Host:          host,
 		EngineVersion: fetchVersion(cli, 2*time.Second),
+	}
+	if rt == RuntimePodman {
+		c.podmanREST, err = podmanapi.NewRESTClient(podmanapi.RESTConfig{
+			Endpoint: host, APIVersion: cfg.APIVersion, TLS: cfg.TLS.Enabled, HTTPClient: transportHTTPClient,
+		})
+		if err != nil {
+			_ = cli.Close()
+			return nil, fmt.Errorf("create Podman transport: %w", err)
+		}
 	}
 	c.ctx, c.cancel = context.WithCancel(context.Background())
 	c.initImageLister()
