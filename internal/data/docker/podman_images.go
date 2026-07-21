@@ -18,22 +18,17 @@ func (c *Client) listImagesPodman() ([]ImageSummary, error) {
 	if err != nil {
 		return nil, fmt.Errorf("podman list: %w", err)
 	}
-	out := make([]ImageSummary, 0, len(list))
+	raw := make([]podmanImageSummary, 0, len(list))
 	for _, p := range list {
-		s := ImageSummary{
-			ID: p.ID, RepoTags: p.RepoTags, Created: p.Created,
-			Size: p.Size, Labels: p.Labels,
-		}
-		if p.Arch != "" {
-			s.Arch = p.Arch
-		} else {
-			s.Arch = "\u2014"
-		}
-		if p.IsManifestList != nil && *p.IsManifestList {
-			s.IsManifest = true
-		}
-		s.Registry, _, _ = splitImageRef(s.RepoTags)
-		out = append(out, s)
+		raw = append(raw, podmanImageSummary{
+			ID:             p.ID,
+			RepoTags:       p.RepoTags,
+			Created:        p.Created,
+			Size:           p.Size,
+			Labels:         p.Labels,
+			Architecture:   p.Arch,
+			IsManifestList: p.IsManifestList,
+		})
 	}
-	return out, nil
+	return mapPodmanImageSummaries(raw), nil
 }

@@ -46,6 +46,11 @@ test:
 test-unit:
     go test ./cmd/... ./internal/... -count=1
 
+# Verify both Podman transports selected by the CGO build tag.
+test-runtime-matrix:
+    CGO_ENABLED=0 go test ./... -count=1
+    CGO_ENABLED=1 go test ./... -count=1
+
 # Run Docker client tests.
 test-docker:
     CGO_ENABLED=0 go test ./internal/data/docker/ -v -run 'TestManifest|TestList|TestImage' -count=1
@@ -74,7 +79,7 @@ test-all: test test-integration
 # Run static analysis and the complete Go test suite.
 check:
     CGO_ENABLED=0 go vet ./...
-    go test ./... -count=1
+    just test-runtime-matrix
 
 # ── Run ──
 

@@ -34,36 +34,11 @@ func (c *Client) listImagesPodman() ([]ImageSummary, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read: %w", err)
 	}
-	var raw []struct {
-		ID             string            `json:"Id"`
-		RepoTags       []string          `json:"RepoTags"`
-		Created        int64             `json:"Created"`
-		Size           int64             `json:"Size"`
-		Labels         map[string]string `json:"Labels"`
-		Architecture   string            `json:"Architecture,omitempty"`
-		IsManifestList *bool             `json:"IsManifestList,omitempty"`
-	}
+	var raw []podmanImageSummary
 	if err := json.Unmarshal(body, &raw); err != nil {
 		return nil, fmt.Errorf("parse: %w", err)
 	}
-	out := make([]ImageSummary, 0, len(raw))
-	for _, p := range raw {
-		s := ImageSummary{
-			ID: p.ID, RepoTags: p.RepoTags, Created: p.Created,
-			Size: p.Size, Labels: p.Labels,
-		}
-		if p.Architecture != "" {
-			s.Arch = p.Architecture
-		} else {
-			s.Arch = "\u2014"
-		}
-		if p.IsManifestList != nil && *p.IsManifestList {
-			s.IsManifest = true
-		}
-		s.Registry, _, _ = splitImageRef(s.RepoTags)
-		out = append(out, s)
-	}
-	return out, nil
+	return mapPodmanImageSummaries(raw), nil
 }
 
 func (c *Client) hostSocketPath() string {

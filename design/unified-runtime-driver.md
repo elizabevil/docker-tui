@@ -147,9 +147,10 @@ type Engine interface {
 
 Phase 0 决策：
 
-1. 默认 Podman driver 使用集中式 remote REST transport，保持纯 Go 与交叉编译能力。
-2. bindings 可作为后续可选 transport 或实现参考，但必须实现同一 driver 契约；mapper 和业务语义只保留一份。
-3. 不再为单项功能添加分散的 `*_nocgo.go` 实现；现有 image 分叉在 Podman REST adapter 覆盖后删除。
+1. Podman adapter 同时支持两种 transport：CGO 构建使用官方 bindings，非 CGO 构建使用集中式 remote REST transport。
+2. 两种 transport 都先转换到 adapter 内部的 Podman wire DTO，再经过同一 mapper 转成统一领域模型；禁止复制 mapper 和业务语义。
+3. Podman `pkg/domain/entities/types` 的依赖图同样包含 `gpgme`，非 CGO 路径不能直接导入。REST DTO 应按 Libpod OpenAPI 响应定义并通过 fixture/contract test 校验，而不是让领域层依赖 SDK struct。
+4. 不再为单项功能添加分散的 `*_nocgo.go` 业务实现；build-tag 文件只负责选择 transport，HTTP、错误处理与 mapper 均集中复用。
 
 TLS transport、超时和错误分类必须由 driver factory 统一注入，Podman adapter 不得另建绕过 TLS 配置的 `http.Client`。
 
@@ -200,7 +201,7 @@ TLS transport、超时和错误分类必须由 driver factory 统一注入，Pod
 - Error contract：not found、conflict、unsupported、permission、connection 分类一致。
 - Stream contract：logs/events/exec 的顺序、取消、EOF、断线和 goroutine 退出。
 - Live integration：可用时分别连接 Docker 与 Podman socket；缺失一端时明确 skip。
-- Build matrix：`CGO_ENABLED=0 go test ./...` 为必选，CGO 构建作为 Podman bindings 补充检查。
+- Build matrix：`CGO_ENABLED=0 go test ./...` 与 `CGO_ENABLED=1 go test ./...` 均为必选，分别覆盖 REST 与 bindings transport。
 
 ## 10. 完成标准
 
