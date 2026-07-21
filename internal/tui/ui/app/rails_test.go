@@ -6,7 +6,6 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 )
 
 func TestCalculateRailHeights(t *testing.T) {
@@ -81,7 +80,7 @@ func TestRenderAppHeightDoesNotChangeWithQueryOrMessage(t *testing.T) {
 	app.FilterInput = state.QueryInputState{Text: "nginx", Cursor: 5}
 	filterHeight := strings.Count(RenderApp(app), "\n") + 1
 	app.ToastMessage = "filter applied"
-	app.ToastLevel = component.ToastInfo
+	app.ToastLevel = state.NotificationInfo
 	messageHeight := strings.Count(RenderApp(app), "\n") + 1
 
 	if filterHeight != normalHeight || messageHeight != normalHeight {

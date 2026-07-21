@@ -54,8 +54,7 @@ func handleImageDetailLoaded(m *state.AppModel, msg state.ImageDetailLoaded) (*s
 		return m, nil
 	}
 	if msg.Error != nil {
-		m.ErrorMessage = msg.Error.Error()
-		m.ErrorCount++
+		m.FeedbackState.RecordError(msg.Error.Error())
 	} else {
 		m.ImageDetailData = msg.Detail
 		if m.Mode == state.ModeDetail {

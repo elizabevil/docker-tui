@@ -5,10 +5,8 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/config"
-	"github.com/elizabevil/docker-tui/internal/data/i18n"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
-
 	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
+	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/term"
 )
 
@@ -86,12 +84,9 @@ type AppModel struct {
 	ConnectionState
 	NavigationState
 	DialogState
+	FeedbackState
 
 	// ── Nav ──
-	ErrorMessage          string
-	ErrorCount            int // 累计错误次数，用于状态栏显示
-	InfoMessage           string
-	AuditOperationMessage string
 
 	// ── Resources ──
 	Containers *ContainerListModel
@@ -121,24 +116,6 @@ type AppModel struct {
 	HostMemUsed  uint64
 	HostMemTotal uint64
 
-	// ── Key Hint ──
-	KeyHint      string
-	KeyHintTimer int // ticks remaining (1 tick = 100ms)
-
-	// ── Key Stroke Display ──
-	KeyStrokeBuffer     []KeyStrokeEvent // buffered key events (max 3)
-	KeyStrokeTimer      int              // collection countdown (100ms/tick)
-	KeyStrokeAnim       int              // animation frame (0 = done)
-	LastKeyStroke       []KeyStrokeEvent // displayed after animation
-	KeyStrokeDispTimer  int              // display countdown after animation (0 = destroyed)
-	KeyStrokeDuration   int              // 显示持续时间（tick数，默认30=3s）
-	KeyStrokeAnimFrames int              // 动画帧数（默认5=500ms）
-
-	// ── Toast ──
-	ToastMessage string
-	ToastLevel   component.ToastLevel
-	ToastTimer   int
-
 	// ── Detail ──
 	ImageDetailID      string
 	ImageDetailContent string
@@ -160,7 +137,6 @@ type AppModel struct {
 	MarkedIDs             map[string]bool
 	PendingImagePull      string
 	PendingImagePullAudit audit.Trace
-	Spinner               *component.Spinner
 
 	// ── Exec Passthrough ──
 	ExecConn   net.Conn      // hijacked connection for exec stdin
@@ -190,24 +166,16 @@ type AppModel struct {
 // NewAppModel creates a new application model with default state.
 func NewAppModel(cfg *config.Config, client *dockerclient.Client, appVersion string) *AppModel {
 	return &AppModel{
-		Config:              cfg,
-		ConnectionState:     NewConnectionState(client),
-		NavigationState:     NewNavigationState(),
-		Containers:          NewContainerListModel(),
-		Images:              NewImageListModel(),
-		Volumes:             NewVolumeListModel(),
-		Networks:            NewNetworkListModel(),
-		AppVersion:          appVersion,
-		Spinner:             component.NewSpinner(),
-		KeyStrokeDuration:   30,
-		KeyStrokeAnimFrames: 5,
+		Config:          cfg,
+		ConnectionState: NewConnectionState(client),
+		NavigationState: NewNavigationState(),
+		FeedbackState:   NewFeedbackState(),
+		Containers:      NewContainerListModel(),
+		Images:          NewImageListModel(),
+		Volumes:         NewVolumeListModel(),
+		Networks:        NewNetworkListModel(),
+		AppVersion:      appVersion,
 	}
-}
-
-// KeyStrokeEvent represents a single key press for the keystroke display column.
-type KeyStrokeEvent struct {
-	Key    string
-	Action string
 }
 
 // PanelLabel returns a display label for a panel type.

@@ -52,8 +52,7 @@ func doNetworkInspect(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	rawJSON, err := m.Docker.InspectNetwork(net.ID)
 	if err != nil {
-		m.ErrorMessage = err.Error()
-		m.ErrorCount++
+		m.FeedbackState.RecordError(err.Error())
 		return m, nil
 	}
 	m.DetailRawJSON = rawJSON

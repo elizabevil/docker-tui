@@ -30,8 +30,7 @@ func doVolumeInspect(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	rawJSON, err := m.Docker.InspectVolume(vol.Name)
 	if err != nil {
-		m.ErrorMessage = err.Error()
-		m.ErrorCount++
+		m.FeedbackState.RecordError(err.Error())
 		return m, nil
 	}
 	m.DetailRawJSON = rawJSON

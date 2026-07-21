@@ -147,12 +147,6 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 	case state.KeyStrokeTick:
 		return handleKeyStrokeTick(m, msg)
-	case state.SpinnerTick:
-		if m.Spinner != nil && m.Spinner.Active() {
-			m.Spinner.Tick()
-		}
-		return m, nil
-
 	case state.ExecOutput:
 		return handleExecOutput(m, msg)
 	case state.ExecDone:

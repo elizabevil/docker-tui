@@ -119,7 +119,6 @@ type (
 
 	KeyHintTick   struct{}
 	KeyStrokeTick struct{}
-	SpinnerTick   struct{} // 驱动 Spinner 动画
 )
 
 type DockerConnected struct {

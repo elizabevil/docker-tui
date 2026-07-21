@@ -5,7 +5,6 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -101,9 +100,7 @@ func ShowToastNow(m *state.AppModel, msg string) {
 	if m != nil && m.Audit != nil {
 		return
 	}
-	m.ToastMessage = msg
-	m.ToastLevel = component.ToastInfo
-	m.ToastTimer = 30
+	m.FeedbackState.ShowToast(msg, state.NotificationInfo, 30)
 }
 
 func ShowToastSuccess(m *state.AppModel, msg string) {
@@ -111,9 +108,7 @@ func ShowToastSuccess(m *state.AppModel, msg string) {
 	if m != nil && m.Audit != nil {
 		return
 	}
-	m.ToastMessage = msg
-	m.ToastLevel = component.ToastSuccess
-	m.ToastTimer = 20
+	m.FeedbackState.ShowToast(msg, state.NotificationSuccess, 20)
 }
 
 func ShowToastWarn(m *state.AppModel, msg string) {
@@ -121,18 +116,15 @@ func ShowToastWarn(m *state.AppModel, msg string) {
 	if m != nil && m.Audit != nil {
 		return
 	}
-	m.ToastMessage = msg
-	m.ToastLevel = component.ToastWarning
-	m.ToastTimer = 40
+	m.FeedbackState.ShowToast(msg, state.NotificationWarning, 40)
 }
 
 // ShowKeyHint sets a hint in the header gap area. Returns a cmd to start the auto-clear timer.
 func ShowKeyHint(m *state.AppModel, msg string) tea.Cmd {
-	m.KeyHint = msg
 	sec := m.Config.UI.HintTimeout
 	if sec <= 0 {
 		sec = 3
 	}
-	m.KeyHintTimer = sec * 10 // 10 ticks per second (100ms each)
+	m.FeedbackState.SetKeyHint(msg, sec*10)
 	return func() tea.Msg { return state.KeyHintTick{} }
 }

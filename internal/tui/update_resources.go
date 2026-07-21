@@ -10,8 +10,7 @@ func handleContainersLoaded(m *state.AppModel, msg state.ContainersLoaded) (*sta
 	m.Containers.Loading = false
 	if msg.Error != nil {
 		m.Containers.Error = msg.Error
-		m.ErrorMessage = msg.Error.Error()
-		m.ErrorCount++
+		m.FeedbackState.RecordError(msg.Error.Error())
 	} else {
 		m.Containers.Items = msg.Containers
 		m.Containers.Error = nil
@@ -31,8 +30,7 @@ func handleImagesLoaded(m *state.AppModel, msg state.ImagesLoaded) (*state.AppMo
 	m.Images.Loading = false
 	if msg.Error != nil {
 		m.Images.Error = msg.Error
-		m.ErrorMessage = msg.Error.Error()
-		m.ErrorCount++
+		m.FeedbackState.RecordError(msg.Error.Error())
 	} else {
 		m.Images.Items = msg.Images
 		m.Images.Error = nil
@@ -44,8 +42,7 @@ func handleVolumesLoaded(m *state.AppModel, msg state.VolumesLoaded) (*state.App
 	m.Volumes.Loading = false
 	if msg.Error != nil {
 		m.Volumes.Error = msg.Error
-		m.ErrorMessage = msg.Error.Error()
-		m.ErrorCount++
+		m.FeedbackState.RecordError(msg.Error.Error())
 	} else {
 		m.Volumes.Items = msg.Volumes
 		m.Volumes.Error = nil
@@ -57,8 +54,7 @@ func handleNetworksLoaded(m *state.AppModel, msg state.NetworksLoaded) (*state.A
 	m.Networks.Loading = false
 	if msg.Error != nil {
 		m.Networks.Error = msg.Error
-		m.ErrorMessage = msg.Error.Error()
-		m.ErrorCount++
+		m.FeedbackState.RecordError(msg.Error.Error())
 	} else {
 		m.Networks.Items = msg.Networks
 		m.Networks.Error = nil

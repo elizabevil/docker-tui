@@ -55,11 +55,11 @@ func renderMessageRail(m *state.AppModel, width int) string {
 
 	var style lipgloss.Style
 	switch m.ToastLevel {
-	case component.ToastSuccess:
+	case state.NotificationSuccess:
 		style = component.GetStyle("toastSuccess")
-	case component.ToastError:
+	case state.NotificationError:
 		style = component.GetStyle("toastError")
-	case component.ToastWarning:
+	case state.NotificationWarning:
 		style = component.GetStyle("toastWarning")
 	default:
 		style = component.GetStyle("toastInfo")

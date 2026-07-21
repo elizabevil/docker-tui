@@ -23,8 +23,7 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 
 	// Esc 也清除持久化错误
 	if key == keys.KeyEsc && m.ErrorMessage != "" {
-		m.ErrorMessage = ""
-		m.ErrorCount = 0
+		m.FeedbackState.ClearError()
 	}
 
 	if m.Mode == state.ModeHelp {

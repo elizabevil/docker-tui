@@ -5,7 +5,6 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -54,23 +53,21 @@ func syncAuditProjection(m *state.AppModel) {
 		return
 	}
 	if notification := m.Audit.ConsumeNotification(); notification != nil {
-		m.ToastMessage = notification.Message
-		m.ToastLevel = toastLevel(notification.Level)
-		m.ToastTimer = 30
+		m.FeedbackState.ShowToast(notification.Message, toastLevel(notification.Level), 30)
 	}
 	if operation := m.Audit.CurrentOperation(); operation != nil {
 		m.AuditOperationMessage = fmt.Sprintf("%s: %s", operation.Action, operation.Message)
 	}
 }
 
-func toastLevel(level audit.Level) component.ToastLevel {
+func toastLevel(level audit.Level) state.NotificationLevel {
 	switch level {
 	case audit.LevelError:
-		return component.ToastError
+		return state.NotificationError
 	case audit.LevelWarn:
-		return component.ToastWarning
+		return state.NotificationWarning
 	default:
-		return component.ToastInfo
+		return state.NotificationInfo
 	}
 }
 

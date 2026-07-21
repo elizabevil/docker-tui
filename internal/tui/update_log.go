@@ -11,8 +11,7 @@ import (
 
 func handleLogBatchReceived(m *state.AppModel, msg state.LogBatchReceived) (*state.AppModel, tea.Cmd) {
 	if msg.Error != nil {
-		m.ErrorMessage = msg.Error.Error()
-		m.ErrorCount++
+		m.FeedbackState.RecordError(msg.Error.Error())
 	} else {
 		m.LogContent = append(m.LogContent, msg.Lines...)
 		if len(m.LogContent) > 2000 {
@@ -29,8 +28,7 @@ func handleLogBatchReceived(m *state.AppModel, msg state.LogBatchReceived) (*sta
 }
 
 func handleLogStreamError(m *state.AppModel, msg state.LogStreamError) (*state.AppModel, tea.Cmd) {
-	m.ErrorMessage = msg.Error.Error()
-	m.ErrorCount++
+	m.FeedbackState.RecordError(msg.Error.Error())
 	return m, nil
 }
 

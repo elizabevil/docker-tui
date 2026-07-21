@@ -100,10 +100,6 @@ func sectionBG(global config.BackgroundConfig, section string) config.SectionBac
 
 func RenderApp(m *state.AppModel) string {
 	if m.Width == 0 || m.Height == 0 {
-		spinner := m.Spinner
-		if spinner != nil && spinner.Active() {
-			return spinner.Render()
-		}
 		return i18n.T("msg.loading")
 	}
 	if m.Width < minimumTerminalWidth || m.Height < minimumTerminalHeight {

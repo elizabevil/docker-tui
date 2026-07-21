@@ -63,20 +63,18 @@ func handleDockerConnected(m *state.AppModel, msg state.DockerConnected) (*state
 	if msg.Error != nil {
 		if m.Mode == state.ModeRuntimeSelect {
 			m.ConnectionState.SelectionFailed(msg.Name, msg.Error)
-			m.ErrorMessage = msg.Error.Error()
-			m.ErrorCount++
+			m.FeedbackState.RecordError(msg.Error.Error())
 			keyboard.ShowToastWarn(m, fmt.Sprintf("Connection failed (%s): %s", msg.Name, msg.Error))
 			return m, nil
 		}
 		m.ConnectionState.Failed(msg.Name, msg.Error)
-		m.ErrorMessage = msg.Error.Error()
-		m.ErrorCount++
+		m.FeedbackState.RecordError(msg.Error.Error())
 		keyboard.ShowToastWarn(m, fmt.Sprintf("Connection failed (%s): %s", msg.Name, msg.Error))
 		return m, nil
 	}
 	m.ConnectionState.ConnectedTo(msg.Name, msg.Client)
 	m.Mode = state.ModeNormal
-	m.ErrorMessage = ""
+	m.FeedbackState.ClearError()
 	if msg.Name != "" {
 		m.RuntimeType = msg.Name
 	}
@@ -97,13 +95,7 @@ func handleContainerEvent(m *state.AppModel, msg state.ContainerEvent) (*state.A
 }
 
 func handleToastTick(m *state.AppModel, _ state.ToastTick) (*state.AppModel, tea.Cmd) {
-	if m.ToastTimer > 0 {
-		m.ToastTimer--
-		if m.ToastTimer <= 0 {
-			m.ToastMessage = ""
-			m.ToastLevel = 0
-		}
-	}
+	m.FeedbackState.TickToast()
 	return m, tea.Tick(100*time.Millisecond, func(t time.Time) tea.Msg {
 		return state.ToastTick{}
 	})
@@ -147,8 +139,7 @@ func handleRuntimeHealthResult(m *state.AppModel, msg state.RuntimeHealthResult)
 	transition := m.ApplyHealthResult(msg.Name, msg.Error, threshold)
 	switch transition {
 	case state.HealthDisconnected:
-		m.ErrorMessage = fmt.Sprintf("runtime health check failed: %v", msg.Error)
-		m.ErrorCount++
+		m.FeedbackState.RecordError(fmt.Sprintf("runtime health check failed: %v", msg.Error))
 		keyboard.ShowToastWarn(m, fmt.Sprintf("Runtime %s disconnected: %v", m.ConnectionTarget, msg.Error))
 	case state.HealthRecovered:
 		keyboard.ShowToastNow(m, fmt.Sprintf("Runtime %s recovered", m.ConnectionTarget))

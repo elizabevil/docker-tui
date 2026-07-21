@@ -218,10 +218,9 @@ keyboard / update controller
 
 ### Phase 3：Feedback 与 UI 依赖清理
 
-- 拆 `FeedbackState`。
-- 合并现有 Toast 字段与未接入的 `ToastQueue` 方案，只保留一套通知状态。
-- 用 state 层语义类型替代 `component.ToastLevel`。
-- 将 spinner 数据与渲染对象分离，移除 `state -> ui/component` 依赖。
+- 状态: `done`
+- 已完成: 拆出 `FeedbackState`；顶层只保留一套通知状态；使用 state 层 `NotificationLevel` 替代 `component.ToastLevel`；删除从未启动的 Spinner 状态与消息；移除 `state -> ui/component` 依赖。
+- 状态转换: Toast、错误累计、错误清理和按键提示均通过 `FeedbackState` 方法维护。
 
 ### Phase 4：Detail 与 Log
 
