@@ -382,16 +382,18 @@
 ## 八、建议的下一批任务拆分
 
 > 下面这组任务适合直接落到后续任务清单，作为“可实施”的版本。
+> `TASK-RUN-*` 是分析阶段候选编号，实施状态统一以
+> [后续需求实施任务清单](future-requirements-task-list.md) 中的主编号为准。
 
-| 编号 | 任务 | 优先级 | 依赖 | 说明 |
-|---|---|---:|---|---|
-| `TASK-RUN-001` | 连接模型统一与本地驱动去重 | P0 | 现有连接体系任务 | 统一 Docker / Podman / 远程连接 |
-| `TASK-RUN-002` | TLS 配置接线与错误展示 | P0 | `TASK-RUN-001` | 先把远程连接打通 |
-| `TASK-RUN-003` | 容器 `pause` / `unpause` / `rename` / `top` / `port` | P0 | `TASK-RUN-001` | 先做高频运维动作 |
-| `TASK-RUN-004` | 卷 / 网络创建与清理 | P0 | `TASK-RUN-001` | 资源管理补齐 |
-| `TASK-RUN-005` | 镜像标签与传输工作流 | P1 | `TASK-RUN-001` | `tag` / `push` / `save` / `load` |
-| `TASK-RUN-006` | 高级容器操作 | P2 | `TASK-RUN-001` | `update` / `diff` / `export` / `commit` / `wait` / `cp` |
-| `TASK-RUN-007` | Podman 专有能力评估 | P3 | `TASK-RUN-001` | `pod` / `secret` / `kube` / `generate` / `mount` |
+| 候选编号 | 主任务编号 | 任务 | 当前状态 |
+|---|---|---|---|
+| `TASK-RUN-001` | `TASK-004`、`TASK-006` | 连接模型统一与本地驱动去重 | `done` |
+| `TASK-RUN-002` | `TASK-005`、`TASK-016` | TLS 接线与错误展示 | 接线 `done`，错误体验 `todo` |
+| `TASK-RUN-003` | `TASK-017` | 容器 `pause` / `unpause` / `rename` / `top` / `port` | `todo` |
+| `TASK-RUN-004` | `TASK-009` | 卷 / 网络创建与清理 | `todo` |
+| `TASK-RUN-005` | `TASK-018` | 镜像标签与传输工作流 | `todo` |
+| `TASK-RUN-006` | `TASK-019` | 高级容器操作 | `todo` |
+| `TASK-RUN-007` | `TASK-020` | Docker / Podman 专有能力评估 | `todo` |
 
 ### 建议结论
 
