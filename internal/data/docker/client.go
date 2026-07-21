@@ -394,6 +394,25 @@ func (c *Client) Capabilities() runtimeapi.CapabilitySet {
 			Support: runtimeapi.Degraded,
 			Reason:  "native filtering is currently exposed only by container lists",
 		},
+		runtimeapi.CapabilityContainerListFilter: {Support: support, Reason: reason},
+		runtimeapi.CapabilityImageListFilter: {
+			Support:    runtimeapi.Unsupported,
+			Reason:     "unified image list filters have not been migrated",
+			ReasonCode: "adapter_not_migrated",
+		},
+		runtimeapi.CapabilityVolumeListFilter: {
+			Support:    runtimeapi.Unsupported,
+			Reason:     "unified volume list filters have not been migrated",
+			ReasonCode: "adapter_not_migrated",
+		},
+		runtimeapi.CapabilityNetworkListFilter: {
+			Support:    runtimeapi.Unsupported,
+			Reason:     "unified network list filters have not been migrated",
+			ReasonCode: "adapter_not_migrated",
+		},
+		runtimeapi.CapabilityEventFilter: {Support: support, Reason: reason},
+		runtimeapi.CapabilityExecResize:  {Support: support, Reason: reason},
+		runtimeapi.CapabilityStatsStream: {Support: support, Reason: reason},
 	}
 }
 

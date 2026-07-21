@@ -13,6 +13,7 @@ const (
 type Capability string
 
 const (
+	// Legacy aggregate capabilities remain during facade migration.
 	CapabilityContainers Capability = "containers"
 	CapabilityImages     Capability = "images"
 	CapabilityVolumes    Capability = "volumes"
@@ -20,11 +21,20 @@ const (
 	CapabilityEvents     Capability = "events"
 	CapabilityExec       Capability = "exec"
 	CapabilityFiltering  Capability = "native_filtering"
+
+	CapabilityContainerListFilter Capability = "container.list.filter"
+	CapabilityImageListFilter     Capability = "image.list.filter"
+	CapabilityVolumeListFilter    Capability = "volume.list.filter"
+	CapabilityNetworkListFilter   Capability = "network.list.filter"
+	CapabilityEventFilter         Capability = "events.filter"
+	CapabilityExecResize          Capability = "exec.resize"
+	CapabilityStatsStream         Capability = "stats.stream"
 )
 
 type CapabilityInfo struct {
-	Support Support
-	Reason  string
+	Support    Support
+	Reason     string
+	ReasonCode string
 }
 
 type CapabilitySet map[Capability]CapabilityInfo

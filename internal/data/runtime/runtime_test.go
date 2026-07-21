@@ -49,3 +49,34 @@ func TestFilterSetCloneDoesNotShareValues(t *testing.T) {
 		t.Fatalf("expected two cloned values, got %d", got)
 	}
 }
+
+func TestHTTPErrorClassification(t *testing.T) {
+	tests := map[int]ErrorKind{
+		400: ErrorInvalid,
+		401: ErrorAuthentication,
+		403: ErrorPermission,
+		404: ErrorNotFound,
+		409: ErrorConflict,
+		429: ErrorRateLimited,
+		503: ErrorUnavailable,
+		500: ErrorInternal,
+	}
+	for status, want := range tests {
+		if got := ClassifyHTTPStatus(status); got != want {
+			t.Errorf("status %d: got %q, want %q", status, got, want)
+		}
+	}
+}
+
+func TestRetryableErrorKinds(t *testing.T) {
+	for _, kind := range []ErrorKind{ErrorConnection, ErrorTimeout, ErrorRateLimited, ErrorUnavailable} {
+		if !IsRetryableKind(kind) {
+			t.Errorf("expected %q to be retryable", kind)
+		}
+	}
+	for _, kind := range []ErrorKind{ErrorCanceled, ErrorPermission, ErrorInvalid, ErrorConflict, ErrorUnsupported} {
+		if IsRetryableKind(kind) {
+			t.Errorf("expected %q not to be retryable", kind)
+		}
+	}
+}
