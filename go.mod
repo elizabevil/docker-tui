@@ -12,6 +12,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	go.podman.io/podman/v6 v6.0.1
 	gopkg.in/yaml.v3 v3.0.1
+	github.com/mattn/go-runewidth v0.0.24
 )
 
 require (
@@ -81,7 +82,6 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.4.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20240909124753-873cd0166683 // indirect
 	github.com/manifoldco/promptui v0.9.0 // indirect
-	github.com/mattn/go-runewidth v0.0.24 // indirect
 	github.com/mattn/go-sqlite3 v1.14.45 // indirect
 	github.com/miekg/pkcs11 v1.1.1 // indirect
 	github.com/mistifyio/go-zfs/v4 v4.0.0 // indirect

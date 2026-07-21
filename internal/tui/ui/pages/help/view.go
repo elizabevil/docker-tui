@@ -111,8 +111,9 @@ func (r *Renderer) Render(width int, app *state.AppModel) string {
 		rightSb.WriteString(component.GetStyle("header").Render(sec.Title))
 		rightSb.WriteString("\n")
 		for _, item := range sec.Items {
+			keyColumn := component.PadVisible(component.TruncateVisible(item.Keys, 20), 20)
 			rightSb.WriteString(fmt.Sprintf("  %s  %s\n",
-				component.GetStyle("helpKey").Render(fmt.Sprintf("%-20s", item.Keys)),
+				component.GetStyle("helpKey").Render(keyColumn),
 				component.GetStyle("helpDesc").Render(item.Desc),
 			))
 		}

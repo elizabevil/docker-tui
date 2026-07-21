@@ -4,6 +4,8 @@ package utils
 import (
 	"fmt"
 	"strings"
+
+	"github.com/mattn/go-runewidth"
 )
 
 // StripANSI removes ANSI escape sequences from a string using a fast state machine.
@@ -36,9 +38,15 @@ func StripANSI(s string) string {
 	return buf.String()
 }
 
-// VisibleLen returns the number of visible runes (excluding ANSI codes).
+// DisplayWidth returns terminal cell width after removing ANSI sequences.
+// East Asian wide characters occupy two cells; combining marks occupy zero.
+func DisplayWidth(s string) int {
+	return runewidth.StringWidth(StripANSI(s))
+}
+
+// VisibleLen is kept as a compatibility alias for DisplayWidth.
 func VisibleLen(s string) int {
-	return len([]rune(StripANSI(s)))
+	return DisplayWidth(s)
 }
 
 // ansiPrefix extracts the leading ANSI escape sequence from s, if any.
@@ -59,24 +67,40 @@ func ansiPrefix(s string) string {
 // Always closes ANSI codes after truncation to prevent color leaks.
 func TruncateVisible(s string, maxVisible int) string {
 	clean := StripANSI(s)
-	runes := []rune(clean)
-	if len(runes) <= maxVisible {
+	if DisplayWidth(clean) <= maxVisible {
 		return s
 	}
 	if maxVisible <= 3 {
-		return string(runes[:maxVisible])
+		return truncateCells(clean, maxVisible)
 	}
 	prefix := ansiPrefix(s)
-	truncated := string(runes[:maxVisible-3]) + "..."
+	truncated := truncateCells(clean, maxVisible-3) + "..."
 	if prefix != "" {
 		return prefix + truncated + "\033[0m" // 关闭 ANSI，防止颜色泄漏
 	}
 	return truncated
 }
 
+func truncateCells(s string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+	used := 0
+	var out strings.Builder
+	for _, r := range []rune(s) {
+		w := runewidth.RuneWidth(r)
+		if used+w > width {
+			break
+		}
+		out.WriteRune(r)
+		used += w
+	}
+	return out.String()
+}
+
 // PadVisible pads a string to exactly width visible characters by appending spaces.
 func PadVisible(s string, width int) string {
-	vis := VisibleLen(s)
+	vis := DisplayWidth(s)
 	if vis >= width {
 		return s
 	}

@@ -138,4 +138,5 @@ func PadDisplay(s string, width int) string
 - 已修复中文 JSONC 解析错误。
 - 已支持 `zh`、`zh-CN`、`zh_CN` 语言代码。
 - 已补充语言切换测试。
-- 终端显示宽度统一化、硬编码文本迁移和中英文渲染回归仍待实施。
+- 已引入按终端单元格计算的 `DisplayWidth`、`TruncateVisible` 和 `PadVisible` 路径，并覆盖表格行前缀与 Help 快捷键列。
+- 终端显示宽度的全页面覆盖、硬编码文本迁移和中英文渲染回归仍待实施。

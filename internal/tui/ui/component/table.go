@@ -103,7 +103,7 @@ func RenderTable(d TableData) string {
 		prefixSel = GetFlexConfig().RowPrefixSelected
 	}
 	// 计算行总宽度（含前缀和间隙）
-	rowW := len(prefix)
+	rowW := utils.DisplayWidth(prefix)
 	for _, w := range colW {
 		rowW += w
 	}
