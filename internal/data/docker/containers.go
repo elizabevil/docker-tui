@@ -77,9 +77,17 @@ func (c *Client) listContainersDocker(ctx context.Context, opts ContainerListOpt
 			Labels:       ctr.Labels,
 			MountCount:   len(ctr.Mounts),
 		}
+		for _, mount := range ctr.Mounts {
+			if mount.Name != "" {
+				summary.MountNames = append(summary.MountNames, mount.Name)
+			} else if mount.Source != "" {
+				summary.MountNames = append(summary.MountNames, mount.Source)
+			}
+		}
 
 		if ctr.NetworkSettings != nil {
-			for _, net := range ctr.NetworkSettings.Networks {
+			for name, net := range ctr.NetworkSettings.Networks {
+				summary.NetworkNames = append(summary.NetworkNames, name)
 				if net.IPAddress != "" {
 					summary.IPs = append(summary.IPs, net.IPAddress)
 				}

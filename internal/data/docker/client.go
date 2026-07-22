@@ -412,48 +412,51 @@ func (c *Client) Identity() runtimeapi.Identity {
 	}
 }
 
-// Capabilities describes the behavior currently exposed by this facade.
+// Capabilities describes the normalized behavior exposed by this adapter.
 func (c *Client) Capabilities() runtimeapi.CapabilitySet {
-	support := runtimeapi.Available
-	reason := ""
+	execSupport := runtimeapi.Available
+	execReason := ""
+	execReasonCode := ""
 	if c.RuntimeType == RuntimePodman {
-		support = runtimeapi.Degraded
-		reason = "provided through the Podman Docker compatibility API"
+		execSupport = runtimeapi.Degraded
+		execReason = "exec attach currently uses the Podman Docker compatibility endpoint"
+		execReasonCode = "podman_exec_compatibility_transport"
 	}
 	return runtimeapi.CapabilitySet{
-		runtimeapi.CapabilityContainers: {Support: support, Reason: reason},
-		runtimeapi.CapabilityImages:     {Support: support, Reason: reason},
-		runtimeapi.CapabilityVolumes:    {Support: support, Reason: reason},
-		runtimeapi.CapabilityNetworks:   {Support: support, Reason: reason},
-		runtimeapi.CapabilityEvents:     {Support: support, Reason: reason},
-		runtimeapi.CapabilityExec:       {Support: support, Reason: reason},
+		runtimeapi.CapabilityContainers: {Support: runtimeapi.Available},
+		runtimeapi.CapabilityImages:     {Support: runtimeapi.Available},
+		runtimeapi.CapabilityVolumes:    {Support: runtimeapi.Available},
+		runtimeapi.CapabilityNetworks:   {Support: runtimeapi.Available},
+		runtimeapi.CapabilityEvents:     {Support: runtimeapi.Available},
+		runtimeapi.CapabilityExec:       {Support: execSupport, Reason: execReason, ReasonCode: execReasonCode},
 		runtimeapi.CapabilityFiltering: {
-			Support: runtimeapi.Degraded,
-			Reason:  "native filtering is currently exposed only by container lists",
+			Support:    runtimeapi.Degraded,
+			Reason:     "the first same-field value is native; remaining values use equivalent adapter post-filtering",
+			ReasonCode: "same_field_and_post_filter",
 		},
 		runtimeapi.CapabilityContainerListFilter: {
 			Support:    runtimeapi.Degraded,
-			Reason:     "single-value filters are native; same-field AND filters are not yet available",
-			ReasonCode: "same_field_and_unsupported",
+			Reason:     "the first same-field value is native; remaining values use equivalent adapter post-filtering",
+			ReasonCode: "same_field_and_post_filter",
 		},
 		runtimeapi.CapabilityImageListFilter: {
 			Support:    runtimeapi.Degraded,
-			Reason:     "single-value filters are native; same-field AND filters are not yet available",
-			ReasonCode: "same_field_and_unsupported",
+			Reason:     "same-field AND uses adapter post-filtering; relative before, since, and until combinations are rejected",
+			ReasonCode: "partial_same_field_and_post_filter",
 		},
 		runtimeapi.CapabilityVolumeListFilter: {
 			Support:    runtimeapi.Degraded,
-			Reason:     "single-value filters are native; same-field AND filters are not yet available",
-			ReasonCode: "same_field_and_unsupported",
+			Reason:     "same-field AND uses adapter post-filtering; multiple dangling conditions are rejected",
+			ReasonCode: "partial_same_field_and_post_filter",
 		},
 		runtimeapi.CapabilityNetworkListFilter: {
 			Support:    runtimeapi.Degraded,
-			Reason:     "single-value filters are native; same-field AND filters are not yet available",
-			ReasonCode: "same_field_and_unsupported",
+			Reason:     "same-field AND uses adapter post-filtering; multiple type conditions are rejected",
+			ReasonCode: "partial_same_field_and_post_filter",
 		},
-		runtimeapi.CapabilityEventFilter: {Support: support, Reason: reason},
-		runtimeapi.CapabilityExecResize:  {Support: support, Reason: reason},
-		runtimeapi.CapabilityStatsStream: {Support: support, Reason: reason},
+		runtimeapi.CapabilityEventFilter: {Support: runtimeapi.Available},
+		runtimeapi.CapabilityExecResize:  {Support: execSupport, Reason: execReason, ReasonCode: execReasonCode},
+		runtimeapi.CapabilityStatsStream: {Support: runtimeapi.Available},
 	}
 }
 
@@ -467,7 +470,17 @@ type containerService struct {
 }
 
 func (s containerService) List(ctx context.Context, options runtimeapi.ContainerListOptions) ([]runtimeapi.ContainerSummary, error) {
-	items, err := s.client.ListContainersContext(ctx, options)
+	queryOptions := options
+	if options.Filters.HasMultipleValues() {
+		queryOptions.Limit = 0
+	}
+	items, err := s.client.ListContainersContext(ctx, queryOptions)
+	if err == nil {
+		items, err = postFilterContainers(items, options.Filters)
+		if options.Limit > 0 && len(items) > options.Limit {
+			items = items[:options.Limit]
+		}
+	}
 	return items, mapRuntimeError(err, "container.list", runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer}, s.client.RuntimeType)
 }
 
@@ -506,6 +519,9 @@ type imageService struct{ client *Client }
 
 func (s volumeService) List(ctx context.Context, options runtimeapi.VolumeListOptions) ([]runtimeapi.Volume, error) {
 	items, err := s.client.ListVolumesContext(ctx, options)
+	if err == nil {
+		items, err = postFilterVolumes(items, options.Filters)
+	}
 	return items, mapRuntimeError(err, "volume.list", runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume}, s.client.RuntimeType)
 }
 
@@ -534,6 +550,9 @@ func (s volumeService) Prune(ctx context.Context, options runtimeapi.PruneOption
 
 func (s networkService) List(ctx context.Context, options runtimeapi.NetworkListOptions) ([]runtimeapi.Network, error) {
 	items, err := s.client.ListNetworksContext(ctx, options)
+	if err == nil {
+		items, err = postFilterNetworks(items, options.Filters)
+	}
 	return items, mapRuntimeError(err, "network.list", runtimeapi.ResourceRef{Type: runtimeapi.ResourceNetwork}, s.client.RuntimeType)
 }
 
@@ -562,6 +581,9 @@ func (s networkService) Prune(ctx context.Context, options runtimeapi.PruneOptio
 
 func (s imageService) List(ctx context.Context, options runtimeapi.ImageListOptions) ([]runtimeapi.ImageSummary, error) {
 	items, err := s.client.ListImagesWithOptionsContext(ctx, options)
+	if err == nil {
+		items, err = postFilterImages(items, options.Filters)
+	}
 	return items, mapRuntimeError(err, "image.list", runtimeapi.ResourceRef{Type: runtimeapi.ResourceImage}, s.client.RuntimeType)
 }
 

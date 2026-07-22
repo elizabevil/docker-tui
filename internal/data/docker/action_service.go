@@ -63,6 +63,9 @@ func (s resourceActionService) execute(ctx context.Context, ref runtimeapi.Resou
 }
 
 func (s resourceActionService) executeContainer(ctx context.Context, id string, action runtimeapi.Action, options runtimeapi.ActionOptions) error {
+	if s.client.RuntimeType == RuntimePodman {
+		return s.client.executeContainerPodmanREST(ctx, id, action, options)
+	}
 	switch action {
 	case runtimeapi.ActionStart:
 		return s.client.cli.ContainerStart(ctx, id, container.StartOptions{})
@@ -89,6 +92,9 @@ func (s resourceActionService) executeContainer(ctx context.Context, id string, 
 }
 
 func (s resourceActionService) executeImage(ctx context.Context, id string, action runtimeapi.Action, options runtimeapi.ActionOptions, result *runtimeapi.ActionResult) error {
+	if s.client.RuntimeType == RuntimePodman {
+		return s.client.executeImagePodmanREST(ctx, id, action, options, result)
+	}
 	switch action {
 	case runtimeapi.ActionRemove:
 		_, err := s.client.cli.ImageRemove(ctx, id, image.RemoveOptions{Force: options.Force})

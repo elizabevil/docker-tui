@@ -93,6 +93,37 @@ func TestRESTClientMapsHTTPError(t *testing.T) {
 	}
 }
 
+func TestRESTClientStreamMapsHTTPError(t *testing.T) {
+	httpClient := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return response(http.StatusNotFound, `{"message":"missing image"}`), nil
+	})}
+	client, err := NewRESTClient(RESTConfig{Endpoint: "http://podman.test", APIVersion: "5.0.0", HTTPClient: httpClient})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = client.StreamGet(context.Background(), "image.save", "/images/export", nil)
+	if !runtimeapi.IsErrorKind(err, runtimeapi.ErrorNotFound) {
+		t.Fatalf("expected not found, got %v", err)
+	}
+}
+
+func TestRESTClientStreamUsesContextCancellation(t *testing.T) {
+	httpClient := &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		<-request.Context().Done()
+		return nil, request.Context().Err()
+	})}
+	client, err := NewRESTClient(RESTConfig{Endpoint: "http://podman.test", APIVersion: "5.0.0", HTTPClient: httpClient})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err = client.StreamPost(ctx, "image.push", "/images/abc/push", nil, nil, "")
+	if !runtimeapi.IsErrorKind(err, runtimeapi.ErrorCanceled) {
+		t.Fatalf("expected canceled, got %v", err)
+	}
+}
+
 func TestRESTClientDeleteUsesCorrectMethodAndPath(t *testing.T) {
 	var receivedMethod string
 	httpClient := &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {

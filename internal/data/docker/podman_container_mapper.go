@@ -6,15 +6,16 @@ import "time"
 // container list response. Both CGO bindings and non-CGO REST normalize into
 // this type before mapping to ContainerSummary.
 type podmanContainerSummary struct {
-	ID      string            `json:"Id"`
-	Names   []string          `json:"Names"`
-	Image   string            `json:"Image"`
-	Status  string            `json:"Status"`
-	State   string            `json:"State"`
-	Created time.Time         `json:"Created"`
-	Ports   []podmanPort      `json:"Ports"`
-	Mounts  []string          `json:"Mounts"`
-	Labels  map[string]string `json:"Labels"`
+	ID       string            `json:"Id"`
+	Names    []string          `json:"Names"`
+	Image    string            `json:"Image"`
+	Status   string            `json:"Status"`
+	State    string            `json:"State"`
+	Created  time.Time         `json:"Created"`
+	Ports    []podmanPort      `json:"Ports"`
+	Mounts   []string          `json:"Mounts"`
+	Networks []string          `json:"Networks"`
+	Labels   map[string]string `json:"Labels"`
 }
 
 // podmanPort is a single port mapping entry in the Podman container list response.
@@ -61,6 +62,8 @@ func mapPodmanContainerSummaries(raw []podmanContainerSummary) []ContainerSummar
 			Created:      container.Created.Unix(),
 			PortBindings: ports,
 			MountCount:   len(container.Mounts),
+			MountNames:   append([]string(nil), container.Mounts...),
+			NetworkNames: append([]string(nil), container.Networks...),
 			Labels:       container.Labels,
 		}
 		summary.ComposeProject = container.Labels["com.docker.compose.project"]

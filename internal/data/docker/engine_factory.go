@@ -29,3 +29,11 @@ func engineForClient(client *Client) runtimeapi.Engine {
 	}
 	return &dockerEngine{Client: client}
 }
+
+func (e *podmanEngine) Containers() runtimeapi.ContainerService {
+	return podmanContainerService{client: e.Client}
+}
+
+func (e *podmanEngine) Events() runtimeapi.EventService {
+	return podmanEventService{client: e.Client}
+}

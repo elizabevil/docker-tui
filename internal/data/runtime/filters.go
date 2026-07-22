@@ -28,3 +28,14 @@ func (f FilterSet) Clone() FilterSet {
 	}
 	return clone
 }
+
+// HasMultipleValues reports whether post-filtering is required to preserve
+// same-field AND semantics.
+func (f FilterSet) HasMultipleValues() bool {
+	for _, values := range f {
+		if len(values) > 1 {
+			return true
+		}
+	}
+	return false
+}
