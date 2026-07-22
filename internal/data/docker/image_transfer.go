@@ -67,6 +67,9 @@ func validateImageTransferRequest(request runtimeapi.ImageTransferRequest) error
 }
 
 func (s imageTransferService) execute(ctx context.Context, request runtimeapi.ImageTransferRequest, output chan<- runtimeapi.ImageTransferEvent) (*runtimeapi.ImageTransferResult, error) {
+	if s.client.RuntimeType == RuntimePodman {
+		return s.executePodman(ctx, request, output)
+	}
 	result := &runtimeapi.ImageTransferResult{Operation: request.Operation, Source: request.Source, Destination: request.Destination, Path: request.Path}
 	switch request.Operation {
 	case runtimeapi.ImageTransferTag:
@@ -232,6 +235,9 @@ func (r *progressReader) Read(data []byte) (int, error) {
 }
 
 func emitImageProgress(ctx context.Context, output chan<- runtimeapi.ImageTransferEvent, progress runtimeapi.ImageTransferProgress) {
+	if output == nil {
+		return
+	}
 	select {
 	case output <- runtimeapi.ImageTransferEvent{Progress: &progress}:
 	case <-ctx.Done():

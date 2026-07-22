@@ -49,7 +49,7 @@ func (c *Client) listContainersPodman(ctx context.Context, options ContainerList
 		raw = append(raw, podmanContainerSummary{
 			ID: container.ID, Names: container.Names, Image: container.Image,
 			Status: container.Status, State: container.State, Created: container.Created,
-			Ports: ports, Mounts: container.Mounts, Labels: container.Labels,
+			Ports: ports, Mounts: container.Mounts, Networks: container.Networks, Labels: container.Labels,
 		})
 	}
 	return mapPodmanContainerSummaries(raw), nil

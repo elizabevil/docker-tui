@@ -22,8 +22,8 @@ func handleContainerBatchActioned(m *state.AppModel, msg state.ContainerBatchAct
 	} else {
 		keyboard.ShowToastNow(m, display)
 	}
-	if m.Connection.Docker != nil {
-		return m, keyboard.FetchContainers(m.Connection.Docker, true)
+	if m.Connection.Engine != nil {
+		return m, keyboard.FetchContainers(m.Connection.Engine, true)
 	}
 	return m, nil
 }
@@ -42,11 +42,11 @@ func handleContainerActioned(m *state.AppModel, msg state.ContainerActioned) (*s
 	} else {
 		keyboard.ShowToastNow(m, display)
 	}
-	if m.Connection.Docker != nil {
+	if m.Connection.Engine != nil {
 		if msg.Action == state.ActionRenamed && msg.Error == nil {
 			m.Resources.Containers.SelectionAnchorID = msg.ID
 		}
-		return m, keyboard.FetchContainers(m.Connection.Docker, true)
+		return m, keyboard.FetchContainers(m.Connection.Engine, true)
 	}
 	return m, nil
 }
@@ -65,8 +65,8 @@ func handleImageActioned(m *state.AppModel, msg state.ImageActioned) (*state.App
 	} else {
 		keyboard.ShowToastNow(m, display)
 	}
-	if m.Connection.Docker != nil {
-		return m, keyboard.FetchImages(m.Connection.Docker)
+	if m.Connection.Engine != nil {
+		return m, keyboard.FetchImages(m.Connection.Engine)
 	}
 	return m, nil
 }
@@ -97,8 +97,8 @@ func handleGenericActioned(m *state.AppModel, msg state.GenericActioned) (*state
 	} else {
 		keyboard.ShowToastNow(m, display)
 	}
-	if m.Connection.Docker != nil {
-		return m, tea.Batch(keyboard.FetchAll(m.Connection.Docker)...)
+	if m.Connection.Engine != nil {
+		return m, tea.Batch(keyboard.FetchAll(m.Connection.Engine)...)
 	}
 	return m, nil
 }
@@ -123,8 +123,8 @@ func handleResourcePruned(m *state.AppModel, msg state.ResourcePruned) (*state.A
 		keyboard.ShowToastNow(m, display)
 	}
 	keyboard.FinishAudit(m, msg.Audit, result, display, audit.Details{Error: errorText(msg.Error)})
-	if m.Connection.Docker != nil {
-		return m, tea.Batch(keyboard.FetchAll(m.Connection.Docker)...)
+	if m.Connection.Engine != nil {
+		return m, tea.Batch(keyboard.FetchAll(m.Connection.Engine)...)
 	}
 	return m, nil
 }

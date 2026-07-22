@@ -144,7 +144,7 @@ type (
 )
 
 type DockerConnected struct {
-	Client *dockerclient.Client
+	Engine runtimeapi.Engine
 	Name   string
 	Error  error
 	Notice string

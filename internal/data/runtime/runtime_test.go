@@ -90,11 +90,11 @@ func TestPruneResultCountsPartialFailures(t *testing.T) {
 	}
 }
 
-func TestImageListOptionsRejectsMultipleValuesForANDSemantics(t *testing.T) {
+func TestImageListOptionsPushesDownFirstANDValue(t *testing.T) {
 	options := ImageListOptions{Filters: FilterSet{ImageFilterLabel: {"app=api", "tier=backend"}}}
-	_, err := options.NativeFilters()
-	if !IsErrorKind(err, ErrorUnsupported) {
-		t.Fatalf("expected unsupported error, got %v", err)
+	filters, err := options.NativeFilters()
+	if err != nil || len(filters[ImageFilterLabel]) != 1 || filters[ImageFilterLabel][0] != "app=api" {
+		t.Fatalf("native filters = %#v, err=%v", filters, err)
 	}
 }
 
@@ -110,19 +110,19 @@ func TestImageListOptionsCopiesNativeFilters(t *testing.T) {
 	}
 }
 
-func TestContainerListOptionsPreservesANDSemantics(t *testing.T) {
+func TestContainerListOptionsPushesDownFirstANDValue(t *testing.T) {
 	options := ContainerListOptions{Filters: FilterSet{ContainerFilterLabel: {"app=api", "tier=backend"}}}
-	_, err := options.NativeFilters()
-	if !IsErrorKind(err, ErrorUnsupported) {
-		t.Fatalf("expected unsupported error, got %v", err)
+	filters, err := options.NativeFilters()
+	if err != nil || len(filters[ContainerFilterLabel]) != 1 || filters[ContainerFilterLabel][0] != "app=api" {
+		t.Fatalf("native filters = %#v, err=%v", filters, err)
 	}
 }
 
-func TestResourceListOptionsPreserveANDSemantics(t *testing.T) {
-	_, volumeErr := (VolumeListOptions{Filters: FilterSet{VolumeFilterLabel: {"a=1", "b=2"}}}).NativeFilters()
-	_, networkErr := (NetworkListOptions{Filters: FilterSet{NetworkFilterName: {"a", "b"}}}).NativeFilters()
-	if !IsErrorKind(volumeErr, ErrorUnsupported) || !IsErrorKind(networkErr, ErrorUnsupported) {
-		t.Fatalf("expected unsupported errors, got volume=%v network=%v", volumeErr, networkErr)
+func TestResourceListOptionsPushDownFirstANDValue(t *testing.T) {
+	volume, volumeErr := (VolumeListOptions{Filters: FilterSet{VolumeFilterLabel: {"a=1", "b=2"}}}).NativeFilters()
+	network, networkErr := (NetworkListOptions{Filters: FilterSet{NetworkFilterName: {"a", "b"}}}).NativeFilters()
+	if volumeErr != nil || networkErr != nil || len(volume[VolumeFilterLabel]) != 1 || len(network[NetworkFilterName]) != 1 {
+		t.Fatalf("native filters volume=%#v network=%#v errors=%v/%v", volume, network, volumeErr, networkErr)
 	}
 }
 

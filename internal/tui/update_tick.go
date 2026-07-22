@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -29,7 +30,7 @@ func handleStatsReceived(m *state.AppModel, msg state.StatsReceived) (*state.App
 }
 
 func handleStatsTick(m *state.AppModel, _ state.StatsTick) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil {
+	if m.Connection.Engine == nil {
 		m.Metrics.StatsActive = false
 		return m, nil
 	}
@@ -45,7 +46,7 @@ func handleStatsTick(m *state.AppModel, _ state.StatsTick) (*state.AppModel, tea
 	items := m.Resources.Containers.SortedItems()
 	cmds := make([]tea.Cmd, 0, len(items))
 	for _, c := range items {
-		cmds = append(cmds, keyboard.FetchStats(m.Connection.Docker.Containers(), c.ID))
+		cmds = append(cmds, keyboard.FetchStats(m.Connection.Engine.Containers(), c.ID))
 	}
 
 	// Schedule next tick
@@ -75,7 +76,7 @@ func handleDockerConnected(m *state.AppModel, msg state.DockerConnected) (*state
 		keyboard.ShowToastWarn(m, fmt.Sprintf("Connection failed (%s): %s", msg.Name, failureMessage))
 		return m, nil
 	}
-	m.Connection.ConnectedTo(msg.Name, msg.Client)
+	m.Connection.ConnectedTo(msg.Name, msg.Engine)
 	m.Navigation.Mode = state.ModeNormal
 	m.Feedback.ClearError()
 	if msg.Name != "" {
@@ -85,7 +86,7 @@ func handleDockerConnected(m *state.AppModel, msg state.DockerConnected) (*state
 		keyboard.ShowToastWarn(m, msg.Notice)
 	}
 	m.Resources.Containers.Loading = true
-	commands := keyboard.FetchAll(m.Connection.Docker)
+	commands := keyboard.FetchAll(m.Connection.Engine)
 	commands = append(commands, startEventStream(m))
 	return m, tea.Batch(commands...)
 }
@@ -113,10 +114,12 @@ func handleRuntimeHealthTick(m *state.AppModel, _ state.RuntimeHealthTick) (*sta
 	cmds := []tea.Cmd{tea.Tick(health.Interval(), func(time.Time) tea.Msg {
 		return state.RuntimeHealthTick{}
 	})}
-	if m.Connection.Docker != nil {
-		client, name := m.Connection.Docker, m.Connection.ConnectionTarget
+	if m.Connection.Engine != nil {
+		engine, name := m.Connection.Engine, m.Connection.ConnectionTarget
 		cmds = append(cmds, func() tea.Msg {
-			return state.RuntimeHealthResult{Name: name, Error: client.PingTimeout(health.Timeout())}
+			ctx, cancel := context.WithTimeout(context.Background(), health.Timeout())
+			defer cancel()
+			return state.RuntimeHealthResult{Name: name, Error: engine.PingContext(ctx)}
 		})
 	}
 	return m, tea.Batch(cmds...)

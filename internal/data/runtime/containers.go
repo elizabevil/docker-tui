@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"io"
 	"time"
 )
 
@@ -31,11 +32,8 @@ func (o ContainerListOptions) NativeFilters() (map[string][]string, error) {
 		if !isContainerFilter(field) {
 			return nil, NewError(ErrorInvalid, "container.list.filter", field, fmt.Errorf("unknown container filter"))
 		}
-		if len(values) > 1 {
-			return nil, UnsupportedError("container.list.filter." + field)
-		}
-		if len(values) == 1 {
-			filters[field] = append([]string(nil), values...)
+		if len(values) > 0 {
+			filters[field] = []string{values[0]}
 		}
 	}
 	return filters, nil
@@ -62,6 +60,8 @@ type ContainerSummary struct {
 	PortBindings   []PortBinding
 	IPs            []string
 	MountCount     int
+	MountNames     []string
+	NetworkNames   []string
 	Labels         map[string]string
 	ComposeProject string
 	ComposeService string
@@ -160,10 +160,18 @@ type ContainerStats struct {
 	NetworkTx     float64
 }
 
+// ContainerLogOptions controls a finite container log read.
+type ContainerLogOptions struct {
+	Since      string
+	Tail       string
+	Timestamps bool
+}
+
 // ContainerService provides container lifecycle and inspection operations.
 type ContainerService interface {
 	List(context.Context, ContainerListOptions) ([]ContainerSummary, error)
 	Inspect(context.Context, string) (*ContainerDetail, error)
 	Top(context.Context, string) (ContainerProcesses, error)
 	Stats(context.Context, string) (ContainerStats, error)
+	Logs(context.Context, string, ContainerLogOptions) (io.ReadCloser, error)
 }

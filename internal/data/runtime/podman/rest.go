@@ -120,6 +120,118 @@ func (c *RESTClient) Get(ctx context.Context, operation, path string, query url.
 	return c.do(ctx, operation, http.MethodGet, versionedPath, nil, output)
 }
 
+// StreamGet opens a versioned Libpod GET stream. The returned body belongs to
+// the caller and remains active until it is closed or ctx is cancelled.
+func (c *RESTClient) StreamGet(ctx context.Context, operation, path string, query url.Values) (io.ReadCloser, error) {
+	return c.stream(ctx, operation, http.MethodGet, path, query, nil, "")
+}
+
+// StreamPost opens a versioned Libpod POST stream with a caller-owned body.
+func (c *RESTClient) StreamPost(ctx context.Context, operation, path string, query url.Values, body io.Reader, contentType string) (io.ReadCloser, error) {
+	return c.stream(ctx, operation, http.MethodPost, path, query, body, contentType)
+}
+
+// UpgradePost opens a versioned Libpod bidirectional stream using HTTP
+// Upgrade. Exec and attach sessions use the returned stream for concurrent
+// reads and writes; the caller owns and must close it.
+func (c *RESTClient) UpgradePost(ctx context.Context, operation, path string, body io.Reader, contentType string) (io.ReadWriteCloser, error) {
+	version, err := c.APIVersion(ctx)
+	if err != nil {
+		return nil, err
+	}
+	requestURL := *c.baseURL
+	requestURL.Path = "/v" + version + "/libpod/" + strings.TrimPrefix(path, "/")
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL.String(), body)
+	if err != nil {
+		return nil, runtimeapi.NewError(runtimeapi.ErrorInvalid, operation, "", err)
+	}
+	request.Header.Set("Connection", "Upgrade")
+	request.Header.Set("Upgrade", "tcp")
+	if contentType != "" {
+		request.Header.Set("Content-Type", contentType)
+	}
+	client := *c.client
+	client.Timeout = 0
+	response, err := client.Do(request)
+	if err != nil {
+		kind := runtimeapi.ClassifyContextError(err)
+		if kind == runtimeapi.ErrorInternal {
+			kind = runtimeapi.ErrorConnection
+		}
+		runtimeErr := runtimeapi.NewError(kind, operation, "", err).(*runtimeapi.Error)
+		runtimeErr.Driver = runtimeapi.Podman
+		return nil, runtimeErr
+	}
+	if response.StatusCode != http.StatusSwitchingProtocols {
+		defer response.Body.Close()
+		return nil, c.decodeResponseError(operation, response)
+	}
+	stream, ok := response.Body.(io.ReadWriteCloser)
+	if !ok {
+		response.Body.Close()
+		return nil, runtimeapi.NewError(runtimeapi.ErrorInternal, operation, "", fmt.Errorf("upgrade response is not bidirectional"))
+	}
+	return stream, nil
+}
+
+func (c *RESTClient) stream(ctx context.Context, operation, method, path string, query url.Values, body io.Reader, contentType string) (io.ReadCloser, error) {
+	version, err := c.APIVersion(ctx)
+	if err != nil {
+		return nil, err
+	}
+	versionedPath := "/v" + version + "/libpod/" + strings.TrimPrefix(path, "/")
+	if len(query) > 0 {
+		versionedPath += "?" + query.Encode()
+	}
+	requestURL := *c.baseURL
+	parsed, err := url.Parse(versionedPath)
+	if err != nil {
+		return nil, runtimeapi.NewError(runtimeapi.ErrorInvalid, operation, "", err)
+	}
+	requestURL.Path, requestURL.RawPath, requestURL.RawQuery = parsed.Path, parsed.RawPath, parsed.RawQuery
+	request, err := http.NewRequestWithContext(ctx, method, requestURL.String(), body)
+	if err != nil {
+		return nil, runtimeapi.NewError(runtimeapi.ErrorInvalid, operation, "", err)
+	}
+	if contentType != "" {
+		request.Header.Set("Content-Type", contentType)
+	}
+	client := *c.client
+	client.Timeout = 0
+	response, err := client.Do(request)
+	if err != nil {
+		kind := runtimeapi.ClassifyContextError(err)
+		if kind == runtimeapi.ErrorInternal {
+			kind = runtimeapi.ErrorConnection
+		}
+		runtimeErr := runtimeapi.NewError(kind, operation, "", err).(*runtimeapi.Error)
+		runtimeErr.Driver = runtimeapi.Podman
+		return nil, runtimeErr
+	}
+	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+		defer response.Body.Close()
+		return nil, c.decodeResponseError(operation, response)
+	}
+	return response.Body, nil
+}
+
+func (c *RESTClient) decodeResponseError(operation string, response *http.Response) error {
+	var payload struct {
+		Message string `json:"message"`
+		Cause   string `json:"cause"`
+	}
+	_ = json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&payload)
+	message := strings.TrimSpace(payload.Message)
+	if message == "" {
+		message = strings.TrimSpace(payload.Cause)
+	}
+	if message == "" {
+		message = response.Status
+	}
+	kind := runtimeapi.ClassifyHTTPStatus(response.StatusCode)
+	return &runtimeapi.Error{Kind: kind, Operation: operation, Driver: runtimeapi.Podman, Retryable: runtimeapi.IsRetryableKind(kind), StatusCode: response.StatusCode, Err: fmt.Errorf("%s", message)}
+}
+
 // Delete performs a versioned Libpod DELETE request.
 func (c *RESTClient) Delete(ctx context.Context, operation, path string) error {
 	return c.DeleteWithQuery(ctx, operation, path, nil)
@@ -190,27 +302,7 @@ func (c *RESTClient) do(ctx context.Context, operation, method, path string, bod
 	}
 	defer response.Body.Close()
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
-		var payload struct {
-			Message string `json:"message"`
-			Cause   string `json:"cause"`
-		}
-		_ = json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&payload)
-		message := strings.TrimSpace(payload.Message)
-		if message == "" {
-			message = strings.TrimSpace(payload.Cause)
-		}
-		if message == "" {
-			message = response.Status
-		}
-		runtimeErr := &runtimeapi.Error{
-			Kind:       runtimeapi.ClassifyHTTPStatus(response.StatusCode),
-			Operation:  operation,
-			Driver:     runtimeapi.Podman,
-			Retryable:  runtimeapi.IsRetryableKind(runtimeapi.ClassifyHTTPStatus(response.StatusCode)),
-			StatusCode: response.StatusCode,
-			Err:        fmt.Errorf("%s", message),
-		}
-		return runtimeErr
+		return c.decodeResponseError(operation, response)
 	}
 	if output == nil || response.StatusCode == http.StatusNoContent {
 		return nil

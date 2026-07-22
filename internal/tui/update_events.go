@@ -17,15 +17,15 @@ const (
 )
 
 func startEventStream(m *state.AppModel) tea.Cmd {
-	if m.Connection.Docker == nil {
+	if m.Connection.Engine == nil {
 		return nil
 	}
 	ctx, generation := m.Events.Begin()
-	if !m.Connection.Docker.Capabilities().Supports(runtimeapi.CapabilityEvents) {
+	if !m.Connection.Engine.Capabilities().Supports(runtimeapi.CapabilityEvents) {
 		m.Events.Degraded = true
 		return eventFallbackCmd(generation)
 	}
-	return subscribeEventsCmd(ctx, generation, m.Connection.Docker.Events())
+	return subscribeEventsCmd(ctx, generation, m.Connection.Engine.Events())
 }
 
 func subscribeEventsCmd(ctx context.Context, generation uint64, service runtimeapi.EventService) tea.Cmd {
@@ -75,22 +75,22 @@ func handleRuntimeEvent(m *state.AppModel, msg state.RuntimeEventReceived) (*sta
 }
 
 func handleEventFlush(m *state.AppModel, msg state.EventFlush) (*state.AppModel, tea.Cmd) {
-	if !m.Events.Current(msg.Generation) || m.Connection.Docker == nil {
+	if !m.Events.Current(msg.Generation) || m.Connection.Engine == nil {
 		return m, nil
 	}
 	dirty := m.Events.TakeDirty(msg.Token)
 	commands := make([]tea.Cmd, 0, len(dirty))
 	if dirty["container"] {
-		commands = append(commands, keyboard.FetchContainers(m.Connection.Docker, true))
+		commands = append(commands, keyboard.FetchContainers(m.Connection.Engine, true))
 	}
 	if dirty["image"] {
-		commands = append(commands, keyboard.FetchImages(m.Connection.Docker))
+		commands = append(commands, keyboard.FetchImages(m.Connection.Engine))
 	}
 	if dirty["volume"] {
-		commands = append(commands, keyboard.FetchVolumes(m.Connection.Docker))
+		commands = append(commands, keyboard.FetchVolumes(m.Connection.Engine))
 	}
 	if dirty["network"] {
-		commands = append(commands, keyboard.FetchNetworks(m.Connection.Docker))
+		commands = append(commands, keyboard.FetchNetworks(m.Connection.Engine))
 	}
 	return m, tea.Batch(commands...)
 }
@@ -112,10 +112,10 @@ func scheduleEventReconnect(m *state.AppModel, generation uint64, _ error) (*sta
 }
 
 func handleEventReconnect(m *state.AppModel, msg state.EventReconnect) (*state.AppModel, tea.Cmd) {
-	if !m.Events.Current(msg.Generation) || m.Connection.Docker == nil {
+	if !m.Events.Current(msg.Generation) || m.Connection.Engine == nil {
 		return m, nil
 	}
-	return m, subscribeEventsCmd(m.Events.Context, msg.Generation, m.Connection.Docker.Events())
+	return m, subscribeEventsCmd(m.Events.Context, msg.Generation, m.Connection.Engine.Events())
 }
 
 func eventFallbackCmd(generation uint64) tea.Cmd {
@@ -125,10 +125,10 @@ func eventFallbackCmd(generation uint64) tea.Cmd {
 }
 
 func handleEventFallbackTick(m *state.AppModel, msg state.EventFallbackTick) (*state.AppModel, tea.Cmd) {
-	if !m.Events.Current(msg.Generation) || !m.Events.Degraded || m.Connection.Docker == nil {
+	if !m.Events.Current(msg.Generation) || !m.Events.Degraded || m.Connection.Engine == nil {
 		return m, nil
 	}
-	commands := keyboard.FetchAll(m.Connection.Docker)
+	commands := keyboard.FetchAll(m.Connection.Engine)
 	commands = append(commands, eventFallbackCmd(msg.Generation))
 	return m, tea.Batch(commands...)
 }

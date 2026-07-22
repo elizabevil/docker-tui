@@ -13,7 +13,7 @@ func TestConnectionStateOwnsConnectionTransitions(t *testing.T) {
 	var connection ConnectionState
 	connection.Begin()
 	connection.ConnectedTo("podman", client)
-	if connection.Connecting || !connection.Connected || connection.Docker != client {
+	if connection.Connecting || !connection.Connected || connection.Engine != client {
 		t.Fatalf("connected state = %#v", connection)
 	}
 	if connection.RuntimeType != "podman" || connection.EngineVersion != "5.0" {
@@ -21,7 +21,7 @@ func TestConnectionStateOwnsConnectionTransitions(t *testing.T) {
 	}
 
 	connection.Failed("docker", errors.New("socket unavailable"))
-	if connection.Connected || connection.Docker != nil || connection.ConnectionTarget != "docker" {
+	if connection.Connected || connection.Engine != nil || connection.ConnectionTarget != "docker" {
 		t.Fatalf("failed state = %#v", connection)
 	}
 }
@@ -30,7 +30,7 @@ func TestConnectionStateKeepsActiveClientOnSelectionFailure(t *testing.T) {
 	client := &dockerclient.Client{}
 	connection := NewConnectionState(client)
 	connection.SelectionFailed("remote", x509.UnknownAuthorityError{})
-	if connection.Docker != client || !connection.Connected {
+	if connection.Engine != client || !connection.Connected {
 		t.Fatal("selection failure discarded the active connection")
 	}
 	if connection.RuntimeSelectorError["remote"].Kind != dockerclient.ConnectionErrorCA {

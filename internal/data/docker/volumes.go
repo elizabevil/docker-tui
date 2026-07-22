@@ -9,11 +9,6 @@ import (
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
-// ListVolumes returns all Docker volumes visible to the client.
-func (c *Client) ListVolumes() ([]runtimeapi.Volume, error) {
-	return c.ListVolumesContext(c.ctx, runtimeapi.VolumeListOptions{})
-}
-
 // ListVolumesContext returns all volumes visible to the client with a caller-provided context.
 func (c *Client) ListVolumesContext(ctx context.Context, options runtimeapi.VolumeListOptions) ([]runtimeapi.Volume, error) {
 	if c.RuntimeType == RuntimePodman {
@@ -43,11 +38,6 @@ func (c *Client) ListVolumesContext(ctx context.Context, options runtimeapi.Volu
 	return items, nil
 }
 
-// InspectVolume returns structured volume detail from the runtime.
-func (c *Client) InspectVolume(name string) (*runtimeapi.VolumeDetail, error) {
-	return c.InspectVolumeContext(c.ctx, name)
-}
-
 // InspectVolumeContext returns detailed volume info with a caller-provided context.
 func (c *Client) InspectVolumeContext(ctx context.Context, name string) (*runtimeapi.VolumeDetail, error) {
 	if c.RuntimeType == RuntimePodman {
@@ -62,14 +52,6 @@ func (c *Client) InspectVolumeContext(ctx context.Context, name string) (*runtim
 		return nil, fmt.Errorf("parse volume inspect %s: %w", name, err)
 	}
 	return &detail, nil
-}
-
-// RemoveVolume removes a Docker volume by name.
-func (c *Client) RemoveVolume(id string, force bool) error {
-	if c.RuntimeType == RuntimePodman {
-		return c.removeVolumePodman(c.ctx, id, force)
-	}
-	return c.cli.VolumeRemove(c.ctx, id, force)
 }
 
 // CreateVolumeContext creates a new volume with a caller-provided context.

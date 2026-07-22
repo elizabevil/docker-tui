@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
-	"github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
@@ -14,23 +13,23 @@ import (
 )
 
 // volumeRemoveCmd returns a tea.Cmd that removes a volume.
-func volumeRemoveCmd(client *docker.Client, name string, force bool) tea.Cmd {
+func volumeRemoveCmd(client runtimeapi.Engine, name string, force bool) tea.Cmd {
 	return func() tea.Msg {
-		_, err := client.Actions().Execute(context.Background(), runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume, ID: name}, runtimeapi.ActionRemove, runtimeapi.ActionOptions{Force: force})
+		err := client.Volumes().Remove(context.Background(), name, force)
 		return state.GenericActioned{Action: state.ActionRemoved, ID: name, Success: err == nil, Error: err}
 	}
 }
 
 // doVolumeInspect opens the detail view for the selected volume.
 func doVolumeInspect(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil || m.Navigation.ActivePanel != state.PanelVolumes {
+	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelVolumes {
 		return m, nil
 	}
 	vol := m.Resources.Volumes.Selected()
 	if vol == nil {
 		return m, nil
 	}
-	detail, err := m.Connection.Docker.InspectVolume(vol.Name)
+	detail, err := m.Connection.Engine.Volumes().Inspect(context.Background(), vol.Name)
 	if err != nil {
 		m.Feedback.RecordError(err.Error())
 		return m, nil
@@ -42,7 +41,7 @@ func doVolumeInspect(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 // doVolumeRemove prompts for confirmation and removes the selected volume.
 func doVolumeRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil || m.Navigation.ActivePanel != state.PanelVolumes {
+	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelVolumes {
 		return m, nil
 	}
 	vol := m.Resources.Volumes.Selected()

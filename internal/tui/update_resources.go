@@ -28,7 +28,7 @@ func handleContainersLoaded(m *state.AppModel, msg state.ContainersLoaded) (*sta
 		}
 	}
 	// Start auto-stats polling on first container load
-	if m.Connection.Docker != nil && !m.Metrics.StatsActive {
+	if m.Connection.Engine != nil && !m.Metrics.StatsActive {
 		m.Metrics.StatsActive = true
 		return m, func() tea.Msg { return state.StatsTick{} }
 	}

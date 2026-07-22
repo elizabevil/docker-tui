@@ -16,25 +16,25 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-func ImagePullCmd(client *docker.Client, ref string) tea.Cmd {
+func ImagePullCmd(client runtimeapi.Engine, ref string) tea.Cmd {
 	return func() tea.Msg {
 		_, err := client.Actions().Execute(context.Background(), runtimeapi.ResourceRef{Type: runtimeapi.ResourceImage, ID: ref}, runtimeapi.ActionPull, runtimeapi.ActionOptions{})
 		return state.ImageActioned{Action: state.ActionPulled, Ref: ref, Success: err == nil, Error: err}
 	}
 }
 
-func ImagePullCmdWithAudit(client *docker.Client, ref string, trace audit.Trace) tea.Cmd {
+func ImagePullCmdWithAudit(client runtimeapi.Engine, ref string, trace audit.Trace) tea.Cmd {
 	return withImageAudit(ImagePullCmd(client, ref), trace)
 }
 
-func imagePruneCmd(client *docker.Client) tea.Cmd {
+func imagePruneCmd(client runtimeapi.Engine) tea.Cmd {
 	return func() tea.Msg {
 		result, err := client.Actions().Execute(context.Background(), runtimeapi.ResourceRef{Type: runtimeapi.ResourceImage}, runtimeapi.ActionPrune, runtimeapi.ActionOptions{})
 		return state.ImageActioned{Action: state.ActionPruned, Ref: fmt.Sprintf("%d bytes reclaimed", result.SpaceReclaimed), Success: err == nil, Error: err}
 	}
 }
 
-func imageRemoveCmd(client *docker.Client, id string, force bool) tea.Cmd {
+func imageRemoveCmd(client runtimeapi.Engine, id string, force bool) tea.Cmd {
 	return func() tea.Msg {
 		_, err := client.Actions().Execute(context.Background(), runtimeapi.ResourceRef{Type: runtimeapi.ResourceImage, ID: id}, runtimeapi.ActionRemove, runtimeapi.ActionOptions{Force: force})
 		return state.ImageActioned{Action: state.ActionRemoved, Ref: id, Success: err == nil, Error: err}
@@ -42,7 +42,7 @@ func imageRemoveCmd(client *docker.Client, id string, force bool) tea.Cmd {
 }
 
 func doImagePull(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil {
+	if m.Connection.Engine == nil {
 		return m, nil
 	}
 	m.Dialog.Open(state.DialogSpec{Kind: state.DialogImagePull})
@@ -71,15 +71,15 @@ func handleImagePullInput(key string, m *state.AppModel) *state.AppModel {
 }
 
 func doImagePrune(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil {
+	if m.Connection.Engine == nil {
 		return m, nil
 	}
 	trace := beginAudit(m, "resource.image.prune", audit.ImageTarget{ID: "unused", Name: "unused images"}, "Pruning unused images")
-	return m, withImageAudit(imagePruneCmd(m.Connection.Docker), trace)
+	return m, withImageAudit(imagePruneCmd(m.Connection.Engine), trace)
 }
 
 func doImageRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil || m.Navigation.ActivePanel != state.PanelImages {
+	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelImages {
 		return m, nil
 	}
 	img := m.Resources.Images.Selected()
@@ -96,7 +96,7 @@ func doImageRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 }
 
 func doImageDetail(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil {
+	if m.Connection.Engine == nil {
 		return m, nil
 	}
 	img := m.Resources.Images.Selected()
@@ -110,10 +110,10 @@ func doImageDetail(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	m.Detail.OpenImage(img.ID, "Image Detail: "+titleID, docker.NewImageDetailData(*img))
 	m.Navigation.PrevPanel = m.Navigation.ActivePanel
 	m.Navigation.Mode = state.ModeDetail
-	return m, inspectImageCmd(m.Connection.Docker, *img)
+	return m, inspectImageCmd(m.Connection.Engine, *img)
 }
 
-func inspectImageCmd(client *docker.Client, image docker.ImageSummary) tea.Cmd {
+func inspectImageCmd(client runtimeapi.Engine, image docker.ImageSummary) tea.Cmd {
 	return func() tea.Msg {
 		detail, err := client.Images().Inspect(context.Background(), image)
 		return state.ImageDetailLoaded{
@@ -200,11 +200,11 @@ func doImageCollapse(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 func doImageDebug(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	img := m.Resources.Images.Selected()
-	if img == nil || m.Connection.Docker == nil {
+	if img == nil || m.Connection.Engine == nil {
 		return m, nil
 	}
 	engine := "docker"
-	if m.Connection.Docker.RuntimeType == "podman" {
+	if m.Connection.Engine.Identity().Type == runtimeapi.Podman {
 		engine = "podman"
 	}
 	ref := img.ID[:20]

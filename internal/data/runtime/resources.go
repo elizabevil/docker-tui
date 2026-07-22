@@ -72,7 +72,7 @@ func (r PruneResult) Counts() (succeeded, failed int) {
 }
 
 // NativeFilters converts the volume filter set to the native Docker/Podman
-// representation. Multiple values for one field are rejected.
+// representation. Adapters post-filter all values using AND semantics.
 func (o VolumeListOptions) NativeFilters() (map[string][]string, error) {
 	return nativeSingleValueFilters("volume.list.filter", o.Filters, map[string]struct{}{
 		VolumeFilterName: {}, VolumeFilterDriver: {}, VolumeFilterLabel: {}, VolumeFilterDangling: {},
@@ -80,7 +80,7 @@ func (o VolumeListOptions) NativeFilters() (map[string][]string, error) {
 }
 
 // NativeFilters converts the network filter set to the native Docker/Podman
-// representation. Multiple values for one field are rejected.
+// representation. Adapters post-filter all values using AND semantics.
 func (o NetworkListOptions) NativeFilters() (map[string][]string, error) {
 	return nativeSingleValueFilters("network.list.filter", o.Filters, map[string]struct{}{
 		NetworkFilterID: {}, NetworkFilterName: {}, NetworkFilterDriver: {},
@@ -94,11 +94,8 @@ func nativeSingleValueFilters(operation string, input FilterSet, allowed map[str
 		if _, ok := allowed[field]; !ok {
 			return nil, NewError(ErrorInvalid, operation, field, fmt.Errorf("unknown filter"))
 		}
-		if len(values) > 1 {
-			return nil, UnsupportedError(operation + "." + field)
-		}
-		if len(values) == 1 {
-			filters[field] = append([]string(nil), values...)
+		if len(values) > 0 {
+			filters[field] = []string{values[0]}
 		}
 	}
 	return filters, nil
@@ -130,13 +127,17 @@ type Network struct {
 // VolumeService provides lifecycle operations for volumes.
 type VolumeService interface {
 	List(context.Context, VolumeListOptions) ([]Volume, error)
+	Inspect(context.Context, string) (*VolumeDetail, error)
 	Create(context.Context, VolumeCreateOptions) (*Volume, error)
+	Remove(context.Context, string, bool) error
 	Prune(context.Context, PruneOptions) (PruneResult, error)
 }
 
 // NetworkService provides lifecycle operations for networks.
 type NetworkService interface {
 	List(context.Context, NetworkListOptions) ([]Network, error)
+	Inspect(context.Context, string) (*NetworkDetail, error)
 	Create(context.Context, NetworkCreateOptions) (*Network, error)
+	Remove(context.Context, string) error
 	Prune(context.Context, PruneOptions) (PruneResult, error)
 }

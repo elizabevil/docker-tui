@@ -45,7 +45,7 @@ func ToLogView(m *state.AppModel, containerID string) tea.Cmd {
 	m.Navigation.Mode = state.ModeLogView
 	m.Log.Open(containerID)
 	cfg := m.Dependencies.Config.Logs
-	return FetchLogBatch(m.Connection.Docker, containerID, cfg.Since, cfg.Tail, cfg.Timestamps)
+	return FetchLogBatch(m.Connection.Engine, containerID, cfg.Since, cfg.Tail, cfg.Timestamps)
 }
 
 // BackFromLogView closes the log viewer.

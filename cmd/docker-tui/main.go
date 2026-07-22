@@ -152,7 +152,7 @@ func connectDocker(pool *dockerclient.ConnectionPool, name string) tea.Cmd {
 				if candidate != name {
 					notice = fmt.Sprintf("%s unavailable; connected to %s", name, candidate)
 				}
-				return state.DockerConnected{Client: pool.ActiveClient(), Name: candidate, Notice: notice}
+				return state.DockerConnected{Engine: pool.ActiveEngine(), Name: candidate, Notice: notice}
 			} else {
 				errors = append(errors, fmt.Sprintf("%s: %v", candidate, err))
 			}

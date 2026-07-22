@@ -14,7 +14,7 @@ const (
 // ApplyHealthResult updates health counters and returns only state transitions;
 // presentation decisions remain in the TUI update layer.
 func (s *ConnectionState) ApplyHealthResult(name string, err error, threshold int) HealthTransition {
-	if s == nil || name != s.ConnectionTarget || s.Docker == nil {
+	if s == nil || name != s.ConnectionTarget || s.Engine == nil {
 		return HealthNoChange
 	}
 	if threshold <= 0 {

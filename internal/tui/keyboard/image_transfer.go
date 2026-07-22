@@ -16,7 +16,7 @@ import (
 )
 
 func openImageWorkflow(m *state.AppModel, operation runtimeapi.ImageTransferOperation) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil || m.Navigation.ActivePanel != state.PanelImages {
+	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelImages {
 		return m, nil
 	}
 	selected := m.Resources.Images.Selected()
@@ -90,7 +90,7 @@ func beginImageTransfer(m *state.AppModel, request runtimeapi.ImageTransferReque
 	ctx, generation := m.ImageTransfer.Begin(request, trace)
 	m.Dialog.Open(state.DialogSpec{Kind: state.DialogImageTransfer, Title: i18n.T("image.transfer.title", imageTransferOperationLabel(request.Operation)), Body: imageTransferTarget(request)})
 	m.Navigation.Mode = state.ModeImageTransfer
-	return m, startImageTransferCmd(ctx, generation, m.Connection.Docker.ImageTransfers(), request)
+	return m, startImageTransferCmd(ctx, generation, m.Connection.Engine.ImageTransfers(), request)
 }
 
 func startImageTransferCmd(ctx context.Context, generation uint64, service runtimeapi.ImageTransferService, request runtimeapi.ImageTransferRequest) tea.Cmd {

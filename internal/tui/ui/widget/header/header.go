@@ -129,8 +129,8 @@ func Render(app *state.AppModel, usableW int) string {
 		eng = "no runtime"
 	}
 	hostStr := ""
-	if app.Connection.Docker != nil {
-		hostStr = app.Connection.Docker.Host
+	if app.Connection.Engine != nil {
+		hostStr = app.Connection.Engine.Identity().Endpoint
 	}
 	cpuC := cpuLoadColor(app.Metrics.HostCPU)
 	lb := component.GetStyle("headerLabel")

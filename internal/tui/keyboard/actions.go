@@ -27,9 +27,9 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 		return m, ToFilter(m)
 
 	case keys.ActionRefresh:
-		if m.Connection.Docker != nil {
+		if m.Connection.Engine != nil {
 			m.Resources.Containers.Loading = true
-			cmds = FetchAll(m.Connection.Docker)
+			cmds = FetchAll(m.Connection.Engine)
 		}
 		return m, tea.Batch(cmds...)
 
@@ -56,11 +56,11 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 	case keys.ActionContainerStart:
 		return doContainerAction(m, docker.ContainerActionStart, containerStartCmd)
 	case keys.ActionContainerStop:
-		return doContainerAction(m, docker.ContainerActionStop, func(c *docker.Client, id string) tea.Cmd { return containerStopCmd(c, id) })
+		return doContainerAction(m, docker.ContainerActionStop, func(c runtimeapi.Engine, id string) tea.Cmd { return containerStopCmd(c, id) })
 	case keys.ActionContainerRestart:
-		return doContainerAction(m, docker.ContainerActionRestart, func(c *docker.Client, id string) tea.Cmd { return containerRestartCmd(c, id) })
+		return doContainerAction(m, docker.ContainerActionRestart, func(c runtimeapi.Engine, id string) tea.Cmd { return containerRestartCmd(c, id) })
 	case keys.ActionContainerKill:
-		return doContainerAction(m, docker.ContainerActionKill, func(c *docker.Client, id string) tea.Cmd { return containerKillCmd(c, id) })
+		return doContainerAction(m, docker.ContainerActionKill, func(c runtimeapi.Engine, id string) tea.Cmd { return containerKillCmd(c, id) })
 	case keys.ActionContainerRemove, keys.ActionDelete:
 		return doDeleteAction(m)
 
