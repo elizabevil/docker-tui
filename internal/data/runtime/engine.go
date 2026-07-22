@@ -11,5 +11,6 @@ type Engine interface {
 	Containers() ContainerService
 	Volumes() VolumeService
 	Networks() NetworkService
+	Actions() ResourceActionService
 	Close() error
 }

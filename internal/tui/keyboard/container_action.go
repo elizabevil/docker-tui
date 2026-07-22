@@ -11,6 +11,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
@@ -173,10 +174,11 @@ func doBatchPauseAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		result := state.ContainerBatchActioned{Action: "pause", Skipped: skipped, Audit: trace}
 		var failures []error
 		for _, item := range targets {
-			err := client.ContainerPause(item.id)
+			action := runtimeapi.ActionPause
 			if item.unpause {
-				err = client.ContainerUnpause(item.id)
+				action = runtimeapi.ActionUnpause
 			}
+			_, err := client.Actions().Execute(context.Background(), containerRef(item.id), action, runtimeapi.ActionOptions{})
 			if err != nil {
 				result.Failed++
 				failures = append(failures, err)

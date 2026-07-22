@@ -1,11 +1,13 @@
 package keyboard
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -14,7 +16,7 @@ import (
 // networkRemoveCmd returns a tea.Cmd that removes a network.
 func networkRemoveCmd(client *docker.Client, id string) tea.Cmd {
 	return func() tea.Msg {
-		err := client.RemoveNetwork(id)
+		_, err := client.Actions().Execute(context.Background(), runtimeapi.ResourceRef{Type: runtimeapi.ResourceNetwork, ID: id}, runtimeapi.ActionRemove, runtimeapi.ActionOptions{})
 		return state.GenericActioned{Action: state.ActionRemoved, ID: id, Success: err == nil, Error: err}
 	}
 }

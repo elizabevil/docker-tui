@@ -1,6 +1,7 @@
 package keyboard
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/docker"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
@@ -17,7 +19,7 @@ import (
 
 func ImagePullCmd(client *docker.Client, ref string) tea.Cmd {
 	return func() tea.Msg {
-		err := client.PullImage(ref)
+		_, err := client.Actions().Execute(context.Background(), runtimeapi.ResourceRef{Type: runtimeapi.ResourceImage, ID: ref}, runtimeapi.ActionPull, runtimeapi.ActionOptions{})
 		return state.ImageActioned{Action: state.ActionPulled, Ref: ref, Success: err == nil, Error: err}
 	}
 }
@@ -28,14 +30,14 @@ func ImagePullCmdWithAudit(client *docker.Client, ref string, trace audit.Trace)
 
 func imagePruneCmd(client *docker.Client) tea.Cmd {
 	return func() tea.Msg {
-		reclaimed, err := client.PruneImages()
-		return state.ImageActioned{Action: state.ActionPruned, Ref: fmt.Sprintf("%d bytes reclaimed", reclaimed), Success: err == nil, Error: err}
+		result, err := client.Actions().Execute(context.Background(), runtimeapi.ResourceRef{Type: runtimeapi.ResourceImage}, runtimeapi.ActionPrune, runtimeapi.ActionOptions{})
+		return state.ImageActioned{Action: state.ActionPruned, Ref: fmt.Sprintf("%d bytes reclaimed", result.SpaceReclaimed), Success: err == nil, Error: err}
 	}
 }
 
 func imageRemoveCmd(client *docker.Client, id string, force bool) tea.Cmd {
 	return func() tea.Msg {
-		err := client.RemoveImage(id, force)
+		_, err := client.Actions().Execute(context.Background(), runtimeapi.ResourceRef{Type: runtimeapi.ResourceImage, ID: id}, runtimeapi.ActionRemove, runtimeapi.ActionOptions{Force: force})
 		return state.ImageActioned{Action: state.ActionRemoved, Ref: id, Success: err == nil, Error: err}
 	}
 }

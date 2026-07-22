@@ -1,11 +1,13 @@
 package keyboard
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -14,7 +16,7 @@ import (
 // volumeRemoveCmd returns a tea.Cmd that removes a volume.
 func volumeRemoveCmd(client *docker.Client, name string, force bool) tea.Cmd {
 	return func() tea.Msg {
-		err := client.RemoveVolume(name, force)
+		_, err := client.Actions().Execute(context.Background(), runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume, ID: name}, runtimeapi.ActionRemove, runtimeapi.ActionOptions{Force: force})
 		return state.GenericActioned{Action: state.ActionRemoved, ID: name, Success: err == nil, Error: err}
 	}
 }

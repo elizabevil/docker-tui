@@ -13,28 +13,28 @@ import (
 
 func containerStartCmd(client *docker.Client, id string) tea.Cmd {
 	return func() tea.Msg {
-		err := client.ContainerStart(id)
+		_, err := client.Actions().Execute(context.Background(), containerRef(id), runtimeapi.ActionStart, runtimeapi.ActionOptions{})
 		return state.ContainerActioned{Action: state.ActionStarted, ID: id, Success: err == nil, Error: err}
 	}
 }
 
 func containerStopCmd(client *docker.Client, id string) tea.Cmd {
 	return func() tea.Msg {
-		err := client.ContainerStop(id)
+		_, err := client.Actions().Execute(context.Background(), containerRef(id), runtimeapi.ActionStop, runtimeapi.ActionOptions{})
 		return state.ContainerActioned{Action: state.ActionStopped, ID: id, Success: err == nil, Error: err}
 	}
 }
 
 func containerRestartCmd(client *docker.Client, id string) tea.Cmd {
 	return func() tea.Msg {
-		err := client.ContainerRestart(id)
+		_, err := client.Actions().Execute(context.Background(), containerRef(id), runtimeapi.ActionRestart, runtimeapi.ActionOptions{})
 		return state.ContainerActioned{Action: state.ActionRestarted, ID: id, Success: err == nil, Error: err}
 	}
 }
 
 func containerKillCmd(client *docker.Client, id string) tea.Cmd {
 	return func() tea.Msg {
-		err := client.ContainerKill(id)
+		_, err := client.Actions().Execute(context.Background(), containerRef(id), runtimeapi.ActionKill, runtimeapi.ActionOptions{})
 		return state.ContainerActioned{Action: state.ActionKilled, ID: id, Success: err == nil, Error: err}
 	}
 }
@@ -42,10 +42,10 @@ func containerKillCmd(client *docker.Client, id string) tea.Cmd {
 func containerPauseCmd(client *docker.Client, id string, unpause bool) tea.Cmd {
 	return func() tea.Msg {
 		action := state.ActionPaused
-		err := client.ContainerPause(id)
+		_, err := client.Actions().Execute(context.Background(), containerRef(id), runtimeapi.ActionPause, runtimeapi.ActionOptions{})
 		if unpause {
 			action = state.ActionUnpaused
-			err = client.ContainerUnpause(id)
+			_, err = client.Actions().Execute(context.Background(), containerRef(id), runtimeapi.ActionUnpause, runtimeapi.ActionOptions{})
 		}
 		return state.ContainerActioned{Action: action, ID: id, Success: err == nil, Error: err}
 	}
@@ -53,7 +53,7 @@ func containerPauseCmd(client *docker.Client, id string, unpause bool) tea.Cmd {
 
 func containerRenameCmd(client *docker.Client, id, name string) tea.Cmd {
 	return func() tea.Msg {
-		err := client.ContainerRename(id, name)
+		_, err := client.Actions().Execute(context.Background(), containerRef(id), runtimeapi.ActionRename, runtimeapi.ActionOptions{Name: name})
 		return state.ContainerActioned{Action: state.ActionRenamed, ID: id, Success: err == nil, Error: err}
 	}
 }
@@ -67,9 +67,13 @@ func fetchContainerProcesses(service runtimeapi.ContainerService, id string) tea
 
 func containerRemoveCmd(client *docker.Client, id string, force bool) tea.Cmd {
 	return func() tea.Msg {
-		err := client.ContainerRemove(id, force)
+		_, err := client.Actions().Execute(context.Background(), containerRef(id), runtimeapi.ActionRemove, runtimeapi.ActionOptions{Force: force})
 		return state.ContainerActioned{Action: state.ActionRemoved, ID: id, Success: err == nil, Error: err}
 	}
+}
+
+func containerRef(id string) runtimeapi.ResourceRef {
+	return runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}
 }
 
 func FetchLogBatch(client *docker.Client, containerID, since, tail string, ts bool) tea.Cmd {
