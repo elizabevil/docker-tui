@@ -62,6 +62,9 @@ func TestContainerOperationsUseDockerCompatibleContract(t *testing.T) {
 			if err != nil || len(containers) != 1 || len(containers[0].PortBindings) != 1 || containers[0].PortBindings[0].HostIP != "::" {
 				t.Fatalf("containers = %#v, %v", containers, err)
 			}
+			if containers[0].ID != "1234567890123456" {
+				t.Fatalf("container ID = %q, want full runtime ID", containers[0].ID)
+			}
 			if len(requests) != 5 {
 				t.Fatalf("requests = %#v", requests)
 			}

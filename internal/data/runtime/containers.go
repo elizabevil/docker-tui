@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"time"
 )
 
 const (
@@ -69,6 +70,87 @@ type PortBinding struct {
 	HostPort      uint16
 }
 
+// ContainerDetail is the runtime-neutral inspect representation consumed by
+// the UI. Adapters own conversion from their native inspect responses.
+type ContainerDetail struct {
+	ID           string
+	Name         string
+	Image        string
+	Created      string
+	Platform     string
+	State        ContainerState
+	RestartCount int
+	Resources    ContainerResources
+	Networks     map[string]ContainerNetwork
+	Ports        map[string][]ContainerPortBinding
+	Mounts       []ContainerMount
+	Config       ContainerConfig
+}
+
+type ContainerState struct {
+	Status     string
+	PID        int
+	StartedAt  string
+	FinishedAt string
+}
+
+type ContainerResources struct {
+	CPUShares         int64
+	Memory            int64
+	NanoCPUs          int64
+	NetworkMode       string
+	RestartPolicy     string
+	MaximumRetryCount int
+}
+
+type ContainerNetwork struct {
+	IPAddress  string
+	Gateway    string
+	MACAddress string
+}
+
+type ContainerPortBinding struct {
+	HostIP   string
+	HostPort string
+}
+
+type ContainerMount struct {
+	Source      string
+	Destination string
+	Mode        string
+	ReadWrite   bool
+}
+
+type ContainerConfig struct {
+	WorkingDir   string
+	User         string
+	Entrypoint   []string
+	Command      []string
+	Environment  []string
+	ExposedPorts []string
+	Labels       map[string]string
+}
+
+type ContainerProcesses struct {
+	Titles    []string
+	Processes [][]string
+}
+
+// ContainerStats is one calculated snapshot, not a runtime-specific JSON
+// stream. Values use bytes and percentages consistently across drivers.
+type ContainerStats struct {
+	ReadAt        time.Time
+	CPUPercent    float64
+	MemoryUsage   float64
+	MemoryLimit   float64
+	MemoryPercent float64
+	NetworkRx     float64
+	NetworkTx     float64
+}
+
 type ContainerService interface {
 	List(context.Context, ContainerListOptions) ([]ContainerSummary, error)
+	Inspect(context.Context, string) (*ContainerDetail, error)
+	Top(context.Context, string) (ContainerProcesses, error)
+	Stats(context.Context, string) (ContainerStats, error)
 }

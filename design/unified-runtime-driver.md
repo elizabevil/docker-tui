@@ -12,18 +12,17 @@
 |---|---|---|---|
 | Phase 0 | `done` | CGO/非 CGO 风险探针、双构建测试矩阵、共享 DTO/mapper 策略 | 无 |
 | Phase 1 | `in_progress` | runtime identity/error/capability/Engine 契约；ConnectionPool 可暴露 Engine；TLS、API override | 独立 Docker adapter/factory；动态版本 capability；连接池停止暴露旧 Client |
-| Phase 2 | `in_progress` | Container/Image/Volume/Network list；筛选 options 与单值下推；Volume/Network inspect；Podman 双 transport mapper；四类资源按 TLS/API override 统一选择 REST | Container inspect、Image 完整领域 service、Stats、Top；完整 ID；同字段多值 AND 的等价实现 |
+| Phase 2 | `in_progress` | Container/Image/Volume/Network list；Container inspect/Top/Stats 领域 DTO 与 service；筛选 options 与单值下推；Volume/Network inspect；Podman 双 transport mapper；四类资源按 TLS/API override 统一选择 REST；容器完整 ID | Image 完整领域 service；同字段多值 AND 的等价实现 |
 | Phase 3 | `in_progress` | Volume/Network remove 已接入 Podman native transport | 容器与镜像动作迁移；统一 OperationResult；Volume/Network create 和 prune（TASK-009） |
 | Phase 4 | `todo` | REST 基础错误和 context 分类 | Logs、Events、Stats stream、Exec/attach/resize；取消与断线 contract；删除 `Raw()` |
 | Phase 5 | `todo` | 部分 TUI detail 已改用 runtime DTO | 删除旧 facade/build-tag 业务重复；清理上层 runtime 分支和 SDK import；完整文档同步 |
 
 ### 下一执行队列
 
-1. 迁移 Container inspect、Top、Stats 为 runtime DTO/service，删除 UI 对原始 Docker JSON 的依赖。
-2. 建立 Image 完整领域 service，迁移 inspect 等只读操作。
-3. 建立统一 action options/results/error mapper，迁移 container/image/volume/network 的现有操作。
-4. 迁移 Exec 和 Events，删除 `Client.Raw()` 及 `internal/tui` 中 Docker SDK import。
-5. 完成 `TASK-009` 的 Volume/Network create、prune 和部分失败反馈。
+1. 建立统一 action options/results/error mapper，迁移 container/image/volume/network 的现有操作。
+2. 迁移 Exec 和 Events，删除 `Client.Raw()` 及 `internal/tui` 中 Docker SDK import。
+3. 完成 `TASK-009` 的 Volume/Network create、prune 和部分失败反馈。
+4. 建立 Image 完整领域 service，迁移 inspect 等只读操作。
 
 ### 已确认的剩余缺口
 

@@ -64,7 +64,7 @@ func (c *Client) listContainersDocker(ctx context.Context, opts ContainerListOpt
 		}
 
 		summary := ContainerSummary{
-			ID:           ctr.ID[:12],
+			ID:           ctr.ID,
 			Name:         name,
 			Image:        ctr.Image,
 			Status:       ctr.Status,
@@ -123,13 +123,15 @@ func (c *Client) ContainerRename(id, name string) error {
 	return c.cli.ContainerRename(c.ctx, id, name)
 }
 
-type ContainerProcesses struct {
-	Titles    []string
-	Processes [][]string
+func (c *Client) ContainerTop(id string) (ContainerProcesses, error) {
+	return c.containerTopContext(c.ctx, id)
 }
 
-func (c *Client) ContainerTop(id string) (ContainerProcesses, error) {
-	response, err := c.cli.ContainerTop(c.ctx, id, nil)
+func (c *Client) containerTopContext(ctx context.Context, id string) (ContainerProcesses, error) {
+	if c.RuntimeType == RuntimePodman {
+		return c.containerTopPodmanREST(ctx, id)
+	}
+	response, err := c.cli.ContainerTop(ctx, id, nil)
 	if err != nil {
 		return ContainerProcesses{}, fmt.Errorf("top container: %w", err)
 	}

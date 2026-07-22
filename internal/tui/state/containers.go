@@ -6,6 +6,7 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
 const (
@@ -66,7 +67,7 @@ type (
 
 	ContainerProcessesLoaded struct {
 		ContainerID string
-		Processes   dockerclient.ContainerProcesses
+		Processes   runtimeapi.ContainerProcesses
 		Error       error
 	}
 

@@ -26,6 +26,7 @@ type DetailState struct {
 	DetailResourceType ResourceType
 	VolumeDetail       *runtimeapi.VolumeDetail
 	NetworkDetail      *runtimeapi.NetworkDetail
+	ContainerDetail    *runtimeapi.ContainerDetail
 }
 
 func (s *DetailState) Open(title, content string) {
@@ -55,6 +56,12 @@ func (s *DetailState) CycleSource() {
 func (s *DetailState) SetRaw(resourceType ResourceType, raw []byte) {
 	s.DetailRawJSON = raw
 	s.DetailResourceType = resourceType
+}
+
+func (s *DetailState) SetContainerDetail(detail *runtimeapi.ContainerDetail) {
+	s.ContainerDetail = detail
+	s.DetailResourceType = ResourceContainer
+	s.DetailRawJSON, _ = sonic.Marshal(detail)
 }
 
 func (s *DetailState) SetVolumeDetail(detail *runtimeapi.VolumeDetail) {

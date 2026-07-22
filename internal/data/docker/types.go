@@ -5,6 +5,7 @@ import runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 type ContainerListOptions = runtimeapi.ContainerListOptions
 type ContainerSummary = runtimeapi.ContainerSummary
 type PortBinding = runtimeapi.PortBinding
+type ContainerProcesses = runtimeapi.ContainerProcesses
 
 // ManifestPlatform holds platform info for a single manifest entry.
 type ManifestPlatform struct {

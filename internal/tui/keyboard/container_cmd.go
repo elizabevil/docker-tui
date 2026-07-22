@@ -2,8 +2,10 @@ package keyboard
 
 import (
 	"bufio"
+	"context"
 
 	"github.com/elizabevil/docker-tui/internal/data/docker"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -56,9 +58,9 @@ func containerRenameCmd(client *docker.Client, id, name string) tea.Cmd {
 	}
 }
 
-func fetchContainerProcesses(client *docker.Client, id string) tea.Cmd {
+func fetchContainerProcesses(service runtimeapi.ContainerService, id string) tea.Cmd {
 	return func() tea.Msg {
-		processes, err := client.ContainerTop(id)
+		processes, err := service.Top(context.Background(), id)
 		return state.ContainerProcessesLoaded{ContainerID: id, Processes: processes, Error: err}
 	}
 }
@@ -90,23 +92,20 @@ func FetchLogBatch(client *docker.Client, containerID, since, tail string, ts bo
 	}
 }
 
-func FetchStats(client *docker.Client, containerID string) tea.Cmd {
+func FetchStats(service runtimeapi.ContainerService, containerID string) tea.Cmd {
 	return func() tea.Msg {
-		reader, err := client.ContainerStats(containerID)
+		stats, err := service.Stats(context.Background(), containerID)
 		if err != nil {
 			return state.StatsReceived{ContainerID: containerID, Error: err}
 		}
-		defer reader.Close()
-
-		cpu, memUsage, memLimit, memPerc, netRx, netTx := docker.ParseStats(reader)
 		return state.StatsReceived{
 			ContainerID: containerID,
-			CPU:         cpu,
-			MemUsage:    memUsage,
-			MemLimit:    memLimit,
-			MemPerc:     memPerc,
-			NetRx:       netRx,
-			NetTx:       netTx,
+			CPU:         stats.CPUPercent,
+			MemUsage:    stats.MemoryUsage,
+			MemLimit:    stats.MemoryLimit,
+			MemPerc:     stats.MemoryPercent,
+			NetRx:       stats.NetworkRx,
+			NetTx:       stats.NetworkTx,
 		}
 	}
 }

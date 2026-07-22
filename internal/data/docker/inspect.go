@@ -90,13 +90,62 @@ type inspectMount struct {
 
 // ── Public API ────────────────────────────────────────────────
 
-// InspectContainer returns the raw JSON from docker container inspect.
-func (c *Client) InspectContainer(id string) ([]byte, error) {
-	_, raw, err := c.cli.ContainerInspectWithRaw(context.Background(), id, false)
+func (c *Client) inspectContainerContext(ctx context.Context, id string) (*runtimeapi.ContainerDetail, error) {
+	if c.RuntimeType == RuntimePodman {
+		return c.inspectContainerPodmanREST(ctx, id)
+	}
+	_, raw, err := c.cli.ContainerInspectWithRaw(ctx, id, false)
 	if err != nil {
 		return nil, fmt.Errorf("inspect %s: %w", id, err)
 	}
-	return raw, nil
+	return mapContainerInspect(raw)
+}
+
+func mapContainerInspect(raw []byte) (*runtimeapi.ContainerDetail, error) {
+	var info inspectContainer
+	if err := sonicUnmarshal(raw, &info); err != nil {
+		return nil, fmt.Errorf("decode container inspect: %w", err)
+	}
+	return mapContainerInspectResponse(info), nil
+}
+
+func mapContainerInspectResponse(info inspectContainer) *runtimeapi.ContainerDetail {
+	detail := &runtimeapi.ContainerDetail{
+		ID: info.ID, Name: info.Name, Created: info.Created, Platform: info.Platform,
+		RestartCount: info.RestartCount, Networks: map[string]runtimeapi.ContainerNetwork{},
+		Ports: map[string][]runtimeapi.ContainerPortBinding{},
+	}
+	if info.State != nil {
+		detail.State = runtimeapi.ContainerState{Status: info.State.Status, PID: info.State.Pid, StartedAt: info.State.StartedAt, FinishedAt: info.State.FinishedAt}
+	}
+	if info.Config != nil {
+		detail.Image = info.Config.Image
+		detail.Config = runtimeapi.ContainerConfig{WorkingDir: info.Config.WorkingDir, User: info.Config.User, Entrypoint: info.Config.Entrypoint, Command: info.Config.Cmd, Environment: info.Config.Env, Labels: info.Config.Labels}
+		for port := range info.Config.ExposedPorts {
+			detail.Config.ExposedPorts = append(detail.Config.ExposedPorts, port)
+		}
+	}
+	if info.HostConfig != nil {
+		detail.Resources = runtimeapi.ContainerResources{CPUShares: info.HostConfig.CPUShares, Memory: info.HostConfig.Memory, NanoCPUs: info.HostConfig.NanoCPUs, NetworkMode: info.HostConfig.NetworkMode}
+		if info.HostConfig.RestartPolicy != nil {
+			detail.Resources.RestartPolicy = info.HostConfig.RestartPolicy.Name
+			detail.Resources.MaximumRetryCount = info.HostConfig.RestartPolicy.MaximumRetryCount
+		}
+	}
+	if info.NetworkSettings != nil {
+		for name, network := range info.NetworkSettings.Networks {
+			detail.Networks[name] = runtimeapi.ContainerNetwork{IPAddress: network.IPAddress, Gateway: network.Gateway, MACAddress: network.MacAddress}
+		}
+		for port, bindings := range info.NetworkSettings.Ports {
+			for _, binding := range bindings {
+				detail.Ports[port] = append(detail.Ports[port], runtimeapi.ContainerPortBinding{HostIP: binding.HostIP, HostPort: binding.HostPort})
+			}
+		}
+	}
+	for _, mount := range info.Mounts {
+		detail.Mounts = append(detail.Mounts, runtimeapi.ContainerMount{Source: mount.Source, Destination: mount.Destination, Mode: mount.Mode, ReadWrite: mount.RW})
+	}
+	return detail
 }
 
 // DetailSection is a section in the detail view.
@@ -106,15 +155,9 @@ type DetailSection struct {
 	Lines    []string
 }
 
-// BuildContainerDetailSections parses raw JSON from docker container inspect
-// and returns sections with i18n-translated labels for the detail view.
-func BuildContainerDetailSections(jsonData []byte) []DetailSection {
-	if len(jsonData) == 0 {
-		return nil
-	}
-
-	var info inspectContainer
-	if err := sonicUnmarshal(jsonData, &info); err != nil {
+// BuildContainerDetailSections renders the runtime-neutral inspect model.
+func BuildContainerDetailSections(info *runtimeapi.ContainerDetail) []DetailSection {
+	if info == nil {
 		return nil
 	}
 
@@ -128,13 +171,11 @@ func BuildContainerDetailSections(jsonData []byte) []DetailSection {
 	}
 	appendValue(&basic.Lines, "ID", shortID)
 	appendValue(&basic.Lines, "Name", info.Name)
-	if info.Config != nil {
-		appendValue(&basic.Lines, "Image", info.Config.Image)
-	}
+	appendValue(&basic.Lines, "Image", info.Image)
 	appendValue(&basic.Lines, i18n.T("inspect.created"), info.Created)
-	if info.State != nil {
+	if info.State.Status != "" {
 		appendValue(&basic.Lines, "State", info.State.Status)
-		appendValue(&basic.Lines, "Pid", fmt.Sprintf("%d", info.State.Pid))
+		appendValue(&basic.Lines, "Pid", fmt.Sprintf("%d", info.State.PID))
 		if info.State.StartedAt != "" {
 			appendValue(&basic.Lines, i18n.T("inspect.container.started_at"), info.State.StartedAt)
 		}
@@ -147,21 +188,21 @@ func BuildContainerDetailSections(jsonData []byte) []DetailSection {
 	sections = append(sections, basic)
 
 	// ── Resources ──
-	if info.HostConfig != nil {
+	if info.Resources != (runtimeapi.ContainerResources{}) {
 		resources := DetailSection{Title: i18n.T("inspect.section_resources")}
-		if info.HostConfig.CPUShares > 0 {
-			appendValue(&resources.Lines, i18n.T("inspect.container.cpu_shares"), fmt.Sprintf("%d", info.HostConfig.CPUShares))
+		if info.Resources.CPUShares > 0 {
+			appendValue(&resources.Lines, i18n.T("inspect.container.cpu_shares"), fmt.Sprintf("%d", info.Resources.CPUShares))
 		}
-		if info.HostConfig.Memory > 0 {
-			appendValue(&resources.Lines, i18n.T("inspect.container.memory"), fmt.Sprintf("%d bytes", info.HostConfig.Memory))
+		if info.Resources.Memory > 0 {
+			appendValue(&resources.Lines, i18n.T("inspect.container.memory"), fmt.Sprintf("%d bytes", info.Resources.Memory))
 		}
-		if info.HostConfig.NanoCPUs > 0 {
-			appendValue(&resources.Lines, i18n.T("inspect.container.nano_cpus"), fmt.Sprintf("%d", info.HostConfig.NanoCPUs))
+		if info.Resources.NanoCPUs > 0 {
+			appendValue(&resources.Lines, i18n.T("inspect.container.nano_cpus"), fmt.Sprintf("%d", info.Resources.NanoCPUs))
 		}
-		appendValue(&resources.Lines, i18n.T("inspect.container.network_mode"), info.HostConfig.NetworkMode)
-		if info.HostConfig.RestartPolicy != nil && info.HostConfig.RestartPolicy.Name != "" {
+		appendValue(&resources.Lines, i18n.T("inspect.container.network_mode"), info.Resources.NetworkMode)
+		if info.Resources.RestartPolicy != "" {
 			appendValue(&resources.Lines, i18n.T("inspect.container.restart_policy"),
-				fmt.Sprintf("%s (max %d)", info.HostConfig.RestartPolicy.Name, info.HostConfig.RestartPolicy.MaximumRetryCount))
+				fmt.Sprintf("%s (max %d)", info.Resources.RestartPolicy, info.Resources.MaximumRetryCount))
 		}
 		if len(resources.Lines) > 0 {
 			sections = append(sections, resources)
@@ -169,17 +210,17 @@ func BuildContainerDetailSections(jsonData []byte) []DetailSection {
 	}
 
 	// ── Networks ──
-	if info.NetworkSettings != nil && len(info.NetworkSettings.Networks) > 0 {
+	if len(info.Networks) > 0 {
 		networks := DetailSection{Title: i18n.T("inspect.section_networks")}
-		for name, net := range info.NetworkSettings.Networks {
+		for name, net := range info.Networks {
 			networks.Lines = append(networks.Lines, "  "+name+":")
 			appendValue(&networks.Lines, "    "+i18n.T("inspect.container.ip"), net.IPAddress)
 			appendValue(&networks.Lines, "    "+i18n.T("inspect.container.gateway"), net.Gateway)
-			appendValue(&networks.Lines, "    "+i18n.T("inspect.container.mac"), net.MacAddress)
+			appendValue(&networks.Lines, "    "+i18n.T("inspect.container.mac"), net.MACAddress)
 		}
-		if info.NetworkSettings.Ports != nil && len(info.NetworkSettings.Ports) > 0 {
+		if len(info.Ports) > 0 {
 			networks.Lines = append(networks.Lines, "  "+i18n.T("inspect.container.ports")+":")
-			for port, bindings := range info.NetworkSettings.Ports {
+			for port, bindings := range info.Ports {
 				for _, b := range bindings {
 					networks.Lines = append(networks.Lines, fmt.Sprintf("    %s:%s -> %s", b.HostIP, b.HostPort, port))
 				}
@@ -196,7 +237,7 @@ func BuildContainerDetailSections(jsonData []byte) []DetailSection {
 			if m.Mode != "" {
 				line += fmt.Sprintf(" (%s)", m.Mode)
 			}
-			if m.RW {
+			if m.ReadWrite {
 				line += " [rw]"
 			} else {
 				line += " [ro]"
@@ -207,28 +248,24 @@ func BuildContainerDetailSections(jsonData []byte) []DetailSection {
 	}
 
 	// ── Config ──
-	if info.Config != nil {
+	if hasContainerConfig(info.Config) {
 		config := DetailSection{Title: i18n.T("inspect.section_container_config")}
 		appendValue(&config.Lines, i18n.T("inspect.container.working_dir"), info.Config.WorkingDir)
 		appendValue(&config.Lines, i18n.T("inspect.container.user"), info.Config.User)
 		if len(info.Config.Entrypoint) > 0 {
 			appendValue(&config.Lines, i18n.T("inspect.container.entrypoint"), fmt.Sprintf("[%s]", joinStrings(info.Config.Entrypoint)))
 		}
-		if len(info.Config.Cmd) > 0 {
-			appendValue(&config.Lines, i18n.T("inspect.container.cmd"), fmt.Sprintf("[%s]", joinStrings(info.Config.Cmd)))
+		if len(info.Config.Command) > 0 {
+			appendValue(&config.Lines, i18n.T("inspect.container.cmd"), fmt.Sprintf("[%s]", joinStrings(info.Config.Command)))
 		}
-		if len(info.Config.Env) > 0 {
-			config.Lines = append(config.Lines, i18n.T("inspect.container.env")+fmt.Sprintf(" (%d vars):", len(info.Config.Env)))
-			for _, env := range info.Config.Env {
+		if len(info.Config.Environment) > 0 {
+			config.Lines = append(config.Lines, i18n.T("inspect.container.env")+fmt.Sprintf(" (%d vars):", len(info.Config.Environment)))
+			for _, env := range info.Config.Environment {
 				config.Lines = append(config.Lines, "  "+env)
 			}
 		}
 		if len(info.Config.ExposedPorts) > 0 {
-			ports := make([]string, 0, len(info.Config.ExposedPorts))
-			for p := range info.Config.ExposedPorts {
-				ports = append(ports, string(p))
-			}
-			appendValue(&config.Lines, i18n.T("inspect.container.exposed_ports"), joinStrings(ports))
+			appendValue(&config.Lines, i18n.T("inspect.container.exposed_ports"), joinStrings(info.Config.ExposedPorts))
 		}
 		if len(config.Lines) > 0 {
 			sections = append(sections, config)
@@ -236,7 +273,7 @@ func BuildContainerDetailSections(jsonData []byte) []DetailSection {
 	}
 
 	// ── Labels ──
-	if info.Config != nil && len(info.Config.Labels) > 0 {
+	if len(info.Config.Labels) > 0 {
 		labels := DetailSection{Title: i18n.T("inspect.section_labels")}
 		for k, v := range info.Config.Labels {
 			labels.Lines = append(labels.Lines, fmt.Sprintf("  %s=%s", k, v))
@@ -245,6 +282,12 @@ func BuildContainerDetailSections(jsonData []byte) []DetailSection {
 	}
 
 	return sections
+}
+
+func hasContainerConfig(config runtimeapi.ContainerConfig) bool {
+	return config.WorkingDir != "" || config.User != "" || len(config.Entrypoint) > 0 ||
+		len(config.Command) > 0 || len(config.Environment) > 0 ||
+		len(config.ExposedPorts) > 0 || len(config.Labels) > 0
 }
 
 // BuildNetworkDetailSections builds detail sections from a structured

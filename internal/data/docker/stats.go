@@ -1,8 +1,13 @@
 package docker
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"io"
+	"time"
+
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
 // NetworkStats holds per-interface network I/O counters.
@@ -39,6 +44,23 @@ func ParseStats(reader io.ReadCloser) (cpuPerc, memUsage, memLimit, memPerc, net
 		return 0, 0, 0, 0, 0, 0
 	}
 	return computeStats(stats)
+}
+
+func (c *Client) containerStatsContext(ctx context.Context, id string) (runtimeapi.ContainerStats, error) {
+	if c.RuntimeType == RuntimePodman {
+		return c.containerStatsPodmanREST(ctx, id)
+	}
+	response, err := c.cli.ContainerStats(ctx, id, false)
+	if err != nil {
+		return runtimeapi.ContainerStats{}, fmt.Errorf("stats container: %w", err)
+	}
+	defer response.Body.Close()
+	var raw statsJSON
+	if err := json.NewDecoder(response.Body).Decode(&raw); err != nil {
+		return runtimeapi.ContainerStats{}, fmt.Errorf("decode container stats: %w", err)
+	}
+	cpu, usage, limit, memory, rx, tx := computeStats(raw)
+	return runtimeapi.ContainerStats{ReadAt: time.Now(), CPUPercent: cpu, MemoryUsage: usage, MemoryLimit: limit, MemoryPercent: memory, NetworkRx: rx, NetworkTx: tx}, nil
 }
 
 func computeStats(stats statsJSON) (cpuPerc, memUsage, memLimit, memPerc, netRx, netTx float64) {

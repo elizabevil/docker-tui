@@ -19,7 +19,7 @@ func handleTopKey(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case keys.KeyR:
 		if m.Connection.Docker != nil && m.Processes.ContainerID != "" {
 			m.Processes.Loading = true
-			return m, fetchContainerProcesses(m.Connection.Docker, m.Processes.ContainerID)
+			return m, fetchContainerProcesses(m.Connection.Docker.Containers(), m.Processes.ContainerID)
 		}
 	}
 	return m, nil

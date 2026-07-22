@@ -15,7 +15,7 @@ func TestMapPodmanContainerSummariesExpandsPortRange(t *testing.T) {
 	if len(result) != 1 || len(result[0].PortBindings) != 2 {
 		t.Fatalf("unexpected result: %#v", result)
 	}
-	if result[0].ID != "123456789012" || result[0].PortBindings[1].ContainerPort != 8081 || result[0].PortBindings[1].HostPort != 9081 {
+	if result[0].ID != "1234567890123456" || result[0].PortBindings[1].ContainerPort != 8081 || result[0].PortBindings[1].HostPort != 9081 {
 		t.Fatalf("unexpected mapping: %#v", result[0])
 	}
 	if result[0].ComposeProject != "demo" {

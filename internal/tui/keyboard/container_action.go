@@ -116,7 +116,7 @@ func doStatsAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	m.Metrics.ToggleContainerStats()
 	if m.Metrics.StatsActive {
-		return m, FetchStats(m.Connection.Docker, ctr.ID)
+		return m, FetchStats(m.Connection.Docker.Containers(), ctr.ID)
 	}
 	return m, nil
 }
@@ -230,7 +230,7 @@ func openTopView(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	m.Processes.Open(ctr.ID, ctr.Name)
 	m.Navigation.Mode = state.ModeTop
-	return m, fetchContainerProcesses(m.Connection.Docker, ctr.ID)
+	return m, fetchContainerProcesses(m.Connection.Docker.Containers(), ctr.ID)
 }
 
 func openPortDetail(m *state.AppModel) (*state.AppModel, tea.Cmd) {
@@ -347,12 +347,12 @@ func doInspectAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if ctr == nil {
 		return m, nil
 	}
-	rawJSON, err := m.Connection.Docker.InspectContainer(ctr.ID)
+	detail, err := m.Connection.Docker.Containers().Inspect(context.Background(), ctr.ID)
 	if err != nil {
 		m.Feedback.RecordError(err.Error())
 		return m, nil
 	}
-	m.Detail.SetRaw(state.ResourceContainer, rawJSON)
+	m.Detail.SetContainerDetail(detail)
 	ToDetail(m, i18n.T("detail.title.container", ctr.Name, ctr.ID), "")
 	return m, nil
 }

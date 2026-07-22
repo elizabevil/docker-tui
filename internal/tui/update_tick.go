@@ -45,7 +45,7 @@ func handleStatsTick(m *state.AppModel, _ state.StatsTick) (*state.AppModel, tea
 	items := m.Resources.Containers.SortedItems()
 	cmds := make([]tea.Cmd, 0, len(items))
 	for _, c := range items {
-		cmds = append(cmds, keyboard.FetchStats(m.Connection.Docker, c.ID))
+		cmds = append(cmds, keyboard.FetchStats(m.Connection.Docker.Containers(), c.ID))
 	}
 
 	// Schedule next tick

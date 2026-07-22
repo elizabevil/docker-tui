@@ -45,7 +45,7 @@ func mapPodmanContainerSummaries(raw []podmanContainerSummary) []ContainerSummar
 			}
 		}
 		summary := ContainerSummary{
-			ID:           shortContainerID(container.ID),
+			ID:           container.ID,
 			Name:         name,
 			Image:        container.Image,
 			Status:       container.Status,
@@ -60,11 +60,4 @@ func mapPodmanContainerSummaries(raw []podmanContainerSummary) []ContainerSummar
 		result = append(result, summary)
 	}
 	return result
-}
-
-func shortContainerID(id string) string {
-	if len(id) <= 12 {
-		return id
-	}
-	return id[:12]
 }

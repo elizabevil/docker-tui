@@ -461,6 +461,18 @@ func (s containerService) List(ctx context.Context, options runtimeapi.Container
 	return s.client.ListContainersContext(ctx, options)
 }
 
+func (s containerService) Inspect(ctx context.Context, id string) (*runtimeapi.ContainerDetail, error) {
+	return s.client.inspectContainerContext(ctx, id)
+}
+
+func (s containerService) Top(ctx context.Context, id string) (runtimeapi.ContainerProcesses, error) {
+	return s.client.containerTopContext(ctx, id)
+}
+
+func (s containerService) Stats(ctx context.Context, id string) (runtimeapi.ContainerStats, error) {
+	return s.client.containerStatsContext(ctx, id)
+}
+
 func (c *Client) Volumes() runtimeapi.VolumeService   { return volumeService{client: c} }
 func (c *Client) Networks() runtimeapi.NetworkService { return networkService{client: c} }
 
