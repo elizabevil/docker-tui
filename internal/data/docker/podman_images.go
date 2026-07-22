@@ -3,6 +3,7 @@
 package docker
 
 import (
+	"context"
 	"fmt"
 
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
@@ -10,11 +11,11 @@ import (
 	"go.podman.io/podman/v6/pkg/bindings/images"
 )
 
-func (c *Client) listImagesPodman(options runtimeapi.ImageListOptions) ([]ImageSummary, error) {
+func (c *Client) listImagesPodman(ctx context.Context, options runtimeapi.ImageListOptions) ([]ImageSummary, error) {
 	if c.usePodmanRESTTransport() {
-		return c.listImagesPodmanREST(options)
+		return c.listImagesPodmanREST(ctx, options)
 	}
-	ctx, err := bindings.NewConnection(c.ctx, c.Host)
+	bindingContext, err := bindings.NewConnection(ctx, c.Host)
 	if err != nil {
 		return nil, fmt.Errorf("podman connect: %w", err)
 	}
@@ -23,7 +24,7 @@ func (c *Client) listImagesPodman(options runtimeapi.ImageListOptions) ([]ImageS
 		return nil, err
 	}
 	listOptions := new(images.ListOptions).WithAll(options.All).WithFilters(nativeFilters)
-	list, err := images.List(ctx, listOptions)
+	list, err := images.List(bindingContext, listOptions)
 	if err != nil {
 		return nil, fmt.Errorf("podman list: %w", err)
 	}

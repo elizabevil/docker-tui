@@ -11,11 +11,6 @@ const (
 	ImageFilterUntil     = "until"
 )
 
-type ImageListOptions struct {
-	All     bool
-	Filters FilterSet
-}
-
 // NativeFilters returns a copy suitable for driver encoding. Multiple values
 // for one field require AND semantics and are rejected until that field has an
 // equivalent native representation or a lossless post-filter.

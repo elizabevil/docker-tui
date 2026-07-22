@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"sort"
@@ -14,18 +15,22 @@ import (
 var _ ImageLister = (*dockerImageLister)(nil) // compile-time check
 
 func (c *Client) ListImages() ([]ImageSummary, error) {
-	return c.ListImagesWithOptions(runtimeapi.ImageListOptions{})
+	return c.ListImagesWithOptionsContext(c.ctx, runtimeapi.ImageListOptions{})
 }
 
 func (c *Client) ListImagesWithOptions(options runtimeapi.ImageListOptions) ([]ImageSummary, error) {
+	return c.ListImagesWithOptionsContext(c.ctx, options)
+}
+
+func (c *Client) ListImagesWithOptionsContext(ctx context.Context, options runtimeapi.ImageListOptions) ([]ImageSummary, error) {
 	if c.imageLister != nil {
-		return c.imageLister.ListImages(options)
+		return c.imageLister.ListImages(ctx, options)
 	}
-	return c.listImagesDocker(options)
+	return c.listImagesDocker(ctx, options)
 }
 
 // listImagesDocker uses the Docker SDK's ImageList (compat API).
-func (c *Client) listImagesDocker(options runtimeapi.ImageListOptions) ([]ImageSummary, error) {
+func (c *Client) listImagesDocker(ctx context.Context, options runtimeapi.ImageListOptions) ([]ImageSummary, error) {
 	nativeFilters, err := options.NativeFilters()
 	if err != nil {
 		return nil, err
@@ -36,7 +41,7 @@ func (c *Client) listImagesDocker(options runtimeapi.ImageListOptions) ([]ImageS
 			filterArgs.Add(field, value)
 		}
 	}
-	images, err := c.cli.ImageList(c.ctx, image.ListOptions{All: options.All, Filters: filterArgs})
+	images, err := c.cli.ImageList(ctx, image.ListOptions{All: options.All, Filters: filterArgs})
 	if err != nil {
 		return nil, fmt.Errorf("list images: %w", err)
 	}
@@ -290,8 +295,12 @@ func (c *Client) InspectImage(id string) (string, error) {
 }
 
 func (c *Client) InspectImageDetail(summary ImageSummary) (*ImageDetailData, error) {
+	return c.InspectImageDetailContext(c.ctx, summary)
+}
+
+func (c *Client) InspectImageDetailContext(ctx context.Context, summary ImageSummary) (*ImageDetailData, error) {
 	detail := NewImageDetailData(summary)
-	info, _, err := c.cli.ImageInspectWithRaw(c.ctx, summary.ID)
+	info, _, err := c.cli.ImageInspectWithRaw(ctx, summary.ID)
 	if err != nil {
 		if detail.IsManifest && len(detail.ManifestVariants) > 0 {
 			detail.HistoryError = err.Error()
@@ -356,7 +365,7 @@ func (c *Client) InspectImageDetail(summary ImageSummary) (*ImageDetailData, err
 	}
 
 	detail.HistorySource = ImageHistoryLayerAPI
-	history, historyErr := c.cli.ImageHistory(c.ctx, summary.ID)
+	history, historyErr := c.cli.ImageHistory(ctx, summary.ID)
 	if historyErr != nil {
 		detail.HistoryError = historyErr.Error()
 	} else {

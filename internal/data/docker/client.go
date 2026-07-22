@@ -471,9 +471,11 @@ func (s containerService) Stats(ctx context.Context, id string) (runtimeapi.Cont
 
 func (c *Client) Volumes() runtimeapi.VolumeService   { return volumeService{client: c} }
 func (c *Client) Networks() runtimeapi.NetworkService { return networkService{client: c} }
+func (c *Client) Images() runtimeapi.ImageService     { return imageService{client: c} }
 
 type volumeService struct{ client *Client }
 type networkService struct{ client *Client }
+type imageService struct{ client *Client }
 
 func (s volumeService) List(ctx context.Context, options runtimeapi.VolumeListOptions) ([]runtimeapi.Volume, error) {
 	return s.client.ListVolumesContext(ctx, options)
@@ -497,6 +499,14 @@ func (s networkService) Create(ctx context.Context, options runtimeapi.NetworkCr
 
 func (s networkService) Prune(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
 	return s.client.PruneNetworksContext(ctx, options)
+}
+
+func (s imageService) List(ctx context.Context, options runtimeapi.ImageListOptions) ([]runtimeapi.ImageSummary, error) {
+	return s.client.ListImagesWithOptionsContext(ctx, options)
+}
+
+func (s imageService) Inspect(ctx context.Context, summary runtimeapi.ImageSummary) (*runtimeapi.ImageDetail, error) {
+	return s.client.InspectImageDetailContext(ctx, summary)
 }
 
 // PingTimeout verifies the runtime connection with a caller-selected deadline.

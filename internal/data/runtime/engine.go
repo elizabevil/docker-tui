@@ -11,6 +11,7 @@ type Engine interface {
 	Containers() ContainerService
 	Volumes() VolumeService
 	Networks() NetworkService
+	Images() ImageService
 	Actions() ResourceActionService
 	Exec() ExecService
 	Events() EventService

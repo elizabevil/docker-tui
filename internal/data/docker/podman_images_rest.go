@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -8,7 +9,7 @@ import (
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
-func (c *Client) listImagesPodmanREST(options runtimeapi.ImageListOptions) ([]ImageSummary, error) {
+func (c *Client) listImagesPodmanREST(ctx context.Context, options runtimeapi.ImageListOptions) ([]ImageSummary, error) {
 	if c.podmanREST == nil {
 		return nil, fmt.Errorf("podman REST transport is not initialized")
 	}
@@ -28,7 +29,7 @@ func (c *Client) listImagesPodmanREST(options runtimeapi.ImageListOptions) ([]Im
 		query.Set("filters", string(encoded))
 	}
 	var raw []podmanImageSummary
-	if err := c.podmanREST.Get(c.ctx, "image.list", "/images/json", query, &raw); err != nil {
+	if err := c.podmanREST.Get(ctx, "image.list", "/images/json", query, &raw); err != nil {
 		return nil, fmt.Errorf("podman list: %w", err)
 	}
 	return mapPodmanImageSummaries(raw), nil

@@ -116,7 +116,7 @@ func doImageDetail(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 func inspectImageCmd(client *docker.Client, image docker.ImageSummary) tea.Cmd {
 	return func() tea.Msg {
-		detail, err := client.InspectImageDetail(image)
+		detail, err := client.Images().Inspect(context.Background(), image)
 		return state.ImageDetailLoaded{
 			ImageID: image.ID,
 			Detail:  detail,

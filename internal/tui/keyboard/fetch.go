@@ -1,7 +1,9 @@
 package keyboard
 
 import (
+	"context"
 	"github.com/elizabevil/docker-tui/internal/data/docker"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	"charm.land/bubbletea/v2"
@@ -21,7 +23,7 @@ func FetchContainers(client *docker.Client, all bool) tea.Cmd {
 
 func FetchImages(client *docker.Client) tea.Cmd {
 	return func() tea.Msg {
-		images, err := client.ListImages()
+		images, err := client.Images().List(context.Background(), runtimeapi.ImageListOptions{})
 		return state.ImagesLoaded{
 			Images: images,
 			Error:  err,
