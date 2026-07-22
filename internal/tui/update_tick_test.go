@@ -36,7 +36,7 @@ func TestHandleDockerConnectedErrorProjectsTargetAndMessage(t *testing.T) {
 	if cmd != nil {
 		t.Fatal("connection failure should not schedule resource fetch")
 	}
-	if updated.Connection.Connected || updated.Connection.Connecting || updated.Connection.Docker != nil {
+	if updated.Connection.Connected || updated.Connection.Connecting || updated.Connection.Engine != nil {
 		t.Fatalf("connection state=%#v", updated)
 	}
 	if updated.Connection.ConnectionTarget != "local-docker" || updated.Connection.ConnectionFailure.Kind != dockerclient.ConnectionErrorUnknown {
@@ -58,7 +58,7 @@ func TestRuntimeHealthTransitionsAtThresholdAndRecovers(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.Runtime.Health.FailureThreshold = 2
 	app := state.NewAppModel(cfg, nil, "test")
-	app.Connection.Docker = &dockerclient.Client{}
+	app.Connection.Engine = &dockerclient.Client{}
 	app.Connection.Connected = true
 	app.Connection.ConnectionTarget = "local-docker"
 
@@ -85,7 +85,7 @@ func TestRuntimeHealthTransitionsAtThresholdAndRecovers(t *testing.T) {
 
 func TestRuntimeHealthIgnoresStaleConnectionResult(t *testing.T) {
 	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
-	app.Connection.Docker = &dockerclient.Client{}
+	app.Connection.Engine = &dockerclient.Client{}
 	app.Connection.Connected = true
 	app.Connection.ConnectionTarget = "podman"
 	updated, _ := handleRuntimeHealthResult(app, state.RuntimeHealthResult{Name: "docker", Error: errors.New("late timeout")})

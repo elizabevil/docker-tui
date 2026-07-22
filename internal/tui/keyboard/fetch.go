@@ -2,16 +2,16 @@ package keyboard
 
 import (
 	"context"
-	"github.com/elizabevil/docker-tui/internal/data/docker"
+
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	"charm.land/bubbletea/v2"
 )
 
-func FetchContainers(client *docker.Client, all bool) tea.Cmd {
+func FetchContainers(client runtimeapi.Engine, all bool) tea.Cmd {
 	return func() tea.Msg {
-		containers, err := client.ListContainers(docker.ContainerListOptions{
+		containers, err := client.Containers().List(context.Background(), runtimeapi.ContainerListOptions{
 			All: all,
 		})
 		return state.ContainersLoaded{
@@ -21,7 +21,7 @@ func FetchContainers(client *docker.Client, all bool) tea.Cmd {
 	}
 }
 
-func FetchImages(client *docker.Client) tea.Cmd {
+func FetchImages(client runtimeapi.Engine) tea.Cmd {
 	return func() tea.Msg {
 		images, err := client.Images().List(context.Background(), runtimeapi.ImageListOptions{})
 		return state.ImagesLoaded{
@@ -31,9 +31,9 @@ func FetchImages(client *docker.Client) tea.Cmd {
 	}
 }
 
-func FetchVolumes(client *docker.Client) tea.Cmd {
+func FetchVolumes(client runtimeapi.Engine) tea.Cmd {
 	return func() tea.Msg {
-		volumes, err := client.ListVolumes()
+		volumes, err := client.Volumes().List(context.Background(), runtimeapi.VolumeListOptions{})
 		return state.VolumesLoaded{
 			Volumes: volumes,
 			Error:   err,
@@ -41,9 +41,9 @@ func FetchVolumes(client *docker.Client) tea.Cmd {
 	}
 }
 
-func FetchNetworks(client *docker.Client) tea.Cmd {
+func FetchNetworks(client runtimeapi.Engine) tea.Cmd {
 	return func() tea.Msg {
-		networks, err := client.ListNetworks()
+		networks, err := client.Networks().List(context.Background(), runtimeapi.NetworkListOptions{})
 		return state.NetworksLoaded{
 			Networks: networks,
 			Error:    err,
@@ -51,7 +51,7 @@ func FetchNetworks(client *docker.Client) tea.Cmd {
 	}
 }
 
-func FetchAll(client *docker.Client) []tea.Cmd {
+func FetchAll(client runtimeapi.Engine) []tea.Cmd {
 	return []tea.Cmd{
 		FetchContainers(client, true),
 		FetchImages(client),

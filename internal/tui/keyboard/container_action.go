@@ -17,8 +17,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-func doContainerAction(m *state.AppModel, action string, cmdFn func(*docker.Client, string) tea.Cmd) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil || m.Navigation.ActivePanel != state.PanelContainers {
+func doContainerAction(m *state.AppModel, action string, cmdFn func(runtimeapi.Engine, string) tea.Cmd) (*state.AppModel, tea.Cmd) {
+	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelContainers {
 		return m, nil
 	}
 	if len(m.Selection.MarkedIDs) > 0 {
@@ -32,7 +32,7 @@ func doContainerAction(m *state.AppModel, action string, cmdFn func(*docker.Clie
 	if action == docker.ContainerActionStart {
 		m.Feedback.InfoMessage = "starting " + ctr.Name + "..."
 		trace := beginAudit(m, "resource.container.start", containerTarget(m, ctr.ID), "Starting "+ctr.Name)
-		return m, withContainerAudit(cmdFn(m.Connection.Docker, ctr.ID), trace)
+		return m, withContainerAudit(cmdFn(m.Connection.Engine, ctr.ID), trace)
 	}
 	// Destructive actions (stop/kill/restart) require confirmation
 	confirmAction(m, "container-"+action, ctr.ID, fmt.Sprintf("%s container %s?", action, ctr.Name))
@@ -40,7 +40,7 @@ func doContainerAction(m *state.AppModel, action string, cmdFn func(*docker.Clie
 	return m, nil
 }
 
-func doBatchContainerAction(m *state.AppModel, action string, cmdFn func(*docker.Client, string) tea.Cmd) (*state.AppModel, tea.Cmd) {
+func doBatchContainerAction(m *state.AppModel, action string, cmdFn func(runtimeapi.Engine, string) tea.Cmd) (*state.AppModel, tea.Cmd) {
 	if len(m.Selection.MarkedIDs) == 0 {
 		return m, nil
 	}
@@ -59,16 +59,16 @@ func executeBatchAction(m *state.AppModel, action string, trace audit.Trace) (*s
 	}
 	m.Selection.MarkedIDs = make(map[string]bool)
 
-	var cmdFn func(*docker.Client, string) tea.Cmd
+	var cmdFn func(runtimeapi.Engine, string) tea.Cmd
 	switch action {
 	case docker.ContainerActionStart:
 		cmdFn = containerStartCmd
 	case docker.ContainerActionStop:
-		cmdFn = func(c *docker.Client, id string) tea.Cmd { return containerStopCmd(c, id) }
+		cmdFn = func(c runtimeapi.Engine, id string) tea.Cmd { return containerStopCmd(c, id) }
 	case docker.ContainerActionRestart:
-		cmdFn = func(c *docker.Client, id string) tea.Cmd { return containerRestartCmd(c, id) }
+		cmdFn = func(c runtimeapi.Engine, id string) tea.Cmd { return containerRestartCmd(c, id) }
 	case docker.ContainerActionKill:
-		cmdFn = func(c *docker.Client, id string) tea.Cmd { return containerKillCmd(c, id) }
+		cmdFn = func(c runtimeapi.Engine, id string) tea.Cmd { return containerKillCmd(c, id) }
 	default:
 		ShowToastNow(m, fmt.Sprintf("✕ unknown batch action: %s", action))
 		return m, nil
@@ -76,14 +76,14 @@ func executeBatchAction(m *state.AppModel, action string, trace audit.Trace) (*s
 
 	var cmds []tea.Cmd
 	for _, id := range ids {
-		cmds = append(cmds, withContainerAudit(cmdFn(m.Connection.Docker, id), trace))
+		cmds = append(cmds, withContainerAudit(cmdFn(m.Connection.Engine, id), trace))
 	}
 	ShowToastNow(m, fmt.Sprintf("✓ batch %s %d containers", action, len(ids)))
 	return m, tea.Batch(cmds...)
 }
 
 func doContainerRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil || m.Navigation.ActivePanel != state.PanelContainers {
+	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelContainers {
 		return m, nil
 	}
 	ctr := m.Resources.Containers.Selected()
@@ -96,7 +96,7 @@ func doContainerRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 }
 
 func doLogAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil {
+	if m.Connection.Engine == nil {
 		return m, nil
 	}
 	ctr := m.Resources.Containers.Selected()
@@ -107,7 +107,7 @@ func doLogAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 }
 
 func doStatsAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil {
+	if m.Connection.Engine == nil {
 		return m, nil
 	}
 	ctr := m.Resources.Containers.Selected()
@@ -116,13 +116,13 @@ func doStatsAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	m.Metrics.ToggleContainerStats()
 	if m.Metrics.StatsActive {
-		return m, FetchStats(m.Connection.Docker.Containers(), ctr.ID)
+		return m, FetchStats(m.Connection.Engine.Containers(), ctr.ID)
 	}
 	return m, nil
 }
 
 func doPauseAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil {
+	if m.Connection.Engine == nil {
 		return m, nil
 	}
 	if len(m.Selection.MarkedIDs) > 0 {
@@ -142,7 +142,7 @@ func doPauseAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		action = docker.ContainerActionUnpause
 	}
 	trace := beginAudit(m, "resource.container."+action, containerTarget(m, ctr.ID), action+" "+ctr.Name)
-	return m, withContainerAudit(containerPauseCmd(m.Connection.Docker, ctr.ID, unpause), trace)
+	return m, withContainerAudit(containerPauseCmd(m.Connection.Engine, ctr.ID, unpause), trace)
 }
 
 func doBatchPauseAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
@@ -168,7 +168,7 @@ func doBatchPauseAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	m.Selection.ClearMarks()
 	trace := beginAudit(m, "resource.container.pause_toggle", audit.ContainerTarget{ID: "batch", Name: fmt.Sprintf("%d containers", len(marked))}, "Toggle pause for selected containers")
-	client := m.Connection.Docker
+	client := m.Connection.Engine
 	return m, func() tea.Msg {
 		result := state.ContainerBatchActioned{Action: "pause", Skipped: skipped, Audit: trace}
 		var failures []error
@@ -192,7 +192,7 @@ func doBatchPauseAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 func openRenameDialog(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	ctr := m.Resources.Containers.Selected()
-	if m.Connection.Docker == nil || m.Navigation.ActivePanel != state.PanelContainers || ctr == nil {
+	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelContainers || ctr == nil {
 		return m, nil
 	}
 	m.Dialog.Open(state.DialogSpec{Kind: state.DialogContainerRename, Title: i18n.T("container.rename.title"), Body: ctr.ID, Input: ctr.Name})
@@ -217,12 +217,12 @@ func handleRenameDialogKey(key string, m *state.AppModel) (*state.AppModel, tea.
 	id := m.Dialog.Body
 	trace := beginAudit(m, "resource.container.rename", containerTarget(m, id), "Rename container to "+name)
 	clearDialogState(m)
-	return m, withContainerAudit(containerRenameCmd(m.Connection.Docker, id, name), trace)
+	return m, withContainerAudit(containerRenameCmd(m.Connection.Engine, id, name), trace)
 }
 
 func openTopView(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	ctr := m.Resources.Containers.Selected()
-	if m.Connection.Docker == nil || m.Navigation.ActivePanel != state.PanelContainers || ctr == nil {
+	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelContainers || ctr == nil {
 		return m, nil
 	}
 	if ctr.State != state.ContainerStateRunning {
@@ -231,7 +231,7 @@ func openTopView(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	m.Processes.Open(ctr.ID, ctr.Name)
 	m.Navigation.Mode = state.ModeTop
-	return m, fetchContainerProcesses(m.Connection.Docker.Containers(), ctr.ID)
+	return m, fetchContainerProcesses(m.Connection.Engine.Containers(), ctr.ID)
 }
 
 func openPortDetail(m *state.AppModel) (*state.AppModel, tea.Cmd) {
@@ -261,7 +261,7 @@ func openPortDetail(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 }
 
 func doExecAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil {
+	if m.Connection.Engine == nil {
 		return m, nil
 	}
 	ctr := m.Resources.Containers.Selected()
@@ -277,7 +277,7 @@ func doExecAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	trace := beginAudit(m, "resource.container.exec", audit.ExecTarget{ID: ctr.ID, Name: ctr.Name, Meta: audit.ExecMeta{ContainerID: ctr.ID}}, "Starting exec session in "+ctr.Name)
 
 	ctx := context.Background()
-	session, err := m.Connection.Docker.Exec().Open(ctx, ctr.ID, runtimeapi.ExecOptions{
+	session, err := m.Connection.Engine.Exec().Open(ctx, ctr.ID, runtimeapi.ExecOptions{
 		Command:      []string{shell},
 		AttachStdin:  true,
 		AttachStdout: true,
@@ -328,14 +328,14 @@ func doExecAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 }
 
 func doInspectAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil {
+	if m.Connection.Engine == nil {
 		return m, nil
 	}
 	ctr := m.Resources.Containers.Selected()
 	if ctr == nil {
 		return m, nil
 	}
-	detail, err := m.Connection.Docker.Containers().Inspect(context.Background(), ctr.ID)
+	detail, err := m.Connection.Engine.Containers().Inspect(context.Background(), ctr.ID)
 	if err != nil {
 		m.Feedback.RecordError(err.Error())
 		return m, nil
@@ -373,13 +373,9 @@ func doSwitchRuntime(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		ShowToastNow(m, fmt.Sprintf("switch failed: %s", safeError))
 		return m, nil
 	}
-	m.Connection.Docker = m.Connection.Pool.ActiveClient()
-	if m.Connection.Docker != nil {
-		m.Connection.RuntimeType = string(m.Connection.Docker.RuntimeType)
-		m.Connection.EngineVersion = m.Connection.Docker.EngineVersion
-	}
+	m.Connection.ConnectedTo(next, m.Connection.Pool.ActiveEngine())
 	FinishAudit(m, trace, audit.ResultSucceeded, "Switched runtime to "+next, audit.Details{})
-	cmds := FetchAll(m.Connection.Docker)
+	cmds := FetchAll(m.Connection.Engine)
 	cmds = append(cmds, ShowKeyHint(m, fmt.Sprintf("F2: Switched to %s (%s)", next, m.Connection.RuntimeType)))
 	return m, tea.Batch(cmds...)
 }

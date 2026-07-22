@@ -2,8 +2,8 @@ package state
 
 import (
 	"github.com/elizabevil/docker-tui/internal/data/config"
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
 // PanelType identifies which panel is active.
@@ -97,10 +97,10 @@ type AppModel struct {
 }
 
 // NewAppModel creates a new application model with default state.
-func NewAppModel(cfg *config.Config, client *dockerclient.Client, appVersion string) *AppModel {
+func NewAppModel(cfg *config.Config, engine runtimeapi.Engine, appVersion string) *AppModel {
 	return &AppModel{
 		Dependencies: Dependencies{Config: cfg, AppVersion: appVersion},
-		Connection:   NewConnectionState(client),
+		Connection:   NewConnectionState(engine),
 		Navigation:   NewNavigationState(),
 		Feedback:     NewFeedbackState(),
 		Resources:    NewResourceState(),

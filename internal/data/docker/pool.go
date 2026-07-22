@@ -25,7 +25,6 @@ type PoolEntry struct {
 	Name       string
 	Host       string
 	APIVersion string
-	Client     *Client
 	Engine     runtimeapi.Engine
 	State      ConnState
 	Error      error
@@ -111,9 +110,12 @@ func (p *ConnectionPool) Connect(name string, timeout time.Duration) error {
 		p.mu.Unlock()
 		return fmt.Errorf("unknown host: %s", name)
 	}
-	if entry.State == StateConnected && entry.Client != nil {
+	if entry.State == StateConnected && entry.Engine != nil {
 		// Already connected — ping to verify
-		if err := entry.Client.Ping(); err != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		err := entry.Engine.PingContext(ctx)
+		cancel()
+		if err != nil {
 			entry.State = StateDisconnected
 		} else {
 			p.active = name
@@ -129,7 +131,7 @@ func (p *ConnectionPool) Connect(name string, timeout time.Duration) error {
 	tlsConfig := entry.TLS
 	p.mu.Unlock()
 
-	client, err := NewClient(ClientConfig{Host: host, APIVersion: apiVersion, Timeout: timeout, Runtime: runtimeType, TLS: tlsConfig})
+	engine, err := NewEngine(ClientConfig{Host: host, APIVersion: apiVersion, Timeout: timeout, Runtime: runtimeType, TLS: tlsConfig})
 	p.mu.Lock()
 	if err != nil {
 		entry.State = StateError
@@ -137,12 +139,11 @@ func (p *ConnectionPool) Connect(name string, timeout time.Duration) error {
 		p.mu.Unlock()
 		return err
 	}
-	// Close old client if any
-	if entry.Client != nil {
-		entry.Client.Close()
+	// Close the previous engine if any.
+	if entry.Engine != nil {
+		entry.Engine.Close()
 	}
-	entry.Client = client
-	entry.Engine = client
+	entry.Engine = engine
 	entry.State = StateConnected
 	entry.Error = nil
 	p.active = name
@@ -158,22 +159,24 @@ func (p *ConnectionPool) Probe(name string, timeout time.Duration) error {
 		p.mu.RUnlock()
 		return fmt.Errorf("unknown host: %s", name)
 	}
-	host, apiVersion, runtimeType, tlsConfig, existing := entry.Host, entry.APIVersion, entry.Runtime, entry.TLS, entry.Client
+	host, apiVersion, runtimeType, tlsConfig, existing := entry.Host, entry.APIVersion, entry.Runtime, entry.TLS, entry.Engine
 	p.mu.RUnlock()
 
 	var err error
 	if existing != nil {
-		err = existing.PingTimeout(timeout)
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		err = existing.PingContext(ctx)
+		cancel()
 	} else {
-		var client *Client
-		client, err = NewClient(ClientConfig{Host: host, APIVersion: apiVersion, Timeout: timeout, Runtime: runtimeType, TLS: tlsConfig})
-		if client != nil {
-			_ = client.Close()
+		var engine runtimeapi.Engine
+		engine, err = NewEngine(ClientConfig{Host: host, APIVersion: apiVersion, Timeout: timeout, Runtime: runtimeType, TLS: tlsConfig})
+		if engine != nil {
+			_ = engine.Close()
 		}
 	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if current := p.entries[name]; current != nil && current.Client == existing {
+	if current := p.entries[name]; current != nil && current.Engine == existing {
 		current.Error = err
 		if err != nil {
 			current.State = StateError
@@ -182,17 +185,6 @@ func (p *ConnectionPool) Probe(name string, timeout time.Duration) error {
 		}
 	}
 	return err
-}
-
-// ActiveClient returns the Docker client for the active connection, or nil.
-func (p *ConnectionPool) ActiveClient() *Client {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-	entry := p.entries[p.active]
-	if entry == nil {
-		return nil
-	}
-	return entry.Client
 }
 
 // ActiveEngine is the SDK-independent connection used by migrated callers.
@@ -211,8 +203,8 @@ func (p *ConnectionPool) Close() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	for _, entry := range p.entries {
-		if entry.Client != nil {
-			entry.Client.Close()
+		if entry.Engine != nil {
+			entry.Engine.Close()
 		}
 	}
 	p.entries = make(map[string]*PoolEntry)
@@ -243,8 +235,11 @@ func (p *ConnectionPool) pingAll() {
 	}
 	p.mu.RUnlock()
 	for _, e := range entries {
-		if e.Client != nil {
-			if err := e.Client.Ping(); err != nil {
+		if e.Engine != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			err := e.Engine.PingContext(ctx)
+			cancel()
+			if err != nil {
 				p.mu.Lock()
 				e.State = StateDisconnected
 				e.Error = err

@@ -467,19 +467,28 @@ type containerService struct {
 }
 
 func (s containerService) List(ctx context.Context, options runtimeapi.ContainerListOptions) ([]runtimeapi.ContainerSummary, error) {
-	return s.client.ListContainersContext(ctx, options)
+	items, err := s.client.ListContainersContext(ctx, options)
+	return items, mapRuntimeError(err, "container.list", runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer}, s.client.RuntimeType)
 }
 
 func (s containerService) Inspect(ctx context.Context, id string) (*runtimeapi.ContainerDetail, error) {
-	return s.client.inspectContainerContext(ctx, id)
+	detail, err := s.client.inspectContainerContext(ctx, id)
+	return detail, mapRuntimeError(err, "container.inspect", runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, s.client.RuntimeType)
 }
 
 func (s containerService) Top(ctx context.Context, id string) (runtimeapi.ContainerProcesses, error) {
-	return s.client.containerTopContext(ctx, id)
+	processes, err := s.client.containerTopContext(ctx, id)
+	return processes, mapRuntimeError(err, "container.top", runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, s.client.RuntimeType)
 }
 
 func (s containerService) Stats(ctx context.Context, id string) (runtimeapi.ContainerStats, error) {
-	return s.client.containerStatsContext(ctx, id)
+	stats, err := s.client.containerStatsContext(ctx, id)
+	return stats, mapRuntimeError(err, "container.stats", runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, s.client.RuntimeType)
+}
+
+func (s containerService) Logs(ctx context.Context, id string, options runtimeapi.ContainerLogOptions) (io.ReadCloser, error) {
+	reader, err := s.client.containerLogsContext(ctx, id, options)
+	return reader, mapRuntimeError(err, "container.logs", runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, s.client.RuntimeType)
 }
 
 // Volumes returns the volume service facade.
@@ -496,11 +505,27 @@ type networkService struct{ client *Client }
 type imageService struct{ client *Client }
 
 func (s volumeService) List(ctx context.Context, options runtimeapi.VolumeListOptions) ([]runtimeapi.Volume, error) {
-	return s.client.ListVolumesContext(ctx, options)
+	items, err := s.client.ListVolumesContext(ctx, options)
+	return items, mapRuntimeError(err, "volume.list", runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume}, s.client.RuntimeType)
+}
+
+func (s volumeService) Inspect(ctx context.Context, name string) (*runtimeapi.VolumeDetail, error) {
+	detail, err := s.client.InspectVolumeContext(ctx, name)
+	return detail, mapRuntimeError(err, "volume.inspect", runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume, ID: name}, s.client.RuntimeType)
 }
 
 func (s volumeService) Create(ctx context.Context, options runtimeapi.VolumeCreateOptions) (*runtimeapi.Volume, error) {
 	return s.client.CreateVolumeContext(ctx, options)
+}
+
+func (s volumeService) Remove(ctx context.Context, name string, force bool) error {
+	var err error
+	if s.client.RuntimeType == RuntimePodman {
+		err = s.client.removeVolumePodman(ctx, name, force)
+	} else {
+		err = s.client.cli.VolumeRemove(ctx, name, force)
+	}
+	return mapRuntimeError(err, "volume.remove", runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume, ID: name}, s.client.RuntimeType)
 }
 
 func (s volumeService) Prune(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
@@ -508,11 +533,27 @@ func (s volumeService) Prune(ctx context.Context, options runtimeapi.PruneOption
 }
 
 func (s networkService) List(ctx context.Context, options runtimeapi.NetworkListOptions) ([]runtimeapi.Network, error) {
-	return s.client.ListNetworksContext(ctx, options)
+	items, err := s.client.ListNetworksContext(ctx, options)
+	return items, mapRuntimeError(err, "network.list", runtimeapi.ResourceRef{Type: runtimeapi.ResourceNetwork}, s.client.RuntimeType)
+}
+
+func (s networkService) Inspect(ctx context.Context, id string) (*runtimeapi.NetworkDetail, error) {
+	detail, err := s.client.InspectNetworkContext(ctx, id)
+	return detail, mapRuntimeError(err, "network.inspect", runtimeapi.ResourceRef{Type: runtimeapi.ResourceNetwork, ID: id}, s.client.RuntimeType)
 }
 
 func (s networkService) Create(ctx context.Context, options runtimeapi.NetworkCreateOptions) (*runtimeapi.Network, error) {
 	return s.client.CreateNetworkContext(ctx, options)
+}
+
+func (s networkService) Remove(ctx context.Context, id string) error {
+	var err error
+	if s.client.RuntimeType == RuntimePodman {
+		err = s.client.removeNetworkPodman(ctx, id)
+	} else {
+		err = s.client.cli.NetworkRemove(ctx, id)
+	}
+	return mapRuntimeError(err, "network.remove", runtimeapi.ResourceRef{Type: runtimeapi.ResourceNetwork, ID: id}, s.client.RuntimeType)
 }
 
 func (s networkService) Prune(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
@@ -520,11 +561,13 @@ func (s networkService) Prune(ctx context.Context, options runtimeapi.PruneOptio
 }
 
 func (s imageService) List(ctx context.Context, options runtimeapi.ImageListOptions) ([]runtimeapi.ImageSummary, error) {
-	return s.client.ListImagesWithOptionsContext(ctx, options)
+	items, err := s.client.ListImagesWithOptionsContext(ctx, options)
+	return items, mapRuntimeError(err, "image.list", runtimeapi.ResourceRef{Type: runtimeapi.ResourceImage}, s.client.RuntimeType)
 }
 
 func (s imageService) Inspect(ctx context.Context, summary runtimeapi.ImageSummary) (*runtimeapi.ImageDetail, error) {
-	return s.client.InspectImageDetailContext(ctx, summary)
+	detail, err := s.client.InspectImageDetailContext(ctx, summary)
+	return detail, mapRuntimeError(err, "image.inspect", runtimeapi.ResourceRef{Type: runtimeapi.ResourceImage, ID: summary.ID}, s.client.RuntimeType)
 }
 
 // PingTimeout verifies the runtime connection with a caller-selected deadline.

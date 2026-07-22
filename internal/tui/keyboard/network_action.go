@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
-	"github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
@@ -14,9 +13,9 @@ import (
 )
 
 // networkRemoveCmd returns a tea.Cmd that removes a network.
-func networkRemoveCmd(client *docker.Client, id string) tea.Cmd {
+func networkRemoveCmd(client runtimeapi.Engine, id string) tea.Cmd {
 	return func() tea.Msg {
-		_, err := client.Actions().Execute(context.Background(), runtimeapi.ResourceRef{Type: runtimeapi.ResourceNetwork, ID: id}, runtimeapi.ActionRemove, runtimeapi.ActionOptions{})
+		err := client.Networks().Remove(context.Background(), id)
 		return state.GenericActioned{Action: state.ActionRemoved, ID: id, Success: err == nil, Error: err}
 	}
 }
@@ -45,14 +44,14 @@ func doNetworkSort(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 // doNetworkInspect opens the detail view for the selected network.
 func doNetworkInspect(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil || m.Navigation.ActivePanel != state.PanelNetworks {
+	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelNetworks {
 		return m, nil
 	}
 	net := m.Resources.Networks.Selected()
 	if net == nil {
 		return m, nil
 	}
-	detail, err := m.Connection.Docker.InspectNetwork(net.ID)
+	detail, err := m.Connection.Engine.Networks().Inspect(context.Background(), net.ID)
 	if err != nil {
 		m.Feedback.RecordError(err.Error())
 		return m, nil
@@ -63,7 +62,7 @@ func doNetworkInspect(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 }
 
 func doNetworkRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil || m.Navigation.ActivePanel != state.PanelNetworks {
+	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelNetworks {
 		return m, nil
 	}
 	net := m.Resources.Networks.Selected()

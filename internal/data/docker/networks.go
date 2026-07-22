@@ -9,11 +9,6 @@ import (
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
-// ListNetworks returns all Docker networks visible to the client.
-func (c *Client) ListNetworks() ([]runtimeapi.Network, error) {
-	return c.ListNetworksContext(c.ctx, runtimeapi.NetworkListOptions{})
-}
-
 // ListNetworksContext returns all networks visible to the client with a caller-provided context.
 func (c *Client) ListNetworksContext(ctx context.Context, options runtimeapi.NetworkListOptions) ([]runtimeapi.Network, error) {
 	if c.RuntimeType == RuntimePodman {
@@ -51,11 +46,6 @@ func (c *Client) ListNetworksContext(ctx context.Context, options runtimeapi.Net
 	return items, nil
 }
 
-// InspectNetwork returns structured network detail from the runtime.
-func (c *Client) InspectNetwork(id string) (*runtimeapi.NetworkDetail, error) {
-	return c.InspectNetworkContext(c.ctx, id)
-}
-
 // InspectNetworkContext returns detailed network info with a caller-provided context.
 func (c *Client) InspectNetworkContext(ctx context.Context, id string) (*runtimeapi.NetworkDetail, error) {
 	if c.RuntimeType == RuntimePodman {
@@ -70,14 +60,6 @@ func (c *Client) InspectNetworkContext(ctx context.Context, id string) (*runtime
 		return nil, fmt.Errorf("parse network inspect %s: %w", id, err)
 	}
 	return &detail, nil
-}
-
-// RemoveNetwork removes a Docker network by ID or name.
-func (c *Client) RemoveNetwork(id string) error {
-	if c.RuntimeType == RuntimePodman {
-		return c.removeNetworkPodman(c.ctx, id)
-	}
-	return c.cli.NetworkRemove(c.ctx, id)
 }
 
 // CreateNetworkContext creates a new network with a caller-provided context.

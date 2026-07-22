@@ -3,7 +3,7 @@ package keyboard
 import (
 	"strings"
 
-	"github.com/elizabevil/docker-tui/internal/data/docker"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
@@ -44,10 +44,10 @@ func handleImagePanelKeys(key string, m *state.AppModel) (*state.AppModel, tea.C
 			mm, cmd := doImageSubContainerCmd(m, containerStartCmd)
 			return mm, tea.Batch(cmd, RecordKeyStroke(m, key, "Start"))
 		case keys.ActionContainerStop:
-			mm, cmd := doImageSubContainerCmd(m, func(c *docker.Client, id string) tea.Cmd { return containerStopCmd(c, id) })
+			mm, cmd := doImageSubContainerCmd(m, func(c runtimeapi.Engine, id string) tea.Cmd { return containerStopCmd(c, id) })
 			return mm, tea.Batch(cmd, RecordKeyStroke(m, key, "Stop"))
 		case keys.ActionContainerRestart:
-			mm, cmd := doImageSubContainerCmd(m, func(c *docker.Client, id string) tea.Cmd { return containerRestartCmd(c, id) })
+			mm, cmd := doImageSubContainerCmd(m, func(c runtimeapi.Engine, id string) tea.Cmd { return containerRestartCmd(c, id) })
 			return mm, tea.Batch(cmd, RecordKeyStroke(m, key, "Restart"))
 		case keys.ActionEnter, keys.ActionContainerLogs:
 			mm, cmd := doImageContainerLog(m)
@@ -75,7 +75,7 @@ func handleImagePanelKeys(key string, m *state.AppModel) (*state.AppModel, tea.C
 }
 
 func imageSubContainerID(m *state.AppModel) string {
-	if m.Connection.Docker == nil || m.Resources.Images.ContainersViewID == "" {
+	if m.Connection.Engine == nil || m.Resources.Images.ContainersViewID == "" {
 		return ""
 	}
 	imgShort := m.Resources.Images.ContainersViewID[:12]
@@ -123,20 +123,20 @@ func syncContainerCursorForSubView(m *state.AppModel) {
 	}
 }
 
-func doImageSubContainerCmd(m *state.AppModel, cmdFn func(*docker.Client, string) tea.Cmd) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil {
+func doImageSubContainerCmd(m *state.AppModel, cmdFn func(runtimeapi.Engine, string) tea.Cmd) (*state.AppModel, tea.Cmd) {
+	if m.Connection.Engine == nil {
 		return m, nil
 	}
 	id := imageSubContainerID(m)
 	if id == "" {
 		return m, nil
 	}
-	return m, cmdFn(m.Connection.Docker, id)
+	return m, cmdFn(m.Connection.Engine, id)
 }
 
 // doImageContainerLog opens the log view for the selected container in the image sub-view.
 func doImageContainerLog(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil {
+	if m.Connection.Engine == nil {
 		return m, nil
 	}
 	// Find the container at ContainerCursor matching ContainersViewID
@@ -177,5 +177,5 @@ func doImageContainerLog(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	m.Log.Open(matchedID)
 	m.Navigation.Mode = state.ModeLogView
 	cfg := m.Dependencies.Config.Logs
-	return m, FetchLogBatch(m.Connection.Docker, matchedID, cfg.Since, cfg.Tail, cfg.Timestamps)
+	return m, FetchLogBatch(m.Connection.Engine, matchedID, cfg.Since, cfg.Tail, cfg.Timestamps)
 }

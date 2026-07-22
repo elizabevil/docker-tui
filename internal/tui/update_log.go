@@ -30,9 +30,9 @@ func handleLogStreamError(m *state.AppModel, msg state.LogStreamError) (*state.A
 }
 
 func handleLogTick(m *state.AppModel, _ state.LogTick) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker != nil && m.Log.LogContainerID != "" {
+	if m.Connection.Engine != nil && m.Log.LogContainerID != "" {
 		// Fetch recent logs on subsequent ticks (use "10s" since to get new lines)
-		return m, keyboard.FetchLogBatch(m.Connection.Docker, m.Log.LogContainerID, "10s", "200", true)
+		return m, keyboard.FetchLogBatch(m.Connection.Engine, m.Log.LogContainerID, "10s", "200", true)
 	}
 	return m, nil
 }

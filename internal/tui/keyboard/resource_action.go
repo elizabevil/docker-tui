@@ -16,7 +16,7 @@ import (
 )
 
 func openResourceCreate(m *state.AppModel, resourceType runtimeapi.ResourceType) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil {
+	if m.Connection.Engine == nil {
 		return m, nil
 	}
 	m.Dialog.Open(state.DialogSpec{Kind: state.DialogResourceCreate, Title: i18n.T("resource.create.title", resourceTypeLabel(resourceType)), Body: string(resourceType)})
@@ -58,7 +58,7 @@ func validResourceName(name string) bool {
 }
 
 func resourceCreateCmd(m *state.AppModel, resourceType runtimeapi.ResourceType, name string) tea.Cmd {
-	client := m.Connection.Docker
+	client := m.Connection.Engine
 	return func() tea.Msg {
 		var err error
 		switch resourceType {
@@ -74,7 +74,7 @@ func resourceCreateCmd(m *state.AppModel, resourceType runtimeapi.ResourceType, 
 }
 
 func confirmResourcePrune(m *state.AppModel, resourceType runtimeapi.ResourceType) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil {
+	if m.Connection.Engine == nil {
 		return m, nil
 	}
 	message := i18n.T("resource.prune.confirm", resourceTypeLabel(resourceType))
@@ -92,7 +92,7 @@ func resourceTypeLabel(resourceType runtimeapi.ResourceType) string {
 }
 
 func resourcePruneCmd(m *state.AppModel, resourceType runtimeapi.ResourceType, trace audit.Trace) tea.Cmd {
-	client := m.Connection.Docker
+	client := m.Connection.Engine
 	return func() tea.Msg {
 		var result runtimeapi.PruneResult
 		var err error

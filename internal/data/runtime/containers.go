@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"io"
 	"time"
 )
 
@@ -160,10 +161,18 @@ type ContainerStats struct {
 	NetworkTx     float64
 }
 
+// ContainerLogOptions controls a finite container log read.
+type ContainerLogOptions struct {
+	Since      string
+	Tail       string
+	Timestamps bool
+}
+
 // ContainerService provides container lifecycle and inspection operations.
 type ContainerService interface {
 	List(context.Context, ContainerListOptions) ([]ContainerSummary, error)
 	Inspect(context.Context, string) (*ContainerDetail, error)
 	Top(context.Context, string) (ContainerProcesses, error)
 	Stats(context.Context, string) (ContainerStats, error)
+	Logs(context.Context, string, ContainerLogOptions) (io.ReadCloser, error)
 }

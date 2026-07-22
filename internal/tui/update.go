@@ -48,12 +48,12 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 	case tea.KeyPressMsg:
 		updatedModel, cmd := keyboard.HandleKeyPress(msg, m)
-		if updatedModel.Selection.PendingImagePull != "" && updatedModel.Navigation.Mode == state.ModeNormal && updatedModel.Connection.Docker != nil {
+		if updatedModel.Selection.PendingImagePull != "" && updatedModel.Navigation.Mode == state.ModeNormal && updatedModel.Connection.Engine != nil {
 			pullRef, trace := updatedModel.Selection.TakeImagePull()
 			if cmd != nil {
-				return updatedModel, tea.Batch(cmd, keyboard.ImagePullCmdWithAudit(updatedModel.Connection.Docker, pullRef, trace))
+				return updatedModel, tea.Batch(cmd, keyboard.ImagePullCmdWithAudit(updatedModel.Connection.Engine, pullRef, trace))
 			}
-			return updatedModel, keyboard.ImagePullCmdWithAudit(updatedModel.Connection.Docker, pullRef, trace)
+			return updatedModel, keyboard.ImagePullCmdWithAudit(updatedModel.Connection.Engine, pullRef, trace)
 		}
 		return updatedModel, cmd
 

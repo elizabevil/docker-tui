@@ -72,8 +72,8 @@ func toastLevel(level audit.Level) state.NotificationLevel {
 }
 
 func runtimeHost(m *state.AppModel) string {
-	if m != nil && m.Connection.Docker != nil {
-		return m.Connection.Docker.Host
+	if m != nil && m.Connection.Engine != nil {
+		return m.Connection.Engine.Identity().Endpoint
 	}
 	return ""
 }

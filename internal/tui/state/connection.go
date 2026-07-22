@@ -1,10 +1,13 @@
 package state
 
-import dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
+import (
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+)
 
 // ConnectionState owns the active runtime, selector and health state.
 type ConnectionState struct {
-	Docker                  *dockerclient.Client
+	Engine                  runtimeapi.Engine
 	Pool                    *dockerclient.ConnectionPool
 	Connecting              bool
 	Connected               bool
@@ -19,11 +22,12 @@ type ConnectionState struct {
 	EngineVersion           string
 }
 
-func NewConnectionState(client *dockerclient.Client) ConnectionState {
-	state := ConnectionState{Docker: client, Connected: client != nil}
-	if client != nil {
-		state.RuntimeType = string(client.RuntimeType)
-		state.EngineVersion = client.EngineVersion
+func NewConnectionState(engine runtimeapi.Engine) ConnectionState {
+	state := ConnectionState{Engine: engine, Connected: engine != nil}
+	if engine != nil {
+		identity := engine.Identity()
+		state.RuntimeType = string(identity.Type)
+		state.EngineVersion = identity.Version
 	}
 	return state
 }
@@ -32,10 +36,10 @@ func (s *ConnectionState) Begin() {
 	s.Connecting = true
 }
 
-func (s *ConnectionState) ConnectedTo(name string, client *dockerclient.Client) {
-	s.Docker = client
+func (s *ConnectionState) ConnectedTo(name string, engine runtimeapi.Engine) {
+	s.Engine = engine
 	s.Connecting = false
-	s.Connected = client != nil
+	s.Connected = engine != nil
 	s.ConnectionTarget = name
 	s.ConnectionFailure = dockerclient.ConnectionFailure{}
 	s.HealthFailures = 0
@@ -43,17 +47,18 @@ func (s *ConnectionState) ConnectedTo(name string, client *dockerclient.Client) 
 	if s.RuntimeSelectorError != nil {
 		delete(s.RuntimeSelectorError, name)
 	}
-	if client == nil {
+	if engine == nil {
 		s.RuntimeType = ""
 		s.EngineVersion = ""
 		return
 	}
-	s.RuntimeType = string(client.RuntimeType)
-	s.EngineVersion = client.EngineVersion
+	identity := engine.Identity()
+	s.RuntimeType = string(identity.Type)
+	s.EngineVersion = identity.Version
 }
 
 func (s *ConnectionState) Failed(name string, err error) {
-	s.Docker = nil
+	s.Engine = nil
 	s.Connecting = false
 	s.Connected = false
 	s.ConnectionTarget = name

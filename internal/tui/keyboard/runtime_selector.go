@@ -77,7 +77,7 @@ func runtimeConnectionCmd(m *state.AppModel, name string) tea.Cmd {
 		if err := m.Connection.Pool.Connect(name, 2*time.Second); err != nil {
 			return state.DockerConnected{Name: name, Error: err}
 		}
-		return state.DockerConnected{Name: name, Client: m.Connection.Pool.ActiveClient()}
+		return state.DockerConnected{Name: name, Engine: m.Connection.Pool.ActiveEngine()}
 	}
 }
 

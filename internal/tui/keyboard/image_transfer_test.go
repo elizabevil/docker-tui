@@ -11,7 +11,7 @@ import (
 
 func TestImageSaveInputStartsCancellableWorkflow(t *testing.T) {
 	model := &state.AppModel{
-		Connection: state.ConnectionState{Docker: &docker.Client{}},
+		Connection: state.ConnectionState{Engine: &docker.Client{}},
 		Navigation: state.NavigationState{ActivePanel: state.PanelImages},
 		Resources:  state.ResourceState{Images: state.NewImageListModel()},
 	}
@@ -31,7 +31,7 @@ func TestImageSaveInputStartsCancellableWorkflow(t *testing.T) {
 
 func TestImageLoadWorkflowDoesNotRequireSelection(t *testing.T) {
 	model := &state.AppModel{
-		Connection: state.ConnectionState{Docker: &docker.Client{}},
+		Connection: state.ConnectionState{Engine: &docker.Client{}},
 		Navigation: state.NavigationState{ActivePanel: state.PanelImages},
 		Resources:  state.ResourceState{Images: state.NewImageListModel()},
 	}

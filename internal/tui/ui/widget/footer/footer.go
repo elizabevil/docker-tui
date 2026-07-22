@@ -24,8 +24,8 @@ func StatusBar(app *state.AppModel) string {
 		engineLabel = "no runtime"
 	}
 	hostStr := ""
-	if app.Connection.Docker != nil {
-		hostStr = app.Connection.Docker.Host
+	if app.Connection.Engine != nil {
+		hostStr = app.Connection.Engine.Identity().Endpoint
 	}
 	status := fmt.Sprintf("%s %s", component.GetStyle("toastSuccess").Render("●"), engineLabel)
 	if app.Connection.Connecting {

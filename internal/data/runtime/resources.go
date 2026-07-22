@@ -130,13 +130,17 @@ type Network struct {
 // VolumeService provides lifecycle operations for volumes.
 type VolumeService interface {
 	List(context.Context, VolumeListOptions) ([]Volume, error)
+	Inspect(context.Context, string) (*VolumeDetail, error)
 	Create(context.Context, VolumeCreateOptions) (*Volume, error)
+	Remove(context.Context, string, bool) error
 	Prune(context.Context, PruneOptions) (PruneResult, error)
 }
 
 // NetworkService provides lifecycle operations for networks.
 type NetworkService interface {
 	List(context.Context, NetworkListOptions) ([]Network, error)
+	Inspect(context.Context, string) (*NetworkDetail, error)
 	Create(context.Context, NetworkCreateOptions) (*Network, error)
+	Remove(context.Context, string) error
 	Prune(context.Context, PruneOptions) (PruneResult, error)
 }

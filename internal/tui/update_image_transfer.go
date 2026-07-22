@@ -36,8 +36,8 @@ func handleImageTransferReceived(m *state.AppModel, msg state.ImageTransferRecei
 		keyboard.ShowToastNow(m, display)
 	}
 	keyboard.FinishAudit(m, trace, result, display, audit.Details{Error: errorText(msg.Event.Error)})
-	if m.Connection.Docker != nil {
-		return m, keyboard.FetchImages(m.Connection.Docker)
+	if m.Connection.Engine != nil {
+		return m, keyboard.FetchImages(m.Connection.Engine)
 	}
 	return m, nil
 }

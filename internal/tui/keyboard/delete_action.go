@@ -10,7 +10,7 @@ import (
 )
 
 func doDeleteAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil {
+	if m.Connection.Engine == nil {
 		return m, nil
 	}
 	if len(m.Selection.MarkedIDs) > 0 {
@@ -53,10 +53,10 @@ func doEnterAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if m.Navigation.Mode == state.ModeMark {
 		return doToggleMark(m)
 	}
-	if m.Navigation.ActivePanel == state.PanelContainers && m.Connection.Docker != nil {
+	if m.Navigation.ActivePanel == state.PanelContainers && m.Connection.Engine != nil {
 		return doLogAction(m)
 	}
-	if m.Navigation.ActivePanel == state.PanelImages && m.Connection.Docker != nil {
+	if m.Navigation.ActivePanel == state.PanelImages && m.Connection.Engine != nil {
 		return doImageExpand(m)
 	}
 	if m.Navigation.ActivePanel == state.PanelVolumes {
@@ -87,8 +87,9 @@ func doDetailAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 }
 
 func showConnectionInfo(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker != nil {
-		ShowToastNow(m, fmt.Sprintf("Connected: %s @ %s", m.Connection.Docker.RuntimeType, m.Connection.Docker.Host))
+	if m.Connection.Engine != nil {
+		identity := m.Connection.Engine.Identity()
+		ShowToastNow(m, fmt.Sprintf("Connected: %s @ %s", identity.Type, identity.Endpoint))
 	} else {
 		ShowToastNow(m, "Disconnected — no container engine available")
 	}

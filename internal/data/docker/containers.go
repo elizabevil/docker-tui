@@ -9,6 +9,7 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/pkg/stdcopy"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
 // ListContainers returns containers matching the given options.
@@ -153,15 +154,14 @@ func (c *Client) ContainerRemove(id string, force bool) error {
 	return c.cli.ContainerRemove(c.ctx, id, container.RemoveOptions{Force: force})
 }
 
-// ContainerLogs returns the demuxed stdout/stderr logs for a container.
-func (c *Client) ContainerLogs(id string, since, tail string, timestamps bool) (io.ReadCloser, error) {
-	resp, err := c.cli.ContainerLogs(c.ctx, id, container.LogsOptions{
+func (c *Client) containerLogsContext(ctx context.Context, id string, options runtimeapi.ContainerLogOptions) (io.ReadCloser, error) {
+	resp, err := c.cli.ContainerLogs(ctx, id, container.LogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
 		Follow:     false,
-		Timestamps: timestamps,
-		Since:      since,
-		Tail:       tail,
+		Timestamps: options.Timestamps,
+		Since:      options.Since,
+		Tail:       options.Tail,
 	})
 	if err != nil {
 		return nil, err

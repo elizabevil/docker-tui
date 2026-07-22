@@ -39,7 +39,7 @@ func doToggleMark(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 }
 
 func doBulkDelete(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil || len(m.Selection.MarkedIDs) == 0 {
+	if m.Connection.Engine == nil || len(m.Selection.MarkedIDs) == 0 {
 		return m, nil
 	}
 	m.Confirm.ConfirmAction = "bulk-delete"
@@ -66,19 +66,19 @@ func doConfirmYes(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case action == "bulk-delete":
 		return executeBulkDelete(m, trace)
 	case action == "container-stop":
-		return m, withContainerAudit(containerStopCmd(m.Connection.Docker, target), trace)
+		return m, withContainerAudit(containerStopCmd(m.Connection.Engine, target), trace)
 	case action == "container-kill":
-		return m, withContainerAudit(containerKillCmd(m.Connection.Docker, target), trace)
+		return m, withContainerAudit(containerKillCmd(m.Connection.Engine, target), trace)
 	case action == "container-restart":
-		return m, withContainerAudit(containerRestartCmd(m.Connection.Docker, target), trace)
+		return m, withContainerAudit(containerRestartCmd(m.Connection.Engine, target), trace)
 	case action == "container-remove":
-		return m, withContainerAudit(containerRemoveCmd(m.Connection.Docker, target, true), trace)
+		return m, withContainerAudit(containerRemoveCmd(m.Connection.Engine, target, true), trace)
 	case action == "image-remove":
-		return m, withImageAudit(imageRemoveCmd(m.Connection.Docker, target, true), trace)
+		return m, withImageAudit(imageRemoveCmd(m.Connection.Engine, target, true), trace)
 	case action == "volume-remove":
-		return m, withGenericAudit(volumeRemoveCmd(m.Connection.Docker, target, true), trace)
+		return m, withGenericAudit(volumeRemoveCmd(m.Connection.Engine, target, true), trace)
 	case action == "network-remove":
-		return m, withGenericAudit(networkRemoveCmd(m.Connection.Docker, target), trace)
+		return m, withGenericAudit(networkRemoveCmd(m.Connection.Engine, target), trace)
 	case action == "volume-prune":
 		return m, resourcePruneCmd(m, runtimeapi.ResourceVolume, trace)
 	case action == "network-prune":
@@ -101,19 +101,19 @@ func executeBulkDelete(m *state.AppModel, trace audit.Trace) (*state.AppModel, t
 	switch m.Navigation.ActivePanel {
 	case state.PanelContainers:
 		for _, id := range ids {
-			cmds = append(cmds, withContainerAudit(containerRemoveCmd(m.Connection.Docker, id, true), trace))
+			cmds = append(cmds, withContainerAudit(containerRemoveCmd(m.Connection.Engine, id, true), trace))
 		}
 	case state.PanelImages:
 		for _, id := range ids {
-			cmds = append(cmds, withImageAudit(imageRemoveCmd(m.Connection.Docker, id, true), trace))
+			cmds = append(cmds, withImageAudit(imageRemoveCmd(m.Connection.Engine, id, true), trace))
 		}
 	case state.PanelVolumes:
 		for _, id := range ids {
-			cmds = append(cmds, withGenericAudit(volumeRemoveCmd(m.Connection.Docker, id, true), trace))
+			cmds = append(cmds, withGenericAudit(volumeRemoveCmd(m.Connection.Engine, id, true), trace))
 		}
 	case state.PanelNetworks:
 		for _, id := range ids {
-			cmds = append(cmds, withGenericAudit(networkRemoveCmd(m.Connection.Docker, id), trace))
+			cmds = append(cmds, withGenericAudit(networkRemoveCmd(m.Connection.Engine, id), trace))
 		}
 	}
 

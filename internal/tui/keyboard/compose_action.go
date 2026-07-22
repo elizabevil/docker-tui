@@ -64,7 +64,7 @@ func selectedComposeService(m *state.AppModel, project string) string {
 }
 
 func doComposeStart(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil {
+	if m.Connection.Engine == nil {
 		return m, nil
 	}
 	project := currentComposeProject(m)
@@ -80,13 +80,13 @@ func doComposeStart(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	cmds := make([]tea.Cmd, 0, len(containers))
 	for _, c := range containers {
-		cmds = append(cmds, withContainerAudit(containerStartCmd(m.Connection.Docker, c.ID), trace))
+		cmds = append(cmds, withContainerAudit(containerStartCmd(m.Connection.Engine, c.ID), trace))
 	}
 	return m, tea.Batch(cmds...)
 }
 
 func doComposeStop(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil {
+	if m.Connection.Engine == nil {
 		return m, nil
 	}
 	project := currentComposeProject(m)
@@ -102,13 +102,13 @@ func doComposeStop(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	cmds := make([]tea.Cmd, 0, len(containers))
 	for _, c := range containers {
-		cmds = append(cmds, withContainerAudit(containerStopCmd(m.Connection.Docker, c.ID), trace))
+		cmds = append(cmds, withContainerAudit(containerStopCmd(m.Connection.Engine, c.ID), trace))
 	}
 	return m, tea.Batch(cmds...)
 }
 
 func doComposeDown(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil {
+	if m.Connection.Engine == nil {
 		return m, nil
 	}
 	project := currentComposeProject(m)
@@ -126,19 +126,19 @@ func doComposeDown(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	cmds := make([]tea.Cmd, 0, len(containers)+len(volumes)+len(networks))
 	for _, c := range containers {
-		cmds = append(cmds, withContainerAudit(containerRemoveCmd(m.Connection.Docker, c.ID, true), trace))
+		cmds = append(cmds, withContainerAudit(containerRemoveCmd(m.Connection.Engine, c.ID, true), trace))
 	}
 	for _, name := range volumes {
-		cmds = append(cmds, withGenericAudit(volumeRemoveCmd(m.Connection.Docker, name, true), trace))
+		cmds = append(cmds, withGenericAudit(volumeRemoveCmd(m.Connection.Engine, name, true), trace))
 	}
 	for _, id := range networks {
-		cmds = append(cmds, withGenericAudit(networkRemoveCmd(m.Connection.Docker, id), trace))
+		cmds = append(cmds, withGenericAudit(networkRemoveCmd(m.Connection.Engine, id), trace))
 	}
 	return m, tea.Batch(cmds...)
 }
 
 func doComposeLogs(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker == nil {
+	if m.Connection.Engine == nil {
 		return m, nil
 	}
 	project := currentComposeProject(m)
@@ -164,5 +164,5 @@ func doComposeLogs(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	m.Navigation.Mode = state.ModeLogView
 	cfg := m.Dependencies.Config.Logs
 	ShowToastNow(m, fmt.Sprintf("✓ compose logs %s/%s", project, picked.Name))
-	return m, FetchLogBatch(m.Connection.Docker, picked.ID, cfg.Since, cfg.Tail, cfg.Timestamps)
+	return m, FetchLogBatch(m.Connection.Engine, picked.ID, cfg.Since, cfg.Tail, cfg.Timestamps)
 }
