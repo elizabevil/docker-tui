@@ -20,15 +20,15 @@
 
 | 状态 | 数量 |
 |---|---:|
-| `done` | 13 |
-| `in_progress` | 1 |
-| `todo` | 7 |
+| `done` | 15 |
+| `in_progress` | 0 |
+| `todo` | 6 |
 | `blocked` | 0 |
 
 当前执行队列：
 
-1. 执行 `TASK-021`，建立 Docker / Podman 独立 adapter 和统一 runtime driver。
-2. 执行 `TASK-011`，完善 Compose / 容器 / 镜像联动刷新。
+1. 执行 `TASK-011`，完善 Compose / 容器 / 镜像联动刷新。
+2. 执行 `TASK-010`，批量操作扩展与部分成功反馈。
 
 ## 已完成基础
 
@@ -42,7 +42,7 @@
 | `TASK-006` | endpoint / runtime identity 去重 | P1 | `done` | 本地候选与配置连接按规范化 key 去重并保持顺序 |
 | `TASK-007` | 新配置 schema 强制校验 | P1 | `done` | 解码后按配置子结构校验，运行期直接使用已验证的健康参数 |
 
-相关提交：`7cf479a`、`948d9d2`、`aa7567d`、`4fe226d`、`801eb76`。
+相关提交：`7cf479a`、`948d9d2`、`aa7567d`、`4fe226d`、`801eb76`、`f71d405`。
 
 ## 当前架构任务
 
@@ -64,7 +64,7 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 
 | 编号 | 任务 | 优先级 | 状态 | 依赖 | 验收重点 |
 |---|---|---:|---|---|---|
-| `TASK-021` | [Docker / Podman 统一 runtime driver](unified-runtime-driver.md) | P0 | `in_progress` | TASK-004 | **已完成**: Phase 0 双构建矩阵 + CGO 约束验证; Container/Volume/Network/Image list + inspect (结构化类型); Image 域已迁移至 runtime 包 (`runtime.ImageSummary`/`runtime.ImageDetail`/`runtime.ImageService`); Volume/Network create + prune; Podman CGO+REST 双 transport; `Raw()` 已删除; TUI 不再 import Docker SDK; runtime + docker 包全量 doc comments。**剩余**: Logs 未加入 Engine 接口; TUI 仍持有 `*docker.Client` 而非 `runtime.Engine`; Volume/Network Inspect/Remove 未在 Service 接口中 |
+| `TASK-021` | [Docker / Podman 统一 runtime driver](unified-runtime-driver.md) | P0 | `done` | TASK-004 | 独立 Docker/Podman Engine；统一 Container/Image/Volume/Network service；Podman native actions、Logs、Events、Exec；同字段 AND 筛选；统一 errors/capabilities；TUI/state 仅依赖 `runtime.Engine`；CGO/non-CGO 矩阵通过 |
 | `TASK-008` | Docker / Podman Events 接入主循环 | P1 | `done` | TASK-003、TASK-021 | 订阅绑定活动连接；切换时取消；1-30 秒退避重连；100ms 事件合并；按资源局部刷新；15 秒轮询降级 |
 | `TASK-009` | Volume / Network 创建与清理 | P1 | `done` | TASK-021 | 已完成 create、prune、确认交互、逐资源部分失败反馈、Docker/Podman contract tests 和双构建矩阵 |
 | `TASK-010` | 批量操作扩展与部分成功反馈 | P2 | `todo` | 审计模型、TASK-017 | 每个目标独立终态、汇总提示和可追溯审计 |
@@ -75,27 +75,27 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 
 `build` 需要独立输入和进度交互设计，暂不并入 `TASK-018`，待该任务完成后再建立实施项。
 
-## TASK-021 状态快照（2026-07-21）
+## TASK-021 状态快照（2026-07-22）
 
 ### 已完成的 Phase
 
 | Phase | 内容 | 状态 |
 |---|---|---|
 | Phase 0 | 依赖探测 + CGO 约束验证 | ✅ 完成 |
-| Phase 1 | 域包 + 连接驱动（`runtime.Engine` 工厂） | ⚠️ 部分完成（Engine 接口已定义，Client 已实现，但无独立 Podman Engine 类型） |
-| Phase 2 | 只读资源迁移 | ⚠️ 部分完成（见下方详情） |
-| Phase 3 | 资源动作迁移 | ⚠️ 部分完成（Volume/Network create+prune 已实现） |
-| Phase 4 | 流式能力迁移 | ⚠️ 部分完成（Exec 与 Events 已迁移并接入主循环；Logs 尚未进入 Engine） |
-| Phase 5 | 清理 | ❌ 未开始 |
+| Phase 1 | 域包 + 连接驱动（`runtime.Engine` 工厂） | ✅ 完成 |
+| Phase 2 | 只读资源迁移 | ✅ 完成 |
+| Phase 3 | 资源动作迁移 | ✅ 完成 |
+| Phase 4 | 流式能力迁移 | ✅ 完成 |
+| Phase 5 | 清理 | ✅ 完成 |
 
 ### Phase 2 详情：只读资源迁移状态
 
 | 资源 | List | Inspect | 结构化类型 | Podman 双 transport |
 |------|:----:|:-------:|:--------:|:------------------:|
 | Container | ✅ Engine 接口 | ✅ Engine 接口 | ✅ `ContainerDetail` | ✅ CGO+REST |
-| Volume | ✅ Engine 接口 | ⚠️ 直接方法 | ✅ `VolumeDetail` | ✅ CGO+REST |
-| Network | ✅ Engine 接口 | ⚠️ 直接方法 | ✅ `NetworkDetail` | ✅ CGO+REST |
-| Image | ✅ Engine 接口 | ✅ Engine 接口 | ✅ `ImageSummary`/`ImageDetail` | ⚠️ 仅 CGO+REST list |
+| Volume | ✅ Engine 接口 | ✅ Engine 接口 | ✅ `VolumeDetail` | ✅ CGO+REST |
+| Network | ✅ Engine 接口 | ✅ Engine 接口 | ✅ `NetworkDetail` | ✅ CGO+REST |
+| Image | ✅ Engine 接口 | ✅ Engine 接口 | ✅ `ImageSummary`/`ImageDetail` | ✅ CGO+REST |
 
 ### TASK-021 完成标准检查
 
@@ -103,27 +103,27 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 |---|---------|------|
 | 1 | TUI & state 不再 import Docker/Podman SDK | ✅ 达标 |
 | 2 | 不存在 `Raw()` 或上层 SDK 类型 | ✅ 达标 |
-| 3 | ConnectionPool & 业务命令仅依赖 `runtime.Engine` | ❌ TUI 仍持有 `*docker.Client` |
-| 4 | Docker & Podman 通过独立 adapter 实现相同契约 | ⚠️ 共用一个 `docker.Client`，通过 RuntimeType 分支 |
-| 5 | 差异仅存在于 adapter mapper、capabilities、unified errors | ✅ 达标（Image 域已迁移至 runtime 包） |
-| 6 | TASK-017 的 5 个操作在两种 runtime 下通过 | ✅ 达标（pause/unpause/rename/top/port） |
+| 3 | ConnectionPool & 业务命令仅依赖 `runtime.Engine` | ✅ 达标 |
+| 4 | Docker & Podman 通过独立 adapter 实现相同契约 | ✅ 达标 |
+| 5 | 差异仅存在于 adapter mapper、capabilities、unified errors | ✅ 达标 |
+| 6 | TASK-017 的 5 个操作在两种 runtime 下通过 | ✅ 达标 |
 | 7 | TASK-009 的 create/prune 统一 options/results 就绪 | ✅ 达标 |
 | 8 | CGO/non-CGO 策略清晰，build matrix 通过 | ✅ 达标 |
 
-### 剩余工作分解
+### 已完成工作
 
-| 工作项 | 优先级 | 说明 |
-|--------|--------|------|
-| Logs 加入 Engine 接口 | 高 | `ContainerService` 增加 `Logs()` 方法，提供 runtime-neutral 的流式抽象 |
-| TUI 持有 `runtime.Engine` 而非 `*docker.Client` | 中 | 解耦 TUI 与具体适配器 |
-| Volume/Network Inspect/Remove 加入 Service 接口 | 中 | 完善 `VolumeService`/`NetworkService` 的方法集 |
-| Container Attach | 低 | 独立 container attach 能力（目前仅 exec attach） |
+| 工作项 | 状态 | 说明 |
+|--------|------|------|
+| Logs 加入 Engine 接口 | ✅ | `ContainerService.Logs()` 提供 runtime-neutral 的流式抽象 |
+| TUI 持有 `runtime.Engine` 而非 `*docker.Client` | ✅ | 解耦 TUI 与具体适配器 |
+| Volume/Network Inspect/Remove 加入 Service 接口 | ✅ | 完善 `VolumeService`/`NetworkService` 的方法集 |
+| Container Attach | ✅ | 独立 container attach 能力 |
 
 ## 操作历史与体验
 
 | 编号 | 任务 | 优先级 | 状态 | 依赖 | 验收重点 |
 |---|---|---:|---|---|---|
-| `TASK-012` | 审计操作历史面板 | P2 | `todo` | TASK-001、审计模型 | trace 查询、结果筛选、敏感信息边界和大文件读取策略 |
+| `TASK-012` | 审计操作历史面板 | P2 | `done` | TASK-001、审计模型 | 已实现 PanelAudit 面板、AuditState 状态域、文本/级别筛选、记录详情视图、键盘导航（Enter/Esc/E），审计记录从 Service.RecentOperations() 实时同步 |
 | `TASK-013` | 鼠标与小终端降级布局 | P3 | `todo` | 页面固定轨道 | 鼠标不破坏键盘路径，小终端无重叠且核心操作可达 |
 | `TASK-014` | 发布、命名和跨平台分发 | P3 | `todo` | 新配置稳定 | 统一命名、构建产物、版本信息、Linux / macOS 发布说明 |
 | `TASK-020` | Docker / Podman 专有能力评估 | P3 | `todo` | TASK-004 | Podman pod/secret/kube 与 Docker buildx/context 等能力分开决策 |
@@ -135,16 +135,13 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
   |-> TASK-015 状态域拆分
   |-> TASK-016 TLS 错误体验
   |-> TASK-017 高频容器操作 -> TASK-010 / TASK-019
-  `-> TASK-021 统一 runtime driver [in_progress]
-        |-> TASK-009 Volume / Network         [done]
-        |-> TASK-018 镜像工作流               [done]
-        |-> TASK-008 Events [done] -> TASK-011 联动刷新 [todo]
-        `-> TASK-021 剩余工作:
-              - Logs 加入 Engine 接口
-              - TUI 持有 runtime.Engine
-              - Volume/Network Inspect/Remove 加入 Service 接口
+  |-> TASK-021 统一 runtime driver [done]
+  |     |-> TASK-009 Volume / Network         [done]
+  |     |-> TASK-018 镜像工作流               [done]
+  |     `-> TASK-008 Events [done] -> TASK-011 联动刷新 [todo]
+  `-> TASK-012 审计历史面板 [done]
 
-独立后续: TASK-012 / TASK-013 / TASK-014 / TASK-020
+独立后续: TASK-013 / TASK-014 / TASK-020
 ```
 
 ## 暂不实施

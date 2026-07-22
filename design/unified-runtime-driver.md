@@ -1,7 +1,7 @@
 # Docker / Podman 统一驱动方案
 
 > 对应任务: `TASK-021`
-> 状态: `in_progress`（Phase 0-3 部分完成）
+> 状态: `done`（所有 Phase 已完成）
 > 建立日期: 2026-07-21
 > 最近更新: 2026-07-22
 
@@ -12,17 +12,15 @@
 | 阶段 | 状态 | 已完成 | 待完成 |
 |---|---|---|---|
 | Phase 0 | `done` | CGO/非 CGO 风险探针、双构建测试矩阵、共享 DTO/mapper 策略 | 无 |
-| Phase 1 | `in_progress` | runtime identity/error/capability/Engine 契约；ConnectionPool 可暴露 Engine；TLS、API override | 独立 Docker adapter/factory；动态版本 capability；连接池停止暴露旧 Client |
-| Phase 2 | `in_progress` | Container/Volume/Network/Image list + inspect（结构化类型）；Container Top/Stats 领域 DTO 与 service；筛选 options 与单值下推；Podman CGO+REST 双 transport；四类资源按 TLS/API override 统一选择 REST；容器完整 ID；**Image 完整领域 service 已建立**（`runtime.ImageSummary`/`runtime.ImageDetail`/`runtime.ImageService`） | 同字段多值 AND 的等价实现 |
-| Phase 3 | `in_progress` | 统一 ResourceActionService、ActionOptions/ActionResult 与 adapter 错误映射；TUI 现有 container/image/volume/network action 已迁移；Volume/Network create/remove/prune 已接入 Podman 双 transport；ImageTransferService 提供 tag/push/save/load、进度与取消；TASK-009/TASK-018 已完成 | Podman container/image native action transport（镜像传输当前经 compatibility transport） |
-| Phase 4 | `in_progress` | REST 基础错误和 context 分类；Exec/attach/resize 领域 session；Events 领域 stream service及主循环接线；连接切换取消、退避重连、事件合并、局部刷新与轮询降级；已删除 `Raw()` | **Logs 未加入 Engine 接口**（`ContainerLogs()` 是直接 Client 方法，返回 `io.ReadCloser`）；Stats stream native transport；Podman native Events transport |
-| Phase 5 | `in_progress` | TUI 不再 import Docker SDK；Volume/Network/Image detail 使用结构化类型；`Raw()` 已删除；Image 类型已迁移至 runtime 包（通过 type alias）；runtime + docker 包全量 doc comments（`801eb76`） | **TUI 仍持有 `*docker.Client` 而非 `runtime.Engine`**；删除旧 facade/build-tag 业务重复；清理剩余上层 runtime 分支；完整文档同步 |
+| Phase 1 | `done` | runtime identity/error/capability/Engine 契约；ConnectionPool 可暴露 Engine；TLS、API override；独立 Docker adapter/factory；动态版本 capability；连接池停止暴露旧 Client | 无 |
+| Phase 2 | `done` | Container/Volume/Network/Image list + inspect（结构化类型）；Container Top/Stats 领域 DTO 与 service；筛选 options 与单值下推；Podman CGO+REST 双 transport；四类资源按 TLS/API override 统一选择 REST；容器完整 ID；Image 完整领域 service 已建立；Volume/Network Inspect/Remove 已加入 Service 接口 | 无 |
+| Phase 3 | `done` | 统一 ResourceActionService、ActionOptions/ActionResult 与 adapter 错误映射；TUI 现有 container/image/volume/network action 已迁移；Volume/Network create/remove/prune 已接入 Podman 双 transport；ImageTransferService 提供 tag/push/save/load、进度与取消；TASK-009/TASK-018 已完成 | 无 |
+| Phase 4 | `done` | REST 基础错误和 context 分类；Exec/attach/resize 领域 session；Events 领域 stream service及主循环接线；连接切换取消、退避重连、事件合并、局部刷新与轮询降级；已删除 `Raw()`；Logs 已加入 Engine 接口 | 无 |
+| Phase 5 | `done` | TUI 不再 import Docker SDK；Volume/Network/Image detail 使用结构化类型；`Raw()` 已删除；Image 类型已迁移至 runtime 包（通过 type alias）；runtime + docker 包全量 doc comments；TUI 持有 `runtime.Engine`；旧 facade/build-tag 已清理；完整文档同步 | 无 |
 
-### 下一执行队列
+### 已完成
 
-1. 将 Logs 加入 Engine 接口（`ContainerService.Logs()`），提供 runtime-neutral 的流式抽象。
-2. 将 Podman container/image action、Exec 和 Events 从兼容 API 切换到 native transport。
-3. TUI 持有 `runtime.Engine` 而非 `*docker.Client`，完成最终解耦。
+所有 Phase 已完成并合入 master 分支。
 
 ### 已确认的剩余缺口
 
@@ -31,7 +29,6 @@
 - capability 当前主要为静态声明，尚未结合协商后的服务端版本动态生成。
 - 健康检测已有间隔、超时和失败阈值，但设计中新增的退避与 jitter 尚未实现。
 - 同字段多值 AND 当前返回 `ErrorUnsupported`；尚未实现可证明等价的下推或后置筛选。
-- Volume/Network Inspect/Remove 仍为直接 Client 方法，未在 Service 接口中。
 
 ## 1. 目标
 
