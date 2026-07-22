@@ -51,7 +51,8 @@ cmd/docker-tui/
 
 - `audit`：用户操作 trace、强类型目标、通知/操作历史投影和按日 JSONL sink
 - `config`：配置默认值、加载、保存、主题加载
-- `docker`：当前 Docker SDK facade、连接池和少量 Podman image adapter；多数 Podman 能力仍经过 Docker compatibility API，正式双 adapter 迁移见 [`TASK-021`](../design/unified-runtime-driver.md)
+- `runtime`：SDK 无关的 Engine、Container/Volume/Network service、领域 DTO、错误、capability、筛选 options，以及共享 Podman REST transport
+- `docker`：迁移期兼容 facade 和连接池；Docker 使用 SDK，Podman 的 Container/Image/Volume/Network list 以及 Volume/Network inspect/remove 已具备 bindings/REST 双 transport 和共享 mapper
 - `i18n`：`zh` / `en` 文案
 
 ### `internal/tui`
@@ -136,8 +137,9 @@ keyboard action
 
 - 多资源面板：容器、镜像、卷、网络、Compose
 - 连接池：本地 Podman / Docker 自动尝试，可运行时切换
-- TLS 连接：强制证书验证，区分 CA、客户端证书、主机名、握手和网络错误；UI 仅展示安全分类文案及 TLS 配置/验证状态
-- 高频容器操作：Pause/Unpause、Rename、Top 和结构化 Port bindings 通过 Docker-compatible API 同时适配 Docker 与 Podman
+- TLS 连接：默认验证证书，支持显式 `insecureSkipVerify`；UI 区分 TLS configured、verified 和 insecure，证书材料在首次连接时加载
+- 统一只读资源：Container/Image/Volume/Network list 使用统一 options 和筛选契约；Podman CGO 使用 bindings，非 CGO 或 TLS/API override 使用共享 REST transport
+- 高频容器操作：Pause/Unpause、Rename、Top 和结构化 Port bindings 当前仍主要通过 Docker-compatible API，等待 action/top service 迁移
 - 容器操作：启动、停止、重启、Kill、Logs、Exec、Inspect
 - 镜像操作：拉取、删除、Prune、Detail、导出/调试入口
 - 卷/网络：列表、删除、详情
@@ -152,6 +154,7 @@ keyboard action
 这些内容在旧文档里容易被写错，这里按当前代码记录：
 
 - `internal/data/docker/events.go` 已实现 `Client.Events()`，但启动流程里没有订阅事件流；当前刷新主路径仍是连接后 `FetchAll()` 和显式刷新。
+- `Client.Raw()` 仍被 Stats 和 Exec 路径使用；TUI 尚未完全解除 Docker SDK 依赖。
 - 容器 stats 当前不是“仅聚焦项轮询”，而是对当前容器列表逐项请求，轮询间隔来自 `config.Docker.StatsPollSec`，默认 3 秒。
 - Compose 面板不是直接解析 `compose.yaml`，而是基于容器上的 `com.docker.compose.*` labels 聚合。
 - `config.Keymap` 已通过统一动作注册表接入 `keyboard.HandleKeyPress()`；当前支持动作级默认绑定覆盖，用户级上下文覆盖尚未开放。

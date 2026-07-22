@@ -1,7 +1,7 @@
 # 后续需求实施任务清单
 
 > 建立日期: 2026-07-20  
-> 最近整理: 2026-07-21
+> 最近整理: 2026-07-21（同步至提交 `137229c`）
 > 依据: [后续需求与规划讨论](future-requirements-discussion.md)、[Docker / Podman 能力分析](podman-capabilities-analysis.md)
 > 规则: 本文是后续工作的唯一主任务台账；其他设计文档中的任务编号仅作为来源参考。
 
@@ -21,8 +21,8 @@
 | 状态 | 数量 |
 |---|---:|
 | `done` | 10 |
-| `in_progress` | 0 |
-| `todo` | 11 |
+| `in_progress` | 1 |
+| `todo` | 10 |
 | `blocked` | 0 |
 
 当前执行队列：
@@ -57,7 +57,7 @@
 
 | 编号 | 任务 | 优先级 | 状态 | 依赖 | 验收重点 |
 |---|---|---:|---|---|---|
-| `TASK-016` | TLS / 证书错误分类与安全状态展示 | P0 | `done` | TASK-005 | 已结构化区分 CA、客户端证书、主机名、握手和网络错误；选择框、Toast 与状态栏只显示本地化安全文案，并区分 TLS 已配置/已验证 |
+| `TASK-016` | TLS / 证书错误分类与安全状态展示 | P0 | `done` | TASK-005 | 已结构化区分 CA、客户端证书、主机名、握手和网络错误；选择框、Toast 与状态栏使用本地化安全文案，并区分 TLS 已配置/已验证/不安全 |
 
 TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示与连接标识由 `TASK-016` 完成。
 
@@ -65,7 +65,7 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 
 | 编号 | 任务 | 优先级 | 状态 | 依赖 | 验收重点 |
 |---|---|---:|---|---|---|
-| `TASK-021` | [Docker / Podman 统一 runtime driver](unified-runtime-driver.md) | P0 | `in progress` | TASK-004 | Phase 0 已确认 Podman bindings 不满足非 CGO 构建；采用统一契约、Docker SDK adapter 与 Podman REST adapter |
+| `TASK-021` | [Docker / Podman 统一 runtime driver](unified-runtime-driver.md) | P0 | `in_progress` | TASK-004 | 已完成统一契约、双构建矩阵、Podman REST、Container/Image/Volume/Network list mapper，以及 Volume/Network inspect/remove；剩余范围见设计文档状态快照 |
 | `TASK-008` | Docker / Podman Events 接入主循环 | P1 | `todo` | TASK-003、TASK-021 | 生命周期管理、断线恢复、事件合并、局部刷新和无事件降级 |
 | `TASK-009` | Volume / Network 创建与清理 | P1 | `todo` | TASK-021 | create、prune、确认交互、部分失败反馈及双运行时测试 |
 | `TASK-010` | 批量操作扩展与部分成功反馈 | P2 | `todo` | 审计模型、TASK-017 | 每个目标独立终态、汇总提示和可追溯审计 |
