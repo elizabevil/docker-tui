@@ -6,7 +6,7 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
-	"github.com/elizabevil/docker-tui/internal/tui/utils"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 // RowRenderer 高效渲染数据行，支持预计算列宽、列间距、列级样式。

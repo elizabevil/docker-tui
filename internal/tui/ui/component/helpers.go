@@ -3,7 +3,7 @@ package component
 import (
 	"charm.land/lipgloss/v2"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
-	"github.com/elizabevil/docker-tui/internal/tui/utils"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 // CalcRowHeight returns the number of data rows that fit in the given panel height.

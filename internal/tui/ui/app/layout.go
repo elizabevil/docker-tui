@@ -21,7 +21,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/footer"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/header"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/panel"
-	"github.com/elizabevil/docker-tui/internal/tui/utils"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 //go:embed app.jsonc

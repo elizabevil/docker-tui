@@ -18,6 +18,7 @@ import (
 	"github.com/docker/docker/client"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	podmanapi "github.com/elizabevil/docker-tui/internal/data/runtime/podman"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 // RuntimeType identifies the container engine backend (Docker or Podman).
@@ -28,6 +29,11 @@ const (
 	RuntimeDocker RuntimeType = "docker"
 	// RuntimePodman selects the Podman backend.
 	RuntimePodman RuntimeType = "podman"
+
+	// DefaultDockerSocket is the well-known Docker daemon socket path.
+	DefaultDockerSocket = "/var/run/docker.sock"
+	// DefaultPodmanSocket is the system-level Podman socket path.
+	DefaultPodmanSocket = "/run/podman/podman.sock"
 )
 
 // Client wraps the Docker SDK client and provides runtime-neutral operations.
@@ -66,12 +72,16 @@ type TLSConfig struct {
 	ServerName         string
 }
 
+// errPodmanRESTNotReady is returned when a Podman REST operation is attempted
+// without an initialized REST transport.
+var errPodmanRESTNotReady = fmt.Errorf("podman REST transport is not initialized")
+
 var knownSockets = []struct {
 	path string
 	rt   RuntimeType
 }{
-	{"/var/run/docker.sock", RuntimeDocker},
-	{filepath.Join("/", "run", "podman", "podman.sock"), RuntimePodman},
+	{DefaultDockerSocket, RuntimeDocker},
+	{DefaultPodmanSocket, RuntimePodman},
 }
 
 func runtimeDir() string {
@@ -121,10 +131,10 @@ func detectHost(cfg ClientConfig) (string, RuntimeType) {
 	if cfg.Runtime != "" {
 		switch cfg.Runtime {
 		case RuntimeDocker:
-			return fmt.Sprintf("unix://%s", "/var/run/docker.sock"), RuntimeDocker
+			return utils.SocketURI(DefaultDockerSocket), RuntimeDocker
 		case RuntimePodman:
 			if sock := firstLivePodmanSocket(); sock != "" {
-				return fmt.Sprintf("unix://%s", sock), RuntimePodman
+				return utils.SocketURI(sock), RuntimePodman
 			}
 		}
 	}
@@ -133,16 +143,16 @@ func detectHost(cfg ClientConfig) (string, RuntimeType) {
 	}
 	for _, s := range knownSockets {
 		if isSocketLive(s.path) {
-			return fmt.Sprintf("unix://%s", s.path), s.rt
+			return utils.SocketURI(s.path), s.rt
 		}
 	}
 	if sock := firstLivePodmanSocket(); sock != "" {
-		return fmt.Sprintf("unix://%s", sock), RuntimePodman
+		return utils.SocketURI(sock), RuntimePodman
 	}
 	if sock := autoStartPodmanSocket(); sock != "" {
 		return sock, RuntimePodman
 	}
-	return fmt.Sprintf("unix://%s", "/var/run/docker.sock"), RuntimeDocker
+	return utils.SocketURI(DefaultDockerSocket), RuntimeDocker
 }
 
 // firstLivePodmanSocket checks multiple Podman socket locations and returns the first live one.
@@ -174,7 +184,7 @@ func autoStartPodmanSocket() string {
 		return ""
 	}
 
-	sockURI := fmt.Sprintf("unix://%s", sockPath)
+	sockURI := utils.SocketURI(sockPath)
 	cmd := exec.Command(podmanBin, "system", "service", "--time=0", sockURI)
 	cmd.Stdout = io.Discard
 	cmd.Stderr = io.Discard
@@ -196,8 +206,11 @@ func detectRuntimeType(host string) RuntimeType {
 	if host == "" {
 		return RuntimeDocker
 	}
-	if filepath.Base(host) == "podman.sock" ||
-		host == fmt.Sprintf("unix://%s", filepath.Join("/", "run", "podman", "podman.sock")) {
+	parsed, err := url.Parse(host)
+	if err != nil {
+		return RuntimeDocker
+	}
+	if strings.HasSuffix(parsed.Path, "podman.sock") {
 		return RuntimePodman
 	}
 	return RuntimeDocker

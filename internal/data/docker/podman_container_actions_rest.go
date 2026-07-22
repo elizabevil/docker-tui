@@ -12,7 +12,7 @@ import (
 
 func (c *Client) executeContainerPodmanREST(ctx context.Context, id string, action runtimeapi.Action, options runtimeapi.ActionOptions) error {
 	if c.podmanREST == nil {
-		return runtimeapi.NewError(runtimeapi.ErrorUnavailable, "container."+string(action), id, fmt.Errorf("Podman REST transport is not initialized"))
+		return runtimeapi.NewError(runtimeapi.ErrorUnavailable, "container."+string(action), id, errPodmanRESTNotReady)
 	}
 	path := "/containers/" + url.PathEscape(id)
 	query := make(url.Values)

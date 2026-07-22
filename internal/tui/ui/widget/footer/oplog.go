@@ -5,7 +5,7 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
-	"github.com/elizabevil/docker-tui/internal/tui/utils"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 // OperationLogLine returns a fixed-height operation log line for footer.

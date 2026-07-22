@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/url"
 	"strconv"
@@ -49,7 +48,7 @@ func (s podmanContainerService) Stats(ctx context.Context, id string) (runtimeap
 
 func (s podmanContainerService) Logs(ctx context.Context, id string, options runtimeapi.ContainerLogOptions) (io.ReadCloser, error) {
 	if s.client.podmanREST == nil {
-		return nil, runtimeapi.NewError(runtimeapi.ErrorUnavailable, "container.logs", id, fmt.Errorf("Podman REST transport is not initialized"))
+		return nil, runtimeapi.NewError(runtimeapi.ErrorUnavailable, "container.logs", id, errPodmanRESTNotReady)
 	}
 	query := url.Values{
 		"stdout": {"true"}, "stderr": {"true"}, "follow": {"false"},
@@ -88,7 +87,7 @@ type podmanEvent struct {
 
 func (s podmanEventService) Subscribe(ctx context.Context, options runtimeapi.EventOptions) (<-chan runtimeapi.EventItem, error) {
 	if s.client.podmanREST == nil {
-		return nil, runtimeapi.NewError(runtimeapi.ErrorUnavailable, "events.subscribe", "", fmt.Errorf("Podman REST transport is not initialized"))
+		return nil, runtimeapi.NewError(runtimeapi.ErrorUnavailable, "events.subscribe", "", errPodmanRESTNotReady)
 	}
 	query := url.Values{"stream": {"true"}}
 	if len(options.Filters) > 0 {

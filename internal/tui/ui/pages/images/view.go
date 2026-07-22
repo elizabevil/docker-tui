@@ -8,7 +8,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/containers"
-	"github.com/elizabevil/docker-tui/internal/tui/utils"
+	"github.com/elizabevil/docker-tui/internal/utils"
 
 	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 )

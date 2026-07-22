@@ -2,7 +2,6 @@ package docker
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"strconv"
 	"time"
@@ -13,7 +12,7 @@ import (
 // inspectContainerPodmanREST fetches container detail via the Podman Libpod REST API.
 func (c *Client) inspectContainerPodmanREST(ctx context.Context, id string) (*runtimeapi.ContainerDetail, error) {
 	if c.podmanREST == nil {
-		return nil, fmt.Errorf("podman REST transport is not initialized")
+		return nil, errPodmanRESTNotReady
 	}
 	var raw inspectContainer
 	if err := c.podmanREST.Get(ctx, "container.inspect", "/containers/"+url.PathEscape(id)+"/json", nil, &raw); err != nil {
@@ -24,7 +23,7 @@ func (c *Client) inspectContainerPodmanREST(ctx context.Context, id string) (*ru
 
 func (c *Client) containerTopPodmanREST(ctx context.Context, id string) (runtimeapi.ContainerProcesses, error) {
 	if c.podmanREST == nil {
-		return runtimeapi.ContainerProcesses{}, fmt.Errorf("podman REST transport is not initialized")
+		return runtimeapi.ContainerProcesses{}, errPodmanRESTNotReady
 	}
 	var raw struct {
 		Titles    []string   `json:"Titles"`
@@ -38,7 +37,7 @@ func (c *Client) containerTopPodmanREST(ctx context.Context, id string) (runtime
 
 func (c *Client) containerStatsPodmanREST(ctx context.Context, id string) (runtimeapi.ContainerStats, error) {
 	if c.podmanREST == nil {
-		return runtimeapi.ContainerStats{}, fmt.Errorf("podman REST transport is not initialized")
+		return runtimeapi.ContainerStats{}, errPodmanRESTNotReady
 	}
 	query := url.Values{"stream": {strconv.FormatBool(false)}}
 	// The per-container Libpod route deliberately exposes the Docker-compatible

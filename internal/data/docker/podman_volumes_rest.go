@@ -23,7 +23,7 @@ type podmanPruneReport struct {
 // listVolumesPodmanREST fetches volumes via the Podman Libpod REST API.
 func (c *Client) listVolumesPodmanREST(ctx context.Context, options runtimeapi.VolumeListOptions) ([]runtimeapi.Volume, error) {
 	if c.podmanREST == nil {
-		return nil, fmt.Errorf("podman REST transport is not initialized")
+		return nil, errPodmanRESTNotReady
 	}
 	nativeFilters, err := options.NativeFilters()
 	if err != nil {
@@ -47,7 +47,7 @@ func (c *Client) listVolumesPodmanREST(ctx context.Context, options runtimeapi.V
 // inspectVolumePodmanREST fetches volume detail via the Podman Libpod REST API.
 func (c *Client) inspectVolumePodmanREST(ctx context.Context, name string) (*runtimeapi.VolumeDetail, error) {
 	if c.podmanREST == nil {
-		return nil, fmt.Errorf("podman REST transport is not initialized")
+		return nil, errPodmanRESTNotReady
 	}
 	var raw podmanVolumeConfigResponse
 	if err := c.podmanREST.Get(ctx, "volume.inspect", "/volumes/"+url.PathEscape(name)+"/json", nil, &raw); err != nil {
@@ -59,7 +59,7 @@ func (c *Client) inspectVolumePodmanREST(ctx context.Context, name string) (*run
 // removeVolumePodmanREST deletes a volume via the Podman Libpod REST API.
 func (c *Client) removeVolumePodmanREST(ctx context.Context, name string, force bool) error {
 	if c.podmanREST == nil {
-		return fmt.Errorf("podman REST transport is not initialized")
+		return errPodmanRESTNotReady
 	}
 	query := url.Values{"force": {strconv.FormatBool(force)}}
 	return c.podmanREST.DeleteWithQuery(ctx, "volume.remove", "/volumes/"+url.PathEscape(name), query)
@@ -68,7 +68,7 @@ func (c *Client) removeVolumePodmanREST(ctx context.Context, name string, force 
 // createVolumePodmanREST creates a volume via the Podman Libpod REST API.
 func (c *Client) createVolumePodmanREST(ctx context.Context, options runtimeapi.VolumeCreateOptions) (*runtimeapi.Volume, error) {
 	if c.podmanREST == nil {
-		return nil, fmt.Errorf("podman REST transport is not initialized")
+		return nil, errPodmanRESTNotReady
 	}
 	input := struct {
 		Name    string            `json:"Name"`
@@ -87,7 +87,7 @@ func (c *Client) createVolumePodmanREST(ctx context.Context, options runtimeapi.
 // pruneVolumesPodmanREST removes unused volumes via the Podman Libpod REST API.
 func (c *Client) pruneVolumesPodmanREST(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
 	if c.podmanREST == nil {
-		return runtimeapi.PruneResult{}, fmt.Errorf("podman REST transport is not initialized")
+		return runtimeapi.PruneResult{}, errPodmanRESTNotReady
 	}
 	query, err := podmanFilterQuery(options.Filters)
 	if err != nil {

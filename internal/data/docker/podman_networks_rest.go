@@ -20,7 +20,7 @@ type podmanNetworkPruneReport struct {
 // listNetworksPodmanREST fetches networks via the Podman Libpod REST API.
 func (c *Client) listNetworksPodmanREST(ctx context.Context, options runtimeapi.NetworkListOptions) ([]runtimeapi.Network, error) {
 	if c.podmanREST == nil {
-		return nil, fmt.Errorf("podman REST transport is not initialized")
+		return nil, errPodmanRESTNotReady
 	}
 	nativeFilters, err := options.NativeFilters()
 	if err != nil {
@@ -44,7 +44,7 @@ func (c *Client) listNetworksPodmanREST(ctx context.Context, options runtimeapi.
 // inspectNetworkPodmanREST fetches network detail via the Podman Libpod REST API.
 func (c *Client) inspectNetworkPodmanREST(ctx context.Context, id string) (*runtimeapi.NetworkDetail, error) {
 	if c.podmanREST == nil {
-		return nil, fmt.Errorf("podman REST transport is not initialized")
+		return nil, errPodmanRESTNotReady
 	}
 	var raw podmanNetworkItem
 	if err := c.podmanREST.Get(ctx, "network.inspect", "/networks/"+url.PathEscape(id)+"/json", nil, &raw); err != nil {
@@ -56,7 +56,7 @@ func (c *Client) inspectNetworkPodmanREST(ctx context.Context, id string) (*runt
 // removeNetworkPodmanREST deletes a network via the Podman Libpod REST API.
 func (c *Client) removeNetworkPodmanREST(ctx context.Context, id string) error {
 	if c.podmanREST == nil {
-		return fmt.Errorf("podman REST transport is not initialized")
+		return errPodmanRESTNotReady
 	}
 	return c.podmanREST.Delete(ctx, "network.remove", "/networks/"+url.PathEscape(id))
 }
@@ -64,7 +64,7 @@ func (c *Client) removeNetworkPodmanREST(ctx context.Context, id string) error {
 // createNetworkPodmanREST creates a network via the Podman Libpod REST API.
 func (c *Client) createNetworkPodmanREST(ctx context.Context, options runtimeapi.NetworkCreateOptions) (*runtimeapi.Network, error) {
 	if c.podmanREST == nil {
-		return nil, fmt.Errorf("podman REST transport is not initialized")
+		return nil, errPodmanRESTNotReady
 	}
 	input := struct {
 		Name        string            `json:"name"`
@@ -85,7 +85,7 @@ func (c *Client) createNetworkPodmanREST(ctx context.Context, options runtimeapi
 // pruneNetworksPodmanREST removes unused networks via the Podman Libpod REST API.
 func (c *Client) pruneNetworksPodmanREST(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
 	if c.podmanREST == nil {
-		return runtimeapi.PruneResult{}, fmt.Errorf("podman REST transport is not initialized")
+		return runtimeapi.PruneResult{}, errPodmanRESTNotReady
 	}
 	query, err := podmanFilterQuery(options.Filters)
 	if err != nil {

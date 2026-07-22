@@ -8,7 +8,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/elizabevil/docker-tui/internal/tui/utils"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 // formatSI mimics podman CLI's 1000-base (SI) formatting.

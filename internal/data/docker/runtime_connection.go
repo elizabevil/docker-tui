@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 // ConnectionSpec is the normalized runtime connection model used by the
@@ -52,7 +53,7 @@ func (c ConnectionSpec) Key() string {
 
 // ConnectionKey normalizes driver and endpoint into a stable deduplication key.
 func ConnectionKey(runtime RuntimeType, endpoint string) string {
-	runtime = NormalizeRuntimeType(string(runtime))
+	runtime = NormalizeRuntimeType(runtime)
 	endpoint = strings.TrimSpace(endpoint)
 	parsed, err := url.Parse(endpoint)
 	if err != nil || parsed.Scheme == "" {
@@ -67,8 +68,8 @@ func ConnectionKey(runtime RuntimeType, endpoint string) string {
 }
 
 // NormalizeRuntimeType canonicalizes runtime labels.
-func NormalizeRuntimeType(runtime string) RuntimeType {
-	switch strings.ToLower(strings.TrimSpace(runtime)) {
+func NormalizeRuntimeType(runtime RuntimeType) RuntimeType {
+	switch strings.ToLower(strings.TrimSpace(string(runtime))) {
 	case string(RuntimePodman):
 		return RuntimePodman
 	default:
@@ -76,10 +77,11 @@ func NormalizeRuntimeType(runtime string) RuntimeType {
 	}
 }
 
-// LocalPodmanEndpoint returns the user-local Podman socket URI.
-func LocalPodmanEndpoint(uid int) string {
+// PodmanUserEndpoint returns the Podman socket URI for the given UID.
+// Root (uid 0) uses the system-level socket; non-root uses the user-level socket.
+func PodmanUserEndpoint(uid int) string {
 	if uid == 0 {
-		return "unix:///run/podman/podman.sock"
+		return utils.SocketURI(DefaultPodmanSocket)
 	}
-	return fmt.Sprintf("unix:///run/user/%d/podman/podman.sock", uid)
+	return utils.SocketURI(filepath.Join("/", "run", "user", fmt.Sprintf("%d", uid), "podman", "podman.sock"))
 }

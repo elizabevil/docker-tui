@@ -14,7 +14,7 @@ import (
 
 func (s imageTransferService) executePodman(ctx context.Context, request runtimeapi.ImageTransferRequest, output chan<- runtimeapi.ImageTransferEvent) (*runtimeapi.ImageTransferResult, error) {
 	if s.client.podmanREST == nil {
-		return nil, runtimeapi.NewError(runtimeapi.ErrorUnavailable, "image."+string(request.Operation), request.Source, fmt.Errorf("Podman REST transport is not initialized"))
+		return nil, runtimeapi.NewError(runtimeapi.ErrorUnavailable, "image."+string(request.Operation), request.Source, errPodmanRESTNotReady)
 	}
 	result := &runtimeapi.ImageTransferResult{Operation: request.Operation, Source: request.Source, Destination: request.Destination, Path: request.Path}
 	switch request.Operation {
@@ -35,7 +35,7 @@ func (s imageTransferService) executePodman(ctx context.Context, request runtime
 
 func (c *Client) tagImagePodmanREST(ctx context.Context, source, destination string) error {
 	if c.podmanREST == nil {
-		return runtimeapi.NewError(runtimeapi.ErrorUnavailable, "image.tag", source, fmt.Errorf("Podman REST transport is not initialized"))
+		return runtimeapi.NewError(runtimeapi.ErrorUnavailable, "image.tag", source, errPodmanRESTNotReady)
 	}
 	repository, tag := splitTagTarget(destination)
 	query := url.Values{"repo": {repository}, "tag": {tag}}

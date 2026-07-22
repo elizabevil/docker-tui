@@ -11,7 +11,7 @@ import (
 
 func (c *Client) executeImagePodmanREST(ctx context.Context, id string, action runtimeapi.Action, options runtimeapi.ActionOptions, result *runtimeapi.ActionResult) error {
 	if c.podmanREST == nil {
-		return runtimeapi.NewError(runtimeapi.ErrorUnavailable, "image."+string(action), id, fmt.Errorf("Podman REST transport is not initialized"))
+		return runtimeapi.NewError(runtimeapi.ErrorUnavailable, "image."+string(action), id, errPodmanRESTNotReady)
 	}
 	switch action {
 	case runtimeapi.ActionRemove:

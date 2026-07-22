@@ -1,7 +1,7 @@
 package component
 
 import (
-	"github.com/elizabevil/docker-tui/internal/tui/utils"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 // BreadcrumbItem represents a single navigation segment in the breadcrumb path.

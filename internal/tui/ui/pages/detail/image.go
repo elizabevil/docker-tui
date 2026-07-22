@@ -8,7 +8,7 @@ import (
 
 	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
-	"github.com/elizabevil/docker-tui/internal/tui/utils"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 func buildImageDetailDataSections(data *dockerclient.ImageDetailData) []detailSection {

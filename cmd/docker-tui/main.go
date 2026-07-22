@@ -17,7 +17,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/app"
-	"github.com/elizabevil/docker-tui/internal/tui/utils"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 var (
@@ -191,7 +191,7 @@ func runtimeConnections(cfg *config.Config, hostOverride string, usePodman bool)
 	// Local runtimes are always candidates; discovery settings do not hide an
 	// installed runtime from the selector. Unavailable sockets fail visibly.
 	add(dockerclient.HostEntry{Name: "local-docker", Host: "unix:///var/run/docker.sock", Runtime: dockerclient.RuntimeDocker}, false)
-	add(dockerclient.HostEntry{Name: "local-podman", Host: dockerclient.LocalPodmanEndpoint(os.Getuid()), Runtime: dockerclient.RuntimePodman}, false)
+	add(dockerclient.HostEntry{Name: "local-podman", Host: dockerclient.PodmanUserEndpoint(os.Getuid()), Runtime: dockerclient.RuntimePodman}, false)
 	for _, connection := range cfg.Runtime.Connections {
 		spec := dockerclient.FromRuntimeConn(connection)
 		add(dockerclient.HostEntry(spec), true)

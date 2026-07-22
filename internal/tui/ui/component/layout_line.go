@@ -1,6 +1,6 @@
 package component
 
-import "github.com/elizabevil/docker-tui/internal/tui/utils"
+import "github.com/elizabevil/docker-tui/internal/utils"
 
 // JustifyBetween returns a single line with left/right text aligned to edges.
 // When width is too small, it degrades gracefully to left text only.

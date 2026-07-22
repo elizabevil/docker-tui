@@ -16,7 +16,7 @@ type podmanExecService struct{ client *Client }
 
 func (s podmanExecService) Open(ctx context.Context, containerID string, options runtimeapi.ExecOptions) (runtimeapi.ExecSession, error) {
 	if s.client.podmanREST == nil {
-		return nil, runtimeapi.NewError(runtimeapi.ErrorUnavailable, "container.exec.create", containerID, fmt.Errorf("Podman REST transport is not initialized"))
+		return nil, runtimeapi.NewError(runtimeapi.ErrorUnavailable, "container.exec.create", containerID, errPodmanRESTNotReady)
 	}
 	request := struct {
 		AttachStdin  bool     `json:"AttachStdin"`
