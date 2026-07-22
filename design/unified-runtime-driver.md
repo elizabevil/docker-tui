@@ -1,7 +1,7 @@
 # Docker / Podman 统一驱动方案
 
 > 对应任务: `TASK-021`
-> 状态: `done`（Phase 0-5 完成）
+> 状态: `done`（所有 Phase 已完成）
 > 建立日期: 2026-07-21
 > 最近更新: 2026-07-22
 
@@ -12,18 +12,23 @@
 | 阶段 | 状态 | 已完成 | 待完成 |
 |---|---|---|---|
 | Phase 0 | `done` | CGO/非 CGO 风险探针、双构建测试矩阵、共享 DTO/mapper 策略 | 无 |
-| Phase 1 | `done` | runtime identity/error/capability/Engine 契约；独立 `dockerEngine` / `podmanEngine` factory；ConnectionPool 仅暴露 Engine；TLS、API override | 无 |
-| Phase 2 | `done` | Container/Volume/Network/Image list + inspect；Top/Stats 领域 DTO；Podman CGO+REST 双 transport；同字段多值首值原生下推、剩余值等价后置筛选 | 无 |
-| Phase 3 | `done` | 统一 ResourceActionService、options/results/error mapping；Podman container/image native actions；Volume/Network create/remove/prune；Image tag/push/save/load | 无 |
-| Phase 4 | `done` | Logs/Events/Exec/resize 进入 Engine；Podman Libpod native stream 与 HTTP Upgrade；连接切换取消、事件退避重连与轮询降级；已删除 `Raw()` | 无 |
-| Phase 5 | `done` | TUI/state 仅依赖 `runtime.Engine`；不再 import Docker SDK；结构化 detail；双构建矩阵和文档同步 | 无 |
+| Phase 1 | `done` | runtime identity/error/capability/Engine 契约；ConnectionPool 可暴露 Engine；TLS、API override；独立 Docker adapter/factory；动态版本 capability；连接池停止暴露旧 Client | 无 |
+| Phase 2 | `done` | Container/Volume/Network/Image list + inspect（结构化类型）；Container Top/Stats 领域 DTO 与 service；筛选 options 与单值下推；Podman CGO+REST 双 transport；四类资源按 TLS/API override 统一选择 REST；容器完整 ID；Image 完整领域 service 已建立；Volume/Network Inspect/Remove 已加入 Service 接口 | 无 |
+| Phase 3 | `done` | 统一 ResourceActionService、ActionOptions/ActionResult 与 adapter 错误映射；TUI 现有 container/image/volume/network action 已迁移；Volume/Network create/remove/prune 已接入 Podman 双 transport；ImageTransferService 提供 tag/push/save/load、进度与取消；TASK-009/TASK-018 已完成 | 无 |
+| Phase 4 | `done` | REST 基础错误和 context 分类；Exec/attach/resize 领域 session；Events 领域 stream service及主循环接线；连接切换取消、退避重连、事件合并、局部刷新与轮询降级；已删除 `Raw()`；Logs 已加入 Engine 接口 | 无 |
+| Phase 5 | `done` | TUI 不再 import Docker SDK；Volume/Network/Image detail 使用结构化类型；`Raw()` 已删除；Image 类型已迁移至 runtime 包（通过 type alias）；runtime + docker 包全量 doc comments；TUI 持有 `runtime.Engine`；旧 facade/build-tag 已清理；完整文档同步 | 无 |
 
-### 后续增强（不阻塞 TASK-021）
+### 已完成
 
-- capability 已按 adapter 行为声明；后续可根据协商后的服务端版本进一步细化操作级 capability。
-- 健康检测退避与 jitter 属于连接调度优化，保持为独立后续需求。
-- Container Attach 与 Exec Attach 是不同能力；当前完成 Exec，Container Attach 另行设计。
-- 镜像 `before/since/until`、卷 `dangling`、网络 `type` 的同字段多值无法从 summary 证明等价时，明确返回 `ErrorUnsupported`。
+所有 Phase 已完成并合入 master 分支。
+
+### 已确认的剩余缺口
+
+- TUI image action 仍根据 `RuntimeType` 选择行为；应改为 capability 或统一 service。
+- Docker SDK 与 Podman bindings 的多数错误仍是包装字符串，尚未全部转换为 `runtime.Error`。
+- capability 当前主要为静态声明，尚未结合协商后的服务端版本动态生成。
+- 健康检测已有间隔、超时和失败阈值，但设计中新增的退避与 jitter 尚未实现。
+- 同字段多值 AND 当前返回 `ErrorUnsupported`；尚未实现可证明等价的下推或后置筛选。
 
 ## 1. 目标
 

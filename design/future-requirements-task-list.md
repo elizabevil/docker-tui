@@ -1,7 +1,7 @@
 # 后续需求实施任务清单
 
-> 建立日期: 2026-07-20  
-> 最近整理: 2026-07-21
+> 建立日期: 2026-07-20
+> 最近整理: 2026-07-22
 > 依据: [后续需求与规划讨论](future-requirements-discussion.md)、[Docker / Podman 能力分析](podman-capabilities-analysis.md)
 > 规则: 本文是后续工作的唯一主任务台账；其他设计文档中的任务编号仅作为来源参考。
 
@@ -20,14 +20,15 @@
 
 | 状态 | 数量 |
 |---|---:|
-| `done` | 14 |
+| `done` | 15 |
 | `in_progress` | 0 |
-| `todo` | 7 |
+| `todo` | 6 |
 | `blocked` | 0 |
 
 当前执行队列：
 
 1. 执行 `TASK-011`，完善 Compose / 容器 / 镜像联动刷新。
+2. 执行 `TASK-010`，批量操作扩展与部分成功反馈。
 
 ## 已完成基础
 
@@ -41,7 +42,7 @@
 | `TASK-006` | endpoint / runtime identity 去重 | P1 | `done` | 本地候选与配置连接按规范化 key 去重并保持顺序 |
 | `TASK-007` | 新配置 schema 强制校验 | P1 | `done` | 解码后按配置子结构校验，运行期直接使用已验证的健康参数 |
 
-相关提交：`7cf479a`、`948d9d2`、`aa7567d`、`4fe226d`。
+相关提交：`7cf479a`、`948d9d2`、`aa7567d`、`4fe226d`、`801eb76`、`f71d405`。
 
 ## 当前架构任务
 
@@ -68,13 +69,13 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 | `TASK-009` | Volume / Network 创建与清理 | P1 | `done` | TASK-021 | 已完成 create、prune、确认交互、逐资源部分失败反馈、Docker/Podman contract tests 和双构建矩阵 |
 | `TASK-010` | 批量操作扩展与部分成功反馈 | P2 | `todo` | 审计模型、TASK-017 | 每个目标独立终态、汇总提示和可追溯审计 |
 | `TASK-011` | Compose / 容器 / 镜像联动刷新 | P2 | `todo` | TASK-008 | 事件只使相关资源失效，不直接修改复杂 UI 状态 |
-| `TASK-017` | 高频容器操作 | P0 | `done` | TASK-004 | 已实现状态约束的 `pause` / `unpause`、批量跳过汇总、`rename` 输入校验、独立 `top` 页面和结构化 `port` 展示，并通过 Docker SDK / Podman Libpod 契约测试 |
+| `TASK-017` | 高频容器操作 | P0 | `done` | TASK-004 | 已实现状态约束的 `pause` / `unpause`、批量跳过汇总、`rename` 输入校验、独立 `top` 页面和结构化 `port` 展示，并通过 Docker / Podman 兼容 API 契约测试 |
 | `TASK-018` | 镜像标签与传输工作流 | P1 | `done` | TASK-021 | runtime-neutral transfer service；`tag`、`push`、`save`、`load`；字节/daemon 进度、context 取消、错误展示和审计终态 |
 | `TASK-019` | 高级容器操作 | P2 | `todo` | TASK-017、TASK-021 | 评估并分批实现 `update`、`diff`、`export`、`commit`、`wait`、`cp` |
 
 `build` 需要独立输入和进度交互设计，暂不并入 `TASK-018`，待该任务完成后再建立实施项。
 
-## TASK-021 状态快照（2026-07-21）
+## TASK-021 状态快照（2026-07-22）
 
 ### 已完成的 Phase
 
@@ -94,7 +95,7 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 | Container | ✅ Engine 接口 | ✅ Engine 接口 | ✅ `ContainerDetail` | ✅ CGO+REST |
 | Volume | ✅ Engine 接口 | ✅ Engine 接口 | ✅ `VolumeDetail` | ✅ CGO+REST |
 | Network | ✅ Engine 接口 | ✅ Engine 接口 | ✅ `NetworkDetail` | ✅ CGO+REST |
-| Image | ✅ Engine 接口 | ✅ Engine 接口 | ✅ `ImageSummary`/`ImageDetail` | ✅ CGO+REST + native actions/transfer |
+| Image | ✅ Engine 接口 | ✅ Engine 接口 | ✅ `ImageSummary`/`ImageDetail` | ✅ CGO+REST |
 
 ### TASK-021 完成标准检查
 
@@ -103,25 +104,26 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 | 1 | TUI & state 不再 import Docker/Podman SDK | ✅ 达标 |
 | 2 | 不存在 `Raw()` 或上层 SDK 类型 | ✅ 达标 |
 | 3 | ConnectionPool & 业务命令仅依赖 `runtime.Engine` | ✅ 达标 |
-| 4 | Docker & Podman 通过独立 adapter 实现相同契约 | ✅ 达标（差异限定在 data adapter） |
-| 5 | 差异仅存在于 adapter mapper、capabilities、unified errors | ✅ 达标（Image 域已迁移至 runtime 包） |
-| 6 | TASK-017 的 5 个操作在两种 runtime 下通过 | ✅ 达标（pause/unpause/rename/top/port） |
+| 4 | Docker & Podman 通过独立 adapter 实现相同契约 | ✅ 达标 |
+| 5 | 差异仅存在于 adapter mapper、capabilities、unified errors | ✅ 达标 |
+| 6 | TASK-017 的 5 个操作在两种 runtime 下通过 | ✅ 达标 |
 | 7 | TASK-009 的 create/prune 统一 options/results 就绪 | ✅ 达标 |
 | 8 | CGO/non-CGO 策略清晰，build matrix 通过 | ✅ 达标 |
 
-### 后续增强（不阻塞 TASK-021）
+### 已完成工作
 
-| 工作项 | 优先级 | 说明 |
-|--------|--------|------|
-| 动态版本 capability | 中 | 按协商后的服务端版本细化操作级 capability |
-| 健康检测退避/jitter | 中 | 在现有间隔、超时、失败阈值基础上优化连接调度 |
-| Container Attach | 低 | 独立 container attach 能力；当前已完成 exec attach |
+| 工作项 | 状态 | 说明 |
+|--------|------|------|
+| Logs 加入 Engine 接口 | ✅ | `ContainerService.Logs()` 提供 runtime-neutral 的流式抽象 |
+| TUI 持有 `runtime.Engine` 而非 `*docker.Client` | ✅ | 解耦 TUI 与具体适配器 |
+| Volume/Network Inspect/Remove 加入 Service 接口 | ✅ | 完善 `VolumeService`/`NetworkService` 的方法集 |
+| Container Attach | ✅ | 独立 container attach 能力 |
 
 ## 操作历史与体验
 
 | 编号 | 任务 | 优先级 | 状态 | 依赖 | 验收重点 |
 |---|---|---:|---|---|---|
-| `TASK-012` | 审计操作历史面板 | P2 | `todo` | TASK-001、审计模型 | trace 查询、结果筛选、敏感信息边界和大文件读取策略 |
+| `TASK-012` | 审计操作历史面板 | P2 | `done` | TASK-001、审计模型 | 已实现 PanelAudit 面板、AuditState 状态域、文本/级别筛选、记录详情视图、键盘导航（Enter/Esc/E），审计记录从 Service.RecentOperations() 实时同步 |
 | `TASK-013` | 鼠标与小终端降级布局 | P3 | `todo` | 页面固定轨道 | 鼠标不破坏键盘路径，小终端无重叠且核心操作可达 |
 | `TASK-014` | 发布、命名和跨平台分发 | P3 | `todo` | 新配置稳定 | 统一命名、构建产物、版本信息、Linux / macOS 发布说明 |
 | `TASK-020` | Docker / Podman 专有能力评估 | P3 | `todo` | TASK-004 | Podman pod/secret/kube 与 Docker buildx/context 等能力分开决策 |
@@ -133,12 +135,13 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
   |-> TASK-015 状态域拆分
   |-> TASK-016 TLS 错误体验
   |-> TASK-017 高频容器操作 -> TASK-010 / TASK-019
-  `-> TASK-021 统一 runtime driver [done]
-        |-> TASK-009 Volume / Network         [done]
-        |-> TASK-018 镜像工作流               [done]
-        |-> TASK-008 Events [done] -> TASK-011 联动刷新 [todo]
+  |-> TASK-021 统一 runtime driver [done]
+  |     |-> TASK-009 Volume / Network         [done]
+  |     |-> TASK-018 镜像工作流               [done]
+  |     `-> TASK-008 Events [done] -> TASK-011 联动刷新 [todo]
+  `-> TASK-012 审计历史面板 [done]
 
-独立后续: TASK-012 / TASK-013 / TASK-014 / TASK-020
+独立后续: TASK-013 / TASK-014 / TASK-020
 ```
 
 ## 暂不实施
