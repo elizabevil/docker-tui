@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	runtimepodman "github.com/elizabevil/docker-tui/internal/data/runtime/podman"
 )
 
 func (c *Client) executeImagePodmanREST(ctx context.Context, id string, action runtimeapi.Action, options runtimeapi.ActionOptions, result *runtimeapi.ActionResult) error {
@@ -16,7 +17,7 @@ func (c *Client) executeImagePodmanREST(ctx context.Context, id string, action r
 	switch action {
 	case runtimeapi.ActionRemove:
 		query := url.Values{"force": {strconv.FormatBool(options.Force)}}
-		return c.podmanREST.DeleteWithQuery(ctx, "image.remove", "/images/"+url.PathEscape(id), query)
+		return c.podmanREST.DeleteWithQuery(ctx, "image.remove", runtimepodman.ImagePath(id, ""), query)
 	case runtimeapi.ActionPull:
 		reader, err := c.podmanREST.StreamPost(ctx, "image.pull", "/images/pull", url.Values{"reference": {id}}, nil, "")
 		if err != nil {

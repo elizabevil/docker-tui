@@ -12,6 +12,7 @@ import (
 
 	"github.com/docker/docker/pkg/stdcopy"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	runtimepodman "github.com/elizabevil/docker-tui/internal/data/runtime/podman"
 )
 
 type podmanContainerService struct{ client *Client }
@@ -60,7 +61,7 @@ func (s podmanContainerService) Logs(ctx context.Context, id string, options run
 	if options.Tail != "" {
 		query.Set("tail", options.Tail)
 	}
-	reader, err := s.client.podmanREST.StreamGet(ctx, "container.logs", "/containers/"+url.PathEscape(id)+"/logs", query)
+	reader, err := s.client.podmanREST.StreamGet(ctx, "container.logs", runtimepodman.ContainerPath(id, "/logs"), query)
 	if err != nil {
 		return nil, err
 	}

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	runtimepodman "github.com/elizabevil/docker-tui/internal/data/runtime/podman"
 )
 
 func (s imageTransferService) executePodman(ctx context.Context, request runtimeapi.ImageTransferRequest, output chan<- runtimeapi.ImageTransferEvent) (*runtimeapi.ImageTransferResult, error) {
@@ -39,7 +40,7 @@ func (c *Client) tagImagePodmanREST(ctx context.Context, source, destination str
 	}
 	repository, tag := splitTagTarget(destination)
 	query := url.Values{"repo": {repository}, "tag": {tag}}
-	return c.podmanREST.Post(ctx, "image.tag", "/images/"+url.PathEscape(source)+"/tag", query, nil, nil)
+	return c.podmanREST.Post(ctx, "image.tag", runtimepodman.ImagePath(source, "/tag"), query, nil, nil)
 }
 
 func (s imageTransferService) pushPodman(ctx context.Context, request runtimeapi.ImageTransferRequest, output chan<- runtimeapi.ImageTransferEvent) error {
@@ -49,7 +50,7 @@ func (s imageTransferService) pushPodman(ctx context.Context, request runtimeapi
 		}
 	}
 	query := url.Values{"destination": {request.Destination}}
-	reader, err := s.client.podmanREST.StreamPost(ctx, "image.push", "/images/"+url.PathEscape(request.Destination)+"/push", query, nil, "")
+	reader, err := s.client.podmanREST.StreamPost(ctx, "image.push", runtimepodman.ImagePath(request.Destination, "/push"), query, nil, "")
 	if err != nil {
 		return err
 	}

@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	runtimepodman "github.com/elizabevil/docker-tui/internal/data/runtime/podman"
 )
 
 type podmanExecService struct{ client *Client }
@@ -31,7 +32,7 @@ func (s podmanExecService) Open(ctx context.Context, containerID string, options
 	var created struct {
 		ID string `json:"Id"`
 	}
-	path := "/containers/" + url.PathEscape(containerID) + "/exec"
+	path := runtimepodman.ContainerPath(containerID, "/exec")
 	if err := s.client.podmanREST.Post(ctx, "container.exec.create", path, nil, request, &created); err != nil {
 		return nil, mapRuntimeError(err, "container.exec.create", runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: containerID}, RuntimePodman)
 	}
@@ -45,7 +46,7 @@ func (s podmanExecService) Open(ctx context.Context, containerID string, options
 	if err != nil {
 		return nil, runtimeapi.NewError(runtimeapi.ErrorInvalid, "container.exec.start", created.ID, err)
 	}
-	stream, err := s.client.podmanREST.UpgradePost(ctx, "container.exec.start", "/exec/"+url.PathEscape(created.ID)+"/start", bytes.NewReader(startBody), "application/json")
+	stream, err := s.client.podmanREST.UpgradePost(ctx, "container.exec.start", runtimepodman.ExecPath(created.ID, "/start"), bytes.NewReader(startBody), "application/json")
 	if err != nil {
 		return nil, mapRuntimeError(err, "container.exec.start", runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: containerID}, RuntimePodman)
 	}
@@ -69,6 +70,6 @@ func (s *podmanExecSession) Resize(ctx context.Context, size runtimeapi.Terminal
 		"h": {strconv.FormatUint(uint64(size.Height), 10)},
 		"w": {strconv.FormatUint(uint64(size.Width), 10)},
 	}
-	err := s.client.podmanREST.Post(ctx, "container.exec.resize", "/exec/"+url.PathEscape(s.id)+"/resize", query, nil, nil)
+	err := s.client.podmanREST.Post(ctx, "container.exec.resize", runtimepodman.ExecPath(s.id, "/resize"), query, nil, nil)
 	return mapRuntimeError(err, "container.exec.resize", runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: s.containerID}, RuntimePodman)
 }

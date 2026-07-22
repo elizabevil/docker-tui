@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	runtimepodman "github.com/elizabevil/docker-tui/internal/data/runtime/podman"
 )
 
 // podmanNetworkPruneReport is the per-resource response from Podman's network
@@ -47,7 +48,7 @@ func (c *Client) inspectNetworkPodmanREST(ctx context.Context, id string) (*runt
 		return nil, errPodmanRESTNotReady
 	}
 	var raw podmanNetworkItem
-	if err := c.podmanREST.Get(ctx, "network.inspect", "/networks/"+url.PathEscape(id)+"/json", nil, &raw); err != nil {
+	if err := c.podmanREST.Get(ctx, "network.inspect", runtimepodman.NetworkPath(id, "/json"), nil, &raw); err != nil {
 		return nil, err
 	}
 	return mapPodmanNetworkInspect(raw), nil
@@ -58,7 +59,7 @@ func (c *Client) removeNetworkPodmanREST(ctx context.Context, id string) error {
 	if c.podmanREST == nil {
 		return errPodmanRESTNotReady
 	}
-	return c.podmanREST.Delete(ctx, "network.remove", "/networks/"+url.PathEscape(id))
+	return c.podmanREST.Delete(ctx, "network.remove", runtimepodman.NetworkPath(id, ""))
 }
 
 // createNetworkPodmanREST creates a network via the Podman Libpod REST API.

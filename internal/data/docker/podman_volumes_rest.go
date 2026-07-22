@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	runtimepodman "github.com/elizabevil/docker-tui/internal/data/runtime/podman"
 )
 
 // podmanPruneReport is the per-resource response from Podman's volume prune
@@ -50,7 +51,7 @@ func (c *Client) inspectVolumePodmanREST(ctx context.Context, name string) (*run
 		return nil, errPodmanRESTNotReady
 	}
 	var raw podmanVolumeConfigResponse
-	if err := c.podmanREST.Get(ctx, "volume.inspect", "/volumes/"+url.PathEscape(name)+"/json", nil, &raw); err != nil {
+	if err := c.podmanREST.Get(ctx, "volume.inspect", runtimepodman.VolumePath(name, "/json"), nil, &raw); err != nil {
 		return nil, err
 	}
 	return mapPodmanVolumeInspect(raw), nil
@@ -62,7 +63,7 @@ func (c *Client) removeVolumePodmanREST(ctx context.Context, name string, force 
 		return errPodmanRESTNotReady
 	}
 	query := url.Values{"force": {strconv.FormatBool(force)}}
-	return c.podmanREST.DeleteWithQuery(ctx, "volume.remove", "/volumes/"+url.PathEscape(name), query)
+	return c.podmanREST.DeleteWithQuery(ctx, "volume.remove", runtimepodman.VolumePath(name, ""), query)
 }
 
 // createVolumePodmanREST creates a volume via the Podman Libpod REST API.

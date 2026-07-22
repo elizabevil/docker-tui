@@ -7,6 +7,7 @@ import (
 	"time"
 
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	runtimepodman "github.com/elizabevil/docker-tui/internal/data/runtime/podman"
 )
 
 // inspectContainerPodmanREST fetches container detail via the Podman Libpod REST API.
@@ -15,7 +16,7 @@ func (c *Client) inspectContainerPodmanREST(ctx context.Context, id string) (*ru
 		return nil, errPodmanRESTNotReady
 	}
 	var raw inspectContainer
-	if err := c.podmanREST.Get(ctx, "container.inspect", "/containers/"+url.PathEscape(id)+"/json", nil, &raw); err != nil {
+	if err := c.podmanREST.Get(ctx, "container.inspect", runtimepodman.ContainerPath(id, "/json"), nil, &raw); err != nil {
 		return nil, err
 	}
 	return mapContainerInspectResponse(raw), nil
@@ -29,7 +30,7 @@ func (c *Client) containerTopPodmanREST(ctx context.Context, id string) (runtime
 		Titles    []string   `json:"Titles"`
 		Processes [][]string `json:"Processes"`
 	}
-	if err := c.podmanREST.Get(ctx, "container.top", "/containers/"+url.PathEscape(id)+"/top", nil, &raw); err != nil {
+	if err := c.podmanREST.Get(ctx, "container.top", runtimepodman.ContainerPath(id, "/top"), nil, &raw); err != nil {
 		return runtimeapi.ContainerProcesses{}, err
 	}
 	return runtimeapi.ContainerProcesses{Titles: raw.Titles, Processes: raw.Processes}, nil
@@ -43,7 +44,7 @@ func (c *Client) containerStatsPodmanREST(ctx context.Context, id string) (runti
 	// The per-container Libpod route deliberately exposes the Docker-compatible
 	// stats schema, so both adapters share the same calculation semantics.
 	var raw statsJSON
-	if err := c.podmanREST.Get(ctx, "container.stats", "/containers/"+url.PathEscape(id)+"/stats", query, &raw); err != nil {
+	if err := c.podmanREST.Get(ctx, "container.stats", runtimepodman.ContainerPath(id, "/stats"), query, &raw); err != nil {
 		return runtimeapi.ContainerStats{}, err
 	}
 	cpu, usage, limit, memory, rx, tx := computeStats(raw)

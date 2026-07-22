@@ -16,7 +16,13 @@ import (
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
-const defaultRequestTimeout = 10 * time.Second
+const (
+	defaultRequestTimeout = 10 * time.Second
+	// minPodmanAPIVersion is the minimum Libpod API version supported by
+	// Podman ≥ 5.x. Used as a fallback when the unversioned /libpod/version
+	// endpoint returns 404.
+	minPodmanAPIVersion = "4.0.0"
+)
 
 // RESTConfig configures a Podman Libpod REST client.
 type RESTConfig struct {
@@ -83,6 +89,14 @@ func NewRESTClient(config RESTConfig) (*RESTClient, error) {
 
 // APIVersion returns the negotiated Libpod API version, querying the server
 // if needed. The result is cached after the first successful call.
+//
+// Podman ≤ 4.x serves /libpod/version; Podman ≥ 5.x requires a versioned
+// path like /v4.0.0/libpod/version. We try unversioned first and fall back
+// to the minimum API version on 404.
+//
+// The top-level ApiVersion field returns the Docker-compatible version
+// (e.g. "1.41"), but Libpod endpoints need the Podman engine version
+// from Components[0].Details.APIVersion (e.g. "5.4.2").
 func (c *RESTClient) APIVersion(ctx context.Context) (string, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -94,16 +108,50 @@ func (c *RESTClient) APIVersion(ctx context.Context) (string, error) {
 		return c.apiVersion, nil
 	}
 	var version struct {
-		APIVersion string `json:"ApiVersion"`
+		ApiVersion string `json:"ApiVersion"`
+		Components []struct {
+			Name    string `json:"Name"`
+			Details struct {
+				ApiVersion string `json:"APIVersion"`
+			} `json:"Details"`
+		} `json:"Components"`
 	}
-	if err := c.do(ctx, "system.version", http.MethodGet, "/libpod/version", nil, &version); err != nil {
-		return "", err
+	err := c.do(ctx, "system.version", http.MethodGet, "/libpod/version", nil, &version)
+	if err != nil {
+		if !runtimeapi.IsErrorKind(err, runtimeapi.ErrorNotFound) {
+			return "", err
+		}
+		// Podman ≥ 5.x: use minimum supported version as the fallback.
+		err = c.do(ctx, "system.version", http.MethodGet, "/v"+minPodmanAPIVersion+"/libpod/version", nil, &version)
+		if err != nil {
+			return "", err
+		}
 	}
-	if version.APIVersion == "" {
+	// Prefer the Podman engine version from Components for Libpod endpoints.
+	libpodVersion := extractLibpodVersion(version.Components)
+	if libpodVersion == "" {
+		libpodVersion = version.ApiVersion
+	}
+	if libpodVersion == "" {
 		return "", runtimeapi.NewError(runtimeapi.ErrorInvalid, "system.version", "", fmt.Errorf("Podman response omitted ApiVersion"))
 	}
-	c.apiVersion = normalizeVersion(version.APIVersion)
+	c.apiVersion = normalizeVersion(libpodVersion)
 	return c.apiVersion, nil
+}
+
+// extractLibpodVersion finds the Podman Engine component version.
+func extractLibpodVersion(components []struct {
+	Name    string `json:"Name"`
+	Details struct {
+		ApiVersion string `json:"APIVersion"`
+	} `json:"Details"`
+}) string {
+	for _, c := range components {
+		if c.Name == "Podman Engine" && c.Details.ApiVersion != "" {
+			return c.Details.ApiVersion
+		}
+	}
+	return ""
 }
 
 // Get performs a versioned Libpod GET request and decodes the response into
