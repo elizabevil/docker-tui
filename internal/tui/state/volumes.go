@@ -1,18 +1,18 @@
 package state
 
 import (
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
 type (
 	VolumesLoaded struct {
-		Volumes []dockerclient.VolumeItem
+		Volumes []runtimeapi.Volume
 		Error   error
 	}
 )
 
 type VolumeListModel struct {
-	Items      []dockerclient.VolumeItem
+	Items      []runtimeapi.Volume
 	Cursor     int
 	ViewOffset int
 	Loading    bool
@@ -23,12 +23,12 @@ type VolumeListModel struct {
 
 func NewVolumeListModel() *VolumeListModel {
 	return &VolumeListModel{
-		Items:  make([]dockerclient.VolumeItem, 0),
+		Items:  make([]runtimeapi.Volume, 0),
 		Cursor: 0,
 	}
 }
 
-func (m *VolumeListModel) Selected() *dockerclient.VolumeItem {
+func (m *VolumeListModel) Selected() *runtimeapi.Volume {
 	items := m.FilteredItems()
 	if len(items) == 0 || m.Cursor < 0 || m.Cursor >= len(items) {
 		return nil
@@ -48,11 +48,11 @@ func (m *VolumeListModel) FilterText() string {
 	return m.Filter
 }
 
-func (m *VolumeListModel) FilteredItems() []dockerclient.VolumeItem {
+func (m *VolumeListModel) FilteredItems() []runtimeapi.Volume {
 	if m.Filter == "" {
 		return m.Items
 	}
-	filtered := make([]dockerclient.VolumeItem, 0, len(m.Items))
+	filtered := make([]runtimeapi.Volume, 0, len(m.Items))
 	for _, v := range m.Items {
 		if contains(v.Name, m.Filter) || contains(v.Driver, m.Filter) || contains(v.Scope, m.Filter) || contains(v.Mountpoint, m.Filter) {
 			filtered = append(filtered, v)

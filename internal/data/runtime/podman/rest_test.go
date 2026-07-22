@@ -91,3 +91,24 @@ func TestRESTClientMapsHTTPError(t *testing.T) {
 		t.Fatalf("unexpected runtime error: %#v", runtimeErr)
 	}
 }
+
+func TestRESTClientDeleteUsesCorrectMethodAndPath(t *testing.T) {
+	var receivedMethod string
+	httpClient := &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		receivedMethod = request.Method
+		if request.URL.Path != "/v5.2.0/libpod/volumes/test-vol" {
+			t.Fatalf("unexpected path %q", request.URL.Path)
+		}
+		return response(http.StatusNoContent, ""), nil
+	})}
+	client, err := NewRESTClient(RESTConfig{Endpoint: "http://podman.test", APIVersion: "5.2.0", HTTPClient: httpClient})
+	if err != nil {
+		t.Fatalf("NewRESTClient() error = %v", err)
+	}
+	if err := client.Delete(context.Background(), "volume.remove", "/volumes/test-vol"); err != nil {
+		t.Fatalf("Delete() error = %v", err)
+	}
+	if receivedMethod != http.MethodDelete {
+		t.Errorf("expected DELETE, got %s", receivedMethod)
+	}
+}

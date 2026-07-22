@@ -111,6 +111,15 @@ func (c *RESTClient) Get(ctx context.Context, operation, path string, query url.
 	return c.do(ctx, operation, http.MethodGet, versionedPath, nil, output)
 }
 
+func (c *RESTClient) Delete(ctx context.Context, operation, path string) error {
+	version, err := c.APIVersion(ctx)
+	if err != nil {
+		return err
+	}
+	versionedPath := "/v" + version + "/libpod/" + strings.TrimPrefix(path, "/")
+	return c.do(ctx, operation, http.MethodDelete, versionedPath, nil, nil)
+}
+
 func (c *RESTClient) do(ctx context.Context, operation, method, path string, body io.Reader, output any) error {
 	requestURL := *c.baseURL
 	requestURL.Path = path

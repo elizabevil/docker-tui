@@ -7,22 +7,23 @@ import (
 	"github.com/bytedance/sonic"
 
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
 // ── Named types for Docker inspect JSON unmarshalling ──────────
 
 // inspectContainer represents the JSON returned by docker container inspect.
 type inspectContainer struct {
-	ID         string                    `json:"Id"`
-	Name       string                    `json:"Name"`
-	Created    string                    `json:"Created"`
-	State      *inspectContainerState    `json:"State"`
-	Platform   string                    `json:"Platform"`
-	Config     *inspectContainerConfig   `json:"Config"`
-	HostConfig *inspectHostConfig        `json:"HostConfig"`
-	NetworkSettings *inspectNetSettings  `json:"NetworkSettings"`
-	Mounts     []inspectMount            `json:"Mounts"`
-	RestartCount int                     `json:"RestartCount"`
+	ID              string                  `json:"Id"`
+	Name            string                  `json:"Name"`
+	Created         string                  `json:"Created"`
+	State           *inspectContainerState  `json:"State"`
+	Platform        string                  `json:"Platform"`
+	Config          *inspectContainerConfig `json:"Config"`
+	HostConfig      *inspectHostConfig      `json:"HostConfig"`
+	NetworkSettings *inspectNetSettings     `json:"NetworkSettings"`
+	Mounts          []inspectMount          `json:"Mounts"`
+	RestartCount    int                     `json:"RestartCount"`
 }
 
 // inspectContainerState holds the running state of a container.
@@ -47,11 +48,11 @@ type inspectContainerConfig struct {
 
 // inspectHostConfig holds resource limits and host-level settings.
 type inspectHostConfig struct {
-	CPUShares     int64                  `json:"CpuShares"`
-	Memory        int64                  `json:"Memory"`
-	NanoCPUs      int64                  `json:"NanoCpus"`
-	NetworkMode   string                 `json:"NetworkMode"`
-	RestartPolicy *inspectRestartPolicy  `json:"RestartPolicy"`
+	CPUShares     int64                 `json:"CpuShares"`
+	Memory        int64                 `json:"Memory"`
+	NanoCPUs      int64                 `json:"NanoCpus"`
+	NetworkMode   string                `json:"NetworkMode"`
+	RestartPolicy *inspectRestartPolicy `json:"RestartPolicy"`
 }
 
 // inspectRestartPolicy holds the container restart policy.
@@ -62,7 +63,7 @@ type inspectRestartPolicy struct {
 
 // inspectNetSettings holds network configuration for a container.
 type inspectNetSettings struct {
-	Networks map[string]inspectNetworkEntry `json:"Networks"`
+	Networks map[string]inspectNetworkEntry  `json:"Networks"`
 	Ports    map[string][]inspectPortBinding `json:"Ports"`
 }
 
@@ -85,53 +86,6 @@ type inspectMount struct {
 	Destination string `json:"Destination"`
 	Mode        string `json:"Mode"`
 	RW          bool   `json:"RW"`
-}
-
-// inspectNetwork represents the JSON returned by docker network inspect.
-type inspectNetwork struct {
-	Name       string                            `json:"Name"`
-	ID         string                            `json:"Id"`
-	Created    string                            `json:"Created"`
-	Scope      string                            `json:"Scope"`
-	Driver     string                            `json:"Driver"`
-	EnableIPv6 bool                              `json:"EnableIPv6"`
-	Internal   bool                              `json:"Internal"`
-	IPAM       inspectNetworkIPAM                `json:"IPAM"`
-	Containers map[string]inspectNetworkContainer `json:"Containers"`
-	Labels     map[string]string                 `json:"Labels"`
-}
-
-// inspectNetworkIPAM holds IP Address Management configuration.
-type inspectNetworkIPAM struct {
-	Driver string                   `json:"Driver"`
-	Config []inspectNetworkIPAMConf `json:"Config"`
-}
-
-// inspectNetworkIPAMConf holds a single IPAM subnet configuration.
-type inspectNetworkIPAMConf struct {
-	Subnet  string `json:"Subnet"`
-	Gateway string `json:"Gateway"`
-}
-
-// inspectNetworkContainer holds info about a container attached to a network.
-type inspectNetworkContainer struct {
-	Name        string `json:"Name"`
-	EndpointID  string `json:"EndpointID"`
-	MacAddress  string `json:"MacAddress"`
-	IPv4Address string `json:"IPv4Address"`
-	IPv6Address string `json:"IPv6Address"`
-}
-
-// inspectVolume represents the JSON returned by docker volume inspect.
-type inspectVolume struct {
-	Name       string                 `json:"Name"`
-	Driver     string                 `json:"Driver"`
-	Mountpoint string                 `json:"Mountpoint"`
-	Scope      string                 `json:"Scope"`
-	CreatedAt  string                 `json:"CreatedAt"`
-	Labels     map[string]string      `json:"Labels"`
-	Options    map[string]string      `json:"Options"`
-	Status     map[string]interface{} `json:"Status"`
 }
 
 // ── Public API ────────────────────────────────────────────────
@@ -293,15 +247,10 @@ func BuildContainerDetailSections(jsonData []byte) []DetailSection {
 	return sections
 }
 
-// BuildNetworkDetailSections parses raw JSON from docker network inspect
-// and returns sections with i18n-translated labels for the detail view.
-func BuildNetworkDetailSections(jsonData []byte) []DetailSection {
-	if len(jsonData) == 0 {
-		return nil
-	}
-
-	var info inspectNetwork
-	if err := sonicUnmarshal(jsonData, &info); err != nil {
+// BuildNetworkDetailSections builds detail sections from a structured
+// NetworkDetail domain type (unified for both Docker and Podman runtimes).
+func BuildNetworkDetailSections(info *runtimeapi.NetworkDetail) []DetailSection {
+	if info == nil {
 		return nil
 	}
 
@@ -364,15 +313,10 @@ func BuildNetworkDetailSections(jsonData []byte) []DetailSection {
 	return sections
 }
 
-// BuildVolumeDetailSections parses raw JSON from docker volume inspect
-// and returns sections with i18n-translated labels for the detail view.
-func BuildVolumeDetailSections(jsonData []byte) []DetailSection {
-	if len(jsonData) == 0 {
-		return nil
-	}
-
-	var info inspectVolume
-	if err := sonicUnmarshal(jsonData, &info); err != nil {
+// BuildVolumeDetailSections builds detail sections from a structured
+// VolumeDetail domain type (unified for both Docker and Podman runtimes).
+func BuildVolumeDetailSections(info *runtimeapi.VolumeDetail) []DetailSection {
+	if info == nil {
 		return nil
 	}
 

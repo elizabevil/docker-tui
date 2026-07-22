@@ -59,20 +59,16 @@ func RenderView(m *state.AppModel, panelHeight int) string {
 	content := m.Detail.ImageDetailContent
 	var sections []detailSection
 
-	// Priority: structured image data > raw JSON (container/network/volume) > raw text
+	// Priority: structured image data > structured volume/network > raw JSON (container) > raw text
 	if m.Detail.ImageDetailData != nil {
 		sections = buildImageDetailDataSections(m.Detail.ImageDetailData)
+	} else if m.Detail.VolumeDetail != nil {
+		sections = convertDockerSections(docker.BuildVolumeDetailSections(m.Detail.VolumeDetail))
+	} else if m.Detail.NetworkDetail != nil {
+		sections = convertDockerSections(docker.BuildNetworkDetailSections(m.Detail.NetworkDetail))
 	} else if len(m.Detail.DetailRawJSON) > 0 {
-		// Use resource type to select the appropriate build function
-		var dockerSections []docker.DetailSection
-		switch m.Detail.DetailResourceType {
-		case state.ResourceNetwork:
-			dockerSections = docker.BuildNetworkDetailSections(m.Detail.DetailRawJSON)
-		case state.ResourceVolume:
-			dockerSections = docker.BuildVolumeDetailSections(m.Detail.DetailRawJSON)
-		default: // state.ResourceContainer or empty
-			dockerSections = docker.BuildContainerDetailSections(m.Detail.DetailRawJSON)
-		}
+		// Container inspect still uses raw JSON (not yet migrated)
+		dockerSections := docker.BuildContainerDetailSections(m.Detail.DetailRawJSON)
 		sections = convertDockerSections(dockerSections)
 	} else {
 		if content == "" {

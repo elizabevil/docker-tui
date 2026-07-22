@@ -423,14 +423,12 @@ func (c *Client) Capabilities() runtimeapi.CapabilitySet {
 			ReasonCode: "same_field_and_unsupported",
 		},
 		runtimeapi.CapabilityVolumeListFilter: {
-			Support:    runtimeapi.Unsupported,
-			Reason:     "unified volume list filters have not been migrated",
-			ReasonCode: "adapter_not_migrated",
+			Support: runtimeapi.Available,
+			Reason:  "volume list filters are supported natively by both Docker and Podman",
 		},
 		runtimeapi.CapabilityNetworkListFilter: {
-			Support:    runtimeapi.Unsupported,
-			Reason:     "unified network list filters have not been migrated",
-			ReasonCode: "adapter_not_migrated",
+			Support: runtimeapi.Available,
+			Reason:  "network list filters are supported natively by both Docker and Podman",
 		},
 		runtimeapi.CapabilityEventFilter: {Support: support, Reason: reason},
 		runtimeapi.CapabilityExecResize:  {Support: support, Reason: reason},

@@ -50,12 +50,12 @@ func doNetworkInspect(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if net == nil {
 		return m, nil
 	}
-	rawJSON, err := m.Connection.Docker.InspectNetwork(net.ID)
+	detail, err := m.Connection.Docker.InspectNetwork(net.ID)
 	if err != nil {
 		m.Feedback.RecordError(err.Error())
 		return m, nil
 	}
-	m.Detail.SetRaw(state.ResourceNetwork, rawJSON)
+	m.Detail.SetNetworkDetail(detail)
 	ToDetail(m, i18n.T("detail.title.network", net.Name), "")
 	return m, nil
 }

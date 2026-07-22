@@ -4,8 +4,8 @@ import (
 	_ "embed"
 	"fmt"
 
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
@@ -94,7 +94,7 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 	}
 
 	rows := component.BuildRows(items, colsDef, viewOffset, rowHeight,
-		func(net dockerclient.NetworkItem, cd tables.ColumnDef, _ int) string {
+		func(net runtimeapi.Network, cd tables.ColumnDef, _ int) string {
 			switch cd.Key {
 			case "name":
 				if net.Internal {
@@ -161,7 +161,7 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 		BannerW:           w,
 		HeaderOverrides:   overrides,
 		BodyHeight:        panelHeight,
-		MarkedRows:        component.BuildMarkedRows(rows, items, viewOffset, markedIDs, func(n dockerclient.NetworkItem) string { return n.ID }),
+		MarkedRows:        component.BuildMarkedRows(rows, items, viewOffset, markedIDs, func(n runtimeapi.Network) string { return n.ID }),
 		RowPrefix:         ts.RowPrefix,
 		RowPrefixSelected: ts.RowPrefixSelected,
 		ColStyles:         colStyles,

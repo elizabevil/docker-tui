@@ -1,12 +1,12 @@
 package state
 
 import (
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
 type (
 	NetworksLoaded struct {
-		Networks []dockerclient.NetworkItem
+		Networks []runtimeapi.Network
 		Error    error
 	}
 )
@@ -20,7 +20,7 @@ const (
 )
 
 type NetworkListModel struct {
-	Items      []dockerclient.NetworkItem
+	Items      []runtimeapi.Network
 	Cursor     int
 	ViewOffset int
 	Loading    bool
@@ -32,13 +32,13 @@ type NetworkListModel struct {
 
 func NewNetworkListModel() *NetworkListModel {
 	return &NetworkListModel{
-		Items:   make([]dockerclient.NetworkItem, 0),
+		Items:   make([]runtimeapi.Network, 0),
 		Cursor:  0,
 		SortAsc: true,
 	}
 }
 
-func (m *NetworkListModel) Selected() *dockerclient.NetworkItem {
+func (m *NetworkListModel) Selected() *runtimeapi.Network {
 	items := m.FilteredItems()
 	if len(items) == 0 || m.Cursor < 0 || m.Cursor >= len(items) {
 		return nil
@@ -58,11 +58,11 @@ func (m *NetworkListModel) FilterText() string {
 	return m.Filter
 }
 
-func (m *NetworkListModel) FilteredItems() []dockerclient.NetworkItem {
+func (m *NetworkListModel) FilteredItems() []runtimeapi.Network {
 	if m.Filter == "" {
 		return m.SortedItems()
 	}
-	filtered := make([]dockerclient.NetworkItem, 0, len(m.Items))
+	filtered := make([]runtimeapi.Network, 0, len(m.Items))
 	for _, n := range m.Items {
 		if contains(n.Name, m.Filter) || contains(n.ID, m.Filter) || contains(n.Driver, m.Filter) {
 			filtered = append(filtered, n)
@@ -71,12 +71,12 @@ func (m *NetworkListModel) FilteredItems() []dockerclient.NetworkItem {
 	return sortNetworkItems(filtered, m.SortBy, m.SortAsc)
 }
 
-func (m *NetworkListModel) SortedItems() []dockerclient.NetworkItem {
+func (m *NetworkListModel) SortedItems() []runtimeapi.Network {
 	return sortNetworkItems(m.Items, m.SortBy, m.SortAsc)
 }
 
-func sortNetworkItems(items []dockerclient.NetworkItem, col NetworkSortColumn, asc bool) []dockerclient.NetworkItem {
-	sorted := make([]dockerclient.NetworkItem, len(items))
+func sortNetworkItems(items []runtimeapi.Network, col NetworkSortColumn, asc bool) []runtimeapi.Network {
+	sorted := make([]runtimeapi.Network, len(items))
 	copy(sorted, items)
 	for i := 0; i < len(sorted); i++ {
 		for j := i + 1; j < len(sorted); j++ {

@@ -1,6 +1,10 @@
 package state
 
-import dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
+import (
+	"github.com/bytedance/sonic"
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+)
 
 type DetailSource string
 
@@ -20,6 +24,8 @@ type DetailState struct {
 	DetailRawJSON      []byte
 	DetailSourceType   DetailSource
 	DetailResourceType ResourceType
+	VolumeDetail       *runtimeapi.VolumeDetail
+	NetworkDetail      *runtimeapi.NetworkDetail
 }
 
 func (s *DetailState) Open(title, content string) {
@@ -49,6 +55,18 @@ func (s *DetailState) CycleSource() {
 func (s *DetailState) SetRaw(resourceType ResourceType, raw []byte) {
 	s.DetailRawJSON = raw
 	s.DetailResourceType = resourceType
+}
+
+func (s *DetailState) SetVolumeDetail(detail *runtimeapi.VolumeDetail) {
+	s.VolumeDetail = detail
+	s.DetailResourceType = ResourceVolume
+	s.DetailRawJSON, _ = sonic.Marshal(detail)
+}
+
+func (s *DetailState) SetNetworkDetail(detail *runtimeapi.NetworkDetail) {
+	s.NetworkDetail = detail
+	s.DetailResourceType = ResourceNetwork
+	s.DetailRawJSON, _ = sonic.Marshal(detail)
 }
 
 func (s *DetailState) ApplyImage(id string, data *dockerclient.ImageDetailData) bool {

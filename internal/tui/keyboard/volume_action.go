@@ -28,12 +28,12 @@ func doVolumeInspect(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if vol == nil {
 		return m, nil
 	}
-	rawJSON, err := m.Connection.Docker.InspectVolume(vol.Name)
+	detail, err := m.Connection.Docker.InspectVolume(vol.Name)
 	if err != nil {
 		m.Feedback.RecordError(err.Error())
 		return m, nil
 	}
-	m.Detail.SetRaw(state.ResourceVolume, rawJSON)
+	m.Detail.SetVolumeDetail(detail)
 	ToDetail(m, i18n.T("detail.title.volume", vol.Name), "")
 	return m, nil
 }

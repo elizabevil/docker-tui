@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"encoding/json"
 	"errors"
 	"testing"
 )
@@ -114,5 +115,73 @@ func TestResourceListOptionsPreserveANDSemantics(t *testing.T) {
 	_, networkErr := (NetworkListOptions{Filters: FilterSet{NetworkFilterName: {"a", "b"}}}).NativeFilters()
 	if !IsErrorKind(volumeErr, ErrorUnsupported) || !IsErrorKind(networkErr, ErrorUnsupported) {
 		t.Fatalf("expected unsupported errors, got volume=%v network=%v", volumeErr, networkErr)
+	}
+}
+
+func TestVolumeDetailJSONRoundTrip(t *testing.T) {
+	vol := VolumeDetail{
+		Name:       "test-vol",
+		Driver:     "local",
+		Mountpoint: "/var/lib/docker/volumes/test-vol/_data",
+		CreatedAt:  "2025-01-15T10:30:00Z",
+		Labels:     map[string]string{"app": "api"},
+		Scope:      "local",
+		Options:    map[string]string{"type": "none"},
+		Status:     map[string]any{"availability": "online"},
+	}
+	raw, err := json.Marshal(vol)
+	if err != nil {
+		t.Fatalf("marshal error: %v", err)
+	}
+	var decoded VolumeDetail
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+	if decoded.Name != vol.Name || decoded.Driver != vol.Driver {
+		t.Errorf("name/driver mismatch: %q/%q", decoded.Name, decoded.Driver)
+	}
+	if decoded.Labels["app"] != "api" {
+		t.Error("labels not preserved")
+	}
+	if decoded.Status["availability"] != "online" {
+		t.Error("status not preserved")
+	}
+}
+
+func TestNetworkDetailJSONRoundTrip(t *testing.T) {
+	net := NetworkDetail{
+		Name:       "test-net",
+		ID:         "abc123",
+		Created:    "2025-01-15T10:30:00Z",
+		Scope:      "local",
+		Driver:     "bridge",
+		EnableIPv4: true,
+		Internal:   false,
+		IPAM: NetworkIPAM{
+			Config: []NetworkIPAMConfig{
+				{Subnet: "172.20.0.0/16", Gateway: "172.20.0.1"},
+			},
+		},
+		Containers: map[string]NetworkEndpoint{
+			"ep1": {Name: "c1", IPv4Address: "172.20.0.2/16"},
+		},
+		Labels: map[string]string{"env": "dev"},
+	}
+	raw, err := json.Marshal(net)
+	if err != nil {
+		t.Fatalf("marshal error: %v", err)
+	}
+	var decoded NetworkDetail
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		t.Fatalf("unmarshal error: %v", err)
+	}
+	if decoded.Name != "test-net" || decoded.ID != "abc123" {
+		t.Errorf("name/id mismatch: %q/%q", decoded.Name, decoded.ID)
+	}
+	if len(decoded.IPAM.Config) != 1 || decoded.IPAM.Config[0].Subnet != "172.20.0.0/16" {
+		t.Error("IPAM config not preserved")
+	}
+	if ep, ok := decoded.Containers["ep1"]; !ok || ep.IPv4Address != "172.20.0.2/16" {
+		t.Error("container endpoint not preserved")
 	}
 }

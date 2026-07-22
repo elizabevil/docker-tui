@@ -4,8 +4,8 @@ import (
 	_ "embed"
 	"fmt"
 
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
@@ -77,7 +77,7 @@ func RenderList(vm *state.VolumeListModel, cm *state.ContainerListModel, width i
 	component.EnsureVisible(&viewOffset, vm.Cursor, rowHeight, total)
 
 	rows := component.BuildRows(items, colsDef, viewOffset, rowHeight,
-		func(vol dockerclient.VolumeItem, cd tables.ColumnDef, _ int) string {
+		func(vol runtimeapi.Volume, cd tables.ColumnDef, _ int) string {
 			switch cd.Key {
 			case "name":
 				return vol.Name
@@ -128,7 +128,7 @@ func RenderList(vm *state.VolumeListModel, cm *state.ContainerListModel, width i
 		BodyHeight:        panelHeight,
 		Banner:            banner,
 		BannerW:           w,
-		MarkedRows:        component.BuildMarkedRows(rows, items, viewOffset, markedIDs, func(v dockerclient.VolumeItem) string { return v.Name }),
+		MarkedRows:        component.BuildMarkedRows(rows, items, viewOffset, markedIDs, func(v runtimeapi.Volume) string { return v.Name }),
 		RowPrefix:         ts.RowPrefix,
 		RowPrefixSelected: ts.RowPrefixSelected,
 		ColStyles:         colStyles,

@@ -87,6 +87,3 @@ type ImageDetailData struct {
 	HistorySource    ImageHistorySource
 	HistoryError     string
 }
-
-type VolumeItem = runtimeapi.Volume
-type NetworkItem = runtimeapi.Network
