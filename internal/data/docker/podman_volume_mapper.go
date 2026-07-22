@@ -30,13 +30,17 @@ type podmanVolumeConfigResponse struct {
 func mapPodmanVolumes(raw []podmanVolumeConfigResponse) []runtimeapi.Volume {
 	result := make([]runtimeapi.Volume, 0, len(raw))
 	for _, v := range raw {
+		scope := v.Scope
+		if scope == "" {
+			scope = "local"
+		}
 		result = append(result, runtimeapi.Volume{
 			Name:       v.Name,
 			Driver:     v.Driver,
 			Mountpoint: v.Mountpoint,
 			Labels:     v.Labels,
-			Scope:      v.Scope,
-			CreatedAt:  v.CreatedAt.Format(time.RFC3339),
+			Scope:      scope,
+			CreatedAt:  formatPodmanTime(v.CreatedAt),
 		})
 	}
 	return result
@@ -45,14 +49,25 @@ func mapPodmanVolumes(raw []podmanVolumeConfigResponse) []runtimeapi.Volume {
 // mapPodmanVolumeInspect converts a single Podman volume inspect result
 // into the structured VolumeDetail domain type for the detail view.
 func mapPodmanVolumeInspect(raw podmanVolumeConfigResponse) *runtimeapi.VolumeDetail {
+	scope := raw.Scope
+	if scope == "" {
+		scope = "local"
+	}
 	return &runtimeapi.VolumeDetail{
 		Name:       raw.Name,
 		Driver:     raw.Driver,
 		Mountpoint: raw.Mountpoint,
-		CreatedAt:  raw.CreatedAt.Format(time.RFC3339),
+		CreatedAt:  formatPodmanTime(raw.CreatedAt),
 		Labels:     raw.Labels,
-		Scope:      raw.Scope,
+		Scope:      scope,
 		Options:    raw.Options,
 		Status:     raw.Status,
 	}
+}
+
+func formatPodmanTime(value time.Time) string {
+	if value.IsZero() {
+		return ""
+	}
+	return value.Format(time.RFC3339)
 }

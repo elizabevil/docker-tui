@@ -33,6 +33,8 @@ type Client struct {
 	cancel        context.CancelFunc
 	RuntimeType   RuntimeType
 	Host          string
+	APIVersion    string
+	TLS           TLSConfig
 	EngineVersion string
 	imageLister   ImageLister // nil = use Docker SDK default
 	podmanREST    *podmanapi.RESTClient
@@ -267,6 +269,8 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 		cli:           cli,
 		RuntimeType:   rt,
 		Host:          host,
+		APIVersion:    cfg.APIVersion,
+		TLS:           cfg.TLS,
 		EngineVersion: fetchVersion(cli, 2*time.Second),
 	}
 	if rt == RuntimePodman {
@@ -281,6 +285,13 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 	c.ctx, c.cancel = context.WithCancel(context.Background())
 	c.initImageLister()
 	return c, nil
+}
+
+// usePodmanRESTTransport selects REST when connection semantics cannot be
+// represented by the official bindings. In particular, bindings do not expose
+// insecureSkipVerify or an explicit ServerName and ignore our API override.
+func (c *Client) usePodmanRESTTransport() bool {
+	return c.podmanREST != nil && (c.TLS.Enabled || c.APIVersion != "")
 }
 
 func tlsHTTPClient(cfg TLSConfig, host string) (*http.Client, error) {
@@ -423,12 +434,14 @@ func (c *Client) Capabilities() runtimeapi.CapabilitySet {
 			ReasonCode: "same_field_and_unsupported",
 		},
 		runtimeapi.CapabilityVolumeListFilter: {
-			Support: runtimeapi.Available,
-			Reason:  "volume list filters are supported natively by both Docker and Podman",
+			Support:    runtimeapi.Degraded,
+			Reason:     "single-value filters are native; same-field AND filters are not yet available",
+			ReasonCode: "same_field_and_unsupported",
 		},
 		runtimeapi.CapabilityNetworkListFilter: {
-			Support: runtimeapi.Available,
-			Reason:  "network list filters are supported natively by both Docker and Podman",
+			Support:    runtimeapi.Degraded,
+			Reason:     "single-value filters are native; same-field AND filters are not yet available",
+			ReasonCode: "same_field_and_unsupported",
 		},
 		runtimeapi.CapabilityEventFilter: {Support: support, Reason: reason},
 		runtimeapi.CapabilityExecResize:  {Support: support, Reason: reason},

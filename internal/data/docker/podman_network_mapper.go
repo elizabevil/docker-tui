@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"net"
 	"time"
 
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
@@ -94,11 +95,20 @@ func mapPodmanNetworkInspect(raw podmanNetworkItem) *runtimeapi.NetworkDetail {
 	}
 
 	ipamConfigs := make([]runtimeapi.NetworkIPAMConfig, 0, len(raw.Subnets))
+	enableIPv4 := false
+	enableIPv6 := raw.IPv6Enabled
 	for _, s := range raw.Subnets {
 		ipamConfigs = append(ipamConfigs, runtimeapi.NetworkIPAMConfig{
 			Subnet:  s.Subnet,
 			Gateway: s.Gateway,
 		})
+		if ip, _, err := net.ParseCIDR(s.Subnet); err == nil {
+			if ip.To4() != nil {
+				enableIPv4 = true
+			} else {
+				enableIPv6 = true
+			}
+		}
 	}
 
 	return &runtimeapi.NetworkDetail{
@@ -107,8 +117,8 @@ func mapPodmanNetworkInspect(raw podmanNetworkItem) *runtimeapi.NetworkDetail {
 		Created:    raw.Created.Format(time.RFC3339),
 		Scope:      "local",
 		Driver:     raw.Driver,
-		EnableIPv4: !raw.IPv6Enabled,
-		EnableIPv6: raw.IPv6Enabled,
+		EnableIPv4: enableIPv4,
+		EnableIPv6: enableIPv6,
 		IPAM: runtimeapi.NetworkIPAM{
 			Config: ipamConfigs,
 		},

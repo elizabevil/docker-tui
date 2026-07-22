@@ -2,9 +2,9 @@
 
 // This file compiles only when CGO is available. It uses the official Podman
 // Go bindings (go.podman.io/podman/v6/pkg/bindings/network) which require CGO
-// for libpod client communication. The REST fallback lives in
-// podman_networks_nocgo.go. Both files implement the same unexported methods
-// on *Client; only one is compiled per build.
+// for local libpod communication. TLS connections and explicit API overrides
+// use the shared REST implementation because bindings cannot express all of
+// the configured transport semantics.
 
 package docker
 
@@ -19,6 +19,9 @@ import (
 )
 
 func (c *Client) listNetworksPodman(ctx context.Context, options runtimeapi.NetworkListOptions) ([]runtimeapi.Network, error) {
+	if c.usePodmanRESTTransport() {
+		return c.listNetworksPodmanREST(ctx, options)
+	}
 	nativeFilters, err := options.NativeFilters()
 	if err != nil {
 		return nil, err
@@ -57,6 +60,9 @@ func (c *Client) listNetworksPodman(ctx context.Context, options runtimeapi.Netw
 }
 
 func (c *Client) inspectNetworkPodman(ctx context.Context, id string) (*runtimeapi.NetworkDetail, error) {
+	if c.usePodmanRESTTransport() {
+		return c.inspectNetworkPodmanREST(ctx, id)
+	}
 	bindingContext, err := bindings.NewConnection(ctx, c.Host)
 	if err != nil {
 		return nil, fmt.Errorf("podman connect: %w", err)
@@ -87,6 +93,9 @@ func (c *Client) inspectNetworkPodman(ctx context.Context, id string) (*runtimea
 }
 
 func (c *Client) removeNetworkPodman(ctx context.Context, id string) error {
+	if c.usePodmanRESTTransport() {
+		return c.removeNetworkPodmanREST(ctx, id)
+	}
 	bindingContext, err := bindings.NewConnection(ctx, c.Host)
 	if err != nil {
 		return fmt.Errorf("podman connect: %w", err)

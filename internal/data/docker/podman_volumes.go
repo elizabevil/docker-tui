@@ -2,9 +2,9 @@
 
 // This file compiles only when CGO is available. It uses the official Podman
 // Go bindings (go.podman.io/podman/v6/pkg/bindings/volumes) which require CGO
-// for libpod client communication. The REST fallback lives in
-// podman_volumes_nocgo.go. Both files implement the same unexported methods
-// on *Client; only one is compiled per build.
+// for local libpod communication. TLS connections and explicit API overrides
+// use the shared REST implementation because bindings cannot express all of
+// the configured transport semantics.
 
 package docker
 
@@ -18,6 +18,9 @@ import (
 )
 
 func (c *Client) listVolumesPodman(ctx context.Context, options runtimeapi.VolumeListOptions) ([]runtimeapi.Volume, error) {
+	if c.usePodmanRESTTransport() {
+		return c.listVolumesPodmanREST(ctx, options)
+	}
 	nativeFilters, err := options.NativeFilters()
 	if err != nil {
 		return nil, err
@@ -48,6 +51,9 @@ func (c *Client) listVolumesPodman(ctx context.Context, options runtimeapi.Volum
 }
 
 func (c *Client) inspectVolumePodman(ctx context.Context, name string) (*runtimeapi.VolumeDetail, error) {
+	if c.usePodmanRESTTransport() {
+		return c.inspectVolumePodmanREST(ctx, name)
+	}
 	bindingContext, err := bindings.NewConnection(ctx, c.Host)
 	if err != nil {
 		return nil, fmt.Errorf("podman connect: %w", err)
@@ -69,6 +75,9 @@ func (c *Client) inspectVolumePodman(ctx context.Context, name string) (*runtime
 }
 
 func (c *Client) removeVolumePodman(ctx context.Context, name string, force bool) error {
+	if c.usePodmanRESTTransport() {
+		return c.removeVolumePodmanREST(ctx, name, force)
+	}
 	bindingContext, err := bindings.NewConnection(ctx, c.Host)
 	if err != nil {
 		return fmt.Errorf("podman connect: %w", err)

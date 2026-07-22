@@ -112,11 +112,21 @@ func (c *RESTClient) Get(ctx context.Context, operation, path string, query url.
 }
 
 func (c *RESTClient) Delete(ctx context.Context, operation, path string) error {
+	return c.DeleteWithQuery(ctx, operation, path, nil)
+}
+
+// DeleteWithQuery performs a versioned Libpod DELETE while preserving
+// operation-specific options such as force. Keeping query encoding here
+// prevents resource adapters from constructing versioned URLs themselves.
+func (c *RESTClient) DeleteWithQuery(ctx context.Context, operation, path string, query url.Values) error {
 	version, err := c.APIVersion(ctx)
 	if err != nil {
 		return err
 	}
 	versionedPath := "/v" + version + "/libpod/" + strings.TrimPrefix(path, "/")
+	if len(query) > 0 {
+		versionedPath += "?" + query.Encode()
+	}
 	return c.do(ctx, operation, http.MethodDelete, versionedPath, nil, nil)
 }
 
@@ -125,6 +135,9 @@ func (c *RESTClient) do(ctx context.Context, operation, method, path string, bod
 	requestURL.Path = path
 	if parsed, err := url.Parse(path); err == nil {
 		requestURL.Path = parsed.Path
+		// Path stores the decoded form. RawPath is required so escaped resource
+		// names such as "team%2Fcache" remain one URL segment on the wire.
+		requestURL.RawPath = parsed.RawPath
 		requestURL.RawQuery = parsed.RawQuery
 	}
 	req, err := http.NewRequestWithContext(ctx, method, requestURL.String(), body)

@@ -51,3 +51,13 @@ func TestMapPodmanVolumesEmpty(t *testing.T) {
 		t.Errorf("expected empty, got %d", len(result))
 	}
 }
+
+func TestMapPodmanVolumeDefaultsScopeAndOmitsZeroTime(t *testing.T) {
+	result := mapPodmanVolumes([]podmanVolumeConfigResponse{{Name: "cache"}})
+	if result[0].Scope != "local" {
+		t.Fatalf("scope = %q", result[0].Scope)
+	}
+	if result[0].CreatedAt != "" {
+		t.Fatalf("CreatedAt = %q", result[0].CreatedAt)
+	}
+}

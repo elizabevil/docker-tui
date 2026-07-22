@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -110,5 +111,26 @@ func TestRESTClientDeleteUsesCorrectMethodAndPath(t *testing.T) {
 	}
 	if receivedMethod != http.MethodDelete {
 		t.Errorf("expected DELETE, got %s", receivedMethod)
+	}
+}
+
+func TestRESTClientDeletePreservesEscapedSegmentAndQuery(t *testing.T) {
+	httpClient := &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		if request.URL.EscapedPath() != "/v5.2.0/libpod/volumes/team%2Fcache" {
+			t.Fatalf("escaped path = %q", request.URL.EscapedPath())
+		}
+		if request.URL.Query().Get("force") != "true" {
+			t.Fatalf("query = %q", request.URL.RawQuery)
+		}
+		return response(http.StatusNoContent, ""), nil
+	})}
+	client, err := NewRESTClient(RESTConfig{Endpoint: "http://podman.test", APIVersion: "5.2.0", HTTPClient: httpClient})
+	if err != nil {
+		t.Fatalf("NewRESTClient() error = %v", err)
+	}
+	query := make(url.Values)
+	query.Set("force", "true")
+	if err := client.DeleteWithQuery(context.Background(), "volume.remove", "/volumes/team%2Fcache", query); err != nil {
+		t.Fatalf("DeleteWithQuery() error = %v", err)
 	}
 }

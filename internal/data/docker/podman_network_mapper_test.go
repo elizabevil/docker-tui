@@ -74,6 +74,9 @@ func TestMapPodmanNetworkInspect(t *testing.T) {
 	if !result.EnableIPv6 {
 		t.Error("expected EnableIPv6=true")
 	}
+	if !result.EnableIPv4 {
+		t.Error("expected IPv4 subnet to keep EnableIPv4=true on a dual-stack network")
+	}
 	if !result.Internal {
 		t.Error("expected Internal=true")
 	}
