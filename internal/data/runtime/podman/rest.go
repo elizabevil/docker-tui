@@ -131,6 +131,49 @@ func (c *RESTClient) StreamPost(ctx context.Context, operation, path string, que
 	return c.stream(ctx, operation, http.MethodPost, path, query, body, contentType)
 }
 
+// UpgradePost opens a versioned Libpod bidirectional stream using HTTP
+// Upgrade. Exec and attach sessions use the returned stream for concurrent
+// reads and writes; the caller owns and must close it.
+func (c *RESTClient) UpgradePost(ctx context.Context, operation, path string, body io.Reader, contentType string) (io.ReadWriteCloser, error) {
+	version, err := c.APIVersion(ctx)
+	if err != nil {
+		return nil, err
+	}
+	requestURL := *c.baseURL
+	requestURL.Path = "/v" + version + "/libpod/" + strings.TrimPrefix(path, "/")
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL.String(), body)
+	if err != nil {
+		return nil, runtimeapi.NewError(runtimeapi.ErrorInvalid, operation, "", err)
+	}
+	request.Header.Set("Connection", "Upgrade")
+	request.Header.Set("Upgrade", "tcp")
+	if contentType != "" {
+		request.Header.Set("Content-Type", contentType)
+	}
+	client := *c.client
+	client.Timeout = 0
+	response, err := client.Do(request)
+	if err != nil {
+		kind := runtimeapi.ClassifyContextError(err)
+		if kind == runtimeapi.ErrorInternal {
+			kind = runtimeapi.ErrorConnection
+		}
+		runtimeErr := runtimeapi.NewError(kind, operation, "", err).(*runtimeapi.Error)
+		runtimeErr.Driver = runtimeapi.Podman
+		return nil, runtimeErr
+	}
+	if response.StatusCode != http.StatusSwitchingProtocols {
+		defer response.Body.Close()
+		return nil, c.decodeResponseError(operation, response)
+	}
+	stream, ok := response.Body.(io.ReadWriteCloser)
+	if !ok {
+		response.Body.Close()
+		return nil, runtimeapi.NewError(runtimeapi.ErrorInternal, operation, "", fmt.Errorf("upgrade response is not bidirectional"))
+	}
+	return stream, nil
+}
+
 func (c *RESTClient) stream(ctx context.Context, operation, method, path string, query url.Values, body io.Reader, contentType string) (io.ReadCloser, error) {
 	version, err := c.APIVersion(ctx)
 	if err != nil {

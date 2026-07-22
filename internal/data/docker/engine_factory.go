@@ -37,3 +37,7 @@ func (e *podmanEngine) Containers() runtimeapi.ContainerService {
 func (e *podmanEngine) Events() runtimeapi.EventService {
 	return podmanEventService{client: e.Client}
 }
+
+func (e *podmanEngine) Exec() runtimeapi.ExecService {
+	return podmanExecService{client: e.Client}
+}

@@ -414,21 +414,13 @@ func (c *Client) Identity() runtimeapi.Identity {
 
 // Capabilities describes the normalized behavior exposed by this adapter.
 func (c *Client) Capabilities() runtimeapi.CapabilitySet {
-	execSupport := runtimeapi.Available
-	execReason := ""
-	execReasonCode := ""
-	if c.RuntimeType == RuntimePodman {
-		execSupport = runtimeapi.Degraded
-		execReason = "exec attach currently uses the Podman Docker compatibility endpoint"
-		execReasonCode = "podman_exec_compatibility_transport"
-	}
 	return runtimeapi.CapabilitySet{
 		runtimeapi.CapabilityContainers: {Support: runtimeapi.Available},
 		runtimeapi.CapabilityImages:     {Support: runtimeapi.Available},
 		runtimeapi.CapabilityVolumes:    {Support: runtimeapi.Available},
 		runtimeapi.CapabilityNetworks:   {Support: runtimeapi.Available},
 		runtimeapi.CapabilityEvents:     {Support: runtimeapi.Available},
-		runtimeapi.CapabilityExec:       {Support: execSupport, Reason: execReason, ReasonCode: execReasonCode},
+		runtimeapi.CapabilityExec:       {Support: runtimeapi.Available},
 		runtimeapi.CapabilityFiltering: {
 			Support:    runtimeapi.Degraded,
 			Reason:     "the first same-field value is native; remaining values use equivalent adapter post-filtering",
@@ -455,7 +447,7 @@ func (c *Client) Capabilities() runtimeapi.CapabilitySet {
 			ReasonCode: "partial_same_field_and_post_filter",
 		},
 		runtimeapi.CapabilityEventFilter: {Support: runtimeapi.Available},
-		runtimeapi.CapabilityExecResize:  {Support: execSupport, Reason: execReason, ReasonCode: execReasonCode},
+		runtimeapi.CapabilityExecResize:  {Support: runtimeapi.Available},
 		runtimeapi.CapabilityStatsStream: {Support: runtimeapi.Available},
 	}
 }
