@@ -49,6 +49,10 @@ func ForMode(app *state.AppModel) []Shortcut {
 		return shortcuts("Enter", "Search", "Esc", "Cancel", "Ctrl+A/E", "Home/End", "Ctrl+W/U/K", "Edit")
 	case state.ModeImagePull:
 		return shortcuts("Enter", "Pull", "Esc", "Cancel", "Ctrl+A/E", "Home/End", "Ctrl+W/U/K", "Edit")
+	case state.ModeImageWorkflow:
+		return shortcuts("Enter", "Start", "Esc", "Cancel", "Ctrl+A/E", "Home/End", "Ctrl+W/U/K", "Edit")
+	case state.ModeImageTransfer:
+		return shortcuts("Esc", "Cancel")
 	case state.ModeCommand:
 		return shortcuts("Enter", "Run", "Tab", "Complete", "Esc", "Exit", "Ctrl+A/E", "Home/End", "Ctrl+W/U/K", "Edit")
 	case state.ModeMark:
@@ -126,7 +130,9 @@ func ForPanel(panel state.PanelType, marked int, app ...*state.AppModel) []Short
 		return []Shortcut{
 			{keys.KSpace, i18n.T("key.mark")}, {keys.KRight, i18n.T("key.expand")},
 			{keys.KeyY, i18n.T("key.copy")}, {bindingLabel(model, keys.ActionDetail, keys.KeyD), i18n.T("key.detail")},
-			{keys.KCtrlB, i18n.T("key.debug")}, {keys.KCtrlE, i18n.T("key.export")},
+			{keys.KCtrlB, i18n.T("key.debug")}, {bindingLabel(model, keys.ActionImageTag, keys.KeyCtrlT), i18n.T("key.tag")},
+			{bindingLabel(model, keys.ActionImagePush, keys.KeyCtrlU), i18n.T("key.push")},
+			{bindingLabel(model, keys.ActionImageSave, keys.KeyCtrlE), i18n.T("key.save")}, {bindingLabel(model, keys.ActionImageLoad, keys.KeyCtrlL), i18n.T("key.load")},
 			{bindingLabel(model, keys.ActionImagePull, keys.KCtrlP), i18n.T("key.pull")},
 			{bindingLabel(model, keys.ActionImagePrune, keys.KeyP), i18n.T("key.prune")},
 			{keys.KeyO, i18n.T("key.sort")}, {bindingLabel(model, keys.ActionImageRemove, keys.KCtrlD), i18n.T("key.delete")},

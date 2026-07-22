@@ -20,15 +20,15 @@
 
 | 状态 | 数量 |
 |---|---:|
-| `done` | 12 |
+| `done` | 13 |
 | `in_progress` | 1 |
-| `todo` | 8 |
+| `todo` | 7 |
 | `blocked` | 0 |
 
 当前执行队列：
 
 1. 执行 `TASK-021`，建立 Docker / Podman 独立 adapter 和统一 runtime driver。
-2. 执行 `TASK-018`，实现镜像标签与传输工作流。
+2. 执行 `TASK-011`，完善 Compose / 容器 / 镜像联动刷新。
 
 ## 已完成基础
 
@@ -70,7 +70,7 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 | `TASK-010` | 批量操作扩展与部分成功反馈 | P2 | `todo` | 审计模型、TASK-017 | 每个目标独立终态、汇总提示和可追溯审计 |
 | `TASK-011` | Compose / 容器 / 镜像联动刷新 | P2 | `todo` | TASK-008 | 事件只使相关资源失效，不直接修改复杂 UI 状态 |
 | `TASK-017` | 高频容器操作 | P0 | `done` | TASK-004 | 已实现状态约束的 `pause` / `unpause`、批量跳过汇总、`rename` 输入校验、独立 `top` 页面和结构化 `port` 展示，并通过 Docker / Podman 兼容 API 契约测试 |
-| `TASK-018` | 镜像标签与传输工作流 | P1 | `todo` | TASK-021 | `tag`、`push`、`save`、`load`；进度、取消和错误可见 |
+| `TASK-018` | 镜像标签与传输工作流 | P1 | `done` | TASK-021 | runtime-neutral transfer service；`tag`、`push`、`save`、`load`；字节/daemon 进度、context 取消、错误展示和审计终态 |
 | `TASK-019` | 高级容器操作 | P2 | `todo` | TASK-017、TASK-021 | 评估并分批实现 `update`、`diff`、`export`、`commit`、`wait`、`cp` |
 
 `build` 需要独立输入和进度交互设计，暂不并入 `TASK-018`，待该任务完成后再建立实施项。
@@ -137,7 +137,7 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
   |-> TASK-017 高频容器操作 -> TASK-010 / TASK-019
   `-> TASK-021 统一 runtime driver [in_progress]
         |-> TASK-009 Volume / Network         [done]
-        |-> TASK-018 镜像工作流               [todo, 依赖 Image 域迁移]
+        |-> TASK-018 镜像工作流               [done]
         |-> TASK-008 Events [done] -> TASK-011 联动刷新 [todo]
         `-> TASK-021 剩余工作:
               - Logs 加入 Engine 接口

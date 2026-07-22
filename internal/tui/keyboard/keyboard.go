@@ -59,6 +59,15 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 	if m.Navigation.Mode == state.ModeImagePull {
 		return handleImagePullInput(normalizeInputKey(rawKey), m), nil
 	}
+	if m.Navigation.Mode == state.ModeImageWorkflow {
+		return handleImageWorkflowInput(normalizeInputKey(rawKey), m)
+	}
+	if m.Navigation.Mode == state.ModeImageTransfer {
+		if key == keys.KeyEsc {
+			return cancelImageTransfer(m)
+		}
+		return m, nil
+	}
 
 	if m.Navigation.Mode == state.ModeCommand {
 		return handleCommandInput(normalizeInputKey(rawKey), m)
@@ -242,9 +251,9 @@ func keyContext(m *state.AppModel) keys.Context {
 
 func keySurface(mode state.AppMode) string {
 	switch mode {
-	case state.ModeFilter, state.ModeSearch, state.ModeImagePull, state.ModeCommand:
+	case state.ModeFilter, state.ModeSearch, state.ModeImagePull, state.ModeImageWorkflow, state.ModeCommand:
 		return "input"
-	case state.ModeConfirm, state.ModeExport, state.ModeDebug, state.ModeExec, state.ModeExecShell, state.ModeRename, state.ModeResourceCreate:
+	case state.ModeConfirm, state.ModeExport, state.ModeDebug, state.ModeExec, state.ModeExecShell, state.ModeRename, state.ModeResourceCreate, state.ModeImageTransfer:
 		return "dialog"
 	default:
 		return "main"

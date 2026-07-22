@@ -9,7 +9,7 @@
 | 容器列表、启停、重启、Kill、删除 | 已实现 | `internal/tui/keyboard/container_action.go` |
 | 实时日志 | 已实现 | 当前为按需拉取/显示，不是启动即常驻事件流 |
 | 容器 stats | 已实现 | 定时轮询当前容器列表，不是只轮询单个聚焦容器 |
-| 镜像列表、Pull、Prune、详情 | 已实现 | Export / Debug 目前提供命令预览对话框；详情页按普通镜像 layer history 或 manifest 平台变体分区渲染 |
+| 镜像列表、Pull、Prune、Tag、Push、Save、Load、详情 | 已实现 | 镜像传输支持进度、取消和错误展示；Debug 保留命令预览；详情页按普通镜像 layer history 或 manifest 平台变体分区渲染 |
 | Volume / Network 创建、列表、清理、删除、详情 | 已实现 | `c` 创建、`p` 清理；清理报告保留逐资源部分失败 |
 | Compose 项目视图 | 已实现 | 基于 `com.docker.compose.*` labels 聚合，不解析 `compose.yaml` |
 | 主题、i18n、帮助页、命令模式、过滤 | 已实现 | `zh` / `en` 已接入 |
@@ -55,10 +55,8 @@
 - 继续扩展可配置动作范围，并评估用户级上下文覆盖与冲突诊断
 - 明确 `dtui` / `docker-tui` 的对外命名策略
 
-### P1：强化实时性与资源联动
+### P1：强化资源联动
 
-- 把 `internal/data/docker/events.go` 接入主循环
-- 用事件流替代部分全量刷新
 - 补齐 Compose / 镜像 / 容器联动反馈
 
 ### P2：完善操作面

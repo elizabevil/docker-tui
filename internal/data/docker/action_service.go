@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
@@ -135,6 +136,12 @@ func mapRuntimeError(err error, operation string, ref runtimeapi.ResourceRef, dr
 	kind := runtimeapi.ClassifyContextError(err)
 	if kind == runtimeapi.ErrorInternal {
 		switch {
+		case errors.Is(err, os.ErrNotExist):
+			kind = runtimeapi.ErrorNotFound
+		case errors.Is(err, os.ErrExist):
+			kind = runtimeapi.ErrorConflict
+		case errors.Is(err, os.ErrPermission):
+			kind = runtimeapi.ErrorPermission
 		case errdefs.IsNotFound(err):
 			kind = runtimeapi.ErrorNotFound
 		case errdefs.IsConflict(err):

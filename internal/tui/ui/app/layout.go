@@ -232,9 +232,13 @@ func RenderApp(m *state.AppModel) string {
 	if m.Navigation.Mode == state.ModeExecShell {
 		return component.PlaceOverlay(m.Viewport.Width, m.Viewport.Height, component.RenderShellDialog(m.Dialog.Input.Text, m.Viewport.Width, m.Viewport.Height, overlayColor), overlayColor)
 	}
-	if m.Navigation.Mode == state.ModeRename || m.Navigation.Mode == state.ModeResourceCreate {
+	if m.Navigation.Mode == state.ModeRename || m.Navigation.Mode == state.ModeResourceCreate || m.Navigation.Mode == state.ModeImageWorkflow {
 		return component.PlaceOverlay(m.Viewport.Width, m.Viewport.Height,
 			component.RenderTextInput(m.Dialog.Title, m.Dialog.Input.Text, m.Dialog.Input.Cursor, m.Viewport.Width, m.Viewport.Height, overlayColor), overlayColor)
+	}
+	if m.Navigation.Mode == state.ModeImageTransfer {
+		return component.RenderProgressDialog(m.Dialog.Title, m.Dialog.Body, imageTransferStatus(m.ImageTransfer.Progress.Status),
+			m.ImageTransfer.Progress.Current, m.ImageTransfer.Progress.Total, m.Viewport.Width, m.Viewport.Height, overlayColor)
 	}
 	if m.Dialog.Kind.IsSelection() {
 		return dialog.RenderOverlay(result, m)
@@ -246,6 +250,15 @@ func RenderApp(m *state.AppModel) string {
 		return component.PlaceOverlay(m.Viewport.Width, m.Viewport.Height, renderRuntimeSelector(m), overlayColor)
 	}
 	return result
+}
+
+func imageTransferStatus(status string) string {
+	switch status {
+	case "starting", "saving", "loading":
+		return i18n.T("image.transfer." + status)
+	default:
+		return status
+	}
 }
 
 func renderRuntimeSelector(m *state.AppModel) string {

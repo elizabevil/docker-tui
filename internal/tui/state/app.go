@@ -53,6 +53,8 @@ const (
 	ModeRename
 	ModeTop
 	ModeResourceCreate
+	ModeImageWorkflow
+	ModeImageTransfer
 )
 
 // ExecDialogFocus identifies focusable regions in the exec dialog.
@@ -75,22 +77,23 @@ const (
 //	Terminal  — width, height
 //	State     — UI transient state (toast, dialog, detail, compose, etc.)
 type AppModel struct {
-	Dependencies Dependencies
-	Connection   ConnectionState
-	Navigation   NavigationState
-	Dialog       DialogState
-	Feedback     FeedbackState
-	Log          LogState
-	Detail       DetailState
-	Exec         ExecState
-	Compose      ComposeState
-	Confirm      ConfirmState
-	Selection    SelectionState
-	Resources    ResourceState
-	Metrics      MetricsState
-	Viewport     ViewportState
-	Processes    ProcessState
-	Events       EventState
+	Dependencies  Dependencies
+	Connection    ConnectionState
+	Navigation    NavigationState
+	Dialog        DialogState
+	Feedback      FeedbackState
+	Log           LogState
+	Detail        DetailState
+	Exec          ExecState
+	Compose       ComposeState
+	Confirm       ConfirmState
+	Selection     SelectionState
+	Resources     ResourceState
+	Metrics       MetricsState
+	Viewport      ViewportState
+	Processes     ProcessState
+	Events        EventState
+	ImageTransfer ImageTransferState
 }
 
 // NewAppModel creates a new application model with default state.

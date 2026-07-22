@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
@@ -196,38 +195,6 @@ func shortID(id string) string {
 
 func doImageCollapse(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	BackFromImageContainers(m)
-	return m, nil
-}
-
-func doImageExport(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	img := m.Resources.Images.Selected()
-	if img == nil || m.Connection.Docker == nil {
-		return m, nil
-	}
-	tag := tagName(img)
-	home, _ := os.UserHomeDir()
-	exportDir := filepath.Join(home, "dtui-exports")
-	os.MkdirAll(exportDir, 0755)
-	path := filepath.Join(exportDir, tag+".tar")
-
-	engine := "docker"
-	if m.Connection.Docker.RuntimeType == "podman" {
-		engine = "podman"
-	}
-	ref := img.ID[:20]
-	if len(img.RepoTags) > 0 {
-		ref = img.RepoTags[0]
-	}
-
-	cmd := fmt.Sprintf("%s save -o %s %s", engine, path, ref)
-	m.Dialog.Open(state.DialogSpec{
-		Kind:    state.DialogImageExport,
-		Title:   "Export Image",
-		Body:    fmt.Sprintf("Image: %s\nOutput: %s", ref, path),
-		Preview: cmd,
-		Action:  "Export command copied to preview",
-	})
-	m.Navigation.Mode = m.Dialog.Kind.Mode()
 	return m, nil
 }
 

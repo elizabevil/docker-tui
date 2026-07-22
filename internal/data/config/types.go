@@ -128,6 +128,10 @@ type KeymapConfig struct {
 	ImagePull   []string `json:"imagePull" yaml:"imagePull"`
 	ImageRemove []string `json:"imageRemove" yaml:"imageRemove"`
 	ImagePrune  []string `json:"imagePrune" yaml:"imagePrune"`
+	ImageTag    []string `json:"imageTag" yaml:"imageTag"`
+	ImagePush   []string `json:"imagePush" yaml:"imagePush"`
+	ImageSave   []string `json:"imageSave" yaml:"imageSave"`
+	ImageLoad   []string `json:"imageLoad" yaml:"imageLoad"`
 
 	VolumeCreate  []string `json:"volumeCreate" yaml:"volumeCreate"`
 	VolumePrune   []string `json:"volumePrune" yaml:"volumePrune"`

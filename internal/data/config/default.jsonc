@@ -127,6 +127,18 @@
     "imagePrune": [
       "p"
     ],
+    "imageTag": [
+      "ctrl+t"
+    ],
+    "imagePush": [
+      "ctrl+u"
+    ],
+    "imageSave": [
+      "ctrl+e"
+    ],
+    "imageLoad": [
+      "ctrl+l"
+    ],
     "volumeCreate": [
       "c"
     ],

@@ -79,6 +79,11 @@ func (s imageTransferService) execute(ctx context.Context, request runtimeapi.Im
 }
 
 func (s imageTransferService) push(ctx context.Context, request runtimeapi.ImageTransferRequest, output chan<- runtimeapi.ImageTransferEvent) error {
+	if request.Source != request.Destination {
+		if err := s.client.cli.ImageTag(ctx, request.Source, request.Destination); err != nil {
+			return err
+		}
+	}
 	reader, err := s.client.cli.ImagePush(ctx, request.Destination, image.PushOptions{})
 	if err != nil {
 		return err

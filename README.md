@@ -7,7 +7,7 @@
 ## 功能
 
 - 管理容器：列表、启动、停止、重启、Pause/Unpause、Rename、Top、Port、Kill、删除、日志、Stats、Inspect 和 Exec
-- 管理镜像：列表、Pull、Prune、删除和结构化详情
+- 管理镜像：列表、Pull、Prune、Tag、Push、Save、Load、删除和结构化详情；传输支持进度与取消
 - 创建、查看、清理和删除 Volume / Network，并查看关联资源
 - 订阅运行时 Events，并按资源类型合并和局部刷新；断线时退避重连并降级轮询
 - 基于容器 labels 聚合 Compose 项目与服务，支持 start、stop、down 和日志
@@ -152,6 +152,10 @@ keymap:
   containerStop: [ctrl+s]
   containerPause: [p]
   imagePull: [ctrl+p]
+  imageTag: [ctrl+t]
+  imagePush: [ctrl+u]
+  imageSave: [ctrl+e]
+  imageLoad: [ctrl+l]
 ```
 
 连接配置只接受新的 `runtime` schema。旧的 `docker.host`、`docker.tlsVerify`、`docker.tlsCertPath` 和 `general.runtime` 字段不会迁移，加载时会直接返回配置错误。

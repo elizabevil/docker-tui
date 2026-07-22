@@ -11,6 +11,11 @@ const (
 	DialogExec
 	DialogContainerRename
 	DialogResourceCreate
+	DialogImageTag
+	DialogImagePush
+	DialogImageSave
+	DialogImageLoad
+	DialogImageTransfer
 )
 
 func (k DialogKind) Mode() AppMode {
@@ -27,6 +32,10 @@ func (k DialogKind) Mode() AppMode {
 		return ModeRename
 	case DialogResourceCreate:
 		return ModeResourceCreate
+	case DialogImageTag, DialogImagePush, DialogImageSave, DialogImageLoad:
+		return ModeImageWorkflow
+	case DialogImageTransfer:
+		return ModeImageTransfer
 	default:
 		return ModeNormal
 	}

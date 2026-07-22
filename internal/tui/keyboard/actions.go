@@ -91,6 +91,14 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 		return doImagePrune(m)
 	case keys.ActionImageRemove:
 		return doImageRemove(m)
+	case keys.ActionImageTag:
+		return openImageWorkflow(m, runtimeapi.ImageTransferTag)
+	case keys.ActionImagePush:
+		return openImageWorkflow(m, runtimeapi.ImageTransferPush)
+	case keys.ActionImageSave:
+		return openImageWorkflow(m, runtimeapi.ImageTransferSave)
+	case keys.ActionImageLoad:
+		return openImageWorkflow(m, runtimeapi.ImageTransferLoad)
 
 	case keys.ActionVolumeRemove:
 		return doVolumeRemove(m)

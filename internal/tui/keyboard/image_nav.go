@@ -62,9 +62,6 @@ func handleImagePanelKeys(key string, m *state.AppModel) (*state.AppModel, tea.C
 	if key == keys.KeyCtrlB {
 		return doImageDebug(m)
 	}
-	if key == keys.KeyCtrlE {
-		return doImageExport(m)
-	}
 	if key == keys.KeyY {
 		return doImageCopyRef(m)
 	}

@@ -2,6 +2,7 @@ package docker
 
 import (
 	"errors"
+	"os"
 	"testing"
 
 	"github.com/docker/docker/errdefs"
@@ -22,6 +23,7 @@ func TestMapRuntimeErrorClassifiesDriverErrors(t *testing.T) {
 	}{
 		{name: "docker not found", err: errdefs.NotFound(errors.New("missing")), kind: runtimeapi.ErrorNotFound},
 		{name: "podman conflict", err: codedTestError{status: 409}, kind: runtimeapi.ErrorConflict},
+		{name: "archive exists", err: os.ErrExist, kind: runtimeapi.ErrorConflict},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

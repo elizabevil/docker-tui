@@ -82,6 +82,8 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 	case state.ImageDetailLoaded:
 		return handleImageDetailLoaded(m, msg)
+	case state.ImageTransferReceived:
+		return handleImageTransferReceived(m, msg)
 
 	case state.GenericActioned:
 		return handleGenericActioned(m, msg)
