@@ -11,7 +11,7 @@ import (
 
 func (c *Client) listNetworksPodmanREST(ctx context.Context, options runtimeapi.NetworkListOptions) ([]runtimeapi.Network, error) {
 	if c.podmanREST == nil {
-		return nil, fmt.Errorf("Podman REST transport is not initialized")
+		return nil, fmt.Errorf("podman REST transport is not initialized")
 	}
 	nativeFilters, err := options.NativeFilters()
 	if err != nil {
@@ -34,7 +34,7 @@ func (c *Client) listNetworksPodmanREST(ctx context.Context, options runtimeapi.
 
 func (c *Client) inspectNetworkPodmanREST(ctx context.Context, id string) (*runtimeapi.NetworkDetail, error) {
 	if c.podmanREST == nil {
-		return nil, fmt.Errorf("Podman REST transport is not initialized")
+		return nil, fmt.Errorf("podman REST transport is not initialized")
 	}
 	var raw podmanNetworkItem
 	if err := c.podmanREST.Get(ctx, "network.inspect", "/networks/"+url.PathEscape(id)+"/json", nil, &raw); err != nil {
@@ -45,7 +45,7 @@ func (c *Client) inspectNetworkPodmanREST(ctx context.Context, id string) (*runt
 
 func (c *Client) removeNetworkPodmanREST(ctx context.Context, id string) error {
 	if c.podmanREST == nil {
-		return fmt.Errorf("Podman REST transport is not initialized")
+		return fmt.Errorf("podman REST transport is not initialized")
 	}
 	return c.podmanREST.Delete(ctx, "network.remove", "/networks/"+url.PathEscape(id))
 }

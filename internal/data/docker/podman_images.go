@@ -11,6 +11,9 @@ import (
 )
 
 func (c *Client) listImagesPodman(options runtimeapi.ImageListOptions) ([]ImageSummary, error) {
+	if c.usePodmanRESTTransport() {
+		return c.listImagesPodmanREST(options)
+	}
 	ctx, err := bindings.NewConnection(c.ctx, c.Host)
 	if err != nil {
 		return nil, fmt.Errorf("podman connect: %w", err)

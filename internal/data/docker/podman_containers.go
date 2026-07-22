@@ -11,6 +11,9 @@ import (
 )
 
 func (c *Client) listContainersPodman(ctx context.Context, options ContainerListOptions) ([]ContainerSummary, error) {
+	if c.usePodmanRESTTransport() {
+		return c.listContainersPodmanREST(ctx, options)
+	}
 	nativeFilters, err := options.NativeFilters()
 	if err != nil {
 		return nil, err

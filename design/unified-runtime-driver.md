@@ -6,21 +6,21 @@
 
 ## 当前实施状态
 
-> 状态同步至提交 `137229c`。
+> 状态同步至当前工作树；完成提交后更新提交号。
 
 | 阶段 | 状态 | 已完成 | 待完成 |
 |---|---|---|---|
 | Phase 0 | `done` | CGO/非 CGO 风险探针、双构建测试矩阵、共享 DTO/mapper 策略 | 无 |
 | Phase 1 | `in_progress` | runtime identity/error/capability/Engine 契约；ConnectionPool 可暴露 Engine；TLS、API override | 独立 Docker adapter/factory；动态版本 capability；连接池停止暴露旧 Client |
-| Phase 2 | `in_progress` | Container/Image/Volume/Network list；筛选 options 与单值下推；Volume/Network inspect；Podman 双 transport mapper | Container inspect、Image 完整领域 service、Stats、Top；完整 ID；同字段多值 AND 的等价实现 |
+| Phase 2 | `in_progress` | Container/Image/Volume/Network list；筛选 options 与单值下推；Volume/Network inspect；Podman 双 transport mapper；四类资源按 TLS/API override 统一选择 REST | Container inspect、Image 完整领域 service、Stats、Top；完整 ID；同字段多值 AND 的等价实现 |
 | Phase 3 | `in_progress` | Volume/Network remove 已接入 Podman native transport | 容器与镜像动作迁移；统一 OperationResult；Volume/Network create 和 prune（TASK-009） |
 | Phase 4 | `todo` | REST 基础错误和 context 分类 | Logs、Events、Stats stream、Exec/attach/resize；取消与断线 contract；删除 `Raw()` |
 | Phase 5 | `todo` | 部分 TUI detail 已改用 runtime DTO | 删除旧 facade/build-tag 业务重复；清理上层 runtime 分支和 SDK import；完整文档同步 |
 
 ### 下一执行队列
 
-1. 将 Container/Image 的 CGO 路径应用与 Volume/Network 相同的 transport 选择规则：TLS 或 API override 使用共享 REST，普通本地连接使用 bindings。
-2. 迁移 Container inspect、Top、Stats 为 runtime DTO/service，删除 UI 对原始 Docker JSON 的依赖。
+1. 迁移 Container inspect、Top、Stats 为 runtime DTO/service，删除 UI 对原始 Docker JSON 的依赖。
+2. 建立 Image 完整领域 service，迁移 inspect 等只读操作。
 3. 建立统一 action options/results/error mapper，迁移 container/image/volume/network 的现有操作。
 4. 迁移 Exec 和 Events，删除 `Client.Raw()` 及 `internal/tui` 中 Docker SDK import。
 5. 完成 `TASK-009` 的 Volume/Network create、prune 和部分失败反馈。
@@ -31,7 +31,6 @@
 - TUI image action 仍根据 `RuntimeType` 选择行为；应改为 capability 或统一 service。
 - Docker SDK 与 Podman bindings 的多数错误仍是包装字符串，尚未全部转换为 `runtime.Error`。
 - capability 当前主要为静态声明，尚未结合协商后的服务端版本动态生成。
-- Container/Image 的 CGO bindings 尚未在 TLS/API override 时切换共享 REST transport。
 - 健康检测已有间隔、超时和失败阈值，但设计中新增的退避与 jitter 尚未实现。
 - 同字段多值 AND 当前返回 `ErrorUnsupported`；尚未实现可证明等价的下推或后置筛选。
 
