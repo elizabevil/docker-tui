@@ -1,7 +1,7 @@
 # 后续需求实施任务清单
 
-> 建立日期: 2026-07-20  
-> 最近整理: 2026-07-21
+> 建立日期: 2026-07-20
+> 最近整理: 2026-07-22
 > 依据: [后续需求与规划讨论](future-requirements-discussion.md)、[Docker / Podman 能力分析](podman-capabilities-analysis.md)
 > 规则: 本文是后续工作的唯一主任务台账；其他设计文档中的任务编号仅作为来源参考。
 
@@ -42,7 +42,7 @@
 | `TASK-006` | endpoint / runtime identity 去重 | P1 | `done` | 本地候选与配置连接按规范化 key 去重并保持顺序 |
 | `TASK-007` | 新配置 schema 强制校验 | P1 | `done` | 解码后按配置子结构校验，运行期直接使用已验证的健康参数 |
 
-相关提交：`7cf479a`、`948d9d2`、`aa7567d`、`4fe226d`。
+相关提交：`7cf479a`、`948d9d2`、`aa7567d`、`4fe226d`、`801eb76`。
 
 ## 当前架构任务
 
@@ -64,7 +64,7 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 
 | 编号 | 任务 | 优先级 | 状态 | 依赖 | 验收重点 |
 |---|---|---:|---|---|---|
-| `TASK-021` | [Docker / Podman 统一 runtime driver](unified-runtime-driver.md) | P0 | `in_progress` | TASK-004 | **已完成**: Phase 0 双构建矩阵 + CGO 约束验证; Container/Volume/Network/Image list + inspect (结构化类型); Image 域已迁移至 runtime 包 (`runtime.ImageSummary`/`runtime.ImageDetail`/`runtime.ImageService`); Volume/Network create + prune; Podman CGO+REST 双 transport; `Raw()` 已删除; TUI 不再 import Docker SDK。**剩余**: Logs 未加入 Engine 接口; TUI 仍持有 `*docker.Client` 而非 `runtime.Engine`; Volume/Network Inspect/Remove 未在 Service 接口中 |
+| `TASK-021` | [Docker / Podman 统一 runtime driver](unified-runtime-driver.md) | P0 | `in_progress` | TASK-004 | **已完成**: Phase 0 双构建矩阵 + CGO 约束验证; Container/Volume/Network/Image list + inspect (结构化类型); Image 域已迁移至 runtime 包 (`runtime.ImageSummary`/`runtime.ImageDetail`/`runtime.ImageService`); Volume/Network create + prune; Podman CGO+REST 双 transport; `Raw()` 已删除; TUI 不再 import Docker SDK; runtime + docker 包全量 doc comments。**剩余**: Logs 未加入 Engine 接口; TUI 仍持有 `*docker.Client` 而非 `runtime.Engine`; Volume/Network Inspect/Remove 未在 Service 接口中 |
 | `TASK-008` | Docker / Podman Events 接入主循环 | P1 | `done` | TASK-003、TASK-021 | 订阅绑定活动连接；切换时取消；1-30 秒退避重连；100ms 事件合并；按资源局部刷新；15 秒轮询降级 |
 | `TASK-009` | Volume / Network 创建与清理 | P1 | `done` | TASK-021 | 已完成 create、prune、确认交互、逐资源部分失败反馈、Docker/Podman contract tests 和双构建矩阵 |
 | `TASK-010` | 批量操作扩展与部分成功反馈 | P2 | `todo` | 审计模型、TASK-017 | 每个目标独立终态、汇总提示和可追溯审计 |

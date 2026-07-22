@@ -69,6 +69,8 @@ func ForMode(app *state.AppModel) []Shortcut {
 		return shortcuts(bindingLabel(app, keys.ActionBack, keys.KEsc)+"/"+bindingLabel(app, keys.ActionEnter, keys.KEnter), "Back", navigationLabel(app), "Scroll", "Space/PgDn", "Page", "PgUp", "Page up", "g", "Top")
 	case state.ModeTop:
 		return shortcuts("Esc", "Back", "j/k", "Move", "r", "Refresh")
+	case state.ModeAuditDetail:
+		return shortcuts("Esc/Enter", "Back")
 	case state.ModeRename:
 		return shortcuts("Enter", "Rename", "Esc", "Cancel")
 	case state.ModeResourceCreate:
@@ -155,6 +157,11 @@ func ForPanel(panel state.PanelType, marked int, app ...*state.AppModel) []Short
 			{keys.KeyS, i18n.T("key.start")}, {keys.KCtrlS, i18n.T("key.stop")},
 			{keys.KeyL, i18n.T("key.logs")}, {keys.KCtrlD, i18n.T("key.down")},
 			{keys.KRight, i18n.T("key.detail")}, {keys.KEnter, i18n.T("key.expand")},
+		}
+	case state.PanelAudit:
+		return []Shortcut{
+			{keys.KEnter, "Detail"}, {keys.KeyE, "Filter level"},
+			{keys.KeySlash, i18n.T("key.filter")},
 		}
 	default:
 		return nil

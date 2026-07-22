@@ -84,6 +84,9 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 	if m.Navigation.Mode == state.ModeTop {
 		return handleTopKey(key, m)
 	}
+	if m.Navigation.Mode == state.ModeAuditDetail {
+		return handleAuditDetailKey(key, m)
+	}
 
 	if handleDetailKeys(key, m) {
 		return m, nil
@@ -150,6 +153,11 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 	}
 	if mm, cmd := handleComposePanelKeys(key, m); mm != nil || cmd != nil {
 		return mm, cmd
+	}
+	if m.Navigation.ActivePanel == state.PanelAudit {
+		if mm, cmd := handleAuditPanelKey(key, m); mm != nil || cmd != nil {
+			return mm, cmd
+		}
 	}
 
 	if key == keys.KeyH {
@@ -245,6 +253,8 @@ func keyContext(m *state.AppModel) keys.Context {
 		}
 	case state.PanelHelp:
 		view = "help"
+	case state.PanelAudit:
+		view = "audit"
 	}
 	return keys.Context{App: "app", Surface: keySurface(m.Navigation.Mode), View: view, Mode: keyMode(m.Navigation.Mode)}
 }
@@ -253,7 +263,7 @@ func keySurface(mode state.AppMode) string {
 	switch mode {
 	case state.ModeFilter, state.ModeSearch, state.ModeImagePull, state.ModeImageWorkflow, state.ModeCommand:
 		return "input"
-	case state.ModeConfirm, state.ModeExport, state.ModeDebug, state.ModeExec, state.ModeExecShell, state.ModeRename, state.ModeResourceCreate, state.ModeImageTransfer:
+	case state.ModeConfirm, state.ModeExport, state.ModeDebug, state.ModeExec, state.ModeExecShell, state.ModeRename, state.ModeResourceCreate, state.ModeImageTransfer, state.ModeAuditDetail:
 		return "dialog"
 	default:
 		return "main"
@@ -282,6 +292,8 @@ func keyMode(mode state.AppMode) string {
 		return "rename"
 	case state.ModeResourceCreate:
 		return "resource-create"
+	case state.ModeAuditDetail:
+		return "audit-detail"
 	default:
 		return "normal"
 	}

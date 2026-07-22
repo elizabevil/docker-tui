@@ -18,6 +18,7 @@ const (
 	PanelLogs
 	PanelDetail
 	PanelHelp
+	PanelAudit
 )
 
 // ResourceType identifies the type of resource in the detail view.
@@ -55,6 +56,7 @@ const (
 	ModeResourceCreate
 	ModeImageWorkflow
 	ModeImageTransfer
+	ModeAuditDetail
 )
 
 // ExecDialogFocus identifies focusable regions in the exec dialog.
@@ -94,6 +96,7 @@ type AppModel struct {
 	Processes     ProcessState
 	Events        EventState
 	ImageTransfer ImageTransferState
+	Audit         AuditState
 }
 
 // NewAppModel creates a new application model with default state.
@@ -126,6 +129,8 @@ func PanelLabel(p PanelType) string {
 		return i18n.T("panel.detail")
 	case PanelHelp:
 		return i18n.T("panel.help")
+	case PanelAudit:
+		return i18n.T("panel.audit")
 	default:
 		return "Unknown"
 	}
@@ -139,5 +144,6 @@ func PanelList() []PanelType {
 		PanelVolumes,
 		PanelNetworks,
 		PanelCompose,
+		PanelAudit,
 	}
 }
