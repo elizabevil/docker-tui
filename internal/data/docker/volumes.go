@@ -11,9 +11,6 @@ import (
 
 // ListVolumesContext returns all volumes visible to the client with a caller-provided context.
 func (c *Client) ListVolumesContext(ctx context.Context, options runtimeapi.VolumeListOptions) ([]runtimeapi.Volume, error) {
-	if c.RuntimeType == RuntimePodman {
-		return c.listVolumesPodman(ctx, options)
-	}
 	nativeFilters, err := options.NativeFilters()
 	if err != nil {
 		return nil, err
@@ -40,9 +37,6 @@ func (c *Client) ListVolumesContext(ctx context.Context, options runtimeapi.Volu
 
 // InspectVolumeContext returns detailed volume info with a caller-provided context.
 func (c *Client) InspectVolumeContext(ctx context.Context, name string) (*runtimeapi.VolumeDetail, error) {
-	if c.RuntimeType == RuntimePodman {
-		return c.inspectVolumePodman(ctx, name)
-	}
 	_, raw, err := c.cli.VolumeInspectWithRaw(ctx, name)
 	if err != nil {
 		return nil, fmt.Errorf("inspect volume %s: %w", name, err)
@@ -59,13 +53,6 @@ func (c *Client) CreateVolumeContext(ctx context.Context, options runtimeapi.Vol
 	if options.Name == "" {
 		return nil, runtimeapi.NewError(runtimeapi.ErrorInvalid, "volume.create", "", fmt.Errorf("name is required"))
 	}
-	if c.RuntimeType == RuntimePodman {
-		created, err := c.createVolumePodman(ctx, options)
-		if err != nil {
-			return nil, mapRuntimeError(err, "volume.create", runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume, ID: options.Name}, c.RuntimeType)
-		}
-		return created, nil
-	}
 	created, err := c.cli.VolumeCreate(ctx, volume.CreateOptions{Name: options.Name, Driver: options.Driver, Labels: options.Labels, DriverOpts: options.Options})
 	if err != nil {
 		return nil, mapRuntimeError(err, "volume.create", runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume, ID: options.Name}, c.RuntimeType)
@@ -75,16 +62,6 @@ func (c *Client) CreateVolumeContext(ctx context.Context, options runtimeapi.Vol
 
 // PruneVolumesContext removes unused volumes with a caller-provided context.
 func (c *Client) PruneVolumesContext(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
-	if c.RuntimeType == RuntimePodman {
-		result, err := c.pruneVolumesPodman(ctx, options)
-		if err != nil {
-			return runtimeapi.PruneResult{}, mapRuntimeError(err, "volume.prune", runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume}, c.RuntimeType)
-		}
-		for index := range result.Resources {
-			result.Resources[index].Error = mapRuntimeError(result.Resources[index].Error, "volume.prune", runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume, ID: result.Resources[index].ID}, c.RuntimeType)
-		}
-		return result, nil
-	}
 	filterArgs := filters.NewArgs()
 	for field, values := range options.Filters {
 		for _, value := range values {

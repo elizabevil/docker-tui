@@ -14,22 +14,10 @@ type ImageLister interface {
 }
 
 // dockerImageLister uses the Docker SDK to list images.
-// Compatible with both Docker and Podman's Docker API endpoint,
-// but may lack runtime-specific metadata (Arch, IsManifestList).
 type dockerImageLister struct {
 	client *Client
 }
 
 func (l *dockerImageLister) ListImages(ctx context.Context, options runtimeapi.ImageListOptions) ([]ImageSummary, error) {
 	return l.client.listImagesDocker(ctx, options)
-}
-
-// podmanImageLister uses the Podman Go SDK's native bindings.
-// Provides full metadata including Architecture and IsManifestList.
-type podmanImageLister struct {
-	client *Client
-}
-
-func (l *podmanImageLister) ListImages(ctx context.Context, options runtimeapi.ImageListOptions) ([]ImageSummary, error) {
-	return l.client.listImagesPodman(ctx, options)
 }

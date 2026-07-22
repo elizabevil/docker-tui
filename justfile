@@ -9,10 +9,10 @@ build:
 # ── Cross-compile (CGo) ──
 
 build-linux-amd64:
-    GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o {{ out }}/docker-tui-linux-amd64 ./cmd/docker-tui
+    GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -o {{ out }}/docker-tui-linux-amd64 ./cmd/docker-tui
 
 build-linux-arm64:
-    GOOS=linux GOARCH=arm64 CC=aarch64-linux-gnu-gcc CGO_ENABLED=0 go build -o {{ out }}/docker-tui-linux-arm64 ./cmd/docker-tui
+    GOOS=linux GOARCH=arm64 CC=aarch64-linux-gnu-gcc CGO_ENABLED=1 go build -o {{ out }}/docker-tui-linux-arm64 ./cmd/docker-tui
 
 # ── Cross-compile (no CGo, pure Go) ──
 

@@ -91,9 +91,6 @@ type inspectMount struct {
 // ── Public API ────────────────────────────────────────────────
 
 func (c *Client) inspectContainerContext(ctx context.Context, id string) (*runtimeapi.ContainerDetail, error) {
-	if c.RuntimeType == RuntimePodman {
-		return c.inspectContainerPodmanREST(ctx, id)
-	}
 	_, raw, err := c.cli.ContainerInspectWithRaw(ctx, id, false)
 	if err != nil {
 		return nil, fmt.Errorf("inspect %s: %w", id, err)

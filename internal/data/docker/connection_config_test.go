@@ -2,8 +2,6 @@ package docker
 
 import (
 	"testing"
-
-	podmanapi "github.com/elizabevil/docker-tui/internal/data/runtime/podman"
 )
 
 func TestDetectHostKeepsExplicitEndpointAndDriver(t *testing.T) {
@@ -45,29 +43,5 @@ func TestConnectionPoolPreservesRuntimeAndTLS(t *testing.T) {
 	entry := pool.Get("remote")
 	if entry == nil || entry.Runtime != "podman" || entry.TLS.CAFile != "/ca.pem" {
 		t.Fatalf("entry=%#v", entry)
-	}
-}
-
-func TestPodmanTransportSelectionPreservesConnectionSemantics(t *testing.T) {
-	rest, err := podmanapi.NewRESTClient(podmanapi.RESTConfig{Endpoint: "http://podman.test", APIVersion: "5.0.0"})
-	if err != nil {
-		t.Fatalf("NewRESTClient() error = %v", err)
-	}
-
-	tests := []struct {
-		name   string
-		client Client
-		want   bool
-	}{
-		{name: "local bindings", client: Client{podmanREST: rest}},
-		{name: "TLS REST", client: Client{podmanREST: rest, TLS: TLSConfig{Enabled: true}}, want: true},
-		{name: "versioned REST", client: Client{podmanREST: rest, APIVersion: "5.0.0"}, want: true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.client.usePodmanRESTTransport(); got != tt.want {
-				t.Fatalf("usePodmanRESTTransport() = %v, want %v", got, tt.want)
-			}
-		})
 	}
 }

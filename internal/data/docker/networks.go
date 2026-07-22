@@ -11,9 +11,6 @@ import (
 
 // ListNetworksContext returns all networks visible to the client with a caller-provided context.
 func (c *Client) ListNetworksContext(ctx context.Context, options runtimeapi.NetworkListOptions) ([]runtimeapi.Network, error) {
-	if c.RuntimeType == RuntimePodman {
-		return c.listNetworksPodman(ctx, options)
-	}
 	nativeFilters, err := options.NativeFilters()
 	if err != nil {
 		return nil, err
@@ -48,9 +45,6 @@ func (c *Client) ListNetworksContext(ctx context.Context, options runtimeapi.Net
 
 // InspectNetworkContext returns detailed network info with a caller-provided context.
 func (c *Client) InspectNetworkContext(ctx context.Context, id string) (*runtimeapi.NetworkDetail, error) {
-	if c.RuntimeType == RuntimePodman {
-		return c.inspectNetworkPodman(ctx, id)
-	}
 	_, raw, err := c.cli.NetworkInspectWithRaw(ctx, id, network.InspectOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("inspect network %s: %w", id, err)
@@ -67,13 +61,6 @@ func (c *Client) CreateNetworkContext(ctx context.Context, options runtimeapi.Ne
 	if options.Name == "" {
 		return nil, runtimeapi.NewError(runtimeapi.ErrorInvalid, "network.create", "", fmt.Errorf("name is required"))
 	}
-	if c.RuntimeType == RuntimePodman {
-		created, err := c.createNetworkPodman(ctx, options)
-		if err != nil {
-			return nil, mapRuntimeError(err, "network.create", runtimeapi.ResourceRef{Type: runtimeapi.ResourceNetwork, ID: options.Name}, c.RuntimeType)
-		}
-		return created, nil
-	}
 	created, err := c.cli.NetworkCreate(ctx, options.Name, network.CreateOptions{Driver: options.Driver, Internal: options.Internal, EnableIPv6: &options.EnableIPv6, Labels: options.Labels, Options: options.Options})
 	if err != nil {
 		return nil, mapRuntimeError(err, "network.create", runtimeapi.ResourceRef{Type: runtimeapi.ResourceNetwork, ID: options.Name}, c.RuntimeType)
@@ -83,16 +70,6 @@ func (c *Client) CreateNetworkContext(ctx context.Context, options runtimeapi.Ne
 
 // PruneNetworksContext removes unused networks with a caller-provided context.
 func (c *Client) PruneNetworksContext(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
-	if c.RuntimeType == RuntimePodman {
-		result, err := c.pruneNetworksPodman(ctx, options)
-		if err != nil {
-			return runtimeapi.PruneResult{}, mapRuntimeError(err, "network.prune", runtimeapi.ResourceRef{Type: runtimeapi.ResourceNetwork}, c.RuntimeType)
-		}
-		for index := range result.Resources {
-			result.Resources[index].Error = mapRuntimeError(result.Resources[index].Error, "network.prune", runtimeapi.ResourceRef{Type: runtimeapi.ResourceNetwork, ID: result.Resources[index].ID}, c.RuntimeType)
-		}
-		return result, nil
-	}
 	filterArgs := filters.NewArgs()
 	for field, values := range options.Filters {
 		for _, value := range values {

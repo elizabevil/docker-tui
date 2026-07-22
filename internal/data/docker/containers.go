@@ -19,9 +19,6 @@ func (c *Client) ListContainers(opts ContainerListOptions) ([]ContainerSummary, 
 
 // ListContainersContext returns containers with a caller-provided context.
 func (c *Client) ListContainersContext(ctx context.Context, opts ContainerListOptions) ([]ContainerSummary, error) {
-	if c.RuntimeType == RuntimePodman {
-		return c.listContainersPodman(ctx, opts)
-	}
 	return c.listContainersDocker(ctx, opts)
 }
 
@@ -147,9 +144,6 @@ func (c *Client) ContainerTop(id string) (ContainerProcesses, error) {
 }
 
 func (c *Client) containerTopContext(ctx context.Context, id string) (ContainerProcesses, error) {
-	if c.RuntimeType == RuntimePodman {
-		return c.containerTopPodmanREST(ctx, id)
-	}
 	response, err := c.cli.ContainerTop(ctx, id, nil)
 	if err != nil {
 		return ContainerProcesses{}, fmt.Errorf("top container: %w", err)

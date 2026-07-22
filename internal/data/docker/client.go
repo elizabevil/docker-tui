@@ -48,8 +48,8 @@ type Client struct {
 	APIVersion    string
 	TLS           TLSConfig
 	EngineVersion string
-	imageLister   ImageLister // nil = use Docker SDK default
-	podmanREST    *podmanapi.RESTClient
+	imageLister   ImageLister           // nil = use Docker SDK default
+	podmanREST    *podmanapi.RESTClient // set for Podman; used by engineForClient
 }
 
 // ClientConfig holds the parameters needed to create a runtime client.
@@ -71,10 +71,6 @@ type TLSConfig struct {
 	KeyFile            string
 	ServerName         string
 }
-
-// errPodmanRESTNotReady is returned when a Podman REST operation is attempted
-// without an initialized REST transport.
-var errPodmanRESTNotReady = fmt.Errorf("podman REST transport is not initialized")
 
 var knownSockets = []struct {
 	path string
@@ -310,13 +306,6 @@ func NewClient(cfg ClientConfig) (*Client, error) {
 	return c, nil
 }
 
-// usePodmanRESTTransport selects REST when connection semantics cannot be
-// represented by the official bindings. In particular, bindings do not expose
-// insecureSkipVerify or an explicit ServerName and ignore our API override.
-func (c *Client) usePodmanRESTTransport() bool {
-	return c.podmanREST != nil && (c.TLS.Enabled || c.APIVersion != "")
-}
-
 func tlsHTTPClient(cfg TLSConfig, host string) (*http.Client, error) {
 	tlsCfg, err := tlsConfig(cfg, host)
 	if err != nil {
@@ -473,12 +462,7 @@ func (c *Client) PingTimeout(timeout time.Duration) error {
 	return err
 }
 
-// initImageLister sets the image listing backend based on the engine type.
+// initImageLister sets the image listing backend.
 func (c *Client) initImageLister() {
-	switch c.RuntimeType {
-	case RuntimePodman:
-		c.imageLister = &podmanImageLister{client: c}
-	default:
-		c.imageLister = &dockerImageLister{client: c}
-	}
+	c.imageLister = &dockerImageLister{client: c}
 }

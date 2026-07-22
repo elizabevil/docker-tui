@@ -29,12 +29,7 @@ func (s volumeService) Create(ctx context.Context, options runtimeapi.VolumeCrea
 }
 
 func (s volumeService) Remove(ctx context.Context, name string, force bool) error {
-	var err error
-	if s.client.RuntimeType == RuntimePodman {
-		err = s.client.removeVolumePodman(ctx, name, force)
-	} else {
-		err = s.client.cli.VolumeRemove(ctx, name, force)
-	}
+	err := s.client.cli.VolumeRemove(ctx, name, force)
 	return mapRuntimeError(err, "volume.remove", runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume, ID: name}, s.client.RuntimeType)
 }
 

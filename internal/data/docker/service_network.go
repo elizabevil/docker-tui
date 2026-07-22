@@ -29,12 +29,7 @@ func (s networkService) Create(ctx context.Context, options runtimeapi.NetworkCr
 }
 
 func (s networkService) Remove(ctx context.Context, id string) error {
-	var err error
-	if s.client.RuntimeType == RuntimePodman {
-		err = s.client.removeNetworkPodman(ctx, id)
-	} else {
-		err = s.client.cli.NetworkRemove(ctx, id)
-	}
+	err := s.client.cli.NetworkRemove(ctx, id)
 	return mapRuntimeError(err, "network.remove", runtimeapi.ResourceRef{Type: runtimeapi.ResourceNetwork, ID: id}, s.client.RuntimeType)
 }
 

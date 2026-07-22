@@ -47,9 +47,6 @@ func ParseStats(reader io.ReadCloser) (cpuPerc, memUsage, memLimit, memPerc, net
 }
 
 func (c *Client) containerStatsContext(ctx context.Context, id string) (runtimeapi.ContainerStats, error) {
-	if c.RuntimeType == RuntimePodman {
-		return c.containerStatsPodmanREST(ctx, id)
-	}
 	response, err := c.cli.ContainerStats(ctx, id, false)
 	if err != nil {
 		return runtimeapi.ContainerStats{}, fmt.Errorf("stats container: %w", err)

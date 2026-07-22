@@ -14,6 +14,7 @@ import (
 	"time"
 
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/data/runtime/podman/dto"
 )
 
 const (
@@ -107,15 +108,7 @@ func (c *RESTClient) APIVersion(ctx context.Context) (string, error) {
 		c.apiVersion = c.configured
 		return c.apiVersion, nil
 	}
-	var version struct {
-		ApiVersion string `json:"ApiVersion"`
-		Components []struct {
-			Name    string `json:"Name"`
-			Details struct {
-				ApiVersion string `json:"APIVersion"`
-			} `json:"Details"`
-		} `json:"Components"`
-	}
+	var version dto.Version
 	err := c.do(ctx, "system.version", http.MethodGet, "/libpod/version", nil, &version)
 	if err != nil {
 		if !runtimeapi.IsErrorKind(err, runtimeapi.ErrorNotFound) {
@@ -130,7 +123,7 @@ func (c *RESTClient) APIVersion(ctx context.Context) (string, error) {
 	// Prefer the Podman engine version from Components for Libpod endpoints.
 	libpodVersion := extractLibpodVersion(version.Components)
 	if libpodVersion == "" {
-		libpodVersion = version.ApiVersion
+		libpodVersion = version.APIVersion
 	}
 	if libpodVersion == "" {
 		return "", runtimeapi.NewError(runtimeapi.ErrorInvalid, "system.version", "", fmt.Errorf("Podman response omitted ApiVersion"))
@@ -140,15 +133,10 @@ func (c *RESTClient) APIVersion(ctx context.Context) (string, error) {
 }
 
 // extractLibpodVersion finds the Podman Engine component version.
-func extractLibpodVersion(components []struct {
-	Name    string `json:"Name"`
-	Details struct {
-		ApiVersion string `json:"APIVersion"`
-	} `json:"Details"`
-}) string {
+func extractLibpodVersion(components []dto.ComponentVersion) string {
 	for _, c := range components {
-		if c.Name == "Podman Engine" && c.Details.ApiVersion != "" {
-			return c.Details.ApiVersion
+		if c.Name == "Podman Engine" && c.Details.APIVersion != "" {
+			return c.Details.APIVersion
 		}
 	}
 	return ""
@@ -264,10 +252,7 @@ func (c *RESTClient) stream(ctx context.Context, operation, method, path string,
 }
 
 func (c *RESTClient) decodeResponseError(operation string, response *http.Response) error {
-	var payload struct {
-		Message string `json:"message"`
-		Cause   string `json:"cause"`
-	}
+	var payload dto.EngineErrorPayload
 	_ = json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&payload)
 	message := strings.TrimSpace(payload.Message)
 	if message == "" {

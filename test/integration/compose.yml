@@ -4,15 +4,6 @@
 #   podman-compose -f test/integration/compose.yml up -d
 
 services:
-  postgres-test:
-    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/postgres:18.4-alpine
-    container_name: dtui-test-postgres
-    environment:
-      POSTGRES_PASSWORD: dtui_test
-      POSTGRES_DB: dtui_testdb
-    labels:
-      com.docker.compose.project: dtui-test
-
   nginx-test:
     image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/nginx:alpine
     container_name: dtui-test-nginx
@@ -28,6 +19,6 @@ services:
   alpine-sleep:
     image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/alpine:3.19
     container_name: dtui-test-alpine
-    command: ["sleep", "infinity"]
+    command: [ "sleep", "infinity" ]
     labels:
       com.docker.compose.project: dtui-test

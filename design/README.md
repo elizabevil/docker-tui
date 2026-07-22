@@ -16,6 +16,7 @@
 | `page-performance-execution-plan.md` | 页面与性能优化执行计划，拆分阶段、依赖与验收边界 |
 | `page-performance-task-sheet.md` | 页面与性能优化任务单，细化任务、回归矩阵与完成定义 |
 | `page-performance-regression.md` | 页面与性能优化轨道映射、回归模板与阶段验证记录 |
+| `podman-rest-migration.md` | `runtime/podman` 收紧为方法式 + dto-only 签名 + 驱动/REST 双形态；`docker/service` 层建立 Docker / Podman 统一入口 |
 
 旧版 `master.md`, `design-system.md`, `ui/*`, `features/*` 等文件内容已合并至 `current-design.md`，不再单独维护。
 
@@ -32,6 +33,7 @@
 - `page-performance-execution-plan.md` 用于将已审批方向拆成实际执行阶段，不代表相关阶段已经开始。
 - `page-performance-task-sheet.md` 用于继续细化阶段内任务与回归任务单，并记录当前执行状态。
 - `page-performance-regression.md` 用于保存固定回归格式和每个执行批次的验证结果。
+- `podman-rest-migration.md` 用于规划 `runtime/podman` 的方法式 + dto-only 签名 + 驱动/REST 双形态改造，以及 `docker/service` 层的 Docker / Podman 统一入口建立；本轮不删除 `docker/podman_*.go`，仅迁移 runtime/podman 实现并新增 docker/service 入口。
 
 ## 参考资源
 
