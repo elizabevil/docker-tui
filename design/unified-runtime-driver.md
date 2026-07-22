@@ -15,7 +15,7 @@
 | Phase 1 | `in_progress` | runtime identity/error/capability/Engine 契约；ConnectionPool 可暴露 Engine；TLS、API override | 独立 Docker adapter/factory；动态版本 capability；连接池停止暴露旧 Client |
 | Phase 2 | `in_progress` | Container/Volume/Network/Image list + inspect（结构化类型）；Container Top/Stats 领域 DTO 与 service；筛选 options 与单值下推；Podman CGO+REST 双 transport；四类资源按 TLS/API override 统一选择 REST；容器完整 ID；**Image 完整领域 service 已建立**（`runtime.ImageSummary`/`runtime.ImageDetail`/`runtime.ImageService`） | 同字段多值 AND 的等价实现 |
 | Phase 3 | `in_progress` | 统一 ResourceActionService、ActionOptions/ActionResult 与 adapter 错误映射；TUI 现有 container/image/volume/network action 已迁移；Volume/Network create/remove/prune 已接入 Podman 双 transport；TASK-009 部分失败反馈 | Podman container/image native action transport |
-| Phase 4 | `in_progress` | REST 基础错误和 context 分类；Exec/attach/resize 领域 session；Events 领域 stream service；已删除 `Raw()` | **Logs 未加入 Engine 接口**（`ContainerLogs()` 是直接 Client 方法，返回 `io.ReadCloser`）；Stats stream native transport；完整取消与断线 contract；Events 接入主循环（TASK-008） |
+| Phase 4 | `in_progress` | REST 基础错误和 context 分类；Exec/attach/resize 领域 session；Events 领域 stream service及主循环接线；连接切换取消、退避重连、事件合并、局部刷新与轮询降级；已删除 `Raw()` | **Logs 未加入 Engine 接口**（`ContainerLogs()` 是直接 Client 方法，返回 `io.ReadCloser`）；Stats stream native transport；Podman native Events transport |
 | Phase 5 | `in_progress` | TUI 不再 import Docker SDK；Volume/Network/Image detail 使用结构化类型；`Raw()` 已删除；Image 类型已迁移至 runtime 包（通过 type alias） | **TUI 仍持有 `*docker.Client` 而非 `runtime.Engine`**；删除旧 facade/build-tag 业务重复；清理剩余上层 runtime 分支；完整文档同步 |
 
 ### 下一执行队列

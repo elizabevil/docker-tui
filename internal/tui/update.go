@@ -107,8 +107,26 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case state.DockerConnected:
 		return handleDockerConnected(m, msg)
 
-	case state.ContainerEvent:
-		return handleContainerEvent(m, msg)
+	case state.EventStreamReady:
+		return handleEventStreamReady(m, msg)
+
+	case state.EventStreamFailed:
+		return handleEventStreamFailed(m, msg.Generation, msg.Error)
+
+	case state.RuntimeEventReceived:
+		return handleRuntimeEvent(m, msg)
+
+	case state.EventStreamClosed:
+		return handleEventStreamFailed(m, msg.Generation, nil)
+
+	case state.EventFlush:
+		return handleEventFlush(m, msg)
+
+	case state.EventReconnect:
+		return handleEventReconnect(m, msg)
+
+	case state.EventFallbackTick:
+		return handleEventFallbackTick(m, msg)
 
 	case state.ToastTick:
 		return handleToastTick(m, msg)

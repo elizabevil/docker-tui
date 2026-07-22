@@ -31,16 +31,30 @@ func (s eventService) Subscribe(ctx context.Context, options runtimeapi.EventOpt
 				if !ok {
 					return
 				}
-				out <- runtimeapi.EventItem{Event: mapDockerEvent(msg)}
+				if !sendEventItem(ctx, out, runtimeapi.EventItem{Event: mapDockerEvent(msg)}) {
+					return
+				}
 			case err, ok := <-errCh:
 				if !ok {
 					return
 				}
-				out <- runtimeapi.EventItem{Error: mapRuntimeError(err, "events.subscribe", runtimeapi.ResourceRef{}, s.client.RuntimeType)}
+				item := runtimeapi.EventItem{Error: mapRuntimeError(err, "events.subscribe", runtimeapi.ResourceRef{}, s.client.RuntimeType)}
+				if !sendEventItem(ctx, out, item) {
+					return
+				}
 			}
 		}
 	}()
 	return out, nil
+}
+
+func sendEventItem(ctx context.Context, output chan<- runtimeapi.EventItem, item runtimeapi.EventItem) bool {
+	select {
+	case output <- item:
+		return true
+	case <-ctx.Done():
+		return false
+	}
 }
 
 func mapDockerEvent(message events.Message) runtimeapi.Event {

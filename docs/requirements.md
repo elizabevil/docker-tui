@@ -14,7 +14,7 @@
 | Compose 项目视图 | 已实现 | 基于 `com.docker.compose.*` labels 聚合，不解析 `compose.yaml` |
 | 主题、i18n、帮助页、命令模式、过滤 | 已实现 | `zh` / `en` 已接入 |
 | 运行时切换 | 部分实现 | 连接池和 `F2` 切换已接入，默认工作流偏本地 Docker / Podman |
-| Docker Events 实时订阅 UI | 规划中 | 统一 `EventService` 已封装，但主循环尚未接线 |
+| Docker / Podman Events 实时同步 | 已实现 | 绑定活动连接，支持退避重连、事件合并、局部刷新和轮询降级；独立事件面板仍属后续增强 |
 | 自定义快捷键 | 已实现 | `keymap.*` 覆盖会编译为运行时绑定，Help / Footer 投影当前有效键位 |
 | 用户操作审计 | 已实现 | 资源操作共享 trace，终态投影到通知与 Footer，并按日写入 JSONL |
 | Bulk 批量操作 | 部分实现 | 已有 mark 模式，但覆盖范围仍有限 |

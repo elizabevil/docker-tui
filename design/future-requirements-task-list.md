@@ -20,15 +20,15 @@
 
 | 状态 | 数量 |
 |---|---:|
-| `done` | 11 |
+| `done` | 12 |
 | `in_progress` | 1 |
-| `todo` | 9 |
+| `todo` | 8 |
 | `blocked` | 0 |
 
 当前执行队列：
 
 1. 执行 `TASK-021`，建立 Docker / Podman 独立 adapter 和统一 runtime driver。
-2. 执行 `TASK-008`，将 Events 接入主循环并支持局部刷新。
+2. 执行 `TASK-018`，实现镜像标签与传输工作流。
 
 ## 已完成基础
 
@@ -65,7 +65,7 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 | 编号 | 任务 | 优先级 | 状态 | 依赖 | 验收重点 |
 |---|---|---:|---|---|---|
 | `TASK-021` | [Docker / Podman 统一 runtime driver](unified-runtime-driver.md) | P0 | `in_progress` | TASK-004 | **已完成**: Phase 0 双构建矩阵 + CGO 约束验证; Container/Volume/Network/Image list + inspect (结构化类型); Image 域已迁移至 runtime 包 (`runtime.ImageSummary`/`runtime.ImageDetail`/`runtime.ImageService`); Volume/Network create + prune; Podman CGO+REST 双 transport; `Raw()` 已删除; TUI 不再 import Docker SDK。**剩余**: Logs 未加入 Engine 接口; TUI 仍持有 `*docker.Client` 而非 `runtime.Engine`; Volume/Network Inspect/Remove 未在 Service 接口中 |
-| `TASK-008` | Docker / Podman Events 接入主循环 | P1 | `todo` | TASK-003、TASK-021 | 生命周期管理、断线恢复、事件合并、局部刷新和无事件降级 |
+| `TASK-008` | Docker / Podman Events 接入主循环 | P1 | `done` | TASK-003、TASK-021 | 订阅绑定活动连接；切换时取消；1-30 秒退避重连；100ms 事件合并；按资源局部刷新；15 秒轮询降级 |
 | `TASK-009` | Volume / Network 创建与清理 | P1 | `done` | TASK-021 | 已完成 create、prune、确认交互、逐资源部分失败反馈、Docker/Podman contract tests 和双构建矩阵 |
 | `TASK-010` | 批量操作扩展与部分成功反馈 | P2 | `todo` | 审计模型、TASK-017 | 每个目标独立终态、汇总提示和可追溯审计 |
 | `TASK-011` | Compose / 容器 / 镜像联动刷新 | P2 | `todo` | TASK-008 | 事件只使相关资源失效，不直接修改复杂 UI 状态 |
@@ -85,7 +85,7 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 | Phase 1 | 域包 + 连接驱动（`runtime.Engine` 工厂） | ⚠️ 部分完成（Engine 接口已定义，Client 已实现，但无独立 Podman Engine 类型） |
 | Phase 2 | 只读资源迁移 | ⚠️ 部分完成（见下方详情） |
 | Phase 3 | 资源动作迁移 | ⚠️ 部分完成（Volume/Network create+prune 已实现） |
-| Phase 4 | 流式能力迁移 | ❌ 未开始 |
+| Phase 4 | 流式能力迁移 | ⚠️ 部分完成（Exec 与 Events 已迁移并接入主循环；Logs 尚未进入 Engine） |
 | Phase 5 | 清理 | ❌ 未开始 |
 
 ### Phase 2 详情：只读资源迁移状态
@@ -138,7 +138,7 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
   `-> TASK-021 统一 runtime driver [in_progress]
         |-> TASK-009 Volume / Network         [done]
         |-> TASK-018 镜像工作流               [todo, 依赖 Image 域迁移]
-        |-> TASK-008 Events -> TASK-011 联动刷新 [todo]
+        |-> TASK-008 Events [done] -> TASK-011 联动刷新 [todo]
         `-> TASK-021 剩余工作:
               - Logs 加入 Engine 接口
               - TUI 持有 runtime.Engine

@@ -380,6 +380,13 @@ type ConnectionState struct {
 - 保留低频全量刷新作为一致性兜底。
 - 后台事件属于 runtime 状态，不写入用户操作审计。
 
+### 实现记录（2026-07-21）
+
+- Events 已接入 Bubble Tea 主循环，并绑定活动连接的 generation 与可取消 context。
+- container、image、volume、network 事件在 100ms 窗口内合并后执行对应资源刷新。
+- 订阅失败按 1、2、4、8、16、30 秒上限退避重连；降级期间每 15 秒全量刷新。
+- 旧连接消息、恢复后的降级 tick 和过期刷新均由 generation / 状态检查忽略。
+
 ### 依赖 FR-001 的原因
 
 Events 流必须明确归属于哪个活动连接，也必须在连接切换、断线和关闭时正确取消。连接生命周期没有统一前，不应先接入长期运行的事件 goroutine。

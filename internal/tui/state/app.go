@@ -90,6 +90,7 @@ type AppModel struct {
 	Metrics      MetricsState
 	Viewport     ViewportState
 	Processes    ProcessState
+	Events       EventState
 }
 
 // NewAppModel creates a new application model with default state.

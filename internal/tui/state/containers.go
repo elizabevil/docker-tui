@@ -100,12 +100,6 @@ type (
 
 	StatsTick struct{}
 
-	ContainerEvent struct {
-		ContainerID string
-		Action      string
-		Status      string
-	}
-
 	ImageActioned struct {
 		Action  string
 		Ref     string

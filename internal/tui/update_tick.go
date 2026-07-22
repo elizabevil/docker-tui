@@ -69,6 +69,7 @@ func handleDockerConnected(m *state.AppModel, msg state.DockerConnected) (*state
 			keyboard.ShowToastWarn(m, fmt.Sprintf("Connection failed (%s): %s", msg.Name, failureMessage))
 			return m, nil
 		}
+		m.Events.Stop()
 		m.Connection.Failed(msg.Name, msg.Error)
 		m.Feedback.RecordError(failureMessage)
 		keyboard.ShowToastWarn(m, fmt.Sprintf("Connection failed (%s): %s", msg.Name, failureMessage))
@@ -84,16 +85,9 @@ func handleDockerConnected(m *state.AppModel, msg state.DockerConnected) (*state
 		keyboard.ShowToastWarn(m, msg.Notice)
 	}
 	m.Resources.Containers.Loading = true
-	return m, tea.Batch(keyboard.FetchAll(m.Connection.Docker)...)
-}
-
-func handleContainerEvent(m *state.AppModel, msg state.ContainerEvent) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Docker != nil {
-		if docker.RefreshesContainers(msg.Action) {
-			return m, keyboard.FetchContainers(m.Connection.Docker, true)
-		}
-	}
-	return m, nil
+	commands := keyboard.FetchAll(m.Connection.Docker)
+	commands = append(commands, startEventStream(m))
+	return m, tea.Batch(commands...)
 }
 
 func handleToastTick(m *state.AppModel, _ state.ToastTick) (*state.AppModel, tea.Cmd) {

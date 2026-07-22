@@ -1,9 +1,11 @@
 package docker
 
 import (
+	"context"
 	"testing"
 
 	"github.com/docker/docker/api/types/events"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
 func TestMapDockerEventPreservesRuntimeNeutralFields(t *testing.T) {
@@ -17,5 +19,14 @@ func TestMapDockerEventPreservesRuntimeNeutralFields(t *testing.T) {
 	}
 	if event.Attributes["name"] != "api" || event.TimeNano != 20 {
 		t.Fatalf("event metadata was not preserved: %#v", event)
+	}
+}
+
+func TestSendEventItemStopsWhenContextIsCanceled(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	if sendEventItem(ctx, make(chan runtimeapi.EventItem), runtimeapi.EventItem{}) {
+		t.Fatal("sendEventItem reported delivery after cancellation")
 	}
 }
