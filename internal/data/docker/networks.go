@@ -14,6 +14,7 @@ func (c *Client) ListNetworks() ([]runtimeapi.Network, error) {
 	return c.ListNetworksContext(c.ctx, runtimeapi.NetworkListOptions{})
 }
 
+// ListNetworksContext returns all networks visible to the client with a caller-provided context.
 func (c *Client) ListNetworksContext(ctx context.Context, options runtimeapi.NetworkListOptions) ([]runtimeapi.Network, error) {
 	if c.RuntimeType == RuntimePodman {
 		return c.listNetworksPodman(ctx, options)
@@ -55,6 +56,7 @@ func (c *Client) InspectNetwork(id string) (*runtimeapi.NetworkDetail, error) {
 	return c.InspectNetworkContext(c.ctx, id)
 }
 
+// InspectNetworkContext returns detailed network info with a caller-provided context.
 func (c *Client) InspectNetworkContext(ctx context.Context, id string) (*runtimeapi.NetworkDetail, error) {
 	if c.RuntimeType == RuntimePodman {
 		return c.inspectNetworkPodman(ctx, id)
@@ -78,6 +80,7 @@ func (c *Client) RemoveNetwork(id string) error {
 	return c.cli.NetworkRemove(c.ctx, id)
 }
 
+// CreateNetworkContext creates a new network with a caller-provided context.
 func (c *Client) CreateNetworkContext(ctx context.Context, options runtimeapi.NetworkCreateOptions) (*runtimeapi.Network, error) {
 	if options.Name == "" {
 		return nil, runtimeapi.NewError(runtimeapi.ErrorInvalid, "network.create", "", fmt.Errorf("name is required"))
@@ -96,6 +99,7 @@ func (c *Client) CreateNetworkContext(ctx context.Context, options runtimeapi.Ne
 	return &runtimeapi.Network{Name: options.Name, ID: created.ID, Driver: options.Driver, Internal: options.Internal, Labels: options.Labels}, nil
 }
 
+// PruneNetworksContext removes unused networks with a caller-provided context.
 func (c *Client) PruneNetworksContext(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
 	if c.RuntimeType == RuntimePodman {
 		result, err := c.pruneNetworksPodman(ctx, options)

@@ -11,12 +11,16 @@ import (
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
+// podmanPruneReport is the per-resource response from Podman's volume prune
+// endpoint. The Err field is raw JSON because Podman may return null, an empty
+// string, or a stringified message depending on the version.
 type podmanPruneReport struct {
 	ID   string          `json:"Id"`
 	Err  json.RawMessage `json:"Err"`
 	Size uint64          `json:"Size"`
 }
 
+// listVolumesPodmanREST fetches volumes via the Podman Libpod REST API.
 func (c *Client) listVolumesPodmanREST(ctx context.Context, options runtimeapi.VolumeListOptions) ([]runtimeapi.Volume, error) {
 	if c.podmanREST == nil {
 		return nil, fmt.Errorf("podman REST transport is not initialized")
@@ -40,6 +44,7 @@ func (c *Client) listVolumesPodmanREST(ctx context.Context, options runtimeapi.V
 	return mapPodmanVolumes(raw), nil
 }
 
+// inspectVolumePodmanREST fetches volume detail via the Podman Libpod REST API.
 func (c *Client) inspectVolumePodmanREST(ctx context.Context, name string) (*runtimeapi.VolumeDetail, error) {
 	if c.podmanREST == nil {
 		return nil, fmt.Errorf("podman REST transport is not initialized")
@@ -51,6 +56,7 @@ func (c *Client) inspectVolumePodmanREST(ctx context.Context, name string) (*run
 	return mapPodmanVolumeInspect(raw), nil
 }
 
+// removeVolumePodmanREST deletes a volume via the Podman Libpod REST API.
 func (c *Client) removeVolumePodmanREST(ctx context.Context, name string, force bool) error {
 	if c.podmanREST == nil {
 		return fmt.Errorf("podman REST transport is not initialized")
@@ -59,6 +65,7 @@ func (c *Client) removeVolumePodmanREST(ctx context.Context, name string, force 
 	return c.podmanREST.DeleteWithQuery(ctx, "volume.remove", "/volumes/"+url.PathEscape(name), query)
 }
 
+// createVolumePodmanREST creates a volume via the Podman Libpod REST API.
 func (c *Client) createVolumePodmanREST(ctx context.Context, options runtimeapi.VolumeCreateOptions) (*runtimeapi.Volume, error) {
 	if c.podmanREST == nil {
 		return nil, fmt.Errorf("podman REST transport is not initialized")
@@ -77,6 +84,7 @@ func (c *Client) createVolumePodmanREST(ctx context.Context, options runtimeapi.
 	return &mapped[0], nil
 }
 
+// pruneVolumesPodmanREST removes unused volumes via the Podman Libpod REST API.
 func (c *Client) pruneVolumesPodmanREST(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
 	if c.podmanREST == nil {
 		return runtimeapi.PruneResult{}, fmt.Errorf("podman REST transport is not initialized")
@@ -97,6 +105,8 @@ func (c *Client) pruneVolumesPodmanREST(ctx context.Context, options runtimeapi.
 	return result, nil
 }
 
+// podmanFilterQuery encodes a FilterSet as a JSON query parameter for Podman
+// REST endpoints that accept a "filters" query string.
 func podmanFilterQuery(filters runtimeapi.FilterSet) (url.Values, error) {
 	query := make(url.Values)
 	if len(filters) == 0 {
@@ -110,6 +120,8 @@ func podmanFilterQuery(filters runtimeapi.FilterSet) (url.Values, error) {
 	return query, nil
 }
 
+// podmanReportError extracts an error from a Podman prune report's raw JSON
+// Error field. Returns nil when the field is null, empty, or an empty string.
 func podmanReportError(raw json.RawMessage) error {
 	trimmed := bytes.TrimSpace(raw)
 	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) || bytes.Equal(trimmed, []byte(`""`)) {

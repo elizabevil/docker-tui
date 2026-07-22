@@ -4,7 +4,9 @@ package runtime
 type Type string
 
 const (
+	// Docker identifies a Docker Engine backend.
 	Docker Type = "docker"
+	// Podman identifies a Podman backend.
 	Podman Type = "podman"
 )
 

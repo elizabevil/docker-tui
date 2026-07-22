@@ -13,12 +13,18 @@ import (
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
+// imageTransferService implements runtime.ImageTransferService for the
+// Docker/Podman adapter. It drives image distribution workflows (tag, push,
+// save, load) and streams progress events to the caller.
 type imageTransferService struct{ client *Client }
 
+// ImageTransfers returns the image transfer service facade.
 func (c *Client) ImageTransfers() runtimeapi.ImageTransferService {
 	return imageTransferService{client: c}
 }
 
+// Run executes an image transfer workflow and returns a channel of progress
+// and terminal events. The channel is closed after the final event.
 func (s imageTransferService) Run(ctx context.Context, request runtimeapi.ImageTransferRequest) (<-chan runtimeapi.ImageTransferEvent, error) {
 	if err := validateImageTransferRequest(request); err != nil {
 		return nil, err

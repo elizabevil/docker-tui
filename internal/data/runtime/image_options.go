@@ -2,6 +2,8 @@ package runtime
 
 import "fmt"
 
+// Image filter constants map 1:1 to Docker/Podman native filter keys.
+// Each constant is whitelisted in isImageFilter and validated by NativeFilters.
 const (
 	ImageFilterReference = "reference"
 	ImageFilterLabel     = "label"

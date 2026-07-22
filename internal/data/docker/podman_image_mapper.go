@@ -12,6 +12,9 @@ type podmanImageSummary struct {
 	IsManifestList *bool             `json:"IsManifestList,omitempty"`
 }
 
+// mapPodmanImageSummaries converts Podman image list results into ImageSummary
+// items. Field differences: Architecture is derived from the Arch field;
+// IsManifestList is a *bool that defaults to false when absent.
 func mapPodmanImageSummaries(raw []podmanImageSummary) []ImageSummary {
 	out := make([]ImageSummary, 0, len(raw))
 	for _, image := range raw {

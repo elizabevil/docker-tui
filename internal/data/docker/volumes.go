@@ -14,6 +14,7 @@ func (c *Client) ListVolumes() ([]runtimeapi.Volume, error) {
 	return c.ListVolumesContext(c.ctx, runtimeapi.VolumeListOptions{})
 }
 
+// ListVolumesContext returns all volumes visible to the client with a caller-provided context.
 func (c *Client) ListVolumesContext(ctx context.Context, options runtimeapi.VolumeListOptions) ([]runtimeapi.Volume, error) {
 	if c.RuntimeType == RuntimePodman {
 		return c.listVolumesPodman(ctx, options)
@@ -47,6 +48,7 @@ func (c *Client) InspectVolume(name string) (*runtimeapi.VolumeDetail, error) {
 	return c.InspectVolumeContext(c.ctx, name)
 }
 
+// InspectVolumeContext returns detailed volume info with a caller-provided context.
 func (c *Client) InspectVolumeContext(ctx context.Context, name string) (*runtimeapi.VolumeDetail, error) {
 	if c.RuntimeType == RuntimePodman {
 		return c.inspectVolumePodman(ctx, name)
@@ -70,6 +72,7 @@ func (c *Client) RemoveVolume(id string, force bool) error {
 	return c.cli.VolumeRemove(c.ctx, id, force)
 }
 
+// CreateVolumeContext creates a new volume with a caller-provided context.
 func (c *Client) CreateVolumeContext(ctx context.Context, options runtimeapi.VolumeCreateOptions) (*runtimeapi.Volume, error) {
 	if options.Name == "" {
 		return nil, runtimeapi.NewError(runtimeapi.ErrorInvalid, "volume.create", "", fmt.Errorf("name is required"))
@@ -88,6 +91,7 @@ func (c *Client) CreateVolumeContext(ctx context.Context, options runtimeapi.Vol
 	return &runtimeapi.Volume{Name: created.Name, Driver: created.Driver, Mountpoint: created.Mountpoint, Labels: created.Labels, Scope: created.Scope, CreatedAt: created.CreatedAt}, nil
 }
 
+// PruneVolumesContext removes unused volumes with a caller-provided context.
 func (c *Client) PruneVolumesContext(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
 	if c.RuntimeType == RuntimePodman {
 		result, err := c.pruneVolumesPodman(ctx, options)

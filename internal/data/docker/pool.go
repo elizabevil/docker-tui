@@ -9,8 +9,10 @@ import (
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
+// ConnState tracks the lifecycle phase of a pooled connection.
 type ConnState int
 
+// Connection states managed by the pool.
 const (
 	StateDisconnected ConnState = iota
 	StateConnecting
@@ -18,6 +20,7 @@ const (
 	StateError
 )
 
+// PoolEntry holds the state and client for a single pooled connection.
 type PoolEntry struct {
 	Name       string
 	Host       string
@@ -30,6 +33,7 @@ type PoolEntry struct {
 	TLS        TLSConfig
 }
 
+// ConnectionPool manages multiple runtime connections with active selection.
 type ConnectionPool struct {
 	mu      sync.RWMutex
 	entries map[string]*PoolEntry
@@ -37,6 +41,7 @@ type ConnectionPool struct {
 	active  string // currently active host name
 }
 
+// NewPool creates an empty connection pool.
 func NewPool() *ConnectionPool {
 	return &ConnectionPool{
 		entries: make(map[string]*PoolEntry),
@@ -69,30 +74,36 @@ func (p *ConnectionPool) KnownHostNames() []string {
 	return names
 }
 
+// Get returns the pool entry for the given host name, or nil if unknown.
 func (p *ConnectionPool) Get(name string) *PoolEntry {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 	return p.entries[name]
 }
 
+// Active returns the pool entry for the currently active connection.
 func (p *ConnectionPool) Active() *PoolEntry {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 	return p.entries[p.active]
 }
 
+// ActiveName returns the name of the currently active connection.
 func (p *ConnectionPool) ActiveName() string {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 	return p.active
 }
 
+// SetActive marks the named entry as the active connection.
 func (p *ConnectionPool) SetActive(name string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.active = name
 }
 
+// Connect establishes or reuses a connection to the named host. When the host
+// is already connected, it pings to verify and reuses the existing client.
 func (p *ConnectionPool) Connect(name string, timeout time.Duration) error {
 	p.mu.Lock()
 	entry, ok := p.entries[name]
@@ -173,6 +184,7 @@ func (p *ConnectionPool) Probe(name string, timeout time.Duration) error {
 	return err
 }
 
+// ActiveClient returns the Docker client for the active connection, or nil.
 func (p *ConnectionPool) ActiveClient() *Client {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
@@ -194,6 +206,7 @@ func (p *ConnectionPool) ActiveEngine() runtimeapi.Engine {
 	return entry.Engine
 }
 
+// Close shuts down all pooled connections and clears the pool.
 func (p *ConnectionPool) Close() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -206,6 +219,9 @@ func (p *ConnectionPool) Close() {
 	p.order = nil
 }
 
+// PingLoop periodically pings all connections until the context is cancelled.
+// Failed pings transition the connection to StateDisconnected so the UI can
+// react to connectivity loss.
 func (p *ConnectionPool) PingLoop(ctx context.Context, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()

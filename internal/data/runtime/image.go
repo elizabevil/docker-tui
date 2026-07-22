@@ -1,3 +1,7 @@
+// Package runtime defines the domain types and service interfaces shared by
+// all container runtime adapters (Docker, Podman). The UI and state layers
+// depend only on these types; runtime-specific wire DTOs stay inside the
+// adapter packages and are never leaked upward.
 package runtime
 
 import "context"
@@ -54,39 +58,49 @@ type ImageHistoryLayer struct {
 	Comment   string
 }
 
-// ImageHistorySource tracks where history data came from.
+// ImageHistorySource tracks where history data came from. The UI uses this to
+// decide whether to show layers, manifest variants, a pending spinner, or an
+// error message.
 type ImageHistorySource string
 
 const (
-	ImageHistoryPending  ImageHistorySource = "pending"
+	// ImageHistoryPending indicates history has not been fetched yet.
+	ImageHistoryPending ImageHistorySource = "pending"
+	// ImageHistoryLayerAPI indicates history was populated from the image
+	// history API (available for non-manifest images).
 	ImageHistoryLayerAPI ImageHistorySource = "layer_api"
+	// ImageHistoryManifest indicates the image is a manifest list; history
+	// layers are not applicable and manifest variants are shown instead.
 	ImageHistoryManifest ImageHistorySource = "manifest"
 )
 
-// ImageDetail is the full structured inspect model for an image.
+// ImageDetail is the full structured inspect model for an image. Both Docker
+// and Podman adapters produce this type from their native inspect responses,
+// ensuring the UI never parses raw SDK JSON. For manifest lists, History is
+// empty and ManifestVariants carries per-platform entries.
 type ImageDetail struct {
 	ID               string
 	RepoTags         []string
 	RepoDigests      []string
-	Registry         string
-	Name             string
-	Tag              string
-	Created          string
+	Registry         string            // derived from first RepoTag via splitImageRef
+	Name             string            // derived from first RepoTag (without registry)
+	Tag              string            // derived from first RepoTag (without name)
+	Created          string            // RFC3339 timestamp from the runtime
 	Size             int64
 	Architecture     string
 	OS               string
 	OSVersion        string
 	Author           string
 	Comment          string
-	Driver           string
-	LayerCount       int
+	Driver           string            // graph driver name (e.g. overlay2)
+	LayerCount       int               // number of rootfs layers
 	Runtime          ImageRuntimeConfig
 	Labels           map[string]string
-	IsManifest       bool
+	IsManifest       bool              // true for multi-arch manifest lists
 	ManifestVariants []ImageManifestEntry
 	History          []ImageHistoryLayer
 	HistorySource    ImageHistorySource
-	HistoryError     string
+	HistoryError     string            // non-empty when history fetch failed
 }
 
 // ImageListOptions carries filter and pagination options for listing images.

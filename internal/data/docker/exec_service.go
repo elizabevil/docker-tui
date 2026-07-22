@@ -8,10 +8,14 @@ import (
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
+// execService implements runtime.ExecService for the Docker/Podman adapter.
 type execService struct{ client *Client }
 
+// Exec returns the exec service facade.
 func (c *Client) Exec() runtimeapi.ExecService { return execService{client: c} }
 
+// Open creates an exec session inside a running container and returns an
+// interactive I/O stream.
 func (s execService) Open(ctx context.Context, containerID string, options runtimeapi.ExecOptions) (runtimeapi.ExecSession, error) {
 	created, err := s.client.cli.ContainerExecCreate(ctx, containerID, container.ExecOptions{
 		Cmd: options.Command, Env: options.Environment, WorkingDir: options.WorkingDir, User: options.User,

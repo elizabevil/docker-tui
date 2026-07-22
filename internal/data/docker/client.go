@@ -20,13 +20,19 @@ import (
 	podmanapi "github.com/elizabevil/docker-tui/internal/data/runtime/podman"
 )
 
+// RuntimeType identifies the container engine backend (Docker or Podman).
 type RuntimeType string
 
 const (
+	// RuntimeDocker selects the Docker Engine backend.
 	RuntimeDocker RuntimeType = "docker"
+	// RuntimePodman selects the Podman backend.
 	RuntimePodman RuntimeType = "podman"
 )
 
+// Client wraps the Docker SDK client and provides runtime-neutral operations.
+// A single Client serves both Docker and Podman via RuntimeType branching;
+// there is no separate Podman engine type.
 type Client struct {
 	cli           *client.Client
 	ctx           context.Context
@@ -40,6 +46,7 @@ type Client struct {
 	podmanREST    *podmanapi.RESTClient
 }
 
+// ClientConfig holds the parameters needed to create a runtime client.
 type ClientConfig struct {
 	Host       string
 	APIVersion string
@@ -48,6 +55,7 @@ type ClientConfig struct {
 	Runtime    RuntimeType
 }
 
+// TLSConfig configures TLS for the engine connection.
 type TLSConfig struct {
 	Enabled            bool
 	Verify             bool
@@ -195,6 +203,8 @@ func detectRuntimeType(host string) RuntimeType {
 	return RuntimeDocker
 }
 
+// NewClient creates and pings a Docker or Podman client, selecting the
+// runtime automatically based on the host endpoint.
 func NewClient(cfg ClientConfig) (*Client, error) {
 	host, rt := detectHost(cfg)
 
@@ -376,11 +386,13 @@ func fetchVersion(cli *client.Client, timeout time.Duration) string {
 	return ver.Version
 }
 
+// Close releases resources held by the client.
 func (c *Client) Close() error {
 	c.cancel()
 	return c.cli.Close()
 }
 
+// Ping verifies the runtime connection with the default timeout.
 func (c *Client) Ping() error {
 	return c.PingTimeout(2 * time.Second)
 }
@@ -445,6 +457,7 @@ func (c *Client) Capabilities() runtimeapi.CapabilitySet {
 	}
 }
 
+// Containers returns the container service facade.
 func (c *Client) Containers() runtimeapi.ContainerService {
 	return containerService{client: c}
 }
@@ -469,9 +482,14 @@ func (s containerService) Stats(ctx context.Context, id string) (runtimeapi.Cont
 	return s.client.containerStatsContext(ctx, id)
 }
 
-func (c *Client) Volumes() runtimeapi.VolumeService   { return volumeService{client: c} }
+// Volumes returns the volume service facade.
+func (c *Client) Volumes() runtimeapi.VolumeService { return volumeService{client: c} }
+
+// Networks returns the network service facade.
 func (c *Client) Networks() runtimeapi.NetworkService { return networkService{client: c} }
-func (c *Client) Images() runtimeapi.ImageService     { return imageService{client: c} }
+
+// Images returns the image service facade.
+func (c *Client) Images() runtimeapi.ImageService { return imageService{client: c} }
 
 type volumeService struct{ client *Client }
 type networkService struct{ client *Client }

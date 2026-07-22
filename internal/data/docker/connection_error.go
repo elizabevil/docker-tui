@@ -8,8 +8,11 @@ import (
 	"strings"
 )
 
+// ConnectionErrorKind classifies the root cause of a connection failure.
 type ConnectionErrorKind string
 
+// Connection error kinds. These drive TLS state display, security prompts, and
+// error projection in the TUI without exposing transport-specific error chains.
 const (
 	ConnectionErrorUnknown    ConnectionErrorKind = "unknown"
 	ConnectionErrorCA         ConnectionErrorKind = "ca"
@@ -19,6 +22,7 @@ const (
 	ConnectionErrorNetwork    ConnectionErrorKind = "network"
 )
 
+// ConnectionFailure carries the classified kind of a connection error.
 type ConnectionFailure struct {
 	Kind ConnectionErrorKind
 }
@@ -35,6 +39,9 @@ func connectionError(kind ConnectionErrorKind, cause error) error {
 	return &classifiedConnectionError{kind: kind, cause: cause}
 }
 
+// ClassifyConnectionError inspects the error chain and returns the most
+// specific connection failure kind. It unwraps TLS, x509, and net errors
+// to map them to the appropriate ConnectionErrorKind.
 func ClassifyConnectionError(err error) ConnectionFailure {
 	if err == nil {
 		return ConnectionFailure{}

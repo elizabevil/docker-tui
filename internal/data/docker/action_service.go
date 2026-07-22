@@ -15,12 +15,17 @@ import (
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
+// resourceActionService implements runtime.ResourceActionService for the
+// Docker/Podman adapter. It translates generic actions into SDK-specific calls.
 type resourceActionService struct{ client *Client }
 
+// Actions returns the resource action service facade.
 func (c *Client) Actions() runtimeapi.ResourceActionService {
 	return resourceActionService{client: c}
 }
 
+// Execute performs a lifecycle action on a resource. The action is routed to
+// the appropriate SDK call based on the resource type and action kind.
 func (s resourceActionService) Execute(ctx context.Context, ref runtimeapi.ResourceRef, action runtimeapi.Action, options runtimeapi.ActionOptions) (runtimeapi.ActionResult, error) {
 	result := runtimeapi.ActionResult{Resource: ref, Action: action}
 	err := s.execute(ctx, ref, action, options, &result)

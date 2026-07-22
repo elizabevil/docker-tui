@@ -11,10 +11,12 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 )
 
+// ListContainers returns containers matching the given options.
 func (c *Client) ListContainers(opts ContainerListOptions) ([]ContainerSummary, error) {
 	return c.ListContainersContext(c.ctx, opts)
 }
 
+// ListContainersContext returns containers with a caller-provided context.
 func (c *Client) ListContainersContext(ctx context.Context, opts ContainerListOptions) ([]ContainerSummary, error) {
 	if c.RuntimeType == RuntimePodman {
 		return c.listContainersPodman(ctx, opts)
@@ -95,34 +97,42 @@ func (c *Client) listContainersDocker(ctx context.Context, opts ContainerListOpt
 	return result, nil
 }
 
+// ContainerStart starts a stopped container.
 func (c *Client) ContainerStart(id string) error {
 	return c.cli.ContainerStart(c.ctx, id, container.StartOptions{})
 }
 
+// ContainerStop stops a running container.
 func (c *Client) ContainerStop(id string) error {
 	return c.cli.ContainerStop(c.ctx, id, container.StopOptions{})
 }
 
+// ContainerRestart restarts a container.
 func (c *Client) ContainerRestart(id string) error {
 	return c.cli.ContainerRestart(c.ctx, id, container.StopOptions{})
 }
 
+// ContainerKill sends a signal to a container.
 func (c *Client) ContainerKill(id string) error {
 	return c.cli.ContainerKill(c.ctx, id, "")
 }
 
+// ContainerPause freezes all processes in a container.
 func (c *Client) ContainerPause(id string) error {
 	return c.cli.ContainerPause(c.ctx, id)
 }
 
+// ContainerUnpause resumes processes in a paused container.
 func (c *Client) ContainerUnpause(id string) error {
 	return c.cli.ContainerUnpause(c.ctx, id)
 }
 
+// ContainerRename changes the name of a container.
 func (c *Client) ContainerRename(id, name string) error {
 	return c.cli.ContainerRename(c.ctx, id, name)
 }
 
+// ContainerTop returns the running processes inside a container.
 func (c *Client) ContainerTop(id string) (ContainerProcesses, error) {
 	return c.containerTopContext(c.ctx, id)
 }
@@ -138,10 +148,12 @@ func (c *Client) containerTopContext(ctx context.Context, id string) (ContainerP
 	return ContainerProcesses{Titles: response.Titles, Processes: response.Processes}, nil
 }
 
+// ContainerRemove removes a container, optionally forcing removal.
 func (c *Client) ContainerRemove(id string, force bool) error {
 	return c.cli.ContainerRemove(c.ctx, id, container.RemoveOptions{Force: force})
 }
 
+// ContainerLogs returns the demuxed stdout/stderr logs for a container.
 func (c *Client) ContainerLogs(id string, since, tail string, timestamps bool) (io.ReadCloser, error) {
 	resp, err := c.cli.ContainerLogs(c.ctx, id, container.LogsOptions{
 		ShowStdout: true,
@@ -164,6 +176,7 @@ func (c *Client) ContainerLogs(id string, since, tail string, timestamps bool) (
 	return io.NopCloser(&buf), nil
 }
 
+// ContainerStats returns the raw stats stream reader for a container.
 func (c *Client) ContainerStats(id string) (io.ReadCloser, error) {
 	resp, err := c.cli.ContainerStats(c.ctx, id, false)
 	if err != nil {

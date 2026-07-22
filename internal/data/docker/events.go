@@ -8,10 +8,14 @@ import (
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
+// eventService implements runtime.EventService for the Docker/Podman adapter.
 type eventService struct{ client *Client }
 
+// Events returns the event service facade.
 func (c *Client) Events() runtimeapi.EventService { return eventService{client: c} }
 
+// Subscribe starts listening for runtime events and returns a channel that
+// receives EventItem values until the context is cancelled.
 func (s eventService) Subscribe(ctx context.Context, options runtimeapi.EventOptions) (<-chan runtimeapi.EventItem, error) {
 	nativeFilters := filters.NewArgs()
 	for field, values := range options.Filters {

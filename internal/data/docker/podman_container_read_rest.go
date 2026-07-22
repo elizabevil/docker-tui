@@ -10,6 +10,7 @@ import (
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
+// inspectContainerPodmanREST fetches container detail via the Podman Libpod REST API.
 func (c *Client) inspectContainerPodmanREST(ctx context.Context, id string) (*runtimeapi.ContainerDetail, error) {
 	if c.podmanREST == nil {
 		return nil, fmt.Errorf("podman REST transport is not initialized")

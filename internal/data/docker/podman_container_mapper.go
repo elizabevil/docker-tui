@@ -2,6 +2,9 @@ package docker
 
 import "time"
 
+// podmanContainerSummary is the adapter's stable representation of the Libpod
+// container list response. Both CGO bindings and non-CGO REST normalize into
+// this type before mapping to ContainerSummary.
 type podmanContainerSummary struct {
 	ID      string            `json:"Id"`
 	Names   []string          `json:"Names"`
@@ -14,6 +17,7 @@ type podmanContainerSummary struct {
 	Labels  map[string]string `json:"Labels"`
 }
 
+// podmanPort is a single port mapping entry in the Podman container list response.
 type podmanPort struct {
 	ContainerPort uint16 `json:"container_port"`
 	HostPort      uint16 `json:"host_port"`
@@ -22,6 +26,10 @@ type podmanPort struct {
 	HostIP        string `json:"host_ip"`
 }
 
+// mapPodmanContainerSummaries converts Podman container list results into
+// ContainerSummary items. Field differences: Created (time.Time) is converted
+// to Unix timestamp; Names is a slice where only the first entry is used;
+// Ports are expanded from range entries into individual PortBinding items.
 func mapPodmanContainerSummaries(raw []podmanContainerSummary) []ContainerSummary {
 	result := make([]ContainerSummary, 0, len(raw))
 	for _, container := range raw {

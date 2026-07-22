@@ -9,6 +9,7 @@ import (
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
+// listImagesPodmanREST fetches images via the Podman Libpod REST API.
 func (c *Client) listImagesPodmanREST(ctx context.Context, options runtimeapi.ImageListOptions) ([]ImageSummary, error) {
 	if c.podmanREST == nil {
 		return nil, fmt.Errorf("podman REST transport is not initialized")

@@ -18,6 +18,7 @@ import (
 
 const defaultRequestTimeout = 10 * time.Second
 
+// RESTConfig configures a Podman Libpod REST client.
 type RESTConfig struct {
 	Endpoint   string
 	APIVersion string
@@ -35,6 +36,9 @@ type RESTClient struct {
 	apiVersion string
 }
 
+// NewRESTClient creates an HTTP transport for the Podman Libpod API. It
+// supports unix, tcp, http, and https endpoint schemes and configures TLS
+// where applicable.
 func NewRESTClient(config RESTConfig) (*RESTClient, error) {
 	endpoint, err := url.Parse(config.Endpoint)
 	if err != nil || endpoint.Scheme == "" {
@@ -77,6 +81,8 @@ func NewRESTClient(config RESTConfig) (*RESTClient, error) {
 	return &RESTClient{client: client, baseURL: baseURL, configured: normalizeVersion(config.APIVersion)}, nil
 }
 
+// APIVersion returns the negotiated Libpod API version, querying the server
+// if needed. The result is cached after the first successful call.
 func (c *RESTClient) APIVersion(ctx context.Context) (string, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -100,6 +106,8 @@ func (c *RESTClient) APIVersion(ctx context.Context) (string, error) {
 	return c.apiVersion, nil
 }
 
+// Get performs a versioned Libpod GET request and decodes the response into
+// output. The operation string is used for error classification.
 func (c *RESTClient) Get(ctx context.Context, operation, path string, query url.Values, output any) error {
 	version, err := c.APIVersion(ctx)
 	if err != nil {
@@ -112,10 +120,12 @@ func (c *RESTClient) Get(ctx context.Context, operation, path string, query url.
 	return c.do(ctx, operation, http.MethodGet, versionedPath, nil, output)
 }
 
+// Delete performs a versioned Libpod DELETE request.
 func (c *RESTClient) Delete(ctx context.Context, operation, path string) error {
 	return c.DeleteWithQuery(ctx, operation, path, nil)
 }
 
+// Post performs a versioned Libpod POST request with an optional JSON body.
 func (c *RESTClient) Post(ctx context.Context, operation, path string, query url.Values, input, output any) error {
 	version, err := c.APIVersion(ctx)
 	if err != nil {

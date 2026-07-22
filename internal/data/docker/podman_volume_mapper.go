@@ -65,6 +65,8 @@ func mapPodmanVolumeInspect(raw podmanVolumeConfigResponse) *runtimeapi.VolumeDe
 	}
 }
 
+// formatPodmanTime formats a Podman time.Time as RFC3339. Returns "" for zero
+// times (e.g. when Podman does not populate the field).
 func formatPodmanTime(value time.Time) string {
 	if value.IsZero() {
 		return ""

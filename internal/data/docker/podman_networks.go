@@ -19,6 +19,9 @@ import (
 	"go.podman.io/podman/v6/pkg/bindings/network"
 )
 
+// listNetworksPodman returns networks from the Podman runtime. When the CGO
+// bindings cannot express the configured transport (TLS or API override), it
+// falls back to the shared REST implementation.
 func (c *Client) listNetworksPodman(ctx context.Context, options runtimeapi.NetworkListOptions) ([]runtimeapi.Network, error) {
 	if c.usePodmanRESTTransport() {
 		return c.listNetworksPodmanREST(ctx, options)
@@ -60,6 +63,7 @@ func (c *Client) listNetworksPodman(ctx context.Context, options runtimeapi.Netw
 	return mapPodmanNetworks(raw), nil
 }
 
+// inspectNetworkPodman returns structured network detail from the Podman runtime.
 func (c *Client) inspectNetworkPodman(ctx context.Context, id string) (*runtimeapi.NetworkDetail, error) {
 	if c.usePodmanRESTTransport() {
 		return c.inspectNetworkPodmanREST(ctx, id)
@@ -93,6 +97,7 @@ func (c *Client) inspectNetworkPodman(ctx context.Context, id string) (*runtimea
 	return mapPodmanNetworkInspect(item), nil
 }
 
+// removeNetworkPodman deletes a network from the Podman runtime.
 func (c *Client) removeNetworkPodman(ctx context.Context, id string) error {
 	if c.usePodmanRESTTransport() {
 		return c.removeNetworkPodmanREST(ctx, id)
@@ -105,6 +110,7 @@ func (c *Client) removeNetworkPodman(ctx context.Context, id string) error {
 	return err
 }
 
+// gatewayString converts a net.IP to a string, returning "" for nil.
 func gatewayString(gw net.IP) string {
 	if gw == nil {
 		return ""
@@ -112,6 +118,7 @@ func gatewayString(gw net.IP) string {
 	return gw.String()
 }
 
+// createNetworkPodman creates a network via the Podman runtime.
 func (c *Client) createNetworkPodman(ctx context.Context, options runtimeapi.NetworkCreateOptions) (*runtimeapi.Network, error) {
 	if c.usePodmanRESTTransport() {
 		return c.createNetworkPodmanREST(ctx, options)
@@ -128,6 +135,7 @@ func (c *Client) createNetworkPodman(ctx context.Context, options runtimeapi.Net
 	return &mapped[0], nil
 }
 
+// pruneNetworksPodman removes unused networks from the Podman runtime.
 func (c *Client) pruneNetworksPodman(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
 	if c.usePodmanRESTTransport() {
 		return c.pruneNetworksPodmanREST(ctx, options)

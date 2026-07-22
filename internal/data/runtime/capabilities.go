@@ -3,6 +3,7 @@ package runtime
 // Support describes how completely a driver implements a capability.
 type Support uint8
 
+// Support levels describe the degree of implementation for a capability.
 const (
 	Unsupported Support = iota
 	Degraded
@@ -12,6 +13,9 @@ const (
 // Capability is a stable feature identifier used by business and UI layers.
 type Capability string
 
+// Well-known capability identifiers. Aggregate capabilities (Containers,
+// Images, etc.) remain during the facade migration; fine-grained capabilities
+// (ContainerListFilter, etc.) replace them as adapters are migrated.
 const (
 	// Legacy aggregate capabilities remain during facade migration.
 	CapabilityContainers Capability = "containers"
@@ -31,14 +35,20 @@ const (
 	CapabilityStatsStream         Capability = "stats.stream"
 )
 
+// CapabilityInfo records the support level and human-readable reason for a
+// single capability. The ReasonCode is a machine-readable identifier for
+// structured error projection.
 type CapabilityInfo struct {
 	Support    Support
 	Reason     string
 	ReasonCode string
 }
 
+// CapabilitySet is a snapshot of all capabilities reported by an engine.
 type CapabilitySet map[Capability]CapabilityInfo
 
+// SupportFor returns the support level for the given capability. Returns
+// Unsupported when the capability is not present in the set.
 func (s CapabilitySet) SupportFor(capability Capability) Support {
 	info, ok := s[capability]
 	if !ok {
@@ -47,6 +57,7 @@ func (s CapabilitySet) SupportFor(capability Capability) Support {
 	return info.Support
 }
 
+// Supports reports whether the capability is available or better.
 func (s CapabilitySet) Supports(capability Capability) bool {
 	return s.SupportFor(capability) != Unsupported
 }

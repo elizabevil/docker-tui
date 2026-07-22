@@ -8,6 +8,7 @@ import (
 	"strconv"
 )
 
+// listContainersPodmanREST fetches containers via the Podman Libpod REST API.
 func (c *Client) listContainersPodmanREST(ctx context.Context, options ContainerListOptions) ([]ContainerSummary, error) {
 	if c.podmanREST == nil {
 		return nil, fmt.Errorf("podman REST transport is not initialized")

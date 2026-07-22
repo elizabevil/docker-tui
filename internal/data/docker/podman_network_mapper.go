@@ -28,21 +28,25 @@ type podmanNetworkItem struct {
 	Containers  map[string]podmanNetworkContainer `json:"containers,omitempty"`
 }
 
+// podmanSubnet is a normalized subnet entry within a Podman network item.
 type podmanSubnet struct {
 	Subnet  string `json:"subnet"`
 	Gateway string `json:"gateway,omitempty"`
 }
 
+// podmanNetworkContainer represents a container connected to a Podman network.
 type podmanNetworkContainer struct {
 	Name       string                        `json:"name"`
 	Interfaces map[string]podmanNetInterface `json:"interfaces,omitempty"`
 }
 
+// podmanNetInterface is a single network interface on a container.
 type podmanNetInterface struct {
 	Subnets    []podmanNetAddress `json:"subnets,omitempty"`
 	MacAddress string             `json:"mac_address"`
 }
 
+// podmanNetAddress holds a single IP address assignment on an interface.
 type podmanNetAddress struct {
 	IPNet   string `json:"ipnet"`
 	Gateway string `json:"gateway,omitempty"`

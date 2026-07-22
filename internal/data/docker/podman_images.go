@@ -1,5 +1,11 @@
 //go:build cgo
 
+// This file compiles only when CGO is available. It uses the official Podman
+// Go bindings (go.podman.io/podman/v6/pkg/bindings/images) which require CGO
+// for local libpod communication. TLS connections and explicit API overrides
+// use the shared REST implementation because bindings cannot express all of
+// the configured transport semantics.
+
 package docker
 
 import (
@@ -11,6 +17,7 @@ import (
 	"go.podman.io/podman/v6/pkg/bindings/images"
 )
 
+// listImagesPodman returns images from the Podman runtime via CGO bindings.
 func (c *Client) listImagesPodman(ctx context.Context, options runtimeapi.ImageListOptions) ([]ImageSummary, error) {
 	if c.usePodmanRESTTransport() {
 		return c.listImagesPodmanREST(ctx, options)

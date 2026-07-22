@@ -6,8 +6,12 @@ import (
 	"fmt"
 )
 
+// ErrorKind classifies runtime errors into stable semantic categories.
+// Callers use these kinds to decide retry policy, UI messaging, and error
+// projection without inspecting transport-specific error strings.
 type ErrorKind string
 
+// Standard error kinds returned by all runtime drivers.
 const (
 	ErrorConnection     ErrorKind = "connection"
 	ErrorTimeout        ErrorKind = "timeout"
@@ -36,6 +40,8 @@ type Error struct {
 	Err          error
 }
 
+// Error implements the error interface and carries structured metadata for
+// runtime-agnostic error handling.
 func (e *Error) Error() string {
 	if e == nil {
 		return "<nil>"
@@ -53,12 +59,17 @@ func (e *Error) Error() string {
 	return message
 }
 
+// Unwrap returns the underlying cause for errors.Is/As traversal.
 func (e *Error) Unwrap() error { return e.Err }
 
+// NewError constructs a classified runtime error with retry semantics derived
+// from the error kind.
 func NewError(kind ErrorKind, operation, resource string, err error) error {
 	return &Error{Kind: kind, Operation: operation, Resource: resource, Retryable: IsRetryableKind(kind), Err: err}
 }
 
+// IsRetryableKind reports whether the error kind indicates a transient failure
+// that may succeed on retry (connection, timeout, rate limit, unavailable).
 func IsRetryableKind(kind ErrorKind) bool {
 	switch kind {
 	case ErrorConnection, ErrorTimeout, ErrorRateLimited, ErrorUnavailable:
@@ -80,6 +91,7 @@ func ClassifyContextError(err error) ErrorKind {
 	}
 }
 
+// ClassifyHTTPStatus maps an HTTP status code to the closest error kind.
 func ClassifyHTTPStatus(status int) ErrorKind {
 	switch status {
 	case 400, 422:
@@ -104,11 +116,13 @@ func ClassifyHTTPStatus(status int) ErrorKind {
 	}
 }
 
+// IsErrorKind checks whether err wraps a runtime Error of the given kind.
 func IsErrorKind(err error, kind ErrorKind) bool {
 	var runtimeErr *Error
 	return errors.As(err, &runtimeErr) && runtimeErr.Kind == kind
 }
 
+// UnsupportedError returns a pre-classified unsupported-operation error.
 func UnsupportedError(operation string) error {
 	return NewError(ErrorUnsupported, operation, "", fmt.Errorf("capability is not supported by this runtime"))
 }

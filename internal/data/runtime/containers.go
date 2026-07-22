@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// Well-known container list filter field names.
 const (
 	ContainerFilterID       = "id"
 	ContainerFilterName     = "name"
@@ -16,12 +17,14 @@ const (
 	ContainerFilterVolume   = "volume"
 )
 
+// ContainerListOptions holds the parameters for listing containers.
 type ContainerListOptions struct {
 	All     bool
 	Limit   int
 	Filters FilterSet
 }
 
+// NativeFilters converts the filter set to the native Docker/Podman representation.
 func (o ContainerListOptions) NativeFilters() (map[string][]string, error) {
 	filters := make(map[string][]string, len(o.Filters))
 	for field, values := range o.Filters {
@@ -48,6 +51,7 @@ func isContainerFilter(field string) bool {
 	}
 }
 
+// ContainerSummary is the runtime-neutral representation of a listed container.
 type ContainerSummary struct {
 	ID             string
 	Name           string
@@ -63,6 +67,7 @@ type ContainerSummary struct {
 	ComposeService string
 }
 
+// PortBinding maps a container port to a host IP and port.
 type PortBinding struct {
 	ContainerPort uint16
 	Protocol      string
@@ -87,6 +92,7 @@ type ContainerDetail struct {
 	Config       ContainerConfig
 }
 
+// ContainerState captures the runtime state of a container.
 type ContainerState struct {
 	Status     string
 	PID        int
@@ -94,6 +100,7 @@ type ContainerState struct {
 	FinishedAt string
 }
 
+// ContainerResources describes the resource limits applied to a container.
 type ContainerResources struct {
 	CPUShares         int64
 	Memory            int64
@@ -103,17 +110,20 @@ type ContainerResources struct {
 	MaximumRetryCount int
 }
 
+// ContainerNetwork holds the IP configuration for a container on a single network.
 type ContainerNetwork struct {
 	IPAddress  string
 	Gateway    string
 	MACAddress string
 }
 
+// ContainerPortBinding represents a host-side port mapping.
 type ContainerPortBinding struct {
 	HostIP   string
 	HostPort string
 }
 
+// ContainerMount describes a volume or bind mount attached to a container.
 type ContainerMount struct {
 	Source      string
 	Destination string
@@ -121,6 +131,7 @@ type ContainerMount struct {
 	ReadWrite   bool
 }
 
+// ContainerConfig holds the static configuration of a container.
 type ContainerConfig struct {
 	WorkingDir   string
 	User         string
@@ -131,6 +142,7 @@ type ContainerConfig struct {
 	Labels       map[string]string
 }
 
+// ContainerProcesses is the output of a top-like process listing.
 type ContainerProcesses struct {
 	Titles    []string
 	Processes [][]string
@@ -148,6 +160,7 @@ type ContainerStats struct {
 	NetworkTx     float64
 }
 
+// ContainerService provides container lifecycle and inspection operations.
 type ContainerService interface {
 	List(context.Context, ContainerListOptions) ([]ContainerSummary, error)
 	Inspect(context.Context, string) (*ContainerDetail, error)

@@ -5,10 +5,16 @@ import "context"
 // ImageTransferOperation identifies an image distribution workflow.
 type ImageTransferOperation string
 
+// Transfer operation constants. Each maps to a distinct Docker/Podman API
+// call; the adapter selects the appropriate SDK method.
 const (
-	ImageTransferTag  ImageTransferOperation = "tag"
+	// ImageTransferTag tags a local image with a new reference.
+	ImageTransferTag ImageTransferOperation = "tag"
+	// ImageTransferPush pushes an image to a remote registry.
 	ImageTransferPush ImageTransferOperation = "push"
+	// ImageTransferSave saves an image to a tar archive.
 	ImageTransferSave ImageTransferOperation = "save"
+	// ImageTransferLoad loads an image from a tar archive.
 	ImageTransferLoad ImageTransferOperation = "load"
 )
 
@@ -28,6 +34,7 @@ type ImageTransferProgress struct {
 	Total   int64
 }
 
+// ImageTransferResult contains the outcome of a completed image transfer workflow.
 type ImageTransferResult struct {
 	Operation   ImageTransferOperation
 	Source      string
@@ -45,6 +52,8 @@ type ImageTransferEvent struct {
 	Done     bool
 }
 
+// ImageTransferService drives image distribution workflows (tag, push, save,
+// load). The caller receives a channel of progress and terminal events.
 type ImageTransferService interface {
 	Run(context.Context, ImageTransferRequest) (<-chan ImageTransferEvent, error)
 }

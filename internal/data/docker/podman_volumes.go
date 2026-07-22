@@ -18,6 +18,9 @@ import (
 	entitytypes "go.podman.io/podman/v6/pkg/domain/entities/types"
 )
 
+// listVolumesPodman returns volumes from the Podman runtime. When the CGO
+// bindings cannot express the configured transport (TLS or API override), it
+// falls back to the shared REST implementation.
 func (c *Client) listVolumesPodman(ctx context.Context, options runtimeapi.VolumeListOptions) ([]runtimeapi.Volume, error) {
 	if c.usePodmanRESTTransport() {
 		return c.listVolumesPodmanREST(ctx, options)
@@ -51,6 +54,7 @@ func (c *Client) listVolumesPodman(ctx context.Context, options runtimeapi.Volum
 	return mapPodmanVolumes(raw), nil
 }
 
+// inspectVolumePodman returns structured volume detail from the Podman runtime.
 func (c *Client) inspectVolumePodman(ctx context.Context, name string) (*runtimeapi.VolumeDetail, error) {
 	if c.usePodmanRESTTransport() {
 		return c.inspectVolumePodmanREST(ctx, name)
@@ -75,6 +79,7 @@ func (c *Client) inspectVolumePodman(ctx context.Context, name string) (*runtime
 	}), nil
 }
 
+// removeVolumePodman deletes a volume from the Podman runtime.
 func (c *Client) removeVolumePodman(ctx context.Context, name string, force bool) error {
 	if c.usePodmanRESTTransport() {
 		return c.removeVolumePodmanREST(ctx, name, force)
@@ -87,6 +92,7 @@ func (c *Client) removeVolumePodman(ctx context.Context, name string, force bool
 	return volumes.Remove(bindingContext, name, opts)
 }
 
+// createVolumePodman creates a volume via the Podman runtime.
 func (c *Client) createVolumePodman(ctx context.Context, options runtimeapi.VolumeCreateOptions) (*runtimeapi.Volume, error) {
 	if c.usePodmanRESTTransport() {
 		return c.createVolumePodmanREST(ctx, options)
@@ -103,6 +109,8 @@ func (c *Client) createVolumePodman(ctx context.Context, options runtimeapi.Volu
 	return &mapped[0], nil
 }
 
+// pruneVolumesPodman removes unused volumes from the Podman runtime and returns
+// the total space reclaimed.
 func (c *Client) pruneVolumesPodman(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
 	if c.usePodmanRESTTransport() {
 		return c.pruneVolumesPodmanREST(ctx, options)

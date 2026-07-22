@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// Well-known filter field names for volume and network list operations.
 const (
 	VolumeFilterName     = "name"
 	VolumeFilterDriver   = "driver"
@@ -19,9 +20,13 @@ const (
 	NetworkFilterType   = "type"
 )
 
+// VolumeListOptions holds the filter set for volume list requests.
 type VolumeListOptions struct{ Filters FilterSet }
+
+// NetworkListOptions holds the filter set for network list requests.
 type NetworkListOptions struct{ Filters FilterSet }
 
+// VolumeCreateOptions contains the parameters for creating a volume.
 type VolumeCreateOptions struct {
 	Name    string
 	Driver  string
@@ -29,6 +34,7 @@ type VolumeCreateOptions struct {
 	Options map[string]string
 }
 
+// NetworkCreateOptions contains the parameters for creating a network.
 type NetworkCreateOptions struct {
 	Name       string
 	Driver     string
@@ -38,18 +44,22 @@ type NetworkCreateOptions struct {
 	Options    map[string]string
 }
 
+// PruneOptions holds filters for resource pruning operations.
 type PruneOptions struct{ Filters FilterSet }
 
+// ResourceResult records the outcome of a single resource in a prune operation.
 type ResourceResult struct {
 	ID    string
 	Error error
 }
 
+// PruneResult aggregates the results of a prune operation across resources.
 type PruneResult struct {
 	Resources      []ResourceResult
 	SpaceReclaimed uint64
 }
 
+// Counts returns the number of successfully and unsuccessfully pruned resources.
 func (r PruneResult) Counts() (succeeded, failed int) {
 	for _, resource := range r.Resources {
 		if resource.Error != nil {
@@ -61,12 +71,16 @@ func (r PruneResult) Counts() (succeeded, failed int) {
 	return succeeded, failed
 }
 
+// NativeFilters converts the volume filter set to the native Docker/Podman
+// representation. Multiple values for one field are rejected.
 func (o VolumeListOptions) NativeFilters() (map[string][]string, error) {
 	return nativeSingleValueFilters("volume.list.filter", o.Filters, map[string]struct{}{
 		VolumeFilterName: {}, VolumeFilterDriver: {}, VolumeFilterLabel: {}, VolumeFilterDangling: {},
 	})
 }
 
+// NativeFilters converts the network filter set to the native Docker/Podman
+// representation. Multiple values for one field are rejected.
 func (o NetworkListOptions) NativeFilters() (map[string][]string, error) {
 	return nativeSingleValueFilters("network.list.filter", o.Filters, map[string]struct{}{
 		NetworkFilterID: {}, NetworkFilterName: {}, NetworkFilterDriver: {},
@@ -90,6 +104,7 @@ func nativeSingleValueFilters(operation string, input FilterSet, allowed map[str
 	return filters, nil
 }
 
+// Volume is the runtime-neutral summary of a Docker or Podman volume.
 type Volume struct {
 	Name       string
 	Driver     string
@@ -99,6 +114,7 @@ type Volume struct {
 	CreatedAt  string
 }
 
+// Network is the runtime-neutral summary of a Docker or Podman network.
 type Network struct {
 	Name       string
 	ID         string
@@ -111,12 +127,14 @@ type Network struct {
 	Labels     map[string]string
 }
 
+// VolumeService provides lifecycle operations for volumes.
 type VolumeService interface {
 	List(context.Context, VolumeListOptions) ([]Volume, error)
 	Create(context.Context, VolumeCreateOptions) (*Volume, error)
 	Prune(context.Context, PruneOptions) (PruneResult, error)
 }
 
+// NetworkService provides lifecycle operations for networks.
 type NetworkService interface {
 	List(context.Context, NetworkListOptions) ([]Network, error)
 	Create(context.Context, NetworkCreateOptions) (*Network, error)

@@ -8,8 +8,11 @@ import (
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
-// Build-tag files select a transport only; REST request construction and
-// mapping stay shared so both build modes expose identical behavior.
+// Non-CGO build: all Podman image operations delegate directly to the shared
+// REST transport. The CGO build can also use REST when TLS or API override is
+// configured, so these methods are the single fallback path.
+
+// listImagesPodman delegates to the Podman REST transport.
 func (c *Client) listImagesPodman(ctx context.Context, options runtimeapi.ImageListOptions) ([]ImageSummary, error) {
 	return c.listImagesPodmanREST(ctx, options)
 }

@@ -14,14 +14,17 @@ import (
 
 var _ ImageLister = (*dockerImageLister)(nil) // compile-time check
 
+// ListImages returns all images visible to the client.
 func (c *Client) ListImages() ([]ImageSummary, error) {
 	return c.ListImagesWithOptionsContext(c.ctx, runtimeapi.ImageListOptions{})
 }
 
+// ListImagesWithOptions returns images matching the given filter options.
 func (c *Client) ListImagesWithOptions(options runtimeapi.ImageListOptions) ([]ImageSummary, error) {
 	return c.ListImagesWithOptionsContext(c.ctx, options)
 }
 
+// ListImagesWithOptionsContext returns images with a caller-provided context and filter options.
 func (c *Client) ListImagesWithOptionsContext(ctx context.Context, options runtimeapi.ImageListOptions) ([]ImageSummary, error) {
 	if c.imageLister != nil {
 		return c.imageLister.ListImages(ctx, options)
@@ -148,11 +151,13 @@ func splitImageRef(tags []string) (registry, name, tag string) {
 	return
 }
 
+// RemoveImage removes an image by ID or reference.
 func (c *Client) RemoveImage(id string, force bool) error {
 	_, err := c.cli.ImageRemove(c.ctx, id, image.RemoveOptions{Force: force})
 	return err
 }
 
+// PullImage pulls an image from a registry by reference.
 func (c *Client) PullImage(ref string) error {
 	reader, err := c.cli.ImagePull(c.ctx, ref, image.PullOptions{})
 	if err != nil {
@@ -163,6 +168,7 @@ func (c *Client) PullImage(ref string) error {
 	return err
 }
 
+// PruneImages removes unused images and returns bytes reclaimed.
 func (c *Client) PruneImages() (uint64, error) {
 	report, err := c.cli.ImagesPrune(c.ctx, filters.NewArgs())
 	if err != nil {
@@ -171,6 +177,7 @@ func (c *Client) PruneImages() (uint64, error) {
 	return report.SpaceReclaimed, nil
 }
 
+// InspectImage returns a human-readable summary of an image.
 func (c *Client) InspectImage(id string) (string, error) {
 	info, _, err := c.cli.ImageInspectWithRaw(c.ctx, id)
 	if err != nil {
@@ -294,10 +301,12 @@ func (c *Client) InspectImage(id string) (string, error) {
 	return sb.String(), nil
 }
 
+// InspectImageDetail returns the full structured detail for an image.
 func (c *Client) InspectImageDetail(summary ImageSummary) (*ImageDetailData, error) {
 	return c.InspectImageDetailContext(c.ctx, summary)
 }
 
+// InspectImageDetailContext returns full image detail with a caller-provided context.
 func (c *Client) InspectImageDetailContext(ctx context.Context, summary ImageSummary) (*ImageDetailData, error) {
 	detail := NewImageDetailData(summary)
 	info, _, err := c.cli.ImageInspectWithRaw(ctx, summary.ID)
@@ -379,6 +388,7 @@ func (c *Client) InspectImageDetailContext(ctx context.Context, summary ImageSum
 	return detail, nil
 }
 
+// NewImageDetailData creates an ImageDetailData pre-populated from a summary.
 func NewImageDetailData(summary ImageSummary) *ImageDetailData {
 	registry, name, tag := SplitImageRef(summary.RepoTags)
 	return &ImageDetailData{
