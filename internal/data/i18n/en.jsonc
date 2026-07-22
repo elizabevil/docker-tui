@@ -8,6 +8,7 @@
   "panel.logs": "Logs",
   "panel.detail": "Detail",
   "panel.help": "Help",
+  "panel.audit": "Audit",
   // Table column headers
   "table.id": "ID",
   "table.name": "NAME",

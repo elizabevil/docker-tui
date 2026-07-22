@@ -58,6 +58,7 @@ func syncAuditProjection(m *state.AppModel) {
 	if operation := m.Dependencies.Audit.CurrentOperation(); operation != nil {
 		m.Feedback.AuditOperationMessage = fmt.Sprintf("%s: %s", operation.Action, operation.Message)
 	}
+	m.Audit.Records = m.Dependencies.Audit.RecentOperations()
 }
 
 func toastLevel(level audit.Level) state.NotificationLevel {

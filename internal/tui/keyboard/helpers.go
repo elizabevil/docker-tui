@@ -62,6 +62,9 @@ func moveCursor(m *state.AppModel, delta int) {
 			items = len(names)
 			m.Compose.ComposeCursor = clamp(m.Compose.ComposeCursor+delta, items)
 		}
+	case state.PanelAudit:
+		items = m.Audit.Total()
+		m.Audit.Cursor = clamp(m.Audit.Cursor+delta, items)
 	}
 	m.Metrics.StatsActive = false
 }
@@ -97,6 +100,8 @@ func activeTableFilter(m *state.AppModel) state.TableFilter {
 		return m.Resources.Volumes
 	case state.PanelNetworks:
 		return m.Resources.Networks
+	case state.PanelAudit:
+		return &m.Audit
 	default:
 		return nil
 	}
@@ -110,6 +115,8 @@ func PanelFromMode(mode state.AppMode) state.PanelType {
 		return state.PanelLogs
 	case state.ModeDetail:
 		return state.PanelDetail
+	case state.ModeAuditDetail:
+		return state.PanelAudit
 	default:
 		return state.PanelContainers
 	}

@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/tui/state"
+	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/audit"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/compose"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/containers"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/detail"
@@ -40,6 +41,8 @@ func templateFor(m *state.AppModel) pageTemplateKind {
 	case m.Navigation.Mode == state.ModeDetail || m.Navigation.Mode == state.ModeExecPassthrough:
 		return detailPageTemplate
 	case m.Navigation.Mode == state.ModeTop:
+		return detailPageTemplate
+	case m.Navigation.Mode == state.ModeAuditDetail:
 		return detailPageTemplate
 	case m.Navigation.ActivePanel == state.PanelHelp:
 		return helpPageTemplate
@@ -86,6 +89,9 @@ func projectPage(m *state.AppModel, bodyHeight, bodyWidth int) pageView {
 		} else if m.Navigation.Mode == state.ModeTop {
 			view.title = "Top: " + m.Processes.ContainerName
 			view.content = processes.Render(m.Processes, bodyWidth, bodyHeight)
+		} else if m.Navigation.Mode == state.ModeAuditDetail {
+			view.title = "Audit Detail"
+			view.content = audit.RenderDetail(m.Audit.DetailRecord, bodyWidth, bodyHeight)
 		} else {
 			view.content = detail.RenderView(m, bodyHeight)
 		}
@@ -110,6 +116,8 @@ func renderListPage(m *state.AppModel, panelHeight, contentWidth int) string {
 		return volumes.RenderList(m.Resources.Volumes, m.Resources.Containers, contentWidth, panelHeight, m.Selection.MarkedIDs, selectionDisabled)
 	case state.PanelNetworks:
 		return networks.RenderList(m.Resources.Networks, contentWidth, panelHeight, m.Selection.MarkedIDs, selectionDisabled)
+	case state.PanelAudit:
+		return audit.RenderList(&m.Audit, contentWidth, panelHeight)
 	default:
 		return ""
 	}
