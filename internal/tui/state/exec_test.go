@@ -1,11 +1,18 @@
 package state
 
 import (
+	"context"
 	"net"
 	"testing"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
+
+type testExecSession struct{ net.Conn }
+
+func (s *testExecSession) ID() string                                            { return "exec-id" }
+func (s *testExecSession) Resize(context.Context, runtimeapi.TerminalSize) error { return nil }
 
 func TestExecStateLifecycle(t *testing.T) {
 	var s ExecState
@@ -14,7 +21,8 @@ func TestExecStateLifecycle(t *testing.T) {
 		t.Fatalf("default shell = %q", s.ExecShell)
 	}
 
-	client, server := net.Pipe()
+	connection, server := net.Pipe()
+	client := &testExecSession{Conn: connection}
 	defer client.Close()
 	defer server.Close()
 	output := make(chan string)

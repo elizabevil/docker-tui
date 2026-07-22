@@ -381,10 +381,6 @@ func (c *Client) Close() error {
 	return c.cli.Close()
 }
 
-func (c *Client) Raw() *client.Client {
-	return c.cli
-}
-
 func (c *Client) Ping() error {
 	return c.PingTimeout(2 * time.Second)
 }

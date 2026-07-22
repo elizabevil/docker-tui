@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
@@ -277,50 +276,37 @@ func doExecAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	m.Exec.ExecShell = ""
 	trace := beginAudit(m, "resource.container.exec", audit.ExecTarget{ID: ctr.ID, Name: ctr.Name, Meta: audit.ExecMeta{ContainerID: ctr.ID}}, "Starting exec session in "+ctr.Name)
 
-	cli := m.Connection.Docker.Raw()
 	ctx := context.Background()
-
-	execConfig := container.ExecOptions{
-		Cmd:          []string{shell},
+	session, err := m.Connection.Docker.Exec().Open(ctx, ctr.ID, runtimeapi.ExecOptions{
+		Command:      []string{shell},
 		AttachStdin:  true,
 		AttachStdout: true,
 		AttachStderr: true,
-		Tty:          true,
-	}
-	execCreate, err := cli.ContainerExecCreate(ctx, ctr.ID, execConfig)
+		TTY:          true,
+	})
 	if err != nil {
-		FinishAudit(m, trace, audit.ResultFailed, "Exec session creation failed", audit.Details{Error: err.Error(), Shell: shell})
-		ShowToastNow(m, fmt.Sprintf("✕ exec create: %v", err))
-		return m, nil
-	}
-
-	resp, err := cli.ContainerExecAttach(ctx, execCreate.ID, container.ExecAttachOptions{Tty: true})
-	if err != nil {
-		FinishAudit(m, trace, audit.ResultFailed, "Exec session attach failed", audit.Details{Error: err.Error(), Shell: shell})
-		ShowToastNow(m, fmt.Sprintf("✕ exec attach: %v", err))
+		FinishAudit(m, trace, audit.ResultFailed, "Exec session failed", audit.Details{Error: err.Error(), Shell: shell})
+		ShowToastNow(m, fmt.Sprintf("exec: %v", err))
 		return m, nil
 	}
 
 	if m.Viewport.Width > 0 && m.Viewport.Height > 0 {
-		go cli.ContainerExecResize(context.Background(), execCreate.ID, container.ResizeOptions{
-			Height: uint(m.Viewport.Height),
-			Width:  uint(m.Viewport.Width),
-		})
+		go session.Resize(context.Background(), runtimeapi.TerminalSize{Height: uint(m.Viewport.Height), Width: uint(m.Viewport.Width)})
 	}
 
 	ch := make(chan string, 100)
 	done := make(chan struct{})
 	m.Exec.SetShell(shell)
-	m.Exec.Start(execCreate.ID, resp.Conn, ch, done, trace)
+	m.Exec.Start(session.ID(), session, ch, done, trace)
 	m.Navigation.Mode = state.ModeExecPassthrough
 
 	// Reader goroutine: reads raw TTY output from exec attach and sends it on ch.
 	go func() {
 		buf := make([]byte, 4096)
 		defer close(done)
-		defer resp.Close()
+		defer session.Close()
 		for {
-			n, err := resp.Reader.Read(buf)
+			n, err := session.Read(buf)
 			if n > 0 {
 				ch <- string(buf[:n])
 			}

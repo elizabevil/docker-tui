@@ -12,5 +12,7 @@ type Engine interface {
 	Volumes() VolumeService
 	Networks() NetworkService
 	Actions() ResourceActionService
+	Exec() ExecService
+	Events() EventService
 	Close() error
 }

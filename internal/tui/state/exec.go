@@ -1,14 +1,13 @@
 package state
 
 import (
-	"net"
-
 	"github.com/elizabevil/docker-tui/internal/data/audit"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/term"
 )
 
 type ExecState struct {
-	ExecConn   net.Conn
+	ExecConn   runtimeapi.ExecSession
 	ExecID     string
 	ExecCh     chan string
 	ExecDone   chan struct{}
@@ -25,7 +24,7 @@ func (s *ExecState) SetShell(shell string) {
 	s.ExecShell = shell
 }
 
-func (s *ExecState) Start(id string, conn net.Conn, output chan string, done chan struct{}, trace audit.Trace) {
+func (s *ExecState) Start(id string, conn runtimeapi.ExecSession, output chan string, done chan struct{}, trace audit.Trace) {
 	s.ExecID, s.ExecConn, s.ExecCh, s.ExecDone, s.ExecAudit = id, conn, output, done, trace
 	s.ExecScroll = 0
 }

@@ -3,8 +3,8 @@ package tui
 import (
 	"context"
 
-	"github.com/docker/docker/api/types/container"
 	"github.com/elizabevil/docker-tui/internal/data/audit"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keyboard"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
@@ -38,12 +38,8 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 	case tea.WindowSizeMsg:
 		m.Viewport.Resize(msg.Width, msg.Height)
-		if m.Navigation.Mode == state.ModeExecPassthrough && m.Exec.ExecID != "" && m.Connection.Docker != nil {
-			cli := m.Connection.Docker.Raw()
-			go cli.ContainerExecResize(context.Background(), m.Exec.ExecID, container.ResizeOptions{
-				Height: uint(msg.Height),
-				Width:  uint(msg.Width),
-			})
+		if m.Navigation.Mode == state.ModeExecPassthrough && m.Exec.ExecConn != nil {
+			go m.Exec.ExecConn.Resize(context.Background(), runtimeapi.TerminalSize{Height: uint(msg.Height), Width: uint(msg.Width)})
 		}
 		return m, nil
 
