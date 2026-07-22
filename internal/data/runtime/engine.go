@@ -12,6 +12,7 @@ type Engine interface {
 	Volumes() VolumeService
 	Networks() NetworkService
 	Images() ImageService
+	ImageTransfers() ImageTransferService
 	Actions() ResourceActionService
 	Exec() ExecService
 	Events() EventService
