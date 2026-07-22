@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -78,6 +79,10 @@ func doConfirmYes(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		return m, withGenericAudit(volumeRemoveCmd(m.Connection.Docker, target, true), trace)
 	case action == "network-remove":
 		return m, withGenericAudit(networkRemoveCmd(m.Connection.Docker, target), trace)
+	case action == "volume-prune":
+		return m, resourcePruneCmd(m, runtimeapi.ResourceVolume, trace)
+	case action == "network-prune":
+		return m, resourcePruneCmd(m, runtimeapi.ResourceNetwork, trace)
 	}
 	return m, nil
 }

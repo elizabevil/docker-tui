@@ -129,7 +129,11 @@ type KeymapConfig struct {
 	ImageRemove []string `json:"imageRemove" yaml:"imageRemove"`
 	ImagePrune  []string `json:"imagePrune" yaml:"imagePrune"`
 
+	VolumeCreate  []string `json:"volumeCreate" yaml:"volumeCreate"`
+	VolumePrune   []string `json:"volumePrune" yaml:"volumePrune"`
 	VolumeRemove  []string `json:"volumeRemove" yaml:"volumeRemove"`
+	NetworkCreate []string `json:"networkCreate" yaml:"networkCreate"`
+	NetworkPrune  []string `json:"networkPrune" yaml:"networkPrune"`
 	NetworkRemove []string `json:"networkRemove" yaml:"networkRemove"`
 
 	TabNext []string `json:"tabNext" yaml:"tabNext"`

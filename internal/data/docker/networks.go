@@ -77,3 +77,49 @@ func (c *Client) RemoveNetwork(id string) error {
 	}
 	return c.cli.NetworkRemove(c.ctx, id)
 }
+
+func (c *Client) CreateNetworkContext(ctx context.Context, options runtimeapi.NetworkCreateOptions) (*runtimeapi.Network, error) {
+	if options.Name == "" {
+		return nil, runtimeapi.NewError(runtimeapi.ErrorInvalid, "network.create", "", fmt.Errorf("name is required"))
+	}
+	if c.RuntimeType == RuntimePodman {
+		created, err := c.createNetworkPodman(ctx, options)
+		if err != nil {
+			return nil, mapRuntimeError(err, "network.create", runtimeapi.ResourceRef{Type: runtimeapi.ResourceNetwork, ID: options.Name}, c.RuntimeType)
+		}
+		return created, nil
+	}
+	created, err := c.cli.NetworkCreate(ctx, options.Name, network.CreateOptions{Driver: options.Driver, Internal: options.Internal, EnableIPv6: &options.EnableIPv6, Labels: options.Labels, Options: options.Options})
+	if err != nil {
+		return nil, mapRuntimeError(err, "network.create", runtimeapi.ResourceRef{Type: runtimeapi.ResourceNetwork, ID: options.Name}, c.RuntimeType)
+	}
+	return &runtimeapi.Network{Name: options.Name, ID: created.ID, Driver: options.Driver, Internal: options.Internal, Labels: options.Labels}, nil
+}
+
+func (c *Client) PruneNetworksContext(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
+	if c.RuntimeType == RuntimePodman {
+		result, err := c.pruneNetworksPodman(ctx, options)
+		if err != nil {
+			return runtimeapi.PruneResult{}, mapRuntimeError(err, "network.prune", runtimeapi.ResourceRef{Type: runtimeapi.ResourceNetwork}, c.RuntimeType)
+		}
+		for index := range result.Resources {
+			result.Resources[index].Error = mapRuntimeError(result.Resources[index].Error, "network.prune", runtimeapi.ResourceRef{Type: runtimeapi.ResourceNetwork, ID: result.Resources[index].ID}, c.RuntimeType)
+		}
+		return result, nil
+	}
+	filterArgs := filters.NewArgs()
+	for field, values := range options.Filters {
+		for _, value := range values {
+			filterArgs.Add(field, value)
+		}
+	}
+	report, err := c.cli.NetworksPrune(ctx, filterArgs)
+	if err != nil {
+		return runtimeapi.PruneResult{}, mapRuntimeError(err, "network.prune", runtimeapi.ResourceRef{Type: runtimeapi.ResourceNetwork}, c.RuntimeType)
+	}
+	result := runtimeapi.PruneResult{Resources: make([]runtimeapi.ResourceResult, 0, len(report.NetworksDeleted))}
+	for _, name := range report.NetworksDeleted {
+		result.Resources = append(result.Resources, runtimeapi.ResourceResult{ID: name})
+	}
+	return result, nil
+}

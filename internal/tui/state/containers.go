@@ -21,6 +21,7 @@ const (
 	ActionPulled    = "pulled"
 	ActionPruned    = "pruned"
 	ActionExported  = "exported"
+	ActionCreated   = "created"
 
 	ContainerStateRunning  = "running"
 	ContainerStateExited   = "exited"
@@ -119,6 +120,13 @@ type (
 		Success bool
 		Error   error
 		Audit   audit.Trace
+	}
+
+	ResourcePruned struct {
+		ResourceType runtimeapi.ResourceType
+		Result       runtimeapi.PruneResult
+		Error        error
+		Audit        audit.Trace
 	}
 
 	ToastTick struct{}

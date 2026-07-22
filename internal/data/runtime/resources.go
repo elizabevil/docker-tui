@@ -22,6 +22,45 @@ const (
 type VolumeListOptions struct{ Filters FilterSet }
 type NetworkListOptions struct{ Filters FilterSet }
 
+type VolumeCreateOptions struct {
+	Name    string
+	Driver  string
+	Labels  map[string]string
+	Options map[string]string
+}
+
+type NetworkCreateOptions struct {
+	Name       string
+	Driver     string
+	Internal   bool
+	EnableIPv6 bool
+	Labels     map[string]string
+	Options    map[string]string
+}
+
+type PruneOptions struct{ Filters FilterSet }
+
+type ResourceResult struct {
+	ID    string
+	Error error
+}
+
+type PruneResult struct {
+	Resources      []ResourceResult
+	SpaceReclaimed uint64
+}
+
+func (r PruneResult) Counts() (succeeded, failed int) {
+	for _, resource := range r.Resources {
+		if resource.Error != nil {
+			failed++
+		} else {
+			succeeded++
+		}
+	}
+	return succeeded, failed
+}
+
 func (o VolumeListOptions) NativeFilters() (map[string][]string, error) {
 	return nativeSingleValueFilters("volume.list.filter", o.Filters, map[string]struct{}{
 		VolumeFilterName: {}, VolumeFilterDriver: {}, VolumeFilterLabel: {}, VolumeFilterDangling: {},
@@ -74,8 +113,12 @@ type Network struct {
 
 type VolumeService interface {
 	List(context.Context, VolumeListOptions) ([]Volume, error)
+	Create(context.Context, VolumeCreateOptions) (*Volume, error)
+	Prune(context.Context, PruneOptions) (PruneResult, error)
 }
 
 type NetworkService interface {
 	List(context.Context, NetworkListOptions) ([]Network, error)
+	Create(context.Context, NetworkCreateOptions) (*Network, error)
+	Prune(context.Context, PruneOptions) (PruneResult, error)
 }

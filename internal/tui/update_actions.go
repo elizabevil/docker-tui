@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keyboard"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
@@ -96,6 +97,32 @@ func handleGenericActioned(m *state.AppModel, msg state.GenericActioned) (*state
 	} else {
 		keyboard.ShowToastNow(m, display)
 	}
+	if m.Connection.Docker != nil {
+		return m, tea.Batch(keyboard.FetchAll(m.Connection.Docker)...)
+	}
+	return m, nil
+}
+
+func handleResourcePruned(m *state.AppModel, msg state.ResourcePruned) (*state.AppModel, tea.Cmd) {
+	succeeded, failed := msg.Result.Counts()
+	resourceLabel := i18n.T("panel.networks")
+	if msg.ResourceType == runtimeapi.ResourceVolume {
+		resourceLabel = i18n.T("panel.volumes")
+	}
+	display := i18n.T("resource.prune.result", resourceLabel, succeeded, failed)
+	if msg.Result.SpaceReclaimed > 0 {
+		display += i18n.T("resource.prune.reclaimed", msg.Result.SpaceReclaimed)
+	}
+	result := audit.ResultSucceeded
+	if failed > 0 && succeeded > 0 {
+		result = audit.ResultPartial
+	} else if msg.Error != nil {
+		result = audit.ResultFailed
+		m.Feedback.RecordError(display + ": " + msg.Error.Error())
+	} else {
+		keyboard.ShowToastNow(m, display)
+	}
+	keyboard.FinishAudit(m, msg.Audit, result, display, audit.Details{Error: errorText(msg.Error)})
 	if m.Connection.Docker != nil {
 		return m, tea.Batch(keyboard.FetchAll(m.Connection.Docker)...)
 	}

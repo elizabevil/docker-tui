@@ -479,8 +479,24 @@ func (s volumeService) List(ctx context.Context, options runtimeapi.VolumeListOp
 	return s.client.ListVolumesContext(ctx, options)
 }
 
+func (s volumeService) Create(ctx context.Context, options runtimeapi.VolumeCreateOptions) (*runtimeapi.Volume, error) {
+	return s.client.CreateVolumeContext(ctx, options)
+}
+
+func (s volumeService) Prune(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
+	return s.client.PruneVolumesContext(ctx, options)
+}
+
 func (s networkService) List(ctx context.Context, options runtimeapi.NetworkListOptions) ([]runtimeapi.Network, error) {
 	return s.client.ListNetworksContext(ctx, options)
+}
+
+func (s networkService) Create(ctx context.Context, options runtimeapi.NetworkCreateOptions) (*runtimeapi.Network, error) {
+	return s.client.CreateNetworkContext(ctx, options)
+}
+
+func (s networkService) Prune(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
+	return s.client.PruneNetworksContext(ctx, options)
 }
 
 // PingTimeout verifies the runtime connection with a caller-selected deadline.

@@ -14,6 +14,7 @@ import (
 	"net"
 
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	networktypes "go.podman.io/common/libnetwork/types"
 	"go.podman.io/podman/v6/pkg/bindings"
 	"go.podman.io/podman/v6/pkg/bindings/network"
 )
@@ -109,4 +110,39 @@ func gatewayString(gw net.IP) string {
 		return ""
 	}
 	return gw.String()
+}
+
+func (c *Client) createNetworkPodman(ctx context.Context, options runtimeapi.NetworkCreateOptions) (*runtimeapi.Network, error) {
+	if c.usePodmanRESTTransport() {
+		return c.createNetworkPodmanREST(ctx, options)
+	}
+	bindingContext, err := bindings.NewConnection(ctx, c.Host)
+	if err != nil {
+		return nil, fmt.Errorf("podman connect: %w", err)
+	}
+	created, err := network.Create(bindingContext, &networktypes.Network{Name: options.Name, Driver: options.Driver, Internal: options.Internal, IPv6Enabled: options.EnableIPv6, Labels: options.Labels, Options: options.Options})
+	if err != nil {
+		return nil, fmt.Errorf("podman create network: %w", err)
+	}
+	mapped := mapPodmanNetworks([]podmanNetworkItem{{Name: created.Name, ID: created.ID, Driver: created.Driver, Created: created.Created, IPv6Enabled: created.IPv6Enabled, Internal: created.Internal, Labels: created.Labels, Options: created.Options}})
+	return &mapped[0], nil
+}
+
+func (c *Client) pruneNetworksPodman(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
+	if c.usePodmanRESTTransport() {
+		return c.pruneNetworksPodmanREST(ctx, options)
+	}
+	bindingContext, err := bindings.NewConnection(ctx, c.Host)
+	if err != nil {
+		return runtimeapi.PruneResult{}, fmt.Errorf("podman connect: %w", err)
+	}
+	reports, err := network.Prune(bindingContext, new(network.PruneOptions).WithFilters(map[string][]string(options.Filters)))
+	if err != nil {
+		return runtimeapi.PruneResult{}, fmt.Errorf("podman prune networks: %w", err)
+	}
+	result := runtimeapi.PruneResult{Resources: make([]runtimeapi.ResourceResult, 0, len(reports))}
+	for _, report := range reports {
+		result.Resources = append(result.Resources, runtimeapi.ResourceResult{ID: report.Name, Error: report.Error})
+	}
+	return result, nil
 }

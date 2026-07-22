@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/elizabevil/docker-tui/internal/data/docker"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -93,8 +94,16 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 
 	case keys.ActionVolumeRemove:
 		return doVolumeRemove(m)
+	case keys.ActionVolumeCreate:
+		return openResourceCreate(m, runtimeapi.ResourceVolume)
+	case keys.ActionVolumePrune:
+		return confirmResourcePrune(m, runtimeapi.ResourceVolume)
 	case keys.ActionNetworkRemove:
 		return doNetworkRemove(m)
+	case keys.ActionNetworkCreate:
+		return openResourceCreate(m, runtimeapi.ResourceNetwork)
+	case keys.ActionNetworkPrune:
+		return confirmResourcePrune(m, runtimeapi.ResourceNetwork)
 	case keys.ActionSwitchRuntime:
 		return openRuntimeSelector(m)
 

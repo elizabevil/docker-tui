@@ -86,6 +86,9 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case state.GenericActioned:
 		return handleGenericActioned(m, msg)
 
+	case state.ResourcePruned:
+		return handleResourcePruned(m, msg)
+
 	case state.LogBatchReceived:
 		return handleLogBatchReceived(m, msg)
 

@@ -21,3 +21,11 @@ func (c *Client) inspectNetworkPodman(ctx context.Context, id string) (*runtimea
 func (c *Client) removeNetworkPodman(ctx context.Context, id string) error {
 	return c.removeNetworkPodmanREST(ctx, id)
 }
+
+func (c *Client) createNetworkPodman(ctx context.Context, options runtimeapi.NetworkCreateOptions) (*runtimeapi.Network, error) {
+	return c.createNetworkPodmanREST(ctx, options)
+}
+
+func (c *Client) pruneNetworksPodman(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
+	return c.pruneNetworksPodmanREST(ctx, options)
+}

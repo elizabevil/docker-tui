@@ -69,3 +69,49 @@ func (c *Client) RemoveVolume(id string, force bool) error {
 	}
 	return c.cli.VolumeRemove(c.ctx, id, force)
 }
+
+func (c *Client) CreateVolumeContext(ctx context.Context, options runtimeapi.VolumeCreateOptions) (*runtimeapi.Volume, error) {
+	if options.Name == "" {
+		return nil, runtimeapi.NewError(runtimeapi.ErrorInvalid, "volume.create", "", fmt.Errorf("name is required"))
+	}
+	if c.RuntimeType == RuntimePodman {
+		created, err := c.createVolumePodman(ctx, options)
+		if err != nil {
+			return nil, mapRuntimeError(err, "volume.create", runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume, ID: options.Name}, c.RuntimeType)
+		}
+		return created, nil
+	}
+	created, err := c.cli.VolumeCreate(ctx, volume.CreateOptions{Name: options.Name, Driver: options.Driver, Labels: options.Labels, DriverOpts: options.Options})
+	if err != nil {
+		return nil, mapRuntimeError(err, "volume.create", runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume, ID: options.Name}, c.RuntimeType)
+	}
+	return &runtimeapi.Volume{Name: created.Name, Driver: created.Driver, Mountpoint: created.Mountpoint, Labels: created.Labels, Scope: created.Scope, CreatedAt: created.CreatedAt}, nil
+}
+
+func (c *Client) PruneVolumesContext(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
+	if c.RuntimeType == RuntimePodman {
+		result, err := c.pruneVolumesPodman(ctx, options)
+		if err != nil {
+			return runtimeapi.PruneResult{}, mapRuntimeError(err, "volume.prune", runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume}, c.RuntimeType)
+		}
+		for index := range result.Resources {
+			result.Resources[index].Error = mapRuntimeError(result.Resources[index].Error, "volume.prune", runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume, ID: result.Resources[index].ID}, c.RuntimeType)
+		}
+		return result, nil
+	}
+	filterArgs := filters.NewArgs()
+	for field, values := range options.Filters {
+		for _, value := range values {
+			filterArgs.Add(field, value)
+		}
+	}
+	report, err := c.cli.VolumesPrune(ctx, filterArgs)
+	if err != nil {
+		return runtimeapi.PruneResult{}, mapRuntimeError(err, "volume.prune", runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume}, c.RuntimeType)
+	}
+	result := runtimeapi.PruneResult{SpaceReclaimed: report.SpaceReclaimed, Resources: make([]runtimeapi.ResourceResult, 0, len(report.VolumesDeleted))}
+	for _, name := range report.VolumesDeleted {
+		result.Resources = append(result.Resources, runtimeapi.ResourceResult{ID: name})
+	}
+	return result, nil
+}

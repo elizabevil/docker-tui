@@ -52,6 +52,7 @@ const (
 	ModeRuntimeSelect
 	ModeRename
 	ModeTop
+	ModeResourceCreate
 )
 
 // ExecDialogFocus identifies focusable regions in the exec dialog.

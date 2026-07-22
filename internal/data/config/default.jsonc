@@ -127,8 +127,20 @@
     "imagePrune": [
       "p"
     ],
+    "volumeCreate": [
+      "c"
+    ],
+    "volumePrune": [
+      "p"
+    ],
     "volumeRemove": [
       "ctrl+d"
+    ],
+    "networkCreate": [
+      "c"
+    ],
+    "networkPrune": [
+      "p"
     ],
     "networkRemove": [
       "ctrl+d"

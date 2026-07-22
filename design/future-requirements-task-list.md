@@ -1,7 +1,7 @@
 # 后续需求实施任务清单
 
 > 建立日期: 2026-07-20  
-> 最近整理: 2026-07-21（同步至提交 `137229c`）
+> 最近整理: 2026-07-21
 > 依据: [后续需求与规划讨论](future-requirements-discussion.md)、[Docker / Podman 能力分析](podman-capabilities-analysis.md)
 > 规则: 本文是后续工作的唯一主任务台账；其他设计文档中的任务编号仅作为来源参考。
 
@@ -20,16 +20,15 @@
 
 | 状态 | 数量 |
 |---|---:|
-| `done` | 10 |
+| `done` | 11 |
 | `in_progress` | 1 |
-| `todo` | 10 |
+| `todo` | 9 |
 | `blocked` | 0 |
 
 当前执行队列：
 
 1. 执行 `TASK-021`，建立 Docker / Podman 独立 adapter 和统一 runtime driver。
-2. 执行 `TASK-009`，补齐 Volume / Network 创建与清理。
-3. 执行 `TASK-008`，将 Events 接入主循环并支持局部刷新。
+2. 执行 `TASK-008`，将 Events 接入主循环并支持局部刷新。
 
 ## 已完成基础
 
@@ -67,7 +66,7 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 |---|---|---:|---|---|---|
 | `TASK-021` | [Docker / Podman 统一 runtime driver](unified-runtime-driver.md) | P0 | `in_progress` | TASK-004 | 已完成统一契约、双构建矩阵、Podman REST、Container/Image/Volume/Network list mapper，以及 Volume/Network inspect/remove；剩余范围见设计文档状态快照 |
 | `TASK-008` | Docker / Podman Events 接入主循环 | P1 | `todo` | TASK-003、TASK-021 | 生命周期管理、断线恢复、事件合并、局部刷新和无事件降级 |
-| `TASK-009` | Volume / Network 创建与清理 | P1 | `todo` | TASK-021 | create、prune、确认交互、部分失败反馈及双运行时测试 |
+| `TASK-009` | Volume / Network 创建与清理 | P1 | `done` | TASK-021 | 已完成 create、prune、确认交互、逐资源部分失败反馈、Docker/Podman contract tests 和双构建矩阵 |
 | `TASK-010` | 批量操作扩展与部分成功反馈 | P2 | `todo` | 审计模型、TASK-017 | 每个目标独立终态、汇总提示和可追溯审计 |
 | `TASK-011` | Compose / 容器 / 镜像联动刷新 | P2 | `todo` | TASK-008 | 事件只使相关资源失效，不直接修改复杂 UI 状态 |
 | `TASK-017` | 高频容器操作 | P0 | `done` | TASK-004 | 已实现状态约束的 `pause` / `unpause`、批量跳过汇总、`rename` 输入校验、独立 `top` 页面和结构化 `port` 展示，并通过 Docker / Podman 兼容 API 契约测试 |

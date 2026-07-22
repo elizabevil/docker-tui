@@ -8,14 +8,14 @@
 
 - 管理容器：列表、启动、停止、重启、Pause/Unpause、Rename、Top、Port、Kill、删除、日志、Stats、Inspect 和 Exec
 - 管理镜像：列表、Pull、Prune、删除和结构化详情
-- 查看和删除 Volume / Network，并查看关联资源
+- 创建、查看、清理和删除 Volume / Network，并查看关联资源
 - 基于容器 labels 聚合 Compose 项目与服务，支持 start、stop、down 和日志
 - 在 Docker / Podman 本地连接之间切换
 - 即时过滤资源列表，在日志页搜索并跳转匹配项
 - 通过 YAML 覆盖动作快捷键，Help 和 Footer 显示当前有效绑定
 - 为用户资源操作生成 trace，并将结果投影到 Toast、Footer 和按日 JSONL 审计日志
 
-当前尚未完整实现的能力包括 Docker Events 主循环接线、完整多主机工作流、Volume / Network 创建、更完整的批量操作和鼠标交互。详细状态见 [需求规格](docs/requirements.md)。
+当前尚未完整实现的能力包括 Docker Events 主循环接线、完整多主机工作流、更完整的批量操作和鼠标交互。详细状态见 [需求规格](docs/requirements.md)。
 
 ## 环境要求
 

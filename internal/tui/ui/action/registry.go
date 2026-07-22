@@ -67,6 +67,8 @@ func ForMode(app *state.AppModel) []Shortcut {
 		return shortcuts("Esc", "Back", "j/k", "Move", "r", "Refresh")
 	case state.ModeRename:
 		return shortcuts("Enter", "Rename", "Esc", "Cancel")
+	case state.ModeResourceCreate:
+		return shortcuts("Enter", i18n.T("key.create"), "Esc", "Cancel")
 	case state.ModeHelp:
 		return shortcuts(bindingLabel(app, keys.ActionHelp, keys.KeyQmark)+"/"+bindingLabel(app, keys.ActionBack, keys.KEsc), "Close")
 	default:
@@ -138,6 +140,8 @@ func ForPanel(panel state.PanelType, marked int, app ...*state.AppModel) []Short
 		}
 		return []Shortcut{
 			{keys.KSpace, i18n.T("key.mark")}, {bindingLabel(model, keys.ActionEnter, keys.KEnter), i18n.T("key.expand")},
+			{bindingLabel(model, createAction(panel), keys.KeyC), i18n.T("key.create")},
+			{bindingLabel(model, pruneAction(panel), keys.KeyP), i18n.T("key.prune")},
 			{bindingLabel(model, removeAction(panel), keys.KCtrlD), i18n.T("key.delete")},
 		}
 	case state.PanelCompose:
@@ -149,6 +153,20 @@ func ForPanel(panel state.PanelType, marked int, app ...*state.AppModel) []Short
 	default:
 		return nil
 	}
+}
+
+func createAction(panel state.PanelType) keys.KeyAction {
+	if panel == state.PanelVolumes {
+		return keys.ActionVolumeCreate
+	}
+	return keys.ActionNetworkCreate
+}
+
+func pruneAction(panel state.PanelType) keys.KeyAction {
+	if panel == state.PanelVolumes {
+		return keys.ActionVolumePrune
+	}
+	return keys.ActionNetworkPrune
 }
 
 func pauseLabel(model *state.AppModel) string {

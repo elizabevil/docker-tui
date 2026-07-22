@@ -15,6 +15,7 @@ import (
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"go.podman.io/podman/v6/pkg/bindings"
 	"go.podman.io/podman/v6/pkg/bindings/volumes"
+	entitytypes "go.podman.io/podman/v6/pkg/domain/entities/types"
 )
 
 func (c *Client) listVolumesPodman(ctx context.Context, options runtimeapi.VolumeListOptions) ([]runtimeapi.Volume, error) {
@@ -84,4 +85,40 @@ func (c *Client) removeVolumePodman(ctx context.Context, name string, force bool
 	}
 	opts := new(volumes.RemoveOptions).WithForce(force)
 	return volumes.Remove(bindingContext, name, opts)
+}
+
+func (c *Client) createVolumePodman(ctx context.Context, options runtimeapi.VolumeCreateOptions) (*runtimeapi.Volume, error) {
+	if c.usePodmanRESTTransport() {
+		return c.createVolumePodmanREST(ctx, options)
+	}
+	bindingContext, err := bindings.NewConnection(ctx, c.Host)
+	if err != nil {
+		return nil, fmt.Errorf("podman connect: %w", err)
+	}
+	created, err := volumes.Create(bindingContext, entitytypes.VolumeCreateOptions{Name: options.Name, Driver: options.Driver, Labels: options.Labels, Options: options.Options}, nil)
+	if err != nil {
+		return nil, fmt.Errorf("podman create volume: %w", err)
+	}
+	mapped := mapPodmanVolumes([]podmanVolumeConfigResponse{{Name: created.Name, Driver: created.Driver, Mountpoint: created.Mountpoint, CreatedAt: created.CreatedAt, Labels: created.Labels, Scope: created.Scope}})
+	return &mapped[0], nil
+}
+
+func (c *Client) pruneVolumesPodman(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
+	if c.usePodmanRESTTransport() {
+		return c.pruneVolumesPodmanREST(ctx, options)
+	}
+	bindingContext, err := bindings.NewConnection(ctx, c.Host)
+	if err != nil {
+		return runtimeapi.PruneResult{}, fmt.Errorf("podman connect: %w", err)
+	}
+	reports, err := volumes.Prune(bindingContext, new(volumes.PruneOptions).WithFilters(map[string][]string(options.Filters)))
+	if err != nil {
+		return runtimeapi.PruneResult{}, fmt.Errorf("podman prune volumes: %w", err)
+	}
+	result := runtimeapi.PruneResult{Resources: make([]runtimeapi.ResourceResult, 0, len(reports))}
+	for _, report := range reports {
+		result.Resources = append(result.Resources, runtimeapi.ResourceResult{ID: report.Id, Error: report.Err})
+		result.SpaceReclaimed += report.Size
+	}
+	return result, nil
 }

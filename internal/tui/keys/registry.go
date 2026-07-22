@@ -62,7 +62,11 @@ func Registry() []ActionSpec {
 		{ActionImagePull, []string{KeyCtrlP}, images},
 		{ActionImageRemove, []string{KeyCtrlD}, images},
 		{ActionImagePrune, []string{KeyP}, images},
+		{ActionVolumeCreate, []string{KeyC}, []Context{{View: "volumes"}}},
+		{ActionVolumePrune, []string{KeyP}, []Context{{View: "volumes"}}},
 		{ActionVolumeRemove, []string{KeyCtrlD}, []Context{{View: "volumes"}}},
+		{ActionNetworkCreate, []string{KeyC}, []Context{{View: "networks"}}},
+		{ActionNetworkPrune, []string{KeyP}, []Context{{View: "networks"}}},
 		{ActionNetworkRemove, []string{KeyCtrlD}, []Context{{View: "networks"}}},
 	}
 }
@@ -157,7 +161,8 @@ func configuredBindings(keymap config.KeymapConfig) map[KeyAction][]string {
 		ActionContainerExec: keymap.ContainerExec, ActionContainerInspect: keymap.ContainerInspect,
 		ActionContainerStats: keymap.ContainerStats, ActionContainerPause: keymap.ContainerPause, ActionImagePull: keymap.ImagePull,
 		ActionImageRemove: keymap.ImageRemove, ActionImagePrune: keymap.ImagePrune,
-		ActionVolumeRemove: keymap.VolumeRemove, ActionNetworkRemove: keymap.NetworkRemove,
+		ActionVolumeCreate: keymap.VolumeCreate, ActionVolumePrune: keymap.VolumePrune, ActionVolumeRemove: keymap.VolumeRemove,
+		ActionNetworkCreate: keymap.NetworkCreate, ActionNetworkPrune: keymap.NetworkPrune, ActionNetworkRemove: keymap.NetworkRemove,
 		ActionTabNext: keymap.TabNext, ActionTabPrev: keymap.TabPrev, ActionUp: keymap.Up,
 		ActionDown: keymap.Down, ActionEnter: keymap.Enter, ActionBack: keymap.Back, ActionDelete: keymap.Delete,
 	}

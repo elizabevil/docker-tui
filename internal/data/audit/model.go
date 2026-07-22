@@ -13,6 +13,7 @@ const (
 	ResultStarted   Result = "started"
 	ResultSucceeded Result = "succeeded"
 	ResultFailed    Result = "failed"
+	ResultPartial   Result = "partial"
 	ResultCancelled Result = "cancelled"
 )
 

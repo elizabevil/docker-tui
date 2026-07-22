@@ -1,6 +1,7 @@
 package podman
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -115,6 +116,26 @@ func (c *RESTClient) Delete(ctx context.Context, operation, path string) error {
 	return c.DeleteWithQuery(ctx, operation, path, nil)
 }
 
+func (c *RESTClient) Post(ctx context.Context, operation, path string, query url.Values, input, output any) error {
+	version, err := c.APIVersion(ctx)
+	if err != nil {
+		return err
+	}
+	var body io.Reader
+	if input != nil {
+		encoded, err := json.Marshal(input)
+		if err != nil {
+			return runtimeapi.NewError(runtimeapi.ErrorInvalid, operation, "", err)
+		}
+		body = bytes.NewReader(encoded)
+	}
+	versionedPath := "/v" + version + "/libpod/" + strings.TrimPrefix(path, "/")
+	if len(query) > 0 {
+		versionedPath += "?" + query.Encode()
+	}
+	return c.do(ctx, operation, http.MethodPost, versionedPath, body, output)
+}
+
 // DeleteWithQuery performs a versioned Libpod DELETE while preserving
 // operation-specific options such as force. Keeping query encoding here
 // prevents resource adapters from constructing versioned URLs themselves.
@@ -143,6 +164,9 @@ func (c *RESTClient) do(ctx context.Context, operation, method, path string, bod
 	req, err := http.NewRequestWithContext(ctx, method, requestURL.String(), body)
 	if err != nil {
 		return runtimeapi.NewError(runtimeapi.ErrorInvalid, operation, "", err)
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
 	}
 	response, err := c.client.Do(req)
 	if err != nil {

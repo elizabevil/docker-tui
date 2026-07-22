@@ -134,3 +134,35 @@ func TestRESTClientDeletePreservesEscapedSegmentAndQuery(t *testing.T) {
 		t.Fatalf("DeleteWithQuery() error = %v", err)
 	}
 }
+
+func TestRESTClientPostEncodesJSONAndQuery(t *testing.T) {
+	httpClient := &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		if request.Method != http.MethodPost || request.URL.Path != "/v5.2.0/libpod/volumes/create" {
+			t.Fatalf("request = %s %s", request.Method, request.URL.Path)
+		}
+		if request.Header.Get("Content-Type") != "application/json" || request.URL.Query().Get("dryrun") != "false" {
+			t.Fatalf("headers/query = %#v %q", request.Header, request.URL.RawQuery)
+		}
+		body, err := io.ReadAll(request.Body)
+		if err != nil || string(body) != `{"Name":"cache"}` {
+			t.Fatalf("body = %q, error = %v", body, err)
+		}
+		return response(http.StatusCreated, `{"Name":"cache"}`), nil
+	})}
+	client, err := NewRESTClient(RESTConfig{Endpoint: "http://podman.test", APIVersion: "5.2.0", HTTPClient: httpClient})
+	if err != nil {
+		t.Fatalf("NewRESTClient() error = %v", err)
+	}
+	query := url.Values{"dryrun": {"false"}}
+	var output struct {
+		Name string `json:"Name"`
+	}
+	if err := client.Post(context.Background(), "volume.create", "/volumes/create", query, struct {
+		Name string `json:"Name"`
+	}{Name: "cache"}, &output); err != nil {
+		t.Fatalf("Post() error = %v", err)
+	}
+	if output.Name != "cache" {
+		t.Fatalf("output = %#v", output)
+	}
+}

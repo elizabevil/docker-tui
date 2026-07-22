@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -9,6 +10,12 @@ import (
 
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
+
+type podmanPruneReport struct {
+	ID   string          `json:"Id"`
+	Err  json.RawMessage `json:"Err"`
+	Size uint64          `json:"Size"`
+}
 
 func (c *Client) listVolumesPodmanREST(ctx context.Context, options runtimeapi.VolumeListOptions) ([]runtimeapi.Volume, error) {
 	if c.podmanREST == nil {
@@ -50,4 +57,67 @@ func (c *Client) removeVolumePodmanREST(ctx context.Context, name string, force 
 	}
 	query := url.Values{"force": {strconv.FormatBool(force)}}
 	return c.podmanREST.DeleteWithQuery(ctx, "volume.remove", "/volumes/"+url.PathEscape(name), query)
+}
+
+func (c *Client) createVolumePodmanREST(ctx context.Context, options runtimeapi.VolumeCreateOptions) (*runtimeapi.Volume, error) {
+	if c.podmanREST == nil {
+		return nil, fmt.Errorf("podman REST transport is not initialized")
+	}
+	input := struct {
+		Name    string            `json:"Name"`
+		Driver  string            `json:"Driver"`
+		Labels  map[string]string `json:"Labels"`
+		Options map[string]string `json:"Options"`
+	}{Name: options.Name, Driver: options.Driver, Labels: options.Labels, Options: options.Options}
+	var raw podmanVolumeConfigResponse
+	if err := c.podmanREST.Post(ctx, "volume.create", "/volumes/create", nil, input, &raw); err != nil {
+		return nil, err
+	}
+	mapped := mapPodmanVolumes([]podmanVolumeConfigResponse{raw})
+	return &mapped[0], nil
+}
+
+func (c *Client) pruneVolumesPodmanREST(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
+	if c.podmanREST == nil {
+		return runtimeapi.PruneResult{}, fmt.Errorf("podman REST transport is not initialized")
+	}
+	query, err := podmanFilterQuery(options.Filters)
+	if err != nil {
+		return runtimeapi.PruneResult{}, err
+	}
+	var reports []podmanPruneReport
+	if err := c.podmanREST.Post(ctx, "volume.prune", "/volumes/prune", query, nil, &reports); err != nil {
+		return runtimeapi.PruneResult{}, err
+	}
+	result := runtimeapi.PruneResult{Resources: make([]runtimeapi.ResourceResult, 0, len(reports))}
+	for _, report := range reports {
+		result.Resources = append(result.Resources, runtimeapi.ResourceResult{ID: report.ID, Error: podmanReportError(report.Err)})
+		result.SpaceReclaimed += report.Size
+	}
+	return result, nil
+}
+
+func podmanFilterQuery(filters runtimeapi.FilterSet) (url.Values, error) {
+	query := make(url.Values)
+	if len(filters) == 0 {
+		return query, nil
+	}
+	encoded, err := json.Marshal(filters)
+	if err != nil {
+		return nil, fmt.Errorf("encode Podman prune filters: %w", err)
+	}
+	query.Set("filters", string(encoded))
+	return query, nil
+}
+
+func podmanReportError(raw json.RawMessage) error {
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) || bytes.Equal(trimmed, []byte(`""`)) {
+		return nil
+	}
+	var message string
+	if json.Unmarshal(trimmed, &message) == nil && message != "" {
+		return fmt.Errorf("%s", message)
+	}
+	return fmt.Errorf("resource prune failed")
 }

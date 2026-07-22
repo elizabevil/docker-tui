@@ -10,11 +10,11 @@
 | 实时日志 | 已实现 | 当前为按需拉取/显示，不是启动即常驻事件流 |
 | 容器 stats | 已实现 | 定时轮询当前容器列表，不是只轮询单个聚焦容器 |
 | 镜像列表、Pull、Prune、详情 | 已实现 | Export / Debug 目前提供命令预览对话框；详情页按普通镜像 layer history 或 manifest 平台变体分区渲染 |
-| Volume / Network 列表、删除、详情 | 已实现 | 当前没有“创建”入口 |
+| Volume / Network 创建、列表、清理、删除、详情 | 已实现 | `c` 创建、`p` 清理；清理报告保留逐资源部分失败 |
 | Compose 项目视图 | 已实现 | 基于 `com.docker.compose.*` labels 聚合，不解析 `compose.yaml` |
 | 主题、i18n、帮助页、命令模式、过滤 | 已实现 | `zh` / `en` 已接入 |
 | 运行时切换 | 部分实现 | 连接池和 `F2` 切换已接入，默认工作流偏本地 Docker / Podman |
-| Docker Events 实时订阅 UI | 规划中 | `Client.Events()` 已封装，但主循环尚未接线 |
+| Docker Events 实时订阅 UI | 规划中 | 统一 `EventService` 已封装，但主循环尚未接线 |
 | 自定义快捷键 | 已实现 | `keymap.*` 覆盖会编译为运行时绑定，Help / Footer 投影当前有效键位 |
 | 用户操作审计 | 已实现 | 资源操作共享 trace，终态投影到通知与 Footer，并按日写入 JSONL |
 | Bulk 批量操作 | 部分实现 | 已有 mark 模式，但覆盖范围仍有限 |
@@ -63,7 +63,7 @@
 
 ### P2：完善操作面
 
-- Volume / Network 创建入口
+- Volume / Network 多字段创建表单（driver、labels、options）
 - 更完整的批量操作
 - 更清晰的多连接 / 多主机工作流
 

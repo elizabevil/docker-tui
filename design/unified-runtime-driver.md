@@ -13,15 +13,14 @@
 | Phase 0 | `done` | CGO/非 CGO 风险探针、双构建测试矩阵、共享 DTO/mapper 策略 | 无 |
 | Phase 1 | `in_progress` | runtime identity/error/capability/Engine 契约；ConnectionPool 可暴露 Engine；TLS、API override | 独立 Docker adapter/factory；动态版本 capability；连接池停止暴露旧 Client |
 | Phase 2 | `in_progress` | Container/Image/Volume/Network list；Container inspect/Top/Stats 领域 DTO 与 service；筛选 options 与单值下推；Volume/Network inspect；Podman 双 transport mapper；四类资源按 TLS/API override 统一选择 REST；容器完整 ID | Image 完整领域 service；同字段多值 AND 的等价实现 |
-| Phase 3 | `in_progress` | 统一 ResourceActionService、ActionOptions/ActionResult 与 adapter 错误映射；TUI 现有 container/image/volume/network action 已迁移；Volume/Network remove 已接入 Podman native transport | Podman container/image native action transport；Volume/Network create 和 prune（TASK-009） |
+| Phase 3 | `in_progress` | 统一 ResourceActionService、ActionOptions/ActionResult 与 adapter 错误映射；TUI 现有 container/image/volume/network action 已迁移；Volume/Network create/remove/prune 已接入 Podman 双 transport；TASK-009 部分失败反馈 | Podman container/image native action transport |
 | Phase 4 | `in_progress` | REST 基础错误和 context 分类；Exec/attach/resize 领域 session；Events 领域 stream service；已删除 `Raw()` | Logs、Stats stream native transport；完整取消与断线 contract；Events 接入主循环（TASK-008） |
 | Phase 5 | `in_progress` | 部分 TUI detail 已改用 runtime DTO；TUI 已清除 Docker SDK import | 删除旧 facade/build-tag 业务重复；清理剩余上层 runtime 分支；完整文档同步 |
 
 ### 下一执行队列
 
-1. 完成 `TASK-009` 的 Volume/Network create、prune 和部分失败反馈。
-2. 建立 Image 完整领域 service，迁移 inspect 等只读操作。
-3. 将 Podman container/image action、Exec 和 Events 从兼容 API 切换到 native transport。
+1. 建立 Image 完整领域 service，迁移 inspect 等只读操作。
+2. 将 Podman container/image action、Exec 和 Events 从兼容 API 切换到 native transport。
 
 ### 已确认的剩余缺口
 

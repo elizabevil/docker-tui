@@ -82,6 +82,14 @@ func TestRetryableErrorKinds(t *testing.T) {
 	}
 }
 
+func TestPruneResultCountsPartialFailures(t *testing.T) {
+	result := PruneResult{Resources: []ResourceResult{{ID: "deleted"}, {ID: "busy", Error: errors.New("in use")}}}
+	succeeded, failed := result.Counts()
+	if succeeded != 1 || failed != 1 {
+		t.Fatalf("Counts() = %d, %d", succeeded, failed)
+	}
+}
+
 func TestImageListOptionsRejectsMultipleValuesForANDSemantics(t *testing.T) {
 	options := ImageListOptions{Filters: FilterSet{ImageFilterLabel: {"app=api", "tier=backend"}}}
 	_, err := options.NativeFilters()

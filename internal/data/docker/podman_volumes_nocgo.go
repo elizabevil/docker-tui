@@ -21,3 +21,11 @@ func (c *Client) inspectVolumePodman(ctx context.Context, name string) (*runtime
 func (c *Client) removeVolumePodman(ctx context.Context, name string, force bool) error {
 	return c.removeVolumePodmanREST(ctx, name, force)
 }
+
+func (c *Client) createVolumePodman(ctx context.Context, options runtimeapi.VolumeCreateOptions) (*runtimeapi.Volume, error) {
+	return c.createVolumePodmanREST(ctx, options)
+}
+
+func (c *Client) pruneVolumesPodman(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
+	return c.pruneVolumesPodmanREST(ctx, options)
+}

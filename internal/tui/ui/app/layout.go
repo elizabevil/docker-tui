@@ -232,7 +232,7 @@ func RenderApp(m *state.AppModel) string {
 	if m.Navigation.Mode == state.ModeExecShell {
 		return component.PlaceOverlay(m.Viewport.Width, m.Viewport.Height, component.RenderShellDialog(m.Dialog.Input.Text, m.Viewport.Width, m.Viewport.Height, overlayColor), overlayColor)
 	}
-	if m.Navigation.Mode == state.ModeRename {
+	if m.Navigation.Mode == state.ModeRename || m.Navigation.Mode == state.ModeResourceCreate {
 		return component.PlaceOverlay(m.Viewport.Width, m.Viewport.Height,
 			component.RenderTextInput(m.Dialog.Title, m.Dialog.Input.Text, m.Dialog.Input.Cursor, m.Viewport.Width, m.Viewport.Height, overlayColor), overlayColor)
 	}
