@@ -1,7 +1,7 @@
 package state
 
 import (
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
 type ImageSortColumn int
@@ -21,7 +21,7 @@ type (
 
 	ImageDetailLoaded struct {
 		ImageID string
-		Detail  *dockerclient.ImageDetailData
+		Detail  *dockerclient.ImageDetail
 		Error   error
 	}
 )

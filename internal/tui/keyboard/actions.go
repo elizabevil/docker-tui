@@ -5,7 +5,6 @@ import (
 
 	"time"
 
-	"github.com/elizabevil/docker-tui/internal/data/docker"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
@@ -31,6 +30,7 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 			m.Resources.Containers.Loading = true
 			cmds = FetchAll(m.Connection.Engine)
 		}
+		cmds = append(cmds, probeAllConnections(m)...)
 		return m, tea.Batch(cmds...)
 
 	case keys.ActionTabNext:
@@ -54,13 +54,13 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 		return handleBackAction(m)
 
 	case keys.ActionContainerStart:
-		return doContainerAction(m, docker.ContainerActionStart, containerStartCmd)
+		return doContainerAction(m, string(runtimeapi.ActionStart), containerStartCmd)
 	case keys.ActionContainerStop:
-		return doContainerAction(m, docker.ContainerActionStop, func(c runtimeapi.Engine, id string) tea.Cmd { return containerStopCmd(c, id) })
+		return doContainerAction(m, string(runtimeapi.ActionStop), func(c runtimeapi.Engine, id string) tea.Cmd { return containerStopCmd(c, id) })
 	case keys.ActionContainerRestart:
-		return doContainerAction(m, docker.ContainerActionRestart, func(c runtimeapi.Engine, id string) tea.Cmd { return containerRestartCmd(c, id) })
+		return doContainerAction(m, string(runtimeapi.ActionRestart), func(c runtimeapi.Engine, id string) tea.Cmd { return containerRestartCmd(c, id) })
 	case keys.ActionContainerKill:
-		return doContainerAction(m, docker.ContainerActionKill, func(c runtimeapi.Engine, id string) tea.Cmd { return containerKillCmd(c, id) })
+		return doContainerAction(m, string(runtimeapi.ActionKill), func(c runtimeapi.Engine, id string) tea.Cmd { return containerKillCmd(c, id) })
 	case keys.ActionContainerRemove, keys.ActionDelete:
 		return doDeleteAction(m)
 
@@ -115,6 +115,9 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 	case keys.ActionSwitchRuntime:
 		return openRuntimeSelector(m)
 
+	case keys.ActionRefreshConnections:
+		return refreshAllConnections(m)
+
 	case keys.ActionCommand:
 		ToCommand(m)
 		return m, nil
@@ -156,4 +159,36 @@ func handleBackAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	return m, tea.Tick(3*time.Second, func(t time.Time) tea.Msg {
 		return state.EscTimeout{}
 	})
+}
+
+// probeAllConnections issues a concurrent probe for every known host. The
+// returned command batch also includes a 5-second ticker so the runtime
+// selector keeps latency/state up to date without manual refresh.
+func probeAllConnections(m *state.AppModel) []tea.Cmd {
+	if m.Connection.Pool == nil {
+		ShowToastWarn(m, "no connection pool")
+		return nil
+	}
+	results := m.Connection.Pool.RefreshAll(2 * time.Second)
+	if len(results) == 0 {
+		ShowToastWarn(m, "no runtime connections")
+		return nil
+	}
+	m.Connection.Connecting = true
+	cmds := make([]tea.Cmd, 0, len(results)+1)
+	for i := range results {
+		probe := &results[i]
+		cmds = append(cmds, func() tea.Msg {
+			return state.RuntimeProbeResult{Name: probe.Name, Error: probe.Error}
+		})
+	}
+	cmds = append(cmds, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+		return state.ConnectionRefreshTick{}
+	}))
+	return cmds
+}
+
+// refreshAllConnections probes all pool connections concurrently.
+func refreshAllConnections(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return m, tea.Batch(probeAllConnections(m)...)
 }

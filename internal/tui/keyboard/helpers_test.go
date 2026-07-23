@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
-	dockermodel "github.com/elizabevil/docker-tui/internal/data/docker"
+	dockermodel "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
 

@@ -145,6 +145,9 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case state.RuntimeProbeResult:
 		return handleRuntimeProbeResult(m, msg)
 
+	case state.ConnectionRefreshTick:
+		return handleConnectionRefreshTick(m, msg)
+
 	case state.EscTimeout:
 		return handleEscTimeout(m, msg)
 

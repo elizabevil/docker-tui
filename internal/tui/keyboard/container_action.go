@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
-	"github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
@@ -29,7 +28,7 @@ func doContainerAction(m *state.AppModel, action string, cmdFn func(runtimeapi.E
 		return m, nil
 	}
 	// Starting a container is non-destructive, so execute it immediately.
-	if action == docker.ContainerActionStart {
+	if action == string(runtimeapi.ActionStart) {
 		m.Feedback.InfoMessage = "starting " + ctr.Name + "..."
 		trace := beginAudit(m, "resource.container.start", containerTarget(m, ctr.ID), "Starting "+ctr.Name)
 		return m, withContainerAudit(cmdFn(m.Connection.Engine, ctr.ID), trace)
@@ -61,13 +60,13 @@ func executeBatchAction(m *state.AppModel, action string, trace audit.Trace) (*s
 
 	var cmdFn func(runtimeapi.Engine, string) tea.Cmd
 	switch action {
-	case docker.ContainerActionStart:
+	case string(runtimeapi.ActionStart):
 		cmdFn = containerStartCmd
-	case docker.ContainerActionStop:
+	case string(runtimeapi.ActionStop):
 		cmdFn = func(c runtimeapi.Engine, id string) tea.Cmd { return containerStopCmd(c, id) }
-	case docker.ContainerActionRestart:
+	case string(runtimeapi.ActionRestart):
 		cmdFn = func(c runtimeapi.Engine, id string) tea.Cmd { return containerRestartCmd(c, id) }
-	case docker.ContainerActionKill:
+	case string(runtimeapi.ActionKill):
 		cmdFn = func(c runtimeapi.Engine, id string) tea.Cmd { return containerKillCmd(c, id) }
 	default:
 		ShowToastNow(m, fmt.Sprintf("✕ unknown batch action: %s", action))
@@ -137,9 +136,9 @@ func doPauseAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		ShowToastWarn(m, i18n.T("container.pause.unavailable"))
 		return m, nil
 	}
-	action := docker.ContainerActionPause
+	action := string(runtimeapi.ActionPause)
 	if unpause {
-		action = docker.ContainerActionUnpause
+		action = string(runtimeapi.ActionUnpause)
 	}
 	trace := beginAudit(m, "resource.container."+action, containerTarget(m, ctr.ID), action+" "+ctr.Name)
 	return m, withContainerAudit(containerPauseCmd(m.Connection.Engine, ctr.ID, unpause), trace)
@@ -368,7 +367,7 @@ func doSwitchRuntime(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	trace := beginAudit(m, "panel.runtime.switch", audit.RuntimeTarget{Name: next, Meta: audit.RuntimeMeta{Previous: current}}, fmt.Sprintf("Switching runtime from %s to %s", current, next))
 	if err := m.Connection.Pool.Connect(next, 10*time.Second); err != nil {
-		safeError := i18n.ConnectionFailureMessage(string(docker.ClassifyConnectionError(err).Kind))
+		safeError := i18n.ConnectionFailureMessage(string(runtimeapi.ClassifyConnectionError(err).Kind))
 		FinishAudit(m, trace, audit.ResultFailed, "Runtime switch failed", audit.Details{Error: safeError})
 		ShowToastNow(m, fmt.Sprintf("switch failed: %s", safeError))
 		return m, nil

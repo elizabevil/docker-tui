@@ -6,14 +6,13 @@ import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
-
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 )
 
 var tc = tables.MustLoad("compose")

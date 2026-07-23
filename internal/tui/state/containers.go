@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
@@ -45,7 +44,7 @@ const (
 
 type (
 	ContainersLoaded struct {
-		Containers []dockerclient.ContainerSummary
+		Containers []runtimeapi.ContainerSummary
 		Error      error
 	}
 
@@ -136,6 +135,9 @@ type (
 		Error error
 	}
 
+	ConnectionProbeAll    struct{}
+	ConnectionRefreshTick struct{}
+
 	EscTimeout        struct{}
 	FilterExitTimeout struct{ Token uint64 }
 
@@ -161,7 +163,7 @@ type ExecOutput struct {
 type ExecDone struct{}
 
 type ContainerListModel struct {
-	Items             []dockerclient.ContainerSummary
+	Items             []runtimeapi.ContainerSummary
 	Cursor            int
 	ViewOffset        int
 	Loading           bool
@@ -184,13 +186,13 @@ type ContainerStats struct {
 
 func NewContainerListModel() *ContainerListModel {
 	return &ContainerListModel{
-		Items:  make([]dockerclient.ContainerSummary, 0),
+		Items:  make([]runtimeapi.ContainerSummary, 0),
 		Stats:  make(map[string]ContainerStats),
 		Cursor: 0,
 	}
 }
 
-func (m *ContainerListModel) Selected() *dockerclient.ContainerSummary {
+func (m *ContainerListModel) Selected() *runtimeapi.ContainerSummary {
 	items := m.FilteredItems()
 	if len(items) == 0 || m.Cursor < 0 || m.Cursor >= len(items) {
 		return nil
@@ -210,11 +212,11 @@ func (m *ContainerListModel) FilterText() string {
 	return m.Filter
 }
 
-func (m *ContainerListModel) FilteredItems() []dockerclient.ContainerSummary {
+func (m *ContainerListModel) FilteredItems() []runtimeapi.ContainerSummary {
 	if m.Filter == "" {
 		return m.Items
 	}
-	filtered := make([]dockerclient.ContainerSummary, 0, len(m.Items))
+	filtered := make([]runtimeapi.ContainerSummary, 0, len(m.Items))
 	for _, c := range m.Items {
 		if contains(c.Name, m.Filter) ||
 			contains(c.ID, m.Filter) ||
@@ -227,7 +229,7 @@ func (m *ContainerListModel) FilteredItems() []dockerclient.ContainerSummary {
 }
 
 // SortedItems returns filtered items sorted by the current SortBy column.
-func (m *ContainerListModel) SortedItems() []dockerclient.ContainerSummary {
+func (m *ContainerListModel) SortedItems() []runtimeapi.ContainerSummary {
 	var selectedID string
 	items := m.FilteredItems()
 	if m.Cursor >= 0 && m.Cursor < len(items) {
@@ -252,7 +254,7 @@ func contains(s, substr string) bool {
 	return strings.Contains(s, substr)
 }
 
-func sortContainerSlice(items []dockerclient.ContainerSummary, col ContainerSortColumn, asc bool, stats map[string]ContainerStats) {
+func sortContainerSlice(items []runtimeapi.ContainerSummary, col ContainerSortColumn, asc bool, stats map[string]ContainerStats) {
 	sort.SliceStable(items, func(i, j int) bool {
 		less := false
 		switch col {

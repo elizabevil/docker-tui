@@ -3,8 +3,8 @@ package keyboard
 import (
 	"testing"
 
-	"github.com/elizabevil/docker-tui/internal/data/docker"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/data/runtime/docker"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
@@ -15,7 +15,7 @@ func TestImageSaveInputStartsCancellableWorkflow(t *testing.T) {
 		Navigation: state.NavigationState{ActivePanel: state.PanelImages},
 		Resources:  state.ResourceState{Images: state.NewImageListModel()},
 	}
-	model.Resources.Images.Items = []docker.ImageSummary{{ID: "sha256:image", RepoTags: []string{"example/app:v1"}}}
+	model.Resources.Images.Items = []runtimeapi.ImageSummary{{ID: "sha256:image", RepoTags: []string{"example/app:v1"}}}
 	if _, command := openImageWorkflow(model, runtimeapi.ImageTransferSave); command != nil {
 		t.Fatal("opening a workflow unexpectedly started a command")
 	}

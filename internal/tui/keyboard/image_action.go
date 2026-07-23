@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
-	"github.com/elizabevil/docker-tui/internal/data/docker"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/data/runtime/docker"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
@@ -113,7 +113,7 @@ func doImageDetail(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	return m, inspectImageCmd(m.Connection.Engine, *img)
 }
 
-func inspectImageCmd(client runtimeapi.Engine, image docker.ImageSummary) tea.Cmd {
+func inspectImageCmd(client runtimeapi.Engine, image runtimeapi.ImageSummary) tea.Cmd {
 	return func() tea.Msg {
 		detail, err := client.Images().Inspect(context.Background(), image)
 		return state.ImageDetailLoaded{
@@ -225,7 +225,7 @@ func doImageDebug(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	return m, nil
 }
 
-func fullImageRef(img *docker.ImageSummary) string {
+func fullImageRef(img *runtimeapi.ImageSummary) string {
 	if len(img.RepoTags) > 0 && img.RepoTags[0] != "<none>:<none>" {
 		return img.RepoTags[0]
 	}
@@ -264,7 +264,7 @@ func doImageCopyRef(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 }
 
-func tagName(img *docker.ImageSummary) string {
+func tagName(img *runtimeapi.ImageSummary) string {
 	if len(img.RepoTags) > 0 {
 		name := strings.ReplaceAll(img.RepoTags[0], ":", "-")
 		name = strings.ReplaceAll(name, "/", "_")

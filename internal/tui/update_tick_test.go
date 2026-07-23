@@ -6,7 +6,8 @@ import (
 	"testing"
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
+	"github.com/elizabevil/docker-tui/internal/data/runtime"
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime/docker"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/footer"
 )
@@ -39,7 +40,7 @@ func TestHandleDockerConnectedErrorProjectsTargetAndMessage(t *testing.T) {
 	if updated.Connection.Connected || updated.Connection.Connecting || updated.Connection.Engine != nil {
 		t.Fatalf("connection state=%#v", updated)
 	}
-	if updated.Connection.ConnectionTarget != "local-docker" || updated.Connection.ConnectionFailure.Kind != dockerclient.ConnectionErrorUnknown {
+	if updated.Connection.ConnectionTarget != "local-docker" || updated.Connection.ConnectionFailure.Kind != runtime.ConnectionErrorUnknown {
 		t.Fatalf("connection failure=%#v target=%q", updated.Connection.ConnectionFailure, updated.Connection.ConnectionTarget)
 	}
 	if updated.Feedback.ToastMessage == "" || !strings.Contains(updated.Feedback.ToastMessage, "local-docker") {

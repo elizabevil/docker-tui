@@ -3,11 +3,13 @@ package podman
 import (
 	"testing"
 	"time"
+
+	"github.com/elizabevil/docker-tui/internal/driver/podman/dto"
 )
 
 func TestMapVolumesFormatsCreatedAt(t *testing.T) {
 	created := time.Date(2025, 6, 15, 10, 30, 0, 0, time.UTC)
-	result := MapVolumes([]VolumeItem{{
+	result := MapVolumes([]dto.VolumeItem{{
 		Name:       "test-vol",
 		Driver:     "local",
 		Mountpoint: "/var/lib/containers/storage/volumes/test-vol/_data",
@@ -33,7 +35,7 @@ func TestMapVolumesFormatsCreatedAt(t *testing.T) {
 
 func TestMapVolumeInspect(t *testing.T) {
 	created := time.Date(2025, 1, 15, 10, 30, 0, 0, time.UTC)
-	result := MapVolumeInspect(VolumeItem{
+	result := MapVolumeInspect(dto.VolumeItem{
 		Name:       "inspect-vol",
 		Driver:     "overlay",
 		Mountpoint: "/data",
@@ -46,14 +48,14 @@ func TestMapVolumeInspect(t *testing.T) {
 }
 
 func TestMapVolumesEmpty(t *testing.T) {
-	result := MapVolumes([]VolumeItem{})
+	result := MapVolumes([]dto.VolumeItem{})
 	if len(result) != 0 {
 		t.Errorf("expected empty, got %d", len(result))
 	}
 }
 
 func TestMapVolumeDefaultsScopeAndOmitsZeroTime(t *testing.T) {
-	result := MapVolumes([]VolumeItem{{Name: "cache"}})
+	result := MapVolumes([]dto.VolumeItem{{Name: "cache"}})
 	if result[0].Scope != "local" {
 		t.Fatalf("scope = %q", result[0].Scope)
 	}

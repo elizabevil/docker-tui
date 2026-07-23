@@ -1,0 +1,16 @@
+[
+  {
+    "Name": "40d6a68b415671d6341e20e72f8dfc169334ddb8b8479363dce2781506fe16aa",
+    "Driver": "local",
+    "Mountpoint": "/home/debi/.local/share/containers/storage/volumes/40d6a68b415671d6341e20e72f8dfc169334ddb8b8479363dce2781506fe16aa/_data",
+    "CreatedAt": "2026-07-19T21:08:33.593130537+08:00",
+    "Labels": {},
+    "Scope": "local",
+    "Options": {},
+    "Anonymous": true,
+    "MountCount": 0,
+    "NeedsCopyUp": true,
+    "NeedsChown": true,
+    "LockNumber": 3
+  }
+]

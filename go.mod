@@ -7,12 +7,13 @@ require (
 	charm.land/lipgloss/v2 v2.0.5
 	github.com/bytedance/sonic v1.15.2
 	github.com/docker/docker v28.5.2+incompatible
+	github.com/mattn/go-runewidth v0.0.24
 	github.com/pelletier/go-toml/v2 v2.4.3
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/spf13/cobra v1.10.2
+	go.podman.io/common v0.68.1
 	go.podman.io/podman/v6 v6.0.1
 	gopkg.in/yaml.v3 v3.0.1
-	github.com/mattn/go-runewidth v0.0.24
 )
 
 require (
@@ -145,7 +146,6 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.44.0 // indirect
 	go.opentelemetry.io/otel/trace v1.44.0 // indirect
 	go.podman.io/buildah v1.44.0 // indirect
-	go.podman.io/common v0.68.1 // indirect
 	go.podman.io/image/v5 v5.40.0 // indirect
 	go.podman.io/storage v1.63.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect

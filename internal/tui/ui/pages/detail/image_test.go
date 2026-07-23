@@ -4,11 +4,11 @@ import (
 	"strings"
 	"testing"
 
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
 func TestBuildImageDetailDataSectionsUsesHistorySemantics(t *testing.T) {
-	normal := buildImageDetailDataSections(&dockerclient.ImageDetailData{
+	normal := buildImageDetailDataSections(&dockerclient.ImageDetail{
 		ID:            "sha256:normal",
 		HistorySource: dockerclient.ImageHistoryLayerAPI,
 		History:       []dockerclient.ImageHistoryLayer{{CreatedBy: "RUN echo test", Size: 10, Comment: "build step"}},
@@ -17,7 +17,7 @@ func TestBuildImageDetailDataSectionsUsesHistorySemantics(t *testing.T) {
 		t.Fatalf("normal history = %#v", got)
 	}
 
-	manifest := buildImageDetailDataSections(&dockerclient.ImageDetailData{
+	manifest := buildImageDetailDataSections(&dockerclient.ImageDetail{
 		ID: "sha256:index", IsManifest: true,
 		ManifestVariants: []dockerclient.ImageManifestEntry{{
 			Digest: "sha256:variant", Platform: dockerclient.ManifestPlatform{OS: "linux", Architecture: "amd64"},
@@ -29,7 +29,7 @@ func TestBuildImageDetailDataSectionsUsesHistorySemantics(t *testing.T) {
 }
 
 func TestBuildImageDetailDataSectionsExplainsEmptyHistory(t *testing.T) {
-	sections := buildImageDetailDataSections(&dockerclient.ImageDetailData{
+	sections := buildImageDetailDataSections(&dockerclient.ImageDetail{
 		ID: "sha256:empty", HistorySource: dockerclient.ImageHistoryLayerAPI,
 	})
 	history := sections[len(sections)-1]
@@ -39,12 +39,12 @@ func TestBuildImageDetailDataSectionsExplainsEmptyHistory(t *testing.T) {
 }
 
 func TestBuildImageDetailDataSectionsDistinguishesPendingAndFailure(t *testing.T) {
-	pending := buildImageDetailDataSections(&dockerclient.ImageDetailData{ID: "sha256:pending", HistorySource: dockerclient.ImageHistoryPending})
+	pending := buildImageDetailDataSections(&dockerclient.ImageDetail{ID: "sha256:pending", HistorySource: dockerclient.ImageHistoryPending})
 	if got := pending[len(pending)-1].Lines[0]; !strings.Contains(got, "Loading") {
 		t.Fatalf("pending history = %q", got)
 	}
 
-	failed := buildImageDetailDataSections(&dockerclient.ImageDetailData{ID: "sha256:failed", HistorySource: dockerclient.ImageHistoryLayerAPI, HistoryError: "unsupported"})
+	failed := buildImageDetailDataSections(&dockerclient.ImageDetail{ID: "sha256:failed", HistorySource: dockerclient.ImageHistoryLayerAPI, HistoryError: "unsupported"})
 	if got := failed[len(failed)-1].Lines[0]; !strings.Contains(got, "unavailable") || !strings.Contains(got, "unsupported") {
 		t.Fatalf("failed history = %q", got)
 	}

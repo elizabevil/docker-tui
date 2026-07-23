@@ -4,13 +4,12 @@ import (
 	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/containers"
 	"github.com/elizabevil/docker-tui/internal/utils"
-
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 )
 
 var tc = tables.MustLoad("images")

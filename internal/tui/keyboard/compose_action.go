@@ -4,14 +4,14 @@ import (
 	"fmt"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
-	"github.com/elizabevil/docker-tui/internal/data/docker"
+	"github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
 )
 
-func composeProjectContainers(m *state.AppModel, project string) []docker.ContainerSummary {
-	matched := make([]docker.ContainerSummary, 0, 8)
+func composeProjectContainers(m *state.AppModel, project string) []runtime.ContainerSummary {
+	matched := make([]runtime.ContainerSummary, 0, 8)
 	for _, c := range m.Resources.Containers.Items {
 		if c.ComposeProject == project {
 			matched = append(matched, c)

@@ -5,8 +5,8 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/config"
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
@@ -17,7 +17,7 @@ func TestBeginAuditUsesStableViewAndConnectionName(t *testing.T) {
 	app.Dependencies.Audit = audit.NewService(nil)
 	app.Navigation.ActivePanel = state.PanelContainers
 	app.Connection.RuntimeType = "docker"
-	app.Connection.Pool = dockerclient.NewPool()
+	app.Connection.Pool = dockerclient.NewPool(nil)
 	app.Connection.Pool.AddHost(dockerclient.HostEntry{Name: "staging", Host: "unix:///tmp/docker.sock"})
 	app.Connection.Pool.SetActive("staging")
 

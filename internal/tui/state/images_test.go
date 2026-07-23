@@ -3,7 +3,7 @@ package state
 import (
 	"testing"
 
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
 func makeTestImages() []dockerclient.ImageSummary {

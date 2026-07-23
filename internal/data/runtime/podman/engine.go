@@ -5,31 +5,28 @@ import (
 	"fmt"
 
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	podman "github.com/elizabevil/docker-tui/internal/driver/podman"
 )
 
-// Engine implements runtime.Engine for the Podman backend. It selects
-// between CGO bindings and REST transport based on the client configuration.
-type Engine struct {
-	client *Client
+type PodmanEngine struct {
+	client *podman.Client
 }
 
-// EngineConfig holds the parameters needed to create a Podman engine.
-type EngineConfig struct {
-	REST *RESTClient
-	Host string
-	TLS  bool
-}
-
-// NewEngine creates a Podman runtime engine.
-func NewEngine(config EngineConfig) (*Engine, error) {
+func NewPodmanEngine(config PodmanEngineConfig) (*PodmanEngine, error) {
 	rest := config.REST
 	if rest == nil {
 		return nil, fmt.Errorf("Podman REST client is required")
 	}
-	return &Engine{client: &Client{REST: rest, Host: config.Host, TLS: config.TLS}}, nil
+	return &PodmanEngine{client: &podman.Client{REST: rest, Host: config.Host, TLS: config.TLS}}, nil
 }
 
-func (e *Engine) Identity() runtimeapi.Identity {
+type PodmanEngineConfig struct {
+	REST *podman.RESTClient
+	Host string
+	TLS  bool
+}
+
+func (e *PodmanEngine) Identity() runtimeapi.Identity {
 	version := ""
 	if v, err := e.client.REST.APIVersion(context.Background()); err == nil {
 		version = v
@@ -37,7 +34,7 @@ func (e *Engine) Identity() runtimeapi.Identity {
 	return runtimeapi.Identity{Type: runtimeapi.Podman, Endpoint: e.client.Host, Version: version}
 }
 
-func (e *Engine) Capabilities() runtimeapi.CapabilitySet {
+func (e *PodmanEngine) Capabilities() runtimeapi.CapabilitySet {
 	return runtimeapi.CapabilitySet{
 		runtimeapi.CapabilityContainers: {Support: runtimeapi.Available},
 		runtimeapi.CapabilityImages:     {Support: runtimeapi.Available},
@@ -76,21 +73,29 @@ func (e *Engine) Capabilities() runtimeapi.CapabilitySet {
 	}
 }
 
-func (e *Engine) PingContext(ctx context.Context) error {
+func (e *PodmanEngine) PingContext(ctx context.Context) error {
 	_, err := e.client.REST.APIVersion(ctx)
 	return err
 }
 
-func (e *Engine) Containers() runtimeapi.ContainerService { return ContainerService{Client: e.client} }
-func (e *Engine) Volumes() runtimeapi.VolumeService       { return VolumeService{Client: e.client} }
-func (e *Engine) Networks() runtimeapi.NetworkService     { return NetworkService{Client: e.client} }
-func (e *Engine) Images() runtimeapi.ImageService         { return ImageService{Client: e.client} }
-func (e *Engine) ImageTransfers() runtimeapi.ImageTransferService {
-	return ImageTransferService{Client: e.client}
+func (e *PodmanEngine) Containers() runtimeapi.ContainerService {
+	return PodmanContainerService{Client: e.client}
 }
-func (e *Engine) Actions() runtimeapi.ResourceActionService {
-	return ResourceActionService{Client: e.client}
+func (e *PodmanEngine) Volumes() runtimeapi.VolumeService {
+	return PodmanVolumeService{Client: e.client}
 }
-func (e *Engine) Exec() runtimeapi.ExecService    { return ExecService{Client: e.client} }
-func (e *Engine) Events() runtimeapi.EventService { return EventService{Client: e.client} }
-func (e *Engine) Close() error                    { return nil }
+func (e *PodmanEngine) Networks() runtimeapi.NetworkService {
+	return PodmanNetworkService{Client: e.client}
+}
+func (e *PodmanEngine) Images() runtimeapi.ImageService { return PodmanImageService{Client: e.client} }
+func (e *PodmanEngine) ImageTransfers() runtimeapi.ImageTransferService {
+	return PodmanImageTransferService{Client: e.client}
+}
+func (e *PodmanEngine) Actions() runtimeapi.ResourceActionService {
+	return PodmanResourceActionService{Client: e.client}
+}
+func (e *PodmanEngine) Exec() runtimeapi.ExecService {
+	return PodmanExecService{Client: e.client}
+}
+func (e *PodmanEngine) Events() runtimeapi.EventService { return PodmanEventService{Client: e.client} }
+func (e *PodmanEngine) Close() error                    { return nil }

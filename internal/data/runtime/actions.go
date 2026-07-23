@@ -14,6 +14,7 @@ const (
 	ResourceImage     ResourceType = "image"
 	ResourceVolume    ResourceType = "volume"
 	ResourceNetwork   ResourceType = "network"
+	ResourceEvent     ResourceType = "events"
 )
 
 // Action identifies a lifecycle operation that can be executed on a resource.
@@ -32,6 +33,9 @@ const (
 	ActionRemove  Action = "remove"
 	ActionPull    Action = "pull"
 	ActionPrune   Action = "prune"
+	ActionCreate  Action = "create"
+	ActionDestroy Action = "destroy"
+	ActionDie     Action = "die"
 )
 
 // ResourceRef identifies a specific resource by type and ID.
@@ -60,4 +64,24 @@ type ActionResult struct {
 // Adapters translate the generic action into SDK-specific calls.
 type ResourceActionService interface {
 	Execute(context.Context, ResourceRef, Action, ActionOptions) (ActionResult, error)
+}
+
+// Operation composes the diagnostic operation identifier for a runtime
+// operation, in the canonical "<resource>.<verb>" form used by Error.Operation.
+func Operation(resource ResourceType, verb string) string {
+	return string(resource) + "." + verb
+}
+
+// RefreshesContainers reports actions that should trigger a container list
+// refresh. Restart is excluded because it is not emitted as a discrete list
+// event (start/stop pair covers it).
+func RefreshesContainers(action Action) bool {
+	switch action {
+	case ActionStart, ActionStop, ActionDie,
+		ActionKill, ActionPause, ActionUnpause,
+		ActionRename, ActionDestroy, ActionCreate:
+		return true
+	default:
+		return false
+	}
 }

@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
 func TestFormatPortsPreservesBindings(t *testing.T) {

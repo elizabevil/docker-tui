@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
-func buildImageDetailDataSections(data *dockerclient.ImageDetailData) []detailSection {
+func buildImageDetailDataSections(data *runtimeapi.ImageDetail) []detailSection {
 	if data == nil {
 		return nil
 	}
@@ -126,7 +126,7 @@ func buildImageDetailDataSections(data *dockerclient.ImageDetailData) []detailSe
 			history.Lines = append(history.Lines, fmt.Sprintf("%d: %s", index+1, strings.Join(parts, " | ")))
 		}
 		if len(data.History) == 0 && data.HistoryError == "" {
-			if data.HistorySource == dockerclient.ImageHistoryPending {
+			if data.HistorySource == runtimeapi.ImageHistoryPending {
 				history.Lines = append(history.Lines, i18n.T("inspect.history_loading"))
 			} else {
 				history.Lines = append(history.Lines, i18n.T("inspect.history_empty"))

@@ -2,7 +2,6 @@ package state
 
 import (
 	"github.com/bytedance/sonic"
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
@@ -17,7 +16,7 @@ const (
 type DetailState struct {
 	ImageDetailID      string
 	ImageDetailContent string
-	ImageDetailData    *dockerclient.ImageDetailData
+	ImageDetailData    *runtimeapi.ImageDetail
 	DetailTitle        string
 	DetailHint         string
 	DetailOffset       int
@@ -33,7 +32,7 @@ func (s *DetailState) Open(title, content string) {
 	*s = DetailState{DetailTitle: title, ImageDetailContent: content}
 }
 
-func (s *DetailState) OpenImage(id, title string, data *dockerclient.ImageDetailData) {
+func (s *DetailState) OpenImage(id, title string, data *runtimeapi.ImageDetail) {
 	*s = DetailState{ImageDetailID: id, DetailTitle: title, ImageDetailData: data}
 }
 
@@ -76,7 +75,7 @@ func (s *DetailState) SetNetworkDetail(detail *runtimeapi.NetworkDetail) {
 	s.DetailRawJSON, _ = sonic.Marshal(detail)
 }
 
-func (s *DetailState) ApplyImage(id string, data *dockerclient.ImageDetailData) bool {
+func (s *DetailState) ApplyImage(id string, data *runtimeapi.ImageDetail) bool {
 	if id != s.ImageDetailID {
 		return false
 	}

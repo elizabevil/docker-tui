@@ -1,6 +1,8 @@
 package state
 
-import dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
+import (
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
+)
 
 type MetricsState struct {
 	StatsActive  bool

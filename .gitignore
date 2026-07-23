@@ -1,2 +1,3 @@
 /dist/
+.idea
 internal/data/runtime/podman/testdata/

@@ -57,3 +57,24 @@ type ImageTransferEvent struct {
 type ImageTransferService interface {
 	Run(context.Context, ImageTransferRequest) (<-chan ImageTransferEvent, error)
 }
+
+// ImageStreamMessage represents a single message from the Docker/Podman image
+// pull/push/load/save JSON stream. Both runtimes emit the same wire format.
+type ImageStreamMessage struct {
+	Stream       string               `json:"stream"`
+	Status       string               `json:"status"`
+	ErrorMessage string               `json:"error"`
+	Error        ImageStreamErr       `json:"errorDetail"`
+	Progress     *ImageStreamProgress `json:"progressDetail"`
+}
+
+// ImageStreamErr is the nested error payload of ImageStreamMessage.
+type ImageStreamErr struct {
+	Message string `json:"message"`
+}
+
+// ImageStreamProgress is the nested progress payload of ImageStreamMessage.
+type ImageStreamProgress struct {
+	Current int64 `json:"current"`
+	Total   int64 `json:"total"`
+}

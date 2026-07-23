@@ -4,13 +4,14 @@ import (
 	"testing"
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
+	"github.com/elizabevil/docker-tui/internal/data/runtime"
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime/docker"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
 
 func TestPauseRejectsInapplicableContainer(t *testing.T) {
 	m := state.NewAppModel(config.DefaultConfig(), &dockerclient.Client{}, "test")
-	m.Resources.Containers.Items = []dockerclient.ContainerSummary{{ID: "one", Name: "done", State: state.ContainerStateExited}}
+	m.Resources.Containers.Items = []runtime.ContainerSummary{{ID: "one", Name: "done", State: state.ContainerStateExited}}
 	_, cmd := doPauseAction(m)
 	if cmd != nil || m.Feedback.ToastMessage == "" {
 		t.Fatalf("inapplicable pause was not rejected: cmd=%v toast=%q", cmd != nil, m.Feedback.ToastMessage)
@@ -19,7 +20,7 @@ func TestPauseRejectsInapplicableContainer(t *testing.T) {
 
 func TestBatchPauseSkipsInapplicableContainers(t *testing.T) {
 	m := state.NewAppModel(config.DefaultConfig(), &dockerclient.Client{}, "test")
-	m.Resources.Containers.Items = []dockerclient.ContainerSummary{{ID: "one", State: state.ContainerStateExited}}
+	m.Resources.Containers.Items = []runtime.ContainerSummary{{ID: "one", State: state.ContainerStateExited}}
 	m.Selection.Toggle("one")
 	_, cmd := doPauseAction(m)
 	if cmd == nil {
@@ -36,7 +37,7 @@ func TestBatchPauseSkipsInapplicableContainers(t *testing.T) {
 
 func TestTopRejectsStoppedContainer(t *testing.T) {
 	m := state.NewAppModel(config.DefaultConfig(), &dockerclient.Client{}, "test")
-	m.Resources.Containers.Items = []dockerclient.ContainerSummary{{ID: "one", Name: "done", State: state.ContainerStateExited}}
+	m.Resources.Containers.Items = []runtime.ContainerSummary{{ID: "one", Name: "done", State: state.ContainerStateExited}}
 	_, cmd := openTopView(m)
 	if cmd != nil || m.Navigation.Mode == state.ModeTop || m.Feedback.ToastMessage == "" {
 		t.Fatalf("stopped container entered top: mode=%v toast=%q", m.Navigation.Mode, m.Feedback.ToastMessage)
@@ -45,7 +46,7 @@ func TestTopRejectsStoppedContainer(t *testing.T) {
 
 func TestRenameDialogValidatesName(t *testing.T) {
 	m := state.NewAppModel(config.DefaultConfig(), &dockerclient.Client{}, "test")
-	m.Resources.Containers.Items = []dockerclient.ContainerSummary{{ID: "one", Name: "api", State: state.ContainerStateRunning}}
+	m.Resources.Containers.Items = []runtime.ContainerSummary{{ID: "one", Name: "api", State: state.ContainerStateRunning}}
 	openRenameDialog(m)
 	if m.Navigation.Mode != state.ModeRename || m.Dialog.Input.Text != "api" {
 		t.Fatalf("rename dialog = %#v", m.Dialog)
@@ -59,7 +60,7 @@ func TestRenameDialogValidatesName(t *testing.T) {
 
 func TestContainerCommandsIgnoreOtherPanels(t *testing.T) {
 	m := state.NewAppModel(config.DefaultConfig(), &dockerclient.Client{}, "test")
-	m.Resources.Containers.Items = []dockerclient.ContainerSummary{{ID: "one", Name: "api", State: state.ContainerStateRunning}}
+	m.Resources.Containers.Items = []runtime.ContainerSummary{{ID: "one", Name: "api", State: state.ContainerStateRunning}}
 	m.Navigation.ActivePanel = state.PanelImages
 	if _, cmd := openRenameDialog(m); cmd != nil || m.Navigation.Mode != state.ModeNormal {
 		t.Fatal("rename opened outside containers panel")

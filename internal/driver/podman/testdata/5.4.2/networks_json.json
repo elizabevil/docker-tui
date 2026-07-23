@@ -1,0 +1,44 @@
+[
+  {
+    "name": "integration_default",
+    "id": "9985245c43968f50f3277231c7afba106aabe6584a791c9eaaf64d3447ce8c37",
+    "driver": "bridge",
+    "network_interface": "podman1",
+    "created": "2026-07-19T21:08:23.382104808+08:00",
+    "subnets": [
+      {
+        "subnet": "10.89.0.0/24",
+        "gateway": "10.89.0.1"
+      }
+    ],
+    "ipv6_enabled": false,
+    "internal": false,
+    "dns_enabled": true,
+    "labels": {
+      "com.docker.compose.project": "integration",
+      "io.podman.compose.project": "integration"
+    },
+    "ipam_options": {
+      "driver": "host-local"
+    }
+  },
+  {
+    "name": "podman",
+    "id": "2f259bab93aaaaa2542ba43ef33eb990d0999ee1b9924b557b7be53c0b7a1bb9",
+    "driver": "bridge",
+    "network_interface": "podman0",
+    "created": "2026-07-24T01:27:03.400705122+08:00",
+    "subnets": [
+      {
+        "subnet": "10.88.0.0/16",
+        "gateway": "10.88.0.1"
+      }
+    ],
+    "ipv6_enabled": false,
+    "internal": false,
+    "dns_enabled": false,
+    "ipam_options": {
+      "driver": "host-local"
+    }
+  }
+]

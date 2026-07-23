@@ -193,3 +193,26 @@ func TestNetworkDetailJSONRoundTrip(t *testing.T) {
 		t.Error("container endpoint not preserved")
 	}
 }
+
+func TestRefreshesContainers(t *testing.T) {
+	for _, action := range []Action{ActionStart, ActionStop, ActionDie, ActionKill, ActionPause, ActionUnpause, ActionRename, ActionDestroy, ActionCreate} {
+		if !RefreshesContainers(action) {
+			t.Errorf("%q should refresh containers", action)
+		}
+	}
+	if RefreshesContainers(ActionRestart) {
+		t.Error("restart is not emitted as a list event")
+	}
+}
+
+func TestOperationComposesResourceAndVerb(t *testing.T) {
+	if got := Operation(ResourceContainer, "list"); got != "container.list" {
+		t.Errorf("Operation(container, list) = %q, want %q", got, "container.list")
+	}
+	if got := Operation(ResourceVolume, "prune"); got != "volume.prune" {
+		t.Errorf("Operation(volume, prune) = %q, want %q", got, "volume.prune")
+	}
+	if got := Operation(ResourceEvent, "subscribe"); got != "events.subscribe" {
+		t.Errorf("Operation(events, subscribe) = %q, want %q", got, "events.subscribe")
+	}
+}

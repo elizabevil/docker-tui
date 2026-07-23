@@ -72,6 +72,7 @@ func Registry() []ActionSpec {
 		{ActionNetworkCreate, []string{KeyC}, []Context{{View: "networks"}}},
 		{ActionNetworkPrune, []string{KeyP}, []Context{{View: "networks"}}},
 		{ActionNetworkRemove, []string{KeyCtrlD}, []Context{{View: "networks"}}},
+		{ActionRefreshConnections, []string{KeyF12, KeyR}, app},
 	}
 }
 

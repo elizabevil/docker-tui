@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/elizabevil/docker-tui/internal/data/runtime/podman/dto"
+	"github.com/elizabevil/docker-tui/internal/driver/podman/dto"
 )
 
 func TestMapContainerSummariesExpandsPortRange(t *testing.T) {
-	result := MapContainerSummaries([]ContainerItem{{
+	result := MapContainerSummaries([]dto.ContainerItem{{
 		ID: "1234567890123456", Names: []string{"api"}, Created: time.Unix(100, 0),
 		Labels: map[string]string{"com.docker.compose.project": "demo"},
 		Ports:  []dto.ContainerPort{{ContainerPort: 8080, HostPort: 9080, Range: 2, Protocol: "tcp", HostIP: "127.0.0.1"}},

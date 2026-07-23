@@ -1,6 +1,8 @@
 package state
 
-import dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
+import (
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
+)
 
 // HealthTransition describes a meaningful runtime health state change.
 type HealthTransition int

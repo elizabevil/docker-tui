@@ -4,39 +4,39 @@ package runtime
 // Both Docker and Podman adapters map their native inspect responses
 // into this type, ensuring the UI never parses raw SDK JSON.
 type NetworkDetail struct {
-	Name       string                     `json:"Name"`
-	ID         string                     `json:"Id"`
-	Created    string                     `json:"Created"`
-	Scope      string                     `json:"Scope"`
-	Driver     string                     `json:"Driver"`
-	EnableIPv4 bool                       `json:"EnableIPv4"`
-	EnableIPv6 bool                       `json:"EnableIPv6"`
-	IPAM       NetworkIPAM                `json:"IPAM"`
-	Internal   bool                       `json:"Internal"`
-	Containers map[string]NetworkEndpoint `json:"Containers"`
-	Options    map[string]string          `json:"Options"`
-	Labels     map[string]string          `json:"Labels"`
+	Name       string
+	ID         string
+	Created    string
+	Scope      string
+	Driver     string
+	EnableIPv4 bool
+	EnableIPv6 bool
+	IPAM       NetworkIPAM
+	Internal   bool
+	Containers map[string]NetworkEndpoint
+	Options    map[string]string
+	Labels     map[string]string
 }
 
 // NetworkIPAM holds IP Address Management configuration for a network.
 type NetworkIPAM struct {
-	Config []NetworkIPAMConfig `json:"Config"`
+	Config []NetworkIPAMConfig
 }
 
 // NetworkIPAMConfig holds a single IPAM configuration entry.
 type NetworkIPAMConfig struct {
-	Subnet     string            `json:"Subnet"`
-	Gateway    string            `json:"Gateway,omitempty"`
-	IPRange    string            `json:"IPRange,omitempty"`
-	AuxAddress map[string]string `json:"AuxAddress,omitempty"`
+	Subnet     string
+	Gateway    string
+	IPRange    string
+	AuxAddress map[string]string
 }
 
 // NetworkEndpoint holds information about a container connected to a network.
 type NetworkEndpoint struct {
-	Name        string `json:"Name"`
-	EndpointID  string `json:"EndpointID"`
-	MacAddress  string `json:"MacAddress"`
-	IPv4Address string `json:"IPv4Address"`
-	IPv6Address string `json:"IPv6Address"`
-	Gateway     string `json:"Gateway,omitempty"`
+	Name        string
+	EndpointID  string
+	MacAddress  string
+	IPv4Address string
+	IPv6Address string
+	Gateway     string
 }

@@ -4,7 +4,10 @@
 // adapter packages and are never leaked upward.
 package runtime
 
-import "context"
+import (
+	"context"
+	"strings"
+)
 
 // ManifestPlatform holds platform info for a single manifest entry.
 type ManifestPlatform struct {
@@ -82,25 +85,25 @@ type ImageDetail struct {
 	ID               string
 	RepoTags         []string
 	RepoDigests      []string
-	Registry         string            // derived from first RepoTag via splitImageRef
-	Name             string            // derived from first RepoTag (without registry)
-	Tag              string            // derived from first RepoTag (without name)
-	Created          string            // RFC3339 timestamp from the runtime
+	Registry         string // derived from first RepoTag via splitImageRef
+	Name             string // derived from first RepoTag (without registry)
+	Tag              string // derived from first RepoTag (without name)
+	Created          string // RFC3339 timestamp from the runtime
 	Size             int64
 	Architecture     string
 	OS               string
 	OSVersion        string
 	Author           string
 	Comment          string
-	Driver           string            // graph driver name (e.g. overlay2)
-	LayerCount       int               // number of rootfs layers
+	Driver           string // graph driver name (e.g. overlay2)
+	LayerCount       int    // number of rootfs layers
 	Runtime          ImageRuntimeConfig
 	Labels           map[string]string
-	IsManifest       bool              // true for multi-arch manifest lists
+	IsManifest       bool // true for multi-arch manifest lists
 	ManifestVariants []ImageManifestEntry
 	History          []ImageHistoryLayer
 	HistorySource    ImageHistorySource
-	HistoryError     string            // non-empty when history fetch failed
+	HistoryError     string // non-empty when history fetch failed
 }
 
 // ImageListOptions carries filter and pagination options for listing images.
@@ -114,4 +117,46 @@ type ImageListOptions struct {
 type ImageService interface {
 	List(context.Context, ImageListOptions) ([]ImageSummary, error)
 	Inspect(context.Context, ImageSummary) (*ImageDetail, error)
+}
+
+// SplitImageRef splits the first RepoTag into registry, name, and tag.
+// When no tags are present, it returns safe placeholder values.
+func SplitImageRef(tags []string) (registry, name, tag string) {
+	if len(tags) == 0 || tags[0] == "" {
+		return "—", "<none>", "<none>"
+	}
+	ref := tags[0]
+	if ref == "<none>:<none>" {
+		return "—", "<none>", "<none>"
+	}
+
+	lastColon := strings.LastIndex(ref, ":")
+	if lastColon > 0 {
+		tag = ref[lastColon+1:]
+		ref = ref[:lastColon]
+	} else {
+		tag = "latest"
+	}
+
+	parts := strings.Split(ref, "/")
+	if len(parts) == 0 {
+		return "—", ref, tag
+	}
+	if len(parts) == 1 {
+		return "docker.io", "library/" + parts[0], tag
+	}
+	if strings.Contains(parts[0], ".") || strings.Contains(parts[0], ":") || parts[0] == "localhost" {
+		registry = parts[0]
+		name = strings.Join(parts[1:], "/")
+	} else {
+		registry = "docker.io"
+		name = strings.Join(parts, "/")
+	}
+
+	const maxReg = 13
+	if len(registry) > maxReg {
+		registry = registry[:maxReg] + "..."
+	}
+
+	return
 }
