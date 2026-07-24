@@ -1,6 +1,7 @@
 # Podman REST 适配与 docker/service 统一方案
 
 > 建立日期: 2026-07-23
+> 最近修订: 2026-07-24（用户决策：移除 docker/service 统一层，简化架构）
 > 状态: `discussing` → 待 `approved` 后转入执行
 > 关联任务: `TASK-022`
 > 前置文档: [`unified-runtime-driver.md`](./unified-runtime-driver.md)、[`podman-capabilities-analysis.md`](./podman-capabilities-analysis.md)、[`future-requirements-discussion.md`](./future-requirements-discussion.md)
@@ -28,20 +29,20 @@
 
 ## 目标与约束
 
-### 目标
+### 目标（2026-07-24 用户最终修订）
 
-| # | 目标 |
-|---|------|
-| G1 | `internal/data/runtime/podman` 是 Podman 适配层唯一所在；`internal/data/docker` 中 Podman 专属代码本轮**不删除**，留待后续清理阶段移除。 |
-| G2 | `runtime/podman.Client` 同时持有"驱动（仅 CGO）"与"REST client"两个传输字段，对外仅暴露**方法**（非参数式包级函数），签名参数与返回值**全部**为 `dto.*` 类型。 |
-| G3 | 同一方法在 CGO 模式下走驱动 + 内部映射，在非 CGO 模式下走 REST。两套实现由构建标签隔开，**对外接口形态一致**。 |
-| G4 | `runtime/podman` 不引用 `internal/data/runtime` 中任何域模型 / 选项 / 枚举 / 结果结构；唯一例外是错误包装所需的极少量公共类型（`runtimeapi.Error`、`runtimeapi.Podman`）。 |
-| G5 | Podman 原生动作以 `dto.Action` 字符串枚举表达；`runtimeapi.Action` 与 `runtimeapi.ActionOptions` 的语义映射、动作描述由 `docker/service` 层完成。 |
-| G6 | **不允许任何匿名结构体**（局部 `var x struct{...}`、内嵌匿名 struct、字段级匿名复合）。所有请求/响应/事件/版本/统计/裁剪报告一律为 `dto/` 包内的具名类型。 |
-| G7 | 三层类型独立互不别名/转换：A 层 Docker SDK（仅 `docker/` 引用）；B 层 Podman 驱动（仅 `runtime/podman/*_cgo.go` 引用）；C 层 Podman REST DTO（`runtime/podman/dto/`，**绝不**引用 `go.podman.io/...`）。 |
-| G8 | mapper（`dto.* → runtimeapi.*`）落在 `internal/data/docker/service` 内；`runtime/podman` 不感知 `runtimeapi.*` 域模型。 |
-| G9 | 后续在 `docker/service` 层建立 Docker / Podman 统一入口（详见 §6），上层只持有 `runtime.Engine`。 |
-| G10 | `CGO_ENABLED=0` 时全仓零 `gpgme`；所有测试在双构建下均通过。 |
+| # | 目标 | 修订内容 |
+|---|---|---|
+| G1 | `internal/driver` 是 Podman 整合层，**同时承担 Go 依赖（`go.podman.io/*` + `gpgme`）与 REST transport 整合**。`runtime/podman` 仅消费 `internal/driver`，不再单独引 CGO 依赖；`internal/data/docker` 中 Podman 专属代码本轮不删除。 | 同前 |
+| G2 | `runtime/podman.Client` 方法签名**全部**为 `dto.Action` / `dto.ActionOptions` / `dto.ActionResult`，**不再保留旧 `string action` 兼容签名**。这是破坏性变更；调用方一次性迁移。 | 用户决策 2026-07-24：不双签名，统一走 dto |
+| G3 | 同一方法在 CGO 模式下走驱动 + 内部映射，在非 CGO 模式下走 REST。两套实现由构建标签隔开，**对外接口形态一致**。 | 维持 |
+| G4 | **不增加 `docker/service` 统一入口层**。mapper 直接拆到两处：Docker 专属 mapper 落在 `runtime/docker/mapper/`，Podman 专属 mapper 落在 `runtime/podman/mapper/`（已存在 `mappers.go`，向上提一层）。`runtime.Engine` 仍是唯一抽象层。 | 用户决策 2026-07-24：架构简化，省去 docker/service 层 |
+| G5 | Podman 原生动作以 `dto.Action` 字符串枚举表达；`runtimeapi.Action` ↔ `dto.Action` 语义映射放在 `runtime/docker/mapper/` 与 `runtime/podman/mapper/` 各自完成。**不通过 `docker/service` 层**。 | 用户决策 2026-07-24：架构简化 |
+| G6 | **不允许任何匿名结构体**。本轮不强求全零：仅清理被引入公共 API 路径的匿名 struct；剩余的内部 helper（`ProgressWriter/Reader`、`StatsJSON` 内部子结构等）作为后续清理项保留 TODO。 | 同前 |
+| G7 | 三层类型独立互不别名/转换：A 层 Docker SDK（仅 `docker/` 引用）；B 层 Podman 驱动（仅 `runtime/podman/*_cgo.go` 引用）；C 层 Podman REST DTO（`runtime/podman/dto/`，**绝不**引用 `go.podman.io/...`）。 | 维持 |
+| G8 | mapper 分两个位置落：Docker 专属 mapper（Docker SDK type ↔ `runtimeapi.*`）落 `internal/data/runtime/docker/mapper/`；Podman 专属 mapper（`dto.*` ↔ `runtimeapi.*`）落 `internal/data/runtime/podman/mapper/`（提升自现有 `mappers.go`）。**不再走 `docker/service/` 与 `internal/driver/podman/mapper/` 双层结构**。 | 用户决策 2026-07-24：架构简化 |
+| G9 | **取消** `docker/service` 统一入口（与 G4 / G5 / G8 同步取消）。上层仍只持有 `runtime.Engine`，两个 service 实现分别走 `runtime/docker/*` 与 `runtime/podman/*` 入口。 | 取消 |
+| G10 | `CGO_ENABLED=0` 时全仓零 `gpgme`；所有测试在双构建下均通过。**只有被 CGO 路径实际 `import` 的文件**需要加 `//go:build cgo` 标签；未被引用的 `aliases*.go` 不强求加标签。判定标准：`go mod why <package>` + `go list -deps`。 | 维持 |
 
 ### 与 `unified-runtime-driver.md` 的关系
 
@@ -53,13 +54,85 @@ TASK-021 已经完成 Docker / Podman runtime 适配层（独立 Engine、`runti
 
 ---
 
+### 与 `unified-runtime-driver.md` 的关系
+
+TASK-021 已经完成 Docker / Podman runtime 适配层（独立 Engine、`runtime.Engine` 契约、能力 / 错误 / 身份）。本方案（2026-07-24 用户修订版）：
+
+- **不重做** TASK-021 已确立的 Engine 形态与 capability / error 体系。
+- **承接** TASK-021 留下的 `runtime/podman` 实现细节（`Client` 结构、REST 路径、CGO 桩），将其收紧为方法式 + `dto.*` 签名 + 驱动/REST 双形态。
+- **简化为两适配器直接并列**：上层只持有 `runtime.Engine`，业务侧不感知 Docker / Podman 差异。**不引入 `docker/service` 层**；两个 mapper 分别落在 `internal/data/runtime/docker/mapper/` 与 `internal/data/runtime/podman/mapper/`（提升自现有 `mappers.go`）。
+- 一次性破坏性变更：所有 `action string` 调用点切到 `action dto.Action`。
+
+### G4 架构最终方案（2026-07-24 用户修订）
+
+候选方案简化为二选一：
+
+| 方案 | 数据流 | 是否采纳 | 说明 |
+|---|---|---|---|
+| **A. 拆 mapper 到两侧（采纳）** | UI → runtime.Engine → {DockerContainerService (runtime/docker)、PodmanContainerService (runtime/podman)} → driver → transport | ✅ | 维持两层（runtime.Engine + 双 adapter），每个 adapter 内部自带 mapper；无 docker/service |
+| **B. 引入 docker/service 统一层** | UI → runtime.Engine → docker/service (UnifiedContainerService) → {DockerAdapter / PodmanAdapter} → driver → transport | ❌ | 引入额外抽象；目前必要性不足；后续如发现大量跨 adapter 共享逻辑再启动 |
+
+**优势**：
+1. 现有 `runtime.Engine` 抽象足够上层消费，不需要再叠一层
+2. docker mapper 与 podman mapper 隔离在各自 adapter 包内，互不干扰
+3. 取消 docker/service 后，包路径变浅，新增概念更少
+
+**潜在风险**：跨 adapter 共享代码（如通用错误处理、性能优化）需要由 `runtimeapi.*` 的 helper 函数提供，而不是再抽 service 层。后续评估此风险是否真实存在。
+
+### `internal/driver` 整合层（G1 角色）
+
+**整合层定位**：`internal/driver` 是 Podman Go 依赖（`go.podman.io/*` + `gpgme`）与 REST transport 的整合包，对外暴露 `Client`（仅 REST + CGO 字段），给 `runtime/podman` 消费。
+
+物理分层：
+```
+runtime/podman/                      ← UI 入口，runtime.Engine 实现
+    └─ PodmanEngine { Client }
+            └─ Client = internal/driver/podman.Client
+                    ├─ client.REST  (RESTClient)
+                    ├─ client.Driver (cgoDriver，可选)
+                    └─ dto.*  共享类型
+```
+
+**判定 build tag 的最小集（G10 修订）**：
+```
+go list -deps ./internal/driver/podman | grep gpgme          # 在 CGO 时命中；在非 CGO 时为空
+go mod why github.com/proglottis/gpgme                        # 锁定传染源
+```
+
+只有被 deps 实际传递引用的源文件需要 `//go:build cgo`：
+- `internal/driver/podman/driver_cgo.go` 必须 `//go:build cgo`
+- `client_default_driver_cgo.go` 必须 `//go:build cgo`
+- `internal/driver/podman/aliases*.go` 等未被实际 import 的文件**不加 tag**
+
+### G8 mapper 双位置（用户最终决策）
+
+```
+internal/data/runtime/docker/mapper/       ← Docker SDK type ↔ runtimeapi.*
+    ├── container.go     # MapContainerSummaries（已存在）
+    ├── image.go         # MapImageSummaries（已存在）
+    ├── volume.go        # MapVolumes
+    ├── network.go       # MapNetworks
+    └── action.go        # dto.Action ↔ runtimeapi.Action 映射（决策项 D6/D8 简化版）
+
+internal/data/runtime/podman/mapper/        ← Podman dto.* ↔ runtimeapi.*
+    ├── container.go     # MapContainerSummaries（从当前 mappers.go 提取）
+    ├── image.go         # MapImageSummaries（含 ImageInspect 映射）
+    ├── volume.go        # MapVolumes（含 VolumeDetail）
+    ├── network.go       # MapNetworks（含 NetworkDetail）
+    └── action.go        # dto.Action 包装 / 字符串化
+
+# 不再有 internal/driver/podman/mapper/、internal/data/docker/service/mapper/ 双层结构
+```
+
+---
+
 ## 三层类型边界
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │ A 层: Docker SDK                                              │
 │   import: github.com/docker/docker/api/types/*               │
-│   仅 internal/data/docker/ 引用                              │
+│   仅 internal/data/runtime/docker/ 引用                      │
 └──────────────────────────────────────────────────────────────┘
                             │
                             ▼
@@ -67,27 +140,28 @@ TASK-021 已经完成 Docker / Podman runtime 适配层（独立 Engine、`runti
 │ C 层: Podman REST DTO                                         │
 │   路径: internal/data/runtime/podman/dto/*                   │
 │   import: 仅标准库 + time                                     │
-│   引用方: runtime/podman/*.go (无 CGO)、docker/service/*      │
+│   引用方: runtime/podman/*.go (无 CGO)、runtime/docker/mapper/*（仅允许 dto.*）│
 └──────────────────────────────────────────────────────────────┘
                             ▲
                             │
 ┌──────────────────────────────────────────────────────────────┐
-│ B 层: Podman 驱动（CGO only）                                  │
+│ B 层: Podman 驱动（CGO only，由 internal/driver/podman 整合）│
+│   路径: internal/driver/podman/driver_cgo.go 等              │
 │   import: go.podman.io/podman/v6/pkg/domain/entities/types   │
 │           go.podman.io/common/libnetwork/types                │
-│           go.podman.io/podman/v6/libpod/define               │
+│           go.podman.io/podman/v6/libpod/define                │
 │           go.podman.io/podman/v6/pkg/bindings.*               │
+│           github.com/proglottis/gpgme                         │
 │   仅 //go:build cgo 文件引用                                  │
-│   运行时: B → C 内部映射（mapper_driver_cgo.go）              │
+│   运行时: B → C 内部映射（mapper_driver_cgo.go 需新建）         │
 └──────────────────────────────────────────────────────────────┘
-```
 
 **禁止**：
-
 - B 与 C 之间互相 `type A = B` 别名。
 - C 包导入 B 包任何路径（`go list -deps ./dto | grep podman` 必须为空）。
 - B 层类型出现在非 CGO 文件。
-- A 层类型出现在 `runtime/podman/`。
+- A 层类型出现在 `runtime/podman/`、`internal/driver/podman/`。
+- mapper（`internal/data/runtime/{docker,podman}/mapper/`）不得依赖 A 层（Docker SDK）或 B 层（`go.podman.io/*`）— mapper 只在 `dto.*` ↔ `runtimeapi.*` 之间互转。
 
 ### 关于"驱动参数与 REST 参数保持一致时使用别名"
 
@@ -617,13 +691,18 @@ func (e *dockerEngine) Containers() runtimeapi.ContainerService {
 
 ## 阶段化执行（增量化，旧路径保留）
 
-### Phase A — `gpgme` 仅 CGO
+### Phase A — `gpgme` 仅 CGO（2026-07-24 修订）
 
-1. `aliases_cgo.go`、`aliases_container_cgo.go`、`aliases_network.go` 顶部加 `//go:build cgo`。
-2. 新建 `aliases_nocgo.go`、`aliases_container_nocgo.go`、`aliases_network_nocgo.go`，内部 `type X = dto.X`（C 层结构，B 层在非 CGO 文件中不出现）。
+1. 仅对 `go mod why github.com/proglottis/gpgme` 列出的**实际传染路径**加 `//go:build cgo`；其他 `aliases*.go` 若未被实际 import，**不强求加标签**。
+2. 现状传染源：`internal/driver/podman/driver_cgo.go` + `client_default_driver_cgo.go`（携带 `go.podman.io/*`）。`internal/driver/podman/aliases.go` 当前未引 CGO 依赖，可不加 tag（保留为 fallback）。
 3. 验证：
    ```bash
-   CGO_ENABLED=0 go list -deps ./internal/data/runtime/podman | grep gpgme   # 空
+   # CGO 路径独立验证
+   CGO_ENABLED=0 go list -deps ./internal/driver/podman/transport/rest | grep -E "gpgme|podman|buildah"   # 空
+   go list -deps ./internal/driver/podman/transport/driver_cgo | grep gpgme                                          # 命中（仅 CGO 时）
+   # 传染范围锁定
+   go mod why -m github.com/proglottis/gpgme                                                                        # 只指向 driver_cgo
+   CGO_ENABLED=0 go list -deps ./... | grep gpgme                                                                   # 空
    ```
 
 ### Phase B — 补齐 `dto/` 具名类型
@@ -641,41 +720,87 @@ func (e *dockerEngine) Containers() runtimeapi.ContainerService {
 2. 新建各资源方法文件（无标签），内部分发 `Driver() / rest*`。
 3. 旧包级函数（`ListContainersREST(ctx, *Client, ...)` 等）保留文件，标记 `// Deprecated:`，不影响旧路径。
 
-### Phase D — 全仓匿名 struct 替换
+### Phase D — 全仓匿名 struct 替换（2026-07-24 修订范围）
 
-按"匿名结构体替换表"逐个替换。终态命令：
+按"匿名结构体替换表"逐个替换，**范围仅限被 public API 路径引用的匿名 struct**：
+- `runtime/podman/rest.go`：5+ 处（version / 错误响应 / 嵌套 stats / 嵌套 top 等）
+- `runtime/helpers.go`：2 处（ProgressWriter/Reader）标 TODO，本 Phase 不处理
+- `runtime/podman/containers_read.go`：1 处（top response）已具 dto，零变更
 
+阶段验证（**修订**：仅检查 public API 路径，internal helper 保留）：
 ```bash
-grep -rn 'struct {' internal/ | grep -v _test.go | grep -vE '^[^:]+:\s*//'   # 空
+# 仅 public API 相关文件里不应有匿名 struct
+grep -rn 'struct {' internal/data/runtime/podman/rest.go internal/data/runtime/podman/containers_read.go \
+  | grep -v _test.go | grep -vE '^[^:]+:\s*//' || echo "clean"
 ```
 
-### Phase E — `docker/service` 统一入口
+### Phase D-2 — 双 mapper 拆分（**新增**，2026-07-24 用户决策）
 
-1. 新建 `internal/data/docker/service/` 目录。
-2. 实现 `UnifiedContainerService` 等 8 个 service（先 4 个核心，Exec/Event/ImageTransfer/ResourceAction 留作第二批）。
-3. `docker/Client` 增加 `podman *runtimepodman.Client` 字段。
-4. `docker/mapper_podman.go`：dto → runtimeapi。
-5. `engine_factory.go` 改为调用 `service.NewUnifiedContainerService(...)`。
-6. **不删**旧 `docker/podman_*.go`、`podmanContainerService` 等。后续清理阶段删除。
+将 `docker/service` 抽象层取消后，mapper 直接拆到两侧：
 
-### Phase F — 验证
+1. **Docker mapper** 拆出独立目录：
+   - 新建 `internal/data/runtime/docker/mapper/` 目录
+   - 从 `internal/data/runtime/docker/` 现有代码（`images.go`、`containers.go` 等）中提取 mapper 函数到独立文件
+   - 不引入 `docker/service` 抽象
+
+2. **Podman mapper** 提升自 `runtime/podman/mappers.go`：
+   - 已有 `mappers.go`，把每一类资源（container/image/volume/network）的 mapper 函数拆到独立文件：`mapper_container.go`、`mapper_image.go` 等
+   - 同时维护 `runtime/podman/mapper/` 子目录的命名
+
+3. mapper 函数范围：仅做 `dto.*` ↔ `runtimeapi.*` 互转，不感知 A 层（Docker SDK）或 B 层（`go.podman.io/*`）。
+
+```text
+internal/data/runtime/docker/mapper/
+    container.go      # Docker SDK type → runtimeapi.ContainerSummary
+    image.go          # Docker SDK type → runtimeapi.ImageSummary
+    volume.go         # Docker type → runtimeapi.Volume
+    network.go        # Docker type → runtimeapi.Network
+    action.go         # 字符串 ↔ runtimeapi.Action（含 i18n 描述）
+
+internal/data/runtime/podman/mapper/
+    container.go      # dto.* → runtimeapi.ContainerSummary
+    image.go          # dto.* → runtimeapi.ImageSummary（含 ImageInspect 映射）
+    volume.go         # dto.* → runtimeapi.Volume
+    network.go        # dto.* → runtimeapi.Network
+    action.go         # dto.Action 包装
+```
+
+4. 验证：双 mapper 目录零相互引用。
+   ```bash
+   grep -rn "internal/data/runtime/docker/mapper" internal/data/runtime/podman/mapper/    # 空
+   grep -rn "internal/data/runtime/podman/mapper" internal/data/runtime/docker/mapper/   # 空
+   ```
+
+### Phase E — 验证
 
 执行"验证矩阵"全部命令。
 
 ---
 
-## 验证矩阵
+## 验证矩阵（2026-07-24 用户最终修订）
 
 | 阶段 | 命令 | 期望 |
 |---|---|---|
-| A | `CGO_ENABLED=0 go list -deps ./internal/data/runtime/podman \| grep gpgme` | 空 |
+| A | `CGO_ENABLED=0 go list -deps ./internal/driver/podman \| grep -E "gpgme\|podman\|buildah"` | 空 |
+| A | `CGO_ENABLED=0 go list -deps ./internal/driver/podman/transport/rest \| grep gpgme` | 空 |
+| A | `go mod why github.com/proglottis/gpgme` 列出的引用方 | 只有 `internal/driver/podman/driver_cgo.go` / `client_default_driver_cgo.go`，且必须仅在 CGO 时命中 |
 | B | `CGO_ENABLED=0 go list -deps ./internal/data/runtime/podman/dto \| grep podman` | 空 |
 | C | `CGO_ENABLED=0 go build ./...` && `CGO_ENABLED=1 go build ./...` | 双通过 |
-| D | `grep -rn 'struct {' internal/ \| grep -v _test.go \| grep -vE '^[^:]+:\s*//'` | 空 |
+| C | **G2 验证**：`go vet ./...` 不报 `action string` 与 `dto.Action` 类型不匹配 | 干净（破坏性变更一次性迁移） |
+| D | `grep -rn 'struct {' internal/data/runtime/podman/rest.go internal/data/runtime/podman/containers_read.go \| grep -v _test.go` | clean（public API 路径已清零；internal helper 残留另列 TODO） |
+| D-2 | `grep -rn "internal/data/runtime/docker/mapper" internal/data/runtime/podman/mapper/` 与反向 | 双方均为空（双 mapper 目录零相互依赖） |
+| D-2 | `find internal/data/runtime/{docker,podman}/mapper/ -name "*_test.go"` | 两个 mapper 目录都有独立测试，覆盖 Podman 私有动作与 Docker 通用动作互转 |
 | E | `CGO_ENABLED=0 go test ./...` && `CGO_ENABLED=1 go test ./...` | 双通过 |
 | F | `CGO_ENABLED=0 go list -deps ./... \| grep gpgme` | 空 |
-| 终态 | `go vet ./...` && `golangci-lint run ./...` | 通过 |
-| 终态 | docker/service 统一入口单元测试覆盖 Docker / Podman 双 adapter | 通过 |
+| 终态 | `go vet ./...` | 通过 |
+| 终态 | mapper 全部覆盖：Docker mapper 测试覆盖 SDK → `runtimeapi` 全部路径；Podman mapper 测试覆盖 `dto` → `runtimeapi` 全部路径 | 通过 |
+
+**修订要点（2026-07-24 用户决策）**：
+- A 验证按 `go mod why` 锁定传染源（不依赖普遍 build tag）
+- C 验证破坏性迁移完成，不保留双签名（**G2/D6 修订**）
+- D 验证仅 public API 路径（**G6 修订**）
+- D-2 验证双 mapper 隔离（**G8 修订**）
+- 删除 docker/service 验证项（**G9 取消**）
 
 ---
 
@@ -704,14 +829,27 @@ grep -rn 'struct {' internal/ | grep -v _test.go | grep -vE '^[^:]+:\s*//'   # �
 
 ---
 
-## 决策项（待确认）
+## 决策项（2026-07-24 用户最终修订）
 
-| 编号 | 议题 | 推荐 | 备选 |
-|---|---|---|---|
-| D1 | B → C 别名是否在非 CGO 下使用相同具名结构 | 推荐：使用 `type X =` 别名（CGO 下指向 B 层，!CGO 下指向独立具名 DTO） | 全部独立具名 |
-| D2 | `docker/service` 8 个 service 是否本轮全部实现 | 推荐：先 4 个核心（Container / Image / Network / Volume），Exec / Event / ImageTransfer / ResourceAction 第二批 | 全部一次实现 |
-| D3 | 旧 `docker/podman_*.go` 是否在本轮删除 | 推荐：本轮**不删**，标注 `// Deprecated:`，后续清理阶段（`TASK-023`）删除 | 本轮同步删除 |
-| D4 | `docker.Client.podman` 字段访问器命名 | 推荐：`func (c *Client) Podman() *runtimepodman.Client` | 公开字段 |
-| D5 | `runtimeapi.Error` 等极少量类型在 `runtime/podman` 中是否允许出现 | 推荐：允许（仅用于错误包装） | 全部替换为 dto.* |
+| 编号 | 议题 | 推荐 | 备选 | 状态 |
+|---|---|---|---|---|
+| D1 | B → C 别名在 non-CGO 下用同名结构还是全部独立 | 推荐：双形态文件分别定义，CGO 用 `type X =` 别名 | 全部独立具名 | 待定 |
+| D2 | **取消**（与 G9 docker/service 取消同步） | — | — | — |
+| D3 | 旧 `docker/podman_*.go` 与 `podmanContainerService` 是否在本轮删除 | 推荐：本轮**不删**，标注 `// Deprecated:`，TASK-023 收尾清理 | 本轮同步清理 | 待定 |
+| D4 | **取消**（取消 `docker/service` 后不再需要 docker.Client.podman 字段） | — | — | — |
+| D5 | `runtimeapi.Error` 等极少量公共类型能否出现在 `runtime/podman` | 推荐：允许（仅用于错误包装）；不允许 `runtimeapi.Action`/`ImageSummary` 等域模型 | 全 `dto.*` | 待定 |
+| **D6** | ~~G2 双签名策略~~（用户决策：取消） | — | — | **取消** |
+| **D7** | G10 build tag 范围 | 推荐：按 `go list -deps` 实际传递引用加 `//go:build cgo`；其他文件不加防御性 tag | 全文件统一加 `//go:build cgo` | **待定** |
+| **D8** | **G8 mapper 双位置（修订）**：Docker 专属 mapper 落 `internal/data/runtime/docker/mapper/`；Podman 专属 mapper 落 `internal/data/runtime/podman/mapper/`（提升自现有 `mappers.go`） | 推荐：双 mapper 仅在各自 adapter 包内互转 | 两类 mapper 落在中间层 | **待定** |
+| **D9** | ~~G9 docker/service 评审~~（用户决策：取消 docker/service 层） | — | — | **取消** |
+| **D10** | G5 `dto.Action` 不能回引 `runtimeapi.Action` | 推荐：`dto.Action` 仅字符串枚举；任何含 `runtimeapi.*` 的常量映射落 `runtime/docker/mapper/action.go` 或 `runtime/podman/mapper/action.go`；`dto` 包零 `runtime/` 依赖 | `dto.Action` 挂 i18n 描述 | **待定** |
+
+**用户最终决策（2026-07-24 18:00 后）总览**：
+1. **G2/D6 取消**：`runtime/podman.Client` **不再保留**旧 `string action` 签名；一次性破坏性迁移到 `dto.Action`。Phase C 同时完成：
+   - 删除 `*Client.ExecuteContainerAction(ctx, id, action string, ...)` 与 `*Client.ExecuteImageAction(ctx, id, action string, ...)` 的 `string` 重载
+   - 替换为 `dto.Action` 单一签名
+   - 所有调用方（`internal/tui/keyboard/*` 等）一次性同步迁移
+2. **G4 简化**：mapper **不**集中在 `docker/service` 上，**直接拆到两侧**：`runtime/docker/mapper/` 与 `runtime/podman/mapper/`。
+3. **G5/G9 取消**：**不引入** `internal/data/docker/service/` 统一入口层。`runtime.Engine` 仍是唯一上层抽象。
 
 确认后转入执行阶段。

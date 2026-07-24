@@ -57,6 +57,24 @@ cmd/docker-tui/
 - `runtime/podman`：Podman 适配器，实现 `runtime.Engine`，含 Container/Image/Volume/Network 全套服务（List/Inspect/Action/Prune/Logs/Events/Exec）；依赖同包的 DTO 与 driver 包提供的共享 REST transport
 - `i18n`：`zh` / `en` 文案
 - `internal/runtimeinit`：连接池工厂注册点，导出 `NewEngineFactory()`，内部依赖 `runtime/docker` 与 `runtime/podman` 实现 Docker/Podman 派发，并通过反射处理 typed-nil 接口
+- `internal/driver/podman`：TASK-024 后下沉的纯 transport 层；`gpgme` 仅 CGO 路径通过 `aliases_*.go` 与 `driver_cgo.go` build tag 隔离
+
+### TASK-022 进度（2026-07-24 用户最终修订：取消 docker/service 统一入口层）
+
+**当前架构**：`UI → runtime.Engine → {PodmanEngine (runtime/podman) / DockerEngine (runtime/docker)} → driver (仅 Podman 走) → transport`
+
+TASK-022 Phase E（docker/service 统一入口）整 Phase **取消**。两个 mapper 直接拆双，各自落：
+
+- `internal/data/runtime/docker/mapper/`：Docker SDK type ↔ `runtimeapi.*`
+- `internal/data/runtime/podman/mapper/`：`dto.*` ↔ `runtimeapi.*`（提升自现有 `runtime/podman/mappers.go`）
+
+**用户决策（2026-07-24）**：
+- **G2/D6**：取消 `string action` 双签名；一次性破坏性迁移到 `dto.Action`
+- **G4**：跳过 `docker/service` 中间抽象层；mapper 直接进两侧
+- **G5**：不再经 `docker/service` 层；`dto.Action` ↔ `runtimeapi.Action` 由各 mapper 内部完成
+- **G9**：docker/service 统一入口取消
+
+可立即推进 Phase A（gpgme 隔离）、B（dto 具名 + `dto.Action`）、C（Client 方法化 + 破坏性签名迁移）、D（公开 API 匿名 struct 清零）、D-2（双 mapper 落地）。不再依赖任何评审。详见 [podman-rest-migration.md](../design/podman-rest-migration.md) 与 [future-requirements-task-list.md §TASK-022 进度分解](../design/future-requirements-task-list.md)。
 
 ### `internal/tui`
 

@@ -6,6 +6,16 @@
 
 ## 最近变更
 
+- **TASK-022 推进中（含用户最终修订：G2 / G4 / G5 / G9 决策）**：P1 高优任务 `Podman REST 适配收紧与 docker/service 统一入口` 提升为 `in_progress`。**最终架构决议**：
+  - **G2（不再保留双签名）**：`runtime/podman.Client` 移除 `string action` 重载；一次性破坏性迁移到 `dto.Action`
+  - **G4（不再抽象 docker/service 层）**：mapper 直接拆双——`runtime/docker/mapper/` + `runtime/podman/mapper/`，跳过 docker/service 中间层
+  - **G5（不再经 docker/service）**：原生 action 直接走两侧 mapper，runtime/docker/mapper 与 runtime/podman/mapper 各自完成 `dto.Action` ↔ `runtimeapi.Action` 映射
+  - **G6**：零匿名 struct 仅作用于 public API 路径；internal helper（`ProgressWriter/Reader` 等）标 TODO
+  - **G8**：mapper 双位置各自落独立目录
+  - **G10**：`aliases.go` 等未被实际依赖的源文件**不强求**加 `//go:build cgo`，按 `go mod why` 锁定传染源后定向打 tag
+  - 当前合规审计 10 个验收目标中：✅ 2（G3、G7）· ⚠️ 3（G1、G2、G6、G10）· ❌ 3（G4、G5、G8）· **取消 1（G9）**
+  - 完成 TASK-022 后将解锁 TASK-023（旧 `podman_*.go` 与 `podmanContainerService` 兼容层清理）
+  - 详细 Phase A→E 进度与 G1-G10 状态见 [后续需求任务清单 §TASK-022 进度分解](design/future-requirements-task-list.md)；Phase E（docker/service 统一入口）整 Phase 取消
 - **Podman 镜像详情**：`runtime/podman` 适配器已实现 `Inspect` 路径。`/v4.0.0/libpod/images/{id}/json` 与 `/v4.0.0/libpod/images/{id}/history` 双接口联通，结构化 `ImageDetail` 与 Docker 适配器对齐；缺失字段统一显示 `—` 而不是上报错误。
 - **Podman 版本协商修复**：旧实现只对 404 触发 `/v4.0.0/libpod/version` 回退；现在针对任意失败都会继续尝试带版本前缀的路径，避免在 Podman 5.x 返回 4xx 或重定向时错失真正的版本。
 - **连接池重构**：`ConnectionPool.RefreshAll(timeout)` 统一了原本分散在 `Probe`/`pingAll` 的探测逻辑；`refreshOne` 对新建的瞬时引擎同样执行 ping，Podman 这类“创建即返回”的适配器也能在 selector 中显示真实延迟和真实状态。

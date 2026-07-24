@@ -2,7 +2,7 @@
 
 > 建立日期: 2026-07-20
 > 最近整理: 2026-07-24
-> 依据: [后续需求与规划讨论](future-requirements-discussion.md)、[Docker / Podman 能力分析](podman-capabilities-analysis.md)
+> 依据: [后续需求与规划讨论](future-requirements-discussion.md)、[Docker / Podman 能力分析](podman-capabilities-analysis.md)、[Podman REST 适配与 docker/service 统一方案](podman-rest-migration.md)
 > 规则: 本文是后续工作的唯一主任务台账；其他设计文档中的任务编号仅作为来源参考。
 
 ## 状态定义
@@ -14,23 +14,32 @@
 | `done` | 已实现、通过回归并提交 |
 | `blocked` | 缺少外部条件或尚未完成产品决策 |
 
-任务只有满足文末“完成定义”后才能标记为 `done`。分析文档完成不等于代码能力完成。
+任务只有满足文末“完成定义”后才能标记为 `done`。分析文档完成不等于代码能力完成。任务完成前必须补全"完成证据 / Phase 进度"列。
 
 ## 当前概况
 
 | 状态 | 数量 |
 |---|---:|
 | `done` | 16 |
-| `in_progress` | 0 |
-| `todo` | 5 |
+| `in_progress` | 1 (`TASK-022`) |
+| `todo` | 7 |
 | `blocked` | 0 |
+
+最近一次维护说明：TASK-022（`Podman REST 适配收紧与 docker/service 统一入口`）从 `todo` 提升为 `in_progress`。该任务被识别为高优先级：
+
+- TASK-021 仅完成"运行时适配解耦 + Podman/Docker 各自独立 Engine"，但**仍有两套 service 入口**（Docker 走 SDK，Podman 走 REST + CGO）。上层调用方仍分散在 `internal/data/runtime/docker/` 与 `internal/data/runtime/podman/` 两个包。
+- 当前没有 `docker/service` 统一入口，业务方仍需知道"当前是 Docker 还是 Podman"。
+- `runtime/podman` 没有干净隔离 `runtimeapi.*` 域模型，原生 Action 仍用 raw `string`，全仓匿名 struct 也没清零。
+
+TASK-022 的完成将解锁 TASK-023（旧 `podman_*.go` 与 `podmanContainerService` 等兼容实现可清理）。TASK-022 当前完成标准与设计文档 ([podman-rest-migration.md](podman-rest-migration.md)) 的 G1-G10 仍有显著差距。
 
 当前执行队列：
 
-1. 执行 `TASK-011`，完善 Compose / 容器 / 镜像联动刷新。
-2. 执行 `TASK-010`，批量操作扩展与部分成功反馈。
-
-最近一次维护说明：TASK-021 已增加 Podman `Image.Inspect` 与连接池结构性修复记录，状态保持 `done`。
+1. **推进 `TASK-022`（in_progress）** — 按 Phase A→F 顺序，P1 高优先级。
+2. `TASK-023` — 等 TASK-022 完成后立即启动。
+3. `TASK-011` — Compose / 容器 / 镜像联动刷新，P2。
+4. `TASK-010` — 批量操作扩展与部分成功反馈，P2。
+5. `TASK-019` — 高级容器操作（update / diff / export / commit / wait / cp），P2。
 
 ## 已完成基础
 
@@ -75,8 +84,50 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 | `TASK-018` | 镜像标签与传输工作流 | P1 | `done` | TASK-021 | runtime-neutral transfer service；`tag`、`push`、`save`、`load`；字节/daemon 进度、context 取消、错误展示和审计终态 |
 | `TASK-024` | [Podman 镜像详情 + 连接池工厂化重构](unified-runtime-driver.md) | P1 | `done` | TASK-021 | 补齐 TASK-021 Phase 2 中 Podman `ImageService.Inspect` 的 TODO；移除 `global engineFactory` 与 `SetEngineFactory`；`runtimeinit.NewEngineFactory()` 与 `runtime.EngineFactory` 注入到 `runtimeapi.NewPool`；`sanitizeEngine` / `engineIsUsable` 反射防御 typed-nil 接口；APIVersion 回退覆盖所有错误而非仅 404；`RefreshAll` 替换 `Probe`/`pingAll`；`refreshOne` 对 transient 引擎真实 ping。本条目是 TASK-021 收尾增量 |
 | `TASK-019` | 高级容器操作 | P2 | `todo` | TASK-017、TASK-021 | 评估并分批实现 `update`、`diff`、`export`、`commit`、`wait`、`cp` |
-| `TASK-022` | [Podman REST 适配收紧与 docker/service 统一入口](podman-rest-migration.md) | P1 | `todo` | TASK-021 | `runtime/podman.Client` 改造为方法式 + `dto.*` 签名 + 驱动/REST 双形态；`gpgme` 仅 CGO；`dto/` 具名类型零 `go.podman.io` 依赖；全仓匿名 struct 清零；`docker/service` 建立 Docker/Podman 统一入口（先 4 个核心 service） |
+| `TASK-022` | [Podman REST 适配收紧与 docker/service 统一入口](podman-rest-migration.md) | P1 | `in_progress` | TASK-021 | `runtime/podman.Client` 方法式 + `dto.*` 签名 + 驱动/REST 双形态（已部分达标）；`gpgme` 仅 CGO；`dto/` 具名类型零 `go.podman.io` 依赖；全仓匿名 struct 清零；`docker/service` 建立 Docker/Podman 统一入口（先 4 个核心 service） |
 | `TASK-023` | 清理 `internal/data/docker/podman_*.go` 与旧 `podmanContainerService` 等兼容实现 | P2 | `todo` | TASK-022 | TASK-022 完成后统一移除 `docker/podman_*.go` 共 24 个生产文件 + 8 个测试文件；`docker/Client.podmanREST` 字段清理；engine_factory 切到统一 service |
+
+#### `TASK-022` 进度分解（2026-07-24 用户最终修订）
+
+G2 取消双签名 / G4 取消 docker/service 层 / G5 取消 docker/service 层 / G9 取消 docker/service 评审之后，Phase 重排如下：
+
+| Phase | 内容 | G 覆盖 | 状态 | 证据 / 缺口 |
+|---|---|---|---|---|
+| A | **gpgme 仅 CGO**（按 `go mod why` 锁定传染路径） | G7、G10 | `todo` | 传染源仅 `internal/driver/podman/driver_cgo.go` + `client_default_driver_cgo.go`；`aliases.go` 等未引 CGO 依赖可暂缓加 tag |
+| B | `dto/` 补齐全部具名类型（含 `dto.Action` 字符串枚举、ActionOptions、ActionResult） | G5、G6、G7 | `todo` | 当前 `dto.Action` 等核心字符串枚举未定义；本 Phase 不引入 `runtimeapi.*` 依赖 |
+| C | `internal/driver/podman.Client` **方法化 + 一次性破坏性签名迁移**（把 `string action` 替换为 `dto.Action`；调用方同步迁移到 `dto.Action`） | G2、G3 | `partial` | `Client` 已有方法式签名与 `Driver DriverBackend` 字段；需删 `ExecuteContainerAction(... action string ...)` 与 `ExecuteImageAction(... action string ...)` 的 `string` 重载，迁移所有调用方 |
+| D | 全仓匿名 struct 替换（**仅 public API 路径**；internal helper 标 TODO） | G6 | `todo` | 设计文档点名的 10 处 + 已识别 20+ 处内部匿名 struct |
+| **D-2**（新增） | **双 mapper 拆分**：`internal/data/runtime/docker/mapper/` 与 `internal/data/runtime/podman/mapper/` 同时落地。Docker mapper 提取自现有 `docker/*` 文件，Podman mapper 从 `runtime/podman/mappers.go` 拆出独立文件 | G4、G8 | `todo` | 验证：双 mapper 目录零相互依赖；零依赖 Docker SDK 或 `go.podman.io` |
+| E | 验证矩阵：`CGO_ENABLED=0` 与 `CGO_ENABLED=1` 双构建 + 全测试 + `go list -deps` 无 gpgme + `go vet` | G10、G2、G6、G8 | `todo` | 验证脚本集待编写 |
+
+设计文档中 10 个验收目标（G1-G10）的当前达成度（2026-07-24 用户最终修订）：
+
+| 目标 | 状态 | 说明 |
+|---|---|---|
+| G1 Podman 整合层 = `internal/driver` | ⚠️ | 现状：`internal/data/runtime/podman` + `internal/driver/podman` 双入口；后续 Phase C 收尾时 `runtime/podman` 下沉为薄封装 |
+| **G2** Client 统一 `dto.Action`（一次性破坏性迁移） | ⚠️ | 当前 `ExecuteContainerAction(... string action ...)` 仍为 raw `string`；Phase C 完成 `dto.Action` 重载后删除 `string` 重载（**不保留双签名**） |
+| G3 CGO / non-CGO 同一方法 | ✅ | `Client.attachDefaultDriver()` + `Driver` 字段 |
+| **G4** 双 adapter mapper 各自落 `runtime/{docker,podman}/mapper/`（**取消 docker/service**） | ❌ | mapper 当前散落在 `runtime/podman/mappers.go`；Phase D-2 后落地 |
+| **G5** 原生动作用 `dto.Action`（**无 docker/service**层） | ❌ | Phase B 定义 `dto.Action`；Phase C 落地 ActionOptions/ActionResult；不需要 docker/service 层 |
+| G6 全仓匿名 struct（public API 路径本轮清零） | ⚠️ |  |
+| G7 三层类型独立互不别名 | ✅ | `internal/driver/podman/dto/*` 仅标准库 + time |
+| **G8** 双 mapper 双位置（**取消 docker/service 层**） | ❌ | mapper 单 `runtime/podman/mappers.go`；Phase D-2 拆分 |
+| **G9** ~~docker/service 统一入口~~ | **取消** | 不引入 docker/service 层 |
+| G10 非 CGO 零 `gpgme`（按 `go mod why` 锁定传染源） | ⚠️ |  |
+
+10 个目标中：✅ 2 (G3、G7) · ⚠️ 3 (G1、G2、G6、G10) · ❌ 3 (G4、G5、G8) · **取消 1 (G9)**。
+
+#### 架构评估最终决议（G4 取消 docker/service）
+
+详细对比见 [podman-rest-migration.md §G4 架构最终方案](podman-rest-migration.md)。最终决议：
+
+- **不引入** `internal/data/docker/service/` 统一入口层
+- **不集中** mapper 到 docker/service
+- mapper 直接拆双：Docker → `runtime/docker/mapper/`；Podman → `runtime/podman/mapper/`
+- 上一版"DockerAdapter / PodmanAdapter 包绕在 docker/service"的方案 B **取消**
+- Phase E（docker/service）整 Phase **取消**
+
+启动 Phase A/B/C/D 不依赖任何评审；Phase D-2（双 mapper 拆分）紧随 Phase D 之后启动。
 
 `build` 需要独立输入和进度交互设计，暂不并入 `TASK-018`，待该任务完成后再建立实施项。
 
@@ -130,6 +181,42 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 | RefreshAll 整合 | ✅ | 删除分散的 `Probe`/`pingAll`，统一在 `RefreshAll` 中实现；transient 引擎也执行真实 ping |
 | APIVersion 健壮性 | ✅ | Podman 5.x 任意错误都触发 `/v4.0.0/libpod/version` 回退 |
 
+## TASK-022 合规审计（2026-07-24，含用户修订决策）
+
+对照设计文档 [podman-rest-migration.md](podman-rest-migration.md) 的 G1-G10，本次审计发现：
+
+- ✅ 已达标 (2/10)：G3（双形态方法分发）、G7（三层类型独立）
+- ⚠️ 部分达标 (4/10)：
+  - G1（`internal/driver` 已下沉，`runtime/podman` 仍是入口但需薄封装化）
+  - G2（双签名策略 D6 需确认；保留旧 `string` 兼容）
+  - G6（设计文档目标范围调整为：仅清零 public API 路径上的匿名 struct）
+  - G10（按 `go mod why` 锁定传染源，已基本满足）
+- ❌ 未达标 (4/10)：
+  - G4（`runtime/podman` 仍引 `runtimeapi.*`；评审启动后由 Phase E 解决）
+  - G5（`dto.Action` 字符串枚举待定义，决策项 D10 约束 `dto` 包零 `runtime/` 依赖）
+  - G8（mapper 待下沉，按决策项 D8 双 mapper 设计）
+  - G9（`docker/service` 目录整体缺失；**待 G4 评审通过后启动 Phase E**，决策项 D9）
+
+落地路径与设计文档的 Phase A→F 一一对应。优先级最高的子项是 **Phase E**（`docker/service` 统一入口），它是 TASK-023 的解锁条件，但启动受 G4 评审阻塞。
+
+## TASK-022 依赖与先决条件
+
+- **必须**：TASK-021、TASK-024 已 done ✅
+- **必须**：G4 架构评审通过（方案 B 采纳后启动 Phase E）
+- **必须**：D1-D10 决策项确认（D6/D7/D8/D9/D10 是本次新增）
+- **必须**：Phase F 验证脚本就位（前置于 commit 门槛）
+
+**Phase 启动排期**：
+- **Phase A / D**（gpgme 隔离 + 公开 API 匿名 struct）：**立即启动**，不依赖 G4 评审
+- **Phase B**（`dto.Action` 字符串枚举）：**立即启动**，依赖调整小
+- **Phase C**（`runtime/podman.Client` 方法化 + 双签名）：**继续**，已是 `partial`
+- **Phase E**（`docker/service` 统一入口 + mapper 下沉）：**待评审通过**
+- **Phase F**（验证矩阵）：A→E 收尾后
+
+需要追踪的不依赖项（并行可行）：
+- TASK-011 可以在 TASK-022 期间并行推进（事件联动与 service 入口改造无共享代码）
+- TASK-013 / TASK-014 / TASK-020 仍为独立后续
+
 ## 操作历史与体验
 
 | 编号 | 任务 | 优先级 | 状态 | 依赖 | 验收重点 |
@@ -151,9 +238,34 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
   |     |-> TASK-018 镜像工作流               [done]
   |     `-> TASK-008 Events [done] -> TASK-011 联动刷新 [todo]
   `-> TASK-012 审计历史面板 [done]
+  `-> TASK-022 Podman REST + docker/service 统一 [in_progress]
+       |     Phase A: gpgme 仅 CGO         [todo]
+       |     Phase B: dto 具名类型补齐     [todo]
+       |     Phase C: Client 方法化        [partial]
+       |     Phase D: 匿名 struct 清零     [todo]
+       |     Phase E: docker/service 入口  [todo]
+       `-----> Phase F: 验证矩阵           [todo]
+        `---> TASK-023 清理兼容层          [todo]
+                (TASK-022 完成后立即启动;
+                 24 个生产文件 + 8 个测试文件)
 
 独立后续: TASK-013 / TASK-014 / TASK-020
 ```
+
+#### 决策项（TASK-022；2026-07-24 用户最终修订）
+
+| 编号 | 议题 | 推荐 | 备选 | 状态 |
+|---|---|---|---|---|
+| D1 | B → C 别名在 non-CGO 下用同名结构还是全部独立 | 推荐：双形态文件分别定义，CGO 用 `type X =` 别名 | 全部独立具名 | 待定 |
+| D2 | ~~`docker/service` 8 个 service 本轮全部还是先 4~~ | — | — | **取消**（G9 docker/service 取消后无意义） |
+| D3 | 旧 `docker/podman_*.go` 与 `podmanContainerService` 是否在本轮删除 | 推荐：**不删**，本轮只加 `// Deprecated:`，留给 `TASK-023` | 本轮同步清理 | 待定 |
+| D4 | ~~`docker.Client.podman` 字段命名~~ | — | — | **取消**（取消 docker/service 后不需要） |
+| D5 | `runtimeapi.Error` 等极少量公共类型能否出现在 `runtime/podman` | 推荐：允许（仅用于错误包装）；不允许 `runtimeapi.Action`/`ImageSummary` 等域模型 | 全 `dto.*` | 待定 |
+| **D6** | ~~G2 双签名策略~~ | — | — | **取消**（用户最终决策：删除 `string action` 重载，一次性破坏性迁移到 `dto.Action`） |
+| **D7** | G10 build tag 范围 | 推荐：按 `go list -deps` 实际传递引用加 `//go:build cgo`；其他文件不加防御性 tag | 全文件统一加 | 待定 |
+| **D8** | **G8 mapper 双位置（修订：docker/service 取消后）** | 推荐：Docker 专属 mapper 落 `internal/data/runtime/docker/mapper/`；Podman 专属 mapper 落 `internal/data/runtime/podman/mapper/`（提升自现有 `mappers.go`） | 全部集中到 docker/service/mapper/ | 待定 |
+| **D9** | ~~G9 docker/service 评审~~ | — | — | **取消** |
+| **D10** | G5 `dto.Action` 不能回引 `runtimeapi.Action` | 推荐：`dto.Action` 仅字符串枚举；任何含 `runtimeapi.*` 的常量映射落 `runtime/docker/mapper/action.go` 或 `runtime/podman/mapper/action.go`；`dto` 包零 `runtime/` 依赖 | `dto.Action` 挂 i18n 描述 | 待定 |
 
 ## 暂不实施
 

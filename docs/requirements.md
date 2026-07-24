@@ -17,6 +17,7 @@
 | Docker / Podman Events 实时同步 | 已实现 | 绑定活动连接，支持退避重连、事件合并、局部刷新和轮询降级；独立事件面板仍属后续增强 |
 | 自定义快捷键 | 已实现 | `keymap.*` 覆盖会编译为运行时绑定，Help / Footer 投影当前有效键位 |
 | 用户操作审计 | 已实现 | 资源操作共享 trace，终态投影到通知与 Footer，并按日写入 JSONL |
+| 运行时适配统一入口（`docker/service`） | 部分实现（`TASK-022` 进行中） | 当前 `internal/data/runtime/docker/` 与 `internal/data/runtime/podman/` 各有独立 service 入口；TASK-022 完成后才收口到统一 service；详见 [未来需求任务清单 §TASK-022 进度分解](../design/future-requirements-task-list.md#t-022-进度分解) |
 | Bulk 批量操作 | 部分实现 | 已有 mark 模式，但覆盖范围仍有限 |
 | 鼠标支持 | 部分实现 | 当前主要用于日志/详情滚轮滚动 |
 
@@ -29,6 +30,8 @@
 - 默认配置、运行时、Help 和 Footer 已统一为 `Ctrl+S`、`Ctrl+K`、`Ctrl+P` 等默认键位语义。
 - Filter 与 Search 已拆分：资源列表输入即时过滤并使用双 `Esc` 清除退出，日志搜索按 Enter 应用且不改变原始数据集。
 - 用户业务操作已接入统一审计模型；非审计 UI 提示不会写入审计文件。
+- **`runtime/podman` 仍引用 `runtimeapi.*` 域模型**：当前 `internal/data/runtime/podman/service_*.go` 直接返回 `[]runtimeapi.ContainerSummary` 等。TASK-022 Phase E（`docker/service` 统一入口）需要先把 service 层从 `runtimeapi` 域模型切到 `dto.*` 具名类型，再让 mapper 下沉到 `docker/service/mapper/`。
+- **全仓匿名 struct 仍有 20+ 处**：设计 [podman-rest-migration.md](TODO) 点名 10 处需替换；TASK-022 Phase D 执行。
 
 ## 竞品参考
 
