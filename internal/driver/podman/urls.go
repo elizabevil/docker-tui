@@ -24,24 +24,6 @@ const (
 	PathEvents        = "/libpod/events"
 )
 
-// Container lifecycle action constants.
-const (
-	ActionStart   = "start"
-	ActionStop    = "stop"
-	ActionRestart = "restart"
-	ActionKill    = "kill"
-	ActionPause   = "pause"
-	ActionUnpause = "unpause"
-	ActionRename  = "rename"
-	ActionRemove  = "remove"
-	ActionCreate  = "create"
-	ActionExec    = "exec"
-	ActionPrune   = "prune"
-	ActionPull    = "pull"
-	ActionTag     = "tag"
-	ActionPush    = "push"
-)
-
 // Podman REST API resource path bases for URL construction.
 var (
 	ContainersURL = &url.URL{Path: "/libpod/containers"}
