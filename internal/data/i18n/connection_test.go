@@ -6,7 +6,6 @@ import (
 
 func TestConnectionFailureMessageFollowsLanguage(t *testing.T) {
 	t.Cleanup(func() { SetLang(LanguageEnglish) })
-	Init(LanguageEnglish)
 	if got := ConnectionFailureMessage("hostname"); got != "TLS certificate hostname mismatch" {
 		t.Fatalf("english message = %q", got)
 	}

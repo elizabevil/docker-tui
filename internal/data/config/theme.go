@@ -171,73 +171,12 @@ func ListThemes() []string {
 }
 
 func parseTheme(data []byte) (*Theme, error) {
-	clean := StripJSONComments(data)
 	var theme Theme
-	if err := sonic.Unmarshal(clean, &theme); err != nil {
+	if err := sonic.Unmarshal(data, &theme); err != nil {
 		return nil, fmt.Errorf("parse theme: %w", err)
 	}
 	if theme.Name == "" {
 		theme.Name = "Custom"
 	}
 	return &theme, nil
-}
-
-// stripJSONComments removes // line comments and /* block comments » from JSON.
-// StripJSONComments removes // line comments and /* block comments from JSON.
-func StripJSONComments(data []byte) []byte {
-	result := make([]byte, 0, len(data))
-	inStr := false
-	inLine := false
-	inBlock := false
-	esc := false
-	for i := 0; i < len(data); i++ {
-		b := data[i]
-		if esc {
-			esc = false
-			result = append(result, b)
-			continue
-		}
-		if inStr {
-			if b == '\\' {
-				esc = true
-			} else if b == '"' {
-				inStr = false
-			}
-			result = append(result, b)
-			continue
-		}
-		if inLine {
-			if b == '\n' {
-				inLine = false
-				result = append(result, '\n')
-			}
-			continue
-		}
-		if inBlock {
-			if b == '*' && i+1 < len(data) && data[i+1] == '/' {
-				inBlock = false
-				i++
-			}
-			continue
-		}
-		if b == '"' {
-			inStr = true
-			result = append(result, b)
-			continue
-		}
-		if b == '/' && i+1 < len(data) {
-			if data[i+1] == '/' {
-				inLine = true
-				i++
-				continue
-			}
-			if data[i+1] == '*' {
-				inBlock = true
-				i++
-				continue
-			}
-		}
-		result = append(result, b)
-	}
-	return result
 }

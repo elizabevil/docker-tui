@@ -14,6 +14,12 @@ func ShortID(id string) string {
 	return id
 }
 
+type SizeFormat = string
+
+const (
+	SizeFormatSi SizeFormat = "si"
+)
+
 // sizeFormatSI controls whether FormatSize uses SI (1000-base, matching podman/docker CLI)
 // or binary (1024-base, default). Set via SetSizeFormat at startup.
 var sizeFormatSI bool
@@ -22,7 +28,7 @@ var sizeFormatSI bool
 //
 //	false — 1024-base binary (default): 1 MB = 1048576 bytes
 //	true  — 1000-base SI:              1 MB = 1000000 bytes (matches podman/docker CLI)
-func SetSizeFormat(si bool) { sizeFormatSI = si }
+func SetSizeFormat(si SizeFormat) { sizeFormatSI = SizeFormatSi == si }
 
 // FormatSize formats a byte count as a human-readable string.
 // Default uses 1024-base (KiB/MiB/GiB); SetSizeFormat(true) switches to 1000-base (kB/MB/GB).

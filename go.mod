@@ -5,14 +5,16 @@ go 1.26.5
 require (
 	charm.land/bubbletea/v2 v2.0.8
 	charm.land/lipgloss/v2 v2.0.5
+	github.com/agilira/orpheus v1.4.1
 	github.com/bytedance/sonic v1.15.2
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/mattn/go-runewidth v0.0.24
 	github.com/pelletier/go-toml/v2 v2.4.3
 	github.com/shirou/gopsutil/v3 v3.24.5
-	github.com/spf13/cobra v1.10.2
+	github.com/tidwall/jsonc v0.3.3
 	go.podman.io/common v0.68.1
 	go.podman.io/podman/v6 v6.0.1
+	golang.org/x/text v0.38.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -24,6 +26,9 @@ require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
+	github.com/agilira/flash-flags v1.1.8 // indirect
+	github.com/agilira/go-errors v1.1.2 // indirect
+	github.com/agilira/go-timecache v1.0.2 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/bytedance/gopkg v0.1.4 // indirect
 	github.com/bytedance/sonic/loader v0.5.1 // indirect
@@ -125,6 +130,7 @@ require (
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/skeema/knownhosts v1.3.2 // indirect
 	github.com/smallstep/pkcs7 v0.1.1 // indirect
+	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20230803200340-78284954bff6 // indirect
 	github.com/sylabs/sif/v2 v2.24.0 // indirect
@@ -155,7 +161,6 @@ require (
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/term v0.44.0 // indirect
-	golang.org/x/text v0.38.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 	google.golang.org/grpc v1.81.1 // indirect

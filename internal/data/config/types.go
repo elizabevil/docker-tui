@@ -273,8 +273,7 @@ type LogsConfig struct {
 // loaded from the embedded default.jsonc and merged with Go-level defaults.
 func DefaultConfig() *Config {
 	var cfg Config
-	clean := StripJSONComments([]byte(defaultConfigJSON))
-	if err := sonic.Unmarshal(clean, &cfg); err != nil {
+	if err := sonic.Unmarshal([]byte(defaultConfigJSON), &cfg); err != nil {
 		// Embedded JSONC should always parse; fallback if something goes wrong.
 		return fallbackConfig()
 	}

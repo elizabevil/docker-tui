@@ -573,8 +573,8 @@ type VolumeDetailData struct {
 
 **涉及文件**：
 - `internal/data/docker/inspect.go`：改造 `InspectContainer` 返回 `[]byte`，新增 `buildContainerDetailSections`
-- `internal/data/i18n/en.jsonc`：新增容器详情 key
-- `internal/data/i18n/zh.jsonc`：新增容器详情 key
+- `../internal/data/i18n/lang/en.jsonc`：新增容器详情 key
+- `../internal/data/i18n/lang/zh.jsonc`：新增容器详情 key
 - `internal/tui/keyboard/container_action.go`：修改 `doInspectAction` 适配新返回值
 - `internal/tui/ui/pages/detail/view.go`：新增容器 Section 解析路径
 
@@ -587,8 +587,8 @@ type VolumeDetailData struct {
 - `internal/tui/keyboard/detail.go`：新增 `s` 键循环切换逻辑
 - `internal/tui/ui/pages/detail/view.go`：新增 YAML/JSON 渲染分支
 - `internal/tui/ui/pages/detail/view.go`：修改 `RenderView` 支持源码视图
-- `internal/data/i18n/en.jsonc`：新增源码视图 key
-- `internal/data/i18n/zh.jsonc`：新增源码视图 key
+- `../internal/data/i18n/lang/en.jsonc`：新增源码视图 key
+- `../internal/data/i18n/lang/zh.jsonc`：新增源码视图 key
 
 **验收**：在容器/镜像详情页按 `s` 键可循环切换 Section → YAML → JSON，三种视图数据一致。
 
@@ -601,8 +601,8 @@ type VolumeDetailData struct {
 - `internal/tui/keyboard/network_action.go`：新增 `doNetworkInspect`
 - `internal/tui/keyboard/volume_action.go`：新增 `doVolumeInspect`，调整 Enter 键行为
 - `internal/tui/ui/pages/detail/image.go`：复用或新增网络/卷 Section 渲染
-- `internal/data/i18n/en.jsonc`：新增网络/卷详情 key
-- `internal/data/i18n/zh.jsonc`：新增网络/卷详情 key
+- `../internal/data/i18n/lang/en.jsonc`：新增网络/卷详情 key
+- `../internal/data/i18n/lang/zh.jsonc`：新增网络/卷详情 key
 
 **验收**：在网络/卷面板按 Enter 可进入详情页，支持 Section/YAML/JSON 三种视图。
 

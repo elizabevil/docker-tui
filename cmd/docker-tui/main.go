@@ -8,7 +8,9 @@ import (
 	"time"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/spf13/cobra"
+	"github.com/agilira/orpheus/pkg/orpheus"
+	"github.com/bytedance/sonic"
+	"github.com/elizabevil/docker-tui/internal/buildinfo"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/config"
@@ -17,62 +19,52 @@ import (
 	"github.com/elizabevil/docker-tui/internal/runtimeinit"
 	"github.com/elizabevil/docker-tui/internal/tui"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/app"
+	view "github.com/elizabevil/docker-tui/internal/tui/ui/app"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
-var (
-	cfgFile     string
-	dockerHost  string
-	themeName   string
-	listThemes  bool
-	langFlag    string
-	showVersion bool
-	podmanMode  bool
-	version     = "0.2.0"
-)
+var version = "0.2.0"
 
-var rootCmd = &cobra.Command{
-	Use:   "dtui",
-	Short: "dtui - Docker & Podman TUI Manager",
-	Long: `dtui is a terminal user interface for managing Docker and Podman
-containers, images, volumes, networks, and Compose projects.
+func main() {
+	read := buildinfo.Read("dtui", version)
+	marshal, _ := sonic.MarshalIndent(read, " ", " ")
+	app := orpheus.New("dtui").
+		SetDescription("Docker & Podman TUI Manager").
+		SetVersion(string(marshal))
 
-Inspired by k9s for Kubernetes, it provides a keyboard-driven,
-real-time view of your container environment.`,
-	RunE: func(cmd *cobra.Command, _ []string) error {
-		if showVersion {
-			fmt.Printf("dtui version %s\n", version)
-			return nil
-		}
-		if listThemes {
+	app.AddGlobalFlag("config", "f", "", "Config file path")
+	app.AddGlobalFlag("host", "H", "", "Daemon socket or host")
+	app.AddGlobalFlag("theme", "t", "", "Theme name (default, dark, light, nord, dracula, solarized)")
+	app.AddGlobalBoolFlag("podman", "p", false, "Use Podman socket")
+	app.AddGlobalBoolFlag("list-themes", "", false, "List available themes")
+	app.AddGlobalFlag("lang", "L", "", "Language (zh/en)")
+
+	cmd := orpheus.NewCommand("run", "Run the TUI")
+	cmd.SetHandler(func(ctx *orpheus.Context) error {
+		if ctx.GetGlobalFlagBool("list-themes") {
 			for _, t := range config.ListThemes() {
 				fmt.Println(t)
 			}
 			return nil
 		}
-		return runTUI()
-	},
-}
+		return runTUI(ctx)
+	})
+	app.AddCommand(cmd)
+	app.SetDefaultCommand("run")
 
-func init() {
-	rootCmd.Flags().StringVarP(&cfgFile, "config", "f", "", "config file path")
-	rootCmd.Flags().StringVarP(&dockerHost, "host", "H", "", "daemon socket or host")
-	rootCmd.Flags().StringVarP(&themeName, "theme", "t", "", "theme name (default, dark, light, nord, dracula, solarized)")
-	rootCmd.Flags().BoolVarP(&podmanMode, "podman", "p", false, "use Podman socket")
-	rootCmd.Flags().BoolVar(&listThemes, "list-themes", false, "list available themes")
-	rootCmd.Flags().StringVarP(&langFlag, "lang", "L", "", "language (zh/en)")
-	rootCmd.Flags().BoolVarP(&showVersion, "version", "v", false, "show version")
-}
-
-func main() {
-	if err := rootCmd.Execute(); err != nil {
+	if err := app.Run(os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func runTUI() error {
+func runTUI(ctx *orpheus.Context) error {
+	cfgFile := ctx.GetGlobalFlagString("config")
+	dockerHost := ctx.GetGlobalFlagString("host")
+	themeName := ctx.GetGlobalFlagString("theme")
+	podmanMode := ctx.GetGlobalFlagBool("podman")
+	langFlag := ctx.GetGlobalFlagString("lang")
+
 	cfg, err := config.Load(cfgFile)
 	if err != nil {
 		return err
@@ -81,12 +73,9 @@ func runTUI() error {
 	if lang == "" {
 		lang = cfg.General.Lang
 	}
-	i18n.Init(lang)
+	i18n.SetLang(lang)
+	utils.SetSizeFormat(cfg.General.SizeFormat)
 
-	// Configure size formatting (default 1024-base binary, optional 1000-base SI).
-	utils.SetSizeFormat(cfg.General.SizeFormat == "si")
-
-	// Load theme.
 	if themeName == "" {
 		themeName = cfg.Theme
 	}
@@ -140,16 +129,10 @@ func (m *mainModel) Init() tea.Cmd {
 	)
 }
 
-// probeAllOnStart runs an initial probe of every known host so the runtime
-// selector displays latency, version and status on first launch. The
-// selected host is probed first so the active connection is measured
-// immediately.
 func probeAllOnStart(pool *runtimeapi.ConnectionPool, active string) tea.Cmd {
 	return func() tea.Msg {
 		results := pool.RefreshAll(2 * time.Second)
 		cmds := make([]tea.Cmd, 0, len(results)+1)
-		// Order non-active results first, then the active one so the UI
-		// measures the selected connection immediately on first paint.
 		var activeResult *runtimeapi.RefreshResult
 		for i := range results {
 			r := &results[i]
@@ -182,7 +165,6 @@ func connectDocker(pool *runtimeapi.ConnectionPool, name string) tea.Cmd {
 			return state.DockerConnected{Name: name, Error: fmt.Errorf("no runtime connections configured")}
 		}
 
-		// Try all connections sequentially; first success wins.
 		var errors []string
 		for _, candidate := range names {
 			if pool.Get(candidate) == nil {

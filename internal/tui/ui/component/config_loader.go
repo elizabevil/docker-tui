@@ -2,8 +2,6 @@ package component
 
 import (
 	"encoding/json"
-
-	"github.com/elizabevil/docker-tui/internal/data/config"
 )
 
 // ConfigLoader loads embedded JSONC config into a strongly-typed struct.
@@ -25,9 +23,8 @@ func (l ConfigLoader[T]) Load() T {
 		return cfg
 	}
 
-	clean := config.StripJSONComments(l.RawData)
 	var cfg T
-	if err := json.Unmarshal(clean, &cfg); err != nil {
+	if err := json.Unmarshal(l.RawData, &cfg); err != nil {
 		cfg = l.Fallback
 	}
 	if l.Normalize != nil {
