@@ -5,12 +5,14 @@ import (
 	"strings"
 
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/driver/podman/dto"
 )
 
-// PostFilterContainers applies same-field AND post-filtering to raw Podman
-// container list results.
-func PostFilterContainers(items []ContainerItem, filters runtimeapi.FilterSet) ([]ContainerItem, error) {
-	return filterSlice(items, func(item ContainerItem) (bool, error) {
+// PostFilterContainers filters Podman container DTOs by the same runtime
+// filter contract used by the Docker adapter. Field semantics are kept
+// aligned with runtimeapi.ContainerSummary.
+func PostFilterContainers(items []dto.ContainerItem, filters runtimeapi.FilterSet) ([]dto.ContainerItem, error) {
+	return runtimeapi.FilterSlice(items, func(item dto.ContainerItem) (bool, error) {
 		for field, values := range filters {
 			for _, value := range values[1:] {
 				var matched bool
@@ -43,10 +45,10 @@ func PostFilterContainers(items []ContainerItem, filters runtimeapi.FilterSet) (
 	})
 }
 
-// PostFilterImages applies same-field AND post-filtering to raw Podman
-// image list results.
-func PostFilterImages(items []ImageItem, filters runtimeapi.FilterSet) ([]ImageItem, error) {
-	return filterSlice(items, func(item ImageItem) (bool, error) {
+// PostFilterImages filters Podman image DTOs by the same runtime filter
+// contract used by the Docker adapter.
+func PostFilterImages(items []dto.ImageItem, filters runtimeapi.FilterSet) ([]dto.ImageItem, error) {
+	return runtimeapi.FilterSlice(items, func(item dto.ImageItem) (bool, error) {
 		for field, values := range filters {
 			for _, value := range values[1:] {
 				var matched bool
@@ -62,7 +64,7 @@ func PostFilterImages(items []ImageItem, filters runtimeapi.FilterSet) ([]ImageI
 					}
 					matched = isDanglingImage(item) == want
 				case runtimeapi.ImageFilterBefore, runtimeapi.ImageFilterSince, runtimeapi.ImageFilterUntil:
-					return false, runtimeapi.UnsupportedError("image.list.filter." + field + ".and")
+					return false, runtimeapi.UnsupportedError(runtimeapi.Operation(runtimeapi.ResourceImage, "list.filter") + "." + field + ".and")
 				}
 				if !matched {
 					return false, nil
@@ -73,10 +75,10 @@ func PostFilterImages(items []ImageItem, filters runtimeapi.FilterSet) ([]ImageI
 	})
 }
 
-// PostFilterVolumes applies same-field AND post-filtering to raw Podman
-// volume list results.
-func PostFilterVolumes(items []VolumeItem, filters runtimeapi.FilterSet) ([]VolumeItem, error) {
-	return filterSlice(items, func(item VolumeItem) (bool, error) {
+// PostFilterVolumes filters Podman volume DTOs by the same runtime filter
+// contract used by the Docker adapter.
+func PostFilterVolumes(items []dto.VolumeItem, filters runtimeapi.FilterSet) ([]dto.VolumeItem, error) {
+	return runtimeapi.FilterSlice(items, func(item dto.VolumeItem) (bool, error) {
 		for field, values := range filters {
 			for _, value := range values[1:] {
 				matched := false
@@ -88,7 +90,7 @@ func PostFilterVolumes(items []VolumeItem, filters runtimeapi.FilterSet) ([]Volu
 				case runtimeapi.VolumeFilterLabel:
 					matched = matchesLabel(item.Labels, value)
 				case runtimeapi.VolumeFilterDangling:
-					return false, runtimeapi.UnsupportedError("volume.list.filter.dangling.and")
+					return false, runtimeapi.UnsupportedError(runtimeapi.Operation(runtimeapi.ResourceVolume, "list.filter.dangling.and"))
 				}
 				if !matched {
 					return false, nil
@@ -99,10 +101,10 @@ func PostFilterVolumes(items []VolumeItem, filters runtimeapi.FilterSet) ([]Volu
 	})
 }
 
-// PostFilterNetworks applies same-field AND post-filtering to raw Podman
-// network list results.
-func PostFilterNetworks(items []Network, filters runtimeapi.FilterSet) ([]Network, error) {
-	return filterSlice(items, func(item Network) (bool, error) {
+// PostFilterNetworks filters Podman network DTOs by the same runtime
+// filter contract used by the Docker adapter.
+func PostFilterNetworks(items []dto.Network, filters runtimeapi.FilterSet) ([]dto.Network, error) {
+	return runtimeapi.FilterSlice(items, func(item dto.Network) (bool, error) {
 		for field, values := range filters {
 			for _, value := range values[1:] {
 				matched := false
@@ -118,7 +120,7 @@ func PostFilterNetworks(items []Network, filters runtimeapi.FilterSet) ([]Networ
 				case runtimeapi.NetworkFilterScope:
 					matched = item.Scope == value
 				case runtimeapi.NetworkFilterType:
-					return false, runtimeapi.UnsupportedError("network.list.filter.type.and")
+					return false, runtimeapi.UnsupportedError(runtimeapi.Operation(runtimeapi.ResourceNetwork, "list.filter.type.and"))
 				}
 				if !matched {
 					return false, nil
@@ -129,44 +131,18 @@ func PostFilterNetworks(items []Network, filters runtimeapi.FilterSet) ([]Networ
 	})
 }
 
-func filterSlice[T any](items []T, match func(T) (bool, error)) ([]T, error) {
-	filtered := make([]T, 0, len(items))
-	for _, item := range items {
-		matched, err := match(item)
-		if err != nil {
-			return nil, err
-		}
-		if matched {
-			filtered = append(filtered, item)
-		}
-	}
-	return filtered, nil
-}
-
 func matchesLabel(labels map[string]string, expression string) bool {
-	key, expected, hasValue := strings.Cut(expression, "=")
-	actual, ok := labels[key]
-	return ok && (!hasValue || actual == expected)
+	return runtimeapi.MatchesLabel(labels, expression)
 }
 
 func containsString(values []string, expected string) bool {
-	for _, value := range values {
-		if value == expected {
-			return true
-		}
-	}
-	return false
+	return runtimeapi.ContainsString(values, expected)
 }
 
 func containsReference(references []string, expected string) bool {
-	for _, reference := range references {
-		if reference == expected || strings.Contains(reference, expected) {
-			return true
-		}
-	}
-	return false
+	return runtimeapi.ContainsReference(references, expected)
 }
 
-func isDanglingImage(item ImageItem) bool {
-	return len(item.RepoTags) == 0 || (len(item.RepoTags) == 1 && item.RepoTags[0] == "<none>:<none>")
+func isDanglingImage(item dto.ImageItem) bool {
+	return runtimeapi.IsDanglingImage(item.RepoTags)
 }

@@ -5,18 +5,19 @@ import (
 	"testing"
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 func TestRuntimeSelectorShowsSafeTLSStateAndFailure(t *testing.T) {
 	i18n.Init(i18n.LanguageEnglish)
-	pool := dockerclient.NewPool()
+	pool := dockerclient.NewPool(nil)
 	pool.AddHost(dockerclient.HostEntry{
 		Name: "remote",
 		Host: "tcp://runtime.example:2376",
-		TLS:  dockerclient.TLSConfig{Enabled: true, Verify: true},
+		TLS:  utils.TLSConfig{Enabled: true, Verify: true},
 	})
 	m := state.NewAppModel(config.DefaultConfig(), nil, "test")
 	m.Connection.Pool = pool

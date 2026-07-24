@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
-	"github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	"github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keyboard"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
@@ -63,7 +63,7 @@ func handleStatsTick(m *state.AppModel, _ state.StatsTick) (*state.AppModel, tea
 
 func handleDockerConnected(m *state.AppModel, msg state.DockerConnected) (*state.AppModel, tea.Cmd) {
 	if msg.Error != nil {
-		failureMessage := i18n.ConnectionFailureMessage(string(docker.ClassifyConnectionError(msg.Error).Kind))
+		failureMessage := i18n.ConnectionFailureMessage(string(runtime.ClassifyConnectionError(msg.Error).Kind))
 		if m.Navigation.Mode == state.ModeRuntimeSelect {
 			m.Connection.SelectionFailed(msg.Name, msg.Error)
 			m.Feedback.RecordError(failureMessage)
@@ -99,7 +99,7 @@ func handleToastTick(m *state.AppModel, _ state.ToastTick) (*state.AppModel, tea
 }
 
 func handleHostStatsTick(m *state.AppModel, _ state.HostStatsTick) (*state.AppModel, tea.Cmd) {
-	stats := docker.ReadHostStats()
+	stats := runtime.ReadHostStats()
 	m.Metrics.ApplyHost(stats)
 	return m, tea.Tick(2*time.Second, func(t time.Time) tea.Msg {
 		return state.HostStatsTick{}
@@ -142,11 +142,38 @@ func handleRuntimeHealthResult(m *state.AppModel, msg state.RuntimeHealthResult)
 }
 
 func handleRuntimeProbeResult(m *state.AppModel, msg state.RuntimeProbeResult) (*state.AppModel, tea.Cmd) {
-	if m.Navigation.Mode != state.ModeRuntimeSelect {
+	if m.Navigation.Mode == state.ModeRuntimeSelect {
+		m.Connection.SetProbeResult(msg.Name, msg.Error)
 		return m, nil
 	}
-	m.Connection.SetProbeResult(msg.Name, msg.Error)
+	// Show toast for probe results outside the selector.
+	if msg.Error != nil {
+		keyboard.ShowToastWarn(m, fmt.Sprintf("%s: %v", msg.Name, msg.Error))
+	}
 	return m, nil
+}
+
+func handleConnectionRefreshTick(m *state.AppModel, _ state.ConnectionRefreshTick) (*state.AppModel, tea.Cmd) {
+	if m.Connection.Pool == nil {
+		return m, nil
+	}
+	results := m.Connection.Pool.RefreshAll(2 * time.Second)
+	if len(results) == 0 {
+		return m, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+			return state.ConnectionRefreshTick{}
+		})
+	}
+	cmds := make([]tea.Cmd, 0, len(results)+1)
+	for i := range results {
+		probe := &results[i]
+		cmds = append(cmds, func() tea.Msg {
+			return state.RuntimeProbeResult{Name: probe.Name, Error: probe.Error}
+		})
+	}
+	cmds = append(cmds, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+		return state.ConnectionRefreshTick{}
+	}))
+	return m, tea.Batch(cmds...)
 }
 
 func handleEscTimeout(m *state.AppModel, _ state.EscTimeout) (*state.AppModel, tea.Cmd) {

@@ -5,7 +5,7 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/elizabevil/docker-tui/internal/data/config"
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
@@ -31,16 +31,18 @@ func openRuntimeSelector(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if m.Connection.RuntimeSelectorError == nil {
 		m.Connection.RuntimeSelectorError = make(map[string]dockerclient.ConnectionFailure)
 	}
-	cmds := make([]tea.Cmd, 0, len(names))
-	for _, name := range names {
-		if name == m.Connection.Pool.ActiveName() {
-			continue
-		}
-		connectionName := name
+	timeout := runtimeHealthTimeout(m)
+	results := m.Connection.Pool.RefreshAll(timeout)
+	cmds := make([]tea.Cmd, 0, len(results)+1)
+	for i := range results {
+		probe := &results[i]
 		cmds = append(cmds, func() tea.Msg {
-			return state.RuntimeProbeResult{Name: connectionName, Error: m.Connection.Pool.Probe(connectionName, runtimeHealthTimeout(m))}
+			return state.RuntimeProbeResult{Name: probe.Name, Error: probe.Error}
 		})
 	}
+	cmds = append(cmds, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+		return state.ConnectionRefreshTick{}
+	}))
 	return m, tea.Batch(cmds...)
 }
 
@@ -52,6 +54,10 @@ func runtimeHealthTimeout(m *state.AppModel) time.Duration {
 }
 
 func handleRuntimeSelectorKey(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	if m.Connection.Pool == nil {
+		m.Navigation.Mode = state.ModeNormal
+		return m, nil
+	}
 	names := m.Connection.Pool.KnownHostNames()
 	if len(names) == 0 {
 		m.Navigation.Mode = state.ModeNormal

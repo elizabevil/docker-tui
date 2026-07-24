@@ -13,8 +13,8 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/elizabevil/docker-tui/internal/data/config"
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/dialog"
@@ -261,19 +261,62 @@ func imageTransferStatus(status string) string {
 	}
 }
 
+type runtimeSelectorUI struct {
+	Title   string
+	Entries []runtimeSelectorEntry
+	Footer  string
+	Border  lipgloss.Border
+	Padding [2]int
+	Width   int
+}
+
+type runtimeSelectorEntry struct {
+	Marker string
+	Name   string
+	Info   string
+}
+
+func (ui runtimeSelectorUI) Render() string {
+	rows := []string{ui.Title, ""}
+	for _, e := range ui.Entries {
+		rows = append(rows, fmt.Sprintf("%s%s", e.Marker, e.Name))
+		rows = append(rows, e.Info)
+	}
+	rows = append(rows, "", ui.Footer)
+	return lipgloss.NewStyle().Border(ui.Border).Padding(ui.Padding[0], ui.Padding[1]).Width(ui.Width).Render(strings.Join(rows, "\n"))
+}
+
 func renderRuntimeSelector(m *state.AppModel) string {
-	rows := []string{"Select runtime connection", ""}
-	for i, name := range m.Connection.Pool.KnownHostNames() {
+	if m.Connection.Pool == nil {
+		return "runtime selection unavailable"
+	}
+	hostNames := m.Connection.Pool.KnownHostNames()
+	cursor := m.Connection.RuntimeSelectorCursor
+	errors := m.Connection.RuntimeSelectorError
+
+	entries := make([]runtimeSelectorEntry, len(hostNames))
+	for i, name := range hostNames {
 		e := m.Connection.Pool.Get(name)
 		marker := "  "
-		if i == m.Connection.RuntimeSelectorCursor {
+		if i == cursor {
 			marker = "> "
 		}
 		status := "disconnected"
 		runtime := "-"
+		version := "-"
 		security := ""
+		latency := "-"
 		if e != nil && e.State == dockerclient.StateConnected {
 			status = "connected"
+			if e.Latency > 0 {
+				latency = e.Latency.String()
+			}
+		}
+		if e != nil && e.Engine != nil {
+			identity := e.Engine.Identity()
+			if identity.Version != "" {
+				version = identity.Version
+			}
 		}
 		if e != nil && e.Runtime != "" {
 			runtime = string(e.Runtime)
@@ -288,13 +331,33 @@ func renderRuntimeSelector(m *state.AppModel) string {
 				security = " " + i18n.T(securityKey)
 			}
 		}
-		if failure, ok := m.Connection.RuntimeSelectorError[name]; ok {
+		if failure, ok := errors[name]; ok {
 			status = "error: " + i18n.ConnectionFailureMessage(string(failure.Kind))
 		}
-		rows = append(rows, marker+name+" ["+runtime+"]"+security+" "+status)
+		entries[i] = runtimeSelectorEntry{
+			Marker: marker,
+			Name:   name,
+			Info: fmt.Sprintf("    [%s v%s @ %s] %s latency=%s%s",
+				runtime, version, socketDisplay(e), status, latency, security),
+		}
 	}
-	rows = append(rows, "", "Enter connect  Esc cancel")
-	return lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(1, 2).Width(60).Render(strings.Join(rows, "\n"))
+
+	ui := runtimeSelectorUI{
+		Title:   "Select runtime connection",
+		Entries: entries,
+		Footer:  "Enter connect  Esc cancel  R refresh",
+		Border:  lipgloss.RoundedBorder(),
+		Padding: [2]int{1, 2},
+		Width:   100,
+	}
+	return ui.Render()
+}
+
+func socketDisplay(e *dockerclient.PoolEntry) string {
+	if e == nil || e.Host == "" {
+		return "-"
+	}
+	return e.Host
 }
 
 func renderMiddlePanel(m *state.AppModel, panelH int, panelW int) string {

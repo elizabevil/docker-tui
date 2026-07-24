@@ -4,13 +4,13 @@ import (
 	"testing"
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
 
 func TestRuntimeSelectorNavigationAndCancel(t *testing.T) {
-	p := dockerclient.NewPool()
+	p := dockerclient.NewPool(nil)
 	p.AddHost(dockerclient.HostEntry{Name: "docker", Host: "unix:///docker.sock", Runtime: "docker"})
 	p.AddHost(dockerclient.HostEntry{Name: "podman", Host: "unix:///podman.sock", Runtime: "podman"})
 	m := state.NewAppModel(config.DefaultConfig(), nil, "test")

@@ -1,20 +1,19 @@
 package state
 
 import (
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
 // ConnectionState owns the active runtime, selector and health state.
 type ConnectionState struct {
 	Engine                  runtimeapi.Engine
-	Pool                    *dockerclient.ConnectionPool
+	Pool                    *runtimeapi.ConnectionPool
 	Connecting              bool
 	Connected               bool
 	ConnectionTarget        string
-	ConnectionFailure       dockerclient.ConnectionFailure
+	ConnectionFailure       runtimeapi.ConnectionFailure
 	RuntimeSelectorCursor   int
-	RuntimeSelectorError    map[string]dockerclient.ConnectionFailure
+	RuntimeSelectorError    map[string]runtimeapi.ConnectionFailure
 	RuntimeSelectorDisabled bool
 	HealthFailures          int
 	HealthDegraded          bool
@@ -41,7 +40,7 @@ func (s *ConnectionState) ConnectedTo(name string, engine runtimeapi.Engine) {
 	s.Connecting = false
 	s.Connected = engine != nil
 	s.ConnectionTarget = name
-	s.ConnectionFailure = dockerclient.ConnectionFailure{}
+	s.ConnectionFailure = runtimeapi.ConnectionFailure{}
 	s.HealthFailures = 0
 	s.HealthDegraded = false
 	if s.RuntimeSelectorError != nil {
@@ -62,7 +61,7 @@ func (s *ConnectionState) Failed(name string, err error) {
 	s.Connecting = false
 	s.Connected = false
 	s.ConnectionTarget = name
-	s.ConnectionFailure = dockerclient.ClassifyConnectionError(err)
+	s.ConnectionFailure = runtimeapi.ClassifyConnectionError(err)
 	s.RuntimeType = ""
 	s.EngineVersion = ""
 	s.HealthFailures = 0
@@ -76,11 +75,11 @@ func (s *ConnectionState) SelectionFailed(name string, err error) {
 
 func (s *ConnectionState) SetProbeResult(name string, err error) {
 	if s.RuntimeSelectorError == nil {
-		s.RuntimeSelectorError = make(map[string]dockerclient.ConnectionFailure)
+		s.RuntimeSelectorError = make(map[string]runtimeapi.ConnectionFailure)
 	}
 	if err == nil {
 		delete(s.RuntimeSelectorError, name)
 		return
 	}
-	s.RuntimeSelectorError[name] = dockerclient.ClassifyConnectionError(err)
+	s.RuntimeSelectorError[name] = runtimeapi.ClassifyConnectionError(err)
 }

@@ -5,18 +5,19 @@ import (
 	"errors"
 	"testing"
 
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
+	"github.com/elizabevil/docker-tui/internal/data/runtime"
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime/docker"
 )
 
 func TestConnectionStateOwnsConnectionTransitions(t *testing.T) {
-	client := &dockerclient.Client{RuntimeType: dockerclient.RuntimePodman, EngineVersion: "5.0"}
+	client := &dockerclient.Client{EngineVersion: "5.0"}
 	var connection ConnectionState
 	connection.Begin()
-	connection.ConnectedTo("podman", client)
+	connection.ConnectedTo("docker", client)
 	if connection.Connecting || !connection.Connected || connection.Engine != client {
 		t.Fatalf("connected state = %#v", connection)
 	}
-	if connection.RuntimeType != "podman" || connection.EngineVersion != "5.0" {
+	if connection.RuntimeType != "docker" || connection.EngineVersion != "5.0" {
 		t.Fatalf("runtime metadata = %q, %q", connection.RuntimeType, connection.EngineVersion)
 	}
 
@@ -33,7 +34,7 @@ func TestConnectionStateKeepsActiveClientOnSelectionFailure(t *testing.T) {
 	if connection.Engine != client || !connection.Connected {
 		t.Fatal("selection failure discarded the active connection")
 	}
-	if connection.RuntimeSelectorError["remote"].Kind != dockerclient.ConnectionErrorCA {
+	if connection.RuntimeSelectorError["remote"].Kind != runtime.ConnectionErrorCA {
 		t.Fatalf("selector errors = %#v", connection.RuntimeSelectorError)
 	}
 }
