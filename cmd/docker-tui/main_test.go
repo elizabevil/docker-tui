@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
+	"github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
 func TestRuntimeConnectionsIncludeLocalAndConfiguredEntries(t *testing.T) {
@@ -11,7 +12,7 @@ func TestRuntimeConnectionsIncludeLocalAndConfiguredEntries(t *testing.T) {
 	cfg.Runtime.Default = "remote"
 	cfg.Runtime.Connections = []config.RuntimeConn{{Name: "remote", Driver: "docker", Endpoint: "tcp://example:2376"}}
 
-	entries, initial := runtimeConnections(cfg, "", false)
+	entries, initial := runtime.BuildConnections(&cfg.Runtime)
 	if initial != "remote" || len(entries) != 3 {
 		t.Fatalf("initial=%q entries=%#v", initial, entries)
 	}
@@ -25,7 +26,7 @@ func TestRuntimeConnectionsDeduplicateConfiguredLocalEndpoint(t *testing.T) {
 	cfg.Runtime.Default = "configured-docker"
 	cfg.Runtime.Connections = []config.RuntimeConn{{Name: "configured-docker", Driver: "docker", Endpoint: "unix:///var/run/docker.sock"}}
 
-	entries, initial := runtimeConnections(cfg, "", false)
+	entries, initial := runtime.BuildConnections(&cfg.Runtime)
 	if len(entries) != 2 || entries[0].Name != "configured-docker" || initial != "configured-docker" {
 		t.Fatalf("initial=%q entries=%#v", initial, entries)
 	}
@@ -33,7 +34,7 @@ func TestRuntimeConnectionsDeduplicateConfiguredLocalEndpoint(t *testing.T) {
 
 func TestRuntimeConnectionsHostOverrideIsExclusive(t *testing.T) {
 	cfg := config.DefaultConfig()
-	entries, initial := runtimeConnections(cfg, "tcp://example:2375", true)
+	entries, initial := runtime.BuildConnections(&cfg.Runtime, runtime.WithHostOverride("tcp://example:2375", true))
 	if initial != "cli" || len(entries) != 1 || entries[0].Runtime != "podman" {
 		t.Fatalf("initial=%q entries=%#v", initial, entries)
 	}
@@ -42,7 +43,7 @@ func TestRuntimeConnectionsHostOverrideIsExclusive(t *testing.T) {
 func TestPodmanOverrideAddsLocalEntryWhenDiscoveryDisabled(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.Runtime.Discovery.LocalPodman = false
-	entries, initial := runtimeConnections(cfg, "", true)
+	entries, initial := runtime.BuildConnections(&cfg.Runtime, runtime.WithHostOverride("", true))
 	if initial != "local-podman" {
 		t.Fatalf("initial=%q", initial)
 	}
@@ -59,7 +60,7 @@ func TestRuntimeConnectionsAlwaysIncludeLocalRuntimes(t *testing.T) {
 	cfg := config.DefaultConfig()
 	cfg.Runtime.Discovery.LocalDocker = false
 	cfg.Runtime.Discovery.LocalPodman = false
-	entries, _ := runtimeConnections(cfg, "", false)
+	entries, _ := runtime.BuildConnections(&cfg.Runtime)
 	if len(entries) < 2 || entries[0].Name != "local-docker" || entries[1].Name != "local-podman" {
 		t.Fatalf("entries=%#v", entries)
 	}

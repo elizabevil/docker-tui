@@ -9,11 +9,11 @@
 | 容器列表、启停、重启、Kill、删除 | 已实现 | `internal/tui/keyboard/container_action.go` |
 | 实时日志 | 已实现 | 当前为按需拉取/显示，不是启动即常驻事件流 |
 | 容器 stats | 已实现 | 定时轮询当前容器列表，不是只轮询单个聚焦容器 |
-| 镜像列表、Pull、Prune、Tag、Push、Save、Load、详情 | 已实现 | 镜像传输支持进度、取消和错误展示；Debug 保留命令预览；详情页按普通镜像 layer history 或 manifest 平台变体分区渲染 |
+| 镜像列表、Pull、Prune、Tag、Push、Save、Load、详情 | 已实现 | 镜像传输支持进度、取消和错误展示；Debug 保留命令预览；详情页按普通镜像 layer history 或 manifest 平台变体分区渲染；Docker 与 Podman 都提供结构化 `ImageDetail`（架构、OS、Driver、LayerCount、Runtime config、History） |
 | Volume / Network 创建、列表、清理、删除、详情 | 已实现 | `c` 创建、`p` 清理；清理报告保留逐资源部分失败 |
 | Compose 项目视图 | 已实现 | 基于 `com.docker.compose.*` labels 聚合，不解析 `compose.yaml` |
 | 主题、i18n、帮助页、命令模式、过滤 | 已实现 | `zh` / `en` 已接入 |
-| 运行时切换 | 部分实现 | 连接池和 `F2` 切换已接入，默认工作流偏本地 Docker / Podman |
+| 运行时切换 | 已实现 | 连接池通过 `runtimeapi.BuildConnections` 组合本地 Docker / Podman 候选与配置连接；`F2` 打开 `runtime/runtimeSelector` 切换面板；按 `5s` 周期刷新延迟/状态；配置连接和远程 Docker / Podman 都经 TLS 配置校验后接入 |
 | Docker / Podman Events 实时同步 | 已实现 | 绑定活动连接，支持退避重连、事件合并、局部刷新和轮询降级；独立事件面板仍属后续增强 |
 | 自定义快捷键 | 已实现 | `keymap.*` 覆盖会编译为运行时绑定，Help / Footer 投影当前有效键位 |
 | 用户操作审计 | 已实现 | 资源操作共享 trace，终态投影到通知与 Footer，并按日写入 JSONL |

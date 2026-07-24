@@ -6,11 +6,14 @@ set -euo pipefail
 
 echo "=== Installing CGo dev headers for Podman SDK ==="
 
+sudo apt install -y pkg-config
+
 # libgpgme-dev — GPGME bindings (needed by containers/image)
-sudo apt-get install -y libgpgme-dev
+
+sudo apt install -y libgpgme-dev
 
 # libbtrfs-dev — btrfs storage driver (needed by containers/storage)
-sudo apt-get install -y libbtrfs-dev
+sudo apt install -y libbtrfs-dev
 
 echo "=== CGo headers installed ==="
 echo ""

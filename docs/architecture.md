@@ -21,7 +21,7 @@
 1. 解析 CLI 参数：`--config`、`--host`、`--theme`、`--podman`、`--list-themes`、`--lang`、`--version`
 2. 按 `configVersion: 1` 严格加载配置与主题
 3. 初始化 i18n 与尺寸格式化策略
-4. 创建 `internal/data/docker.ConnectionPool`
+4. 通过 `runtimeapi.BuildConnections(&cfg.Runtime, WithHostOverride(...))` 组合本地候选与配置连接，再交由 `runtimeapi.NewPool(runtimeinit.NewEngineFactory())` 创建连接池
 5. 构造 `state.AppModel`
 6. 启动 Bubble Tea 程序
 
@@ -30,6 +30,7 @@
 - 主机资源定时 tick
 - Toast 定时 tick
 - 首次容器引擎连接尝试
+- `probeAllOnStart`：进入 runtime selector 前先并发探测所有连接，把结果合并成 `RuntimeProbeResult`，让首屏显示真实延迟
 
 ## 分层
 
@@ -51,9 +52,11 @@ cmd/docker-tui/
 
 - `audit`：用户操作 trace、强类型目标、通知/操作历史投影和按日 JSONL sink
 - `config`：配置默认值、加载、保存、主题加载
-- `runtime`：SDK 无关的 Engine、Container/Volume/Network service、领域 DTO、错误、capability、筛选 options，以及共享 Podman REST transport
-- `docker`：迁移期兼容 facade 和连接池；Docker 使用 SDK，Podman 的 Container/Image/Volume/Network list 以及 Volume/Network inspect/remove 已具备 bindings/REST 双 transport 和共享 mapper
+- `runtime`：SDK 无关的 Engine、Container/Volume/Network service、领域 DTO、错误、capability、筛选 options；`ConnectionPool` 持有注入的 `EngineFactory`，统一负责连接接入、ping 探测、健康刷新和反射层 typed-nil 接口清理
+- `runtime/docker`：Docker 适配器（实现 `runtime.Engine`），通过 Docker SDK 与 docker-compatible REST API 提供容器/镜像/卷/网络等资源
+- `runtime/podman`：Podman 适配器，实现 `runtime.Engine`，含 Container/Image/Volume/Network 全套服务（List/Inspect/Action/Prune/Logs/Events/Exec）；依赖同包的 DTO 与 driver 包提供的共享 REST transport
 - `i18n`：`zh` / `en` 文案
+- `internal/runtimeinit`：连接池工厂注册点，导出 `NewEngineFactory()`，内部依赖 `runtime/docker` 与 `runtime/podman` 实现 Docker/Podman 派发，并通过反射处理 typed-nil 接口
 
 ### `internal/tui`
 
@@ -136,29 +139,58 @@ keyboard action
 ## 当前已实现能力
 
 - 多资源面板：容器、镜像、卷、网络、Compose
-- 连接池：本地 Podman / Docker 自动尝试，可运行时切换
+- 连接池：本地 Podman / Docker 自动尝试，可运行时切换；`RefreshAll` 统一延迟与状态探测，Podman 5.x 的版本协商自动回退到 `/v4.0.0/libpod/version`
 - TLS 连接：默认验证证书，支持显式 `insecureSkipVerify`；UI 区分 TLS configured、verified 和 insecure，证书材料在首次连接时加载
 - 统一只读资源：Container/Image/Volume/Network list 使用统一 options 和筛选契约；Podman CGO 使用 bindings，非 CGO 或 TLS/API override 使用共享 REST transport
 - 高频容器操作：Pause/Unpause、Rename、Top 和结构化 Port bindings 当前仍主要通过 Docker-compatible API，等待 action/top service 迁移
 - 容器操作：启动、停止、重启、Kill、Logs、Exec、Inspect
-- 镜像操作：拉取、删除、Prune、Detail、导出/调试入口
+- 镜像操作：拉取、删除、Prune、Tag、Push、Save、Load、Inspect（Docker 与 Podman 都有结构化详情）；Podman 适配器已对齐 `runtime.ImageDetail` 字段（ID、RepoTags、Architecture、OS、Driver、LayerCount、Runtime config、History）
 - 卷/网络：列表、删除、详情
 - Compose：从容器标签聚合项目与服务视图
 - UI 能力：搜索、命令模式、帮助页、主题、i18n、Header 开关
 - 用户操作审计：资源操作 trace、通知与 Footer 投影、按日 JSONL 落盘
 
-镜像详情优先使用 `InspectImageDetail()` 的结构化模型。普通镜像通过 runtime `ImageHistory` API 加载 layer history；manifest list 使用列表阶段解析的平台变体，不调用不适用的 layer history API。
+镜像详情优先使用 `InspectImageDetail()` 的结构化模型。普通镜像通过 runtime `ImageHistory` API 加载 layer history；manifest list 使用列表阶段解析的平台变体，不调用不适用的 layer history API。Podman 通过 `/v4.0.0/libpod/images/{id}/json` 与 `/v4.0.0/libpod/images/{id}/history` 双接口实现同等结构。
+
+## 连接池与引擎工厂分层
+
+`ConnectionPool` 仅依赖 `EngineFactory` 函数类型，不再持有任何全局可变状态：
+
+```text
+runtimeinit.NewEngineFactory()     ┐
+                                  ├─> runtime.EngineFactory (func)
+runtime/docker.NewClient          ┘
+runtime/podman.NewEngine           ┘
+                                       │
+                                       ▼
+runtimeapi.NewPool(factory)  ─► ConnectionPool.Connect / RefreshAll
+                                       │
+                                       ▼
+                              runtime.Engine (interface)
+                                       │
+                          ┌────────────┴─────────────┐
+                          ▼                          ▼
+                 runtime/docker.Client     runtime/podman.PodmanEngine
+```
+
+调用方通过注入工厂同时避免：
+- 全局 `engineFactory` 变量被任何 init() 副作用污染
+- runtime 与 docker/podman 适配器形成导入循环
+- typed-nil 接口逃逸到 `ConnectionPool.Connect`/`RefreshAll`（`sanitizeEngine` + `engineIsUsable` 双层防御）
 
 ## 代码验证后的注意点
 
 这些内容在旧文档里容易被写错，这里按当前代码记录：
 
-- `internal/data/docker/events.go` 已实现 `Client.Events()`，但启动流程里没有订阅事件流；当前刷新主路径仍是连接后 `FetchAll()` 和显式刷新。
+- `internal/driver/podman` 只保留 REST transport 实现，所有 mapper / service / error mapping 都在 `internal/data/runtime/podman` 中，依赖方向是 `runtime → driver`。
+- `runtime/init` 包负责把 docker / podman adapter 装配成可注入的 `EngineFactory`，并通过反射处理 typed-nil 接口。
+- 连接池 `Connect` 只负责单连接的创建与 ping；`RefreshAll` 遍历所有 host，更新 latency/probedAt/state；`PingLoop` 仅定期 ping 已存在引擎的连接。
 - `Client.Raw()` 仍被 Stats 和 Exec 路径使用；TUI 尚未完全解除 Docker SDK 依赖。
 - 容器 stats 当前不是“仅聚焦项轮询”，而是对当前容器列表逐项请求，轮询间隔来自 `config.Docker.StatsPollSec`，默认 3 秒。
 - Compose 面板不是直接解析 `compose.yaml`，而是基于容器上的 `com.docker.compose.*` labels 聚合。
 - `config.Keymap` 已通过统一动作注册表接入 `keyboard.HandleKeyPress()`；当前支持动作级默认绑定覆盖，用户级上下文覆盖尚未开放。
 - CLI `Use` 名称是 `dtui`，但仓库中仍有部分构建脚本输出文件名 `docker-tui`；文件名和 Cobra `Use` 目前未完全统一。
+- Podman 适配器中 Image.Inspect 已完整实现，详情页支持 Runtime（WorkingDir / Cmd / Entrypoint / Env / Labels / ExposedPorts / Volumes）和 History 层。
 
 ## 配置入口
 

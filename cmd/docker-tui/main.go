@@ -12,8 +12,9 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/config"
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/docker"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/runtimeinit"
 	"github.com/elizabevil/docker-tui/internal/tui"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/app"
@@ -97,8 +98,10 @@ func runTUI() error {
 	tui.ApplyTheme(theme)
 	tui.ApplyLayoutConfig(&cfg.Layout)
 
-	pool := dockerclient.NewPool()
-	connections, initialConnection := runtimeConnections(cfg, dockerHost, podmanMode)
+	pool := runtimeapi.NewPool(runtimeinit.NewEngineFactory())
+	connections, initialConnection := runtimeapi.BuildConnections(&cfg.Runtime,
+		runtimeapi.WithHostOverride(dockerHost, podmanMode),
+	)
 	for _, connection := range connections {
 		pool.AddHost(connection)
 	}
@@ -133,17 +136,55 @@ func (m *mainModel) Init() tea.Cmd {
 		func() tea.Msg { return state.ToastTick{} },
 		func() tea.Msg { return state.RuntimeHealthTick{} },
 		connectDocker(m.model.Connection.Pool, m.initialConnection),
+		probeAllOnStart(m.model.Connection.Pool, m.initialConnection),
 	)
 }
 
-func connectDocker(pool *dockerclient.ConnectionPool, name string) tea.Cmd {
+// probeAllOnStart runs an initial probe of every known host so the runtime
+// selector displays latency, version and status on first launch. The
+// selected host is probed first so the active connection is measured
+// immediately.
+func probeAllOnStart(pool *runtimeapi.ConnectionPool, active string) tea.Cmd {
 	return func() tea.Msg {
-		candidates := []string{name}
-		if name == "local-docker" {
-			candidates = append(candidates, "local-podman")
+		results := pool.RefreshAll(2 * time.Second)
+		cmds := make([]tea.Cmd, 0, len(results)+1)
+		// Order non-active results first, then the active one so the UI
+		// measures the selected connection immediately on first paint.
+		var activeResult *runtimeapi.RefreshResult
+		for i := range results {
+			r := &results[i]
+			if r.Name == active {
+				activeResult = r
+				continue
+			}
+			probe := r
+			cmds = append(cmds, func() tea.Msg {
+				return state.RuntimeProbeResult{Name: probe.Name, Error: probe.Error}
+			})
 		}
+		if activeResult != nil {
+			ar := activeResult
+			cmds = append(cmds, func() tea.Msg {
+				return state.RuntimeProbeResult{Name: ar.Name, Error: ar.Error}
+			})
+		}
+		cmds = append(cmds, tea.Tick(5*time.Second, func(t time.Time) tea.Msg {
+			return state.ConnectionRefreshTick{}
+		}))
+		return tea.Batch(cmds...)
+	}
+}
+
+func connectDocker(pool *runtimeapi.ConnectionPool, name string) tea.Cmd {
+	return func() tea.Msg {
+		names := pool.KnownHostNames()
+		if len(names) == 0 {
+			return state.DockerConnected{Name: name, Error: fmt.Errorf("no runtime connections configured")}
+		}
+
+		// Try all connections sequentially; first success wins.
 		var errors []string
-		for _, candidate := range candidates {
+		for _, candidate := range names {
 			if pool.Get(candidate) == nil {
 				continue
 			}
@@ -162,48 +203,6 @@ func connectDocker(pool *dockerclient.ConnectionPool, name string) tea.Cmd {
 		}
 		return state.DockerConnected{Name: name, Error: fmt.Errorf("no available runtime (%s)", strings.Join(errors, "; "))}
 	}
-}
-
-func runtimeConnections(cfg *config.Config, hostOverride string, usePodman bool) ([]dockerclient.HostEntry, string) {
-	if hostOverride != "" {
-		driver := dockerclient.RuntimeDocker
-		if usePodman {
-			driver = dockerclient.RuntimePodman
-		}
-		return []dockerclient.HostEntry{{Name: "cli", Host: hostOverride, Runtime: driver}}, "cli"
-	}
-
-	connections := make([]dockerclient.HostEntry, 0, len(cfg.Runtime.Connections)+2)
-	seen := make(map[string]int, len(cfg.Runtime.Connections)+2)
-	aliases := make(map[string]string, len(cfg.Runtime.Connections)+2)
-	add := func(entry dockerclient.HostEntry, replace bool) {
-		key := entry.Key()
-		if index, exists := seen[key]; exists {
-			if replace {
-				aliases[connections[index].Name] = entry.Name
-				connections[index] = entry
-			}
-			return
-		}
-		seen[key] = len(connections)
-		connections = append(connections, entry)
-	}
-	// Local runtimes are always candidates; discovery settings do not hide an
-	// installed runtime from the selector. Unavailable sockets fail visibly.
-	add(dockerclient.HostEntry{Name: "local-docker", Host: "unix:///var/run/docker.sock", Runtime: dockerclient.RuntimeDocker}, false)
-	add(dockerclient.HostEntry{Name: "local-podman", Host: dockerclient.PodmanUserEndpoint(os.Getuid()), Runtime: dockerclient.RuntimePodman}, false)
-	for _, connection := range cfg.Runtime.Connections {
-		spec := dockerclient.FromRuntimeConn(connection)
-		add(dockerclient.HostEntry(spec), true)
-	}
-	initial := cfg.Runtime.Default
-	if usePodman {
-		initial = "local-podman"
-	}
-	if canonical, exists := aliases[initial]; exists {
-		initial = canonical
-	}
-	return connections, initial
 }
 
 func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

@@ -1,7 +1,7 @@
 # 后续需求实施任务清单
 
 > 建立日期: 2026-07-20
-> 最近整理: 2026-07-22
+> 最近整理: 2026-07-24
 > 依据: [后续需求与规划讨论](future-requirements-discussion.md)、[Docker / Podman 能力分析](podman-capabilities-analysis.md)
 > 规则: 本文是后续工作的唯一主任务台账；其他设计文档中的任务编号仅作为来源参考。
 
@@ -20,15 +20,17 @@
 
 | 状态 | 数量 |
 |---|---:|
-| `done` | 15 |
+| `done` | 16 |
 | `in_progress` | 0 |
-| `todo` | 6 |
+| `todo` | 5 |
 | `blocked` | 0 |
 
 当前执行队列：
 
 1. 执行 `TASK-011`，完善 Compose / 容器 / 镜像联动刷新。
 2. 执行 `TASK-010`，批量操作扩展与部分成功反馈。
+
+最近一次维护说明：TASK-021 已增加 Podman `Image.Inspect` 与连接池结构性修复记录，状态保持 `done`。
 
 ## 已完成基础
 
@@ -64,13 +66,14 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 
 | 编号 | 任务 | 优先级 | 状态 | 依赖 | 验收重点 |
 |---|---|---:|---|---|---|
-| `TASK-021` | [Docker / Podman 统一 runtime driver](unified-runtime-driver.md) | P0 | `done` | TASK-004 | 独立 Docker/Podman Engine；统一 Container/Image/Volume/Network service；Podman native actions、Logs、Events、Exec；同字段 AND 筛选；统一 errors/capabilities；TUI/state 仅依赖 `runtime.Engine`；CGO/non-CGO 矩阵通过 |
+| `TASK-021` | [Docker / Podman 统一 runtime driver](unified-runtime-driver.md) | P0 | `done` | TASK-004 | 独立 Docker/Podman Engine；统一 Container/Image/Volume/Network service；Podman native actions、Logs、Events、Exec、镜像 Inspect（runtime.ImageDetail 对齐）；同字段 AND 筛选；统一 errors/capabilities；TUI/state 仅依赖 `runtime.Engine`；CGO/non-CGO 矩阵通过；连接池通过 `EngineFactory` 注入，typed-nil 接口经反射清理 |
 | `TASK-008` | Docker / Podman Events 接入主循环 | P1 | `done` | TASK-003、TASK-021 | 订阅绑定活动连接；切换时取消；1-30 秒退避重连；100ms 事件合并；按资源局部刷新；15 秒轮询降级 |
 | `TASK-009` | Volume / Network 创建与清理 | P1 | `done` | TASK-021 | 已完成 create、prune、确认交互、逐资源部分失败反馈、Docker/Podman contract tests 和双构建矩阵 |
 | `TASK-010` | 批量操作扩展与部分成功反馈 | P2 | `todo` | 审计模型、TASK-017 | 每个目标独立终态、汇总提示和可追溯审计 |
 | `TASK-011` | Compose / 容器 / 镜像联动刷新 | P2 | `todo` | TASK-008 | 事件只使相关资源失效，不直接修改复杂 UI 状态 |
 | `TASK-017` | 高频容器操作 | P0 | `done` | TASK-004 | 已实现状态约束的 `pause` / `unpause`、批量跳过汇总、`rename` 输入校验、独立 `top` 页面和结构化 `port` 展示，并通过 Docker / Podman 兼容 API 契约测试 |
 | `TASK-018` | 镜像标签与传输工作流 | P1 | `done` | TASK-021 | runtime-neutral transfer service；`tag`、`push`、`save`、`load`；字节/daemon 进度、context 取消、错误展示和审计终态 |
+| `TASK-024` | [Podman 镜像详情 + 连接池工厂化重构](unified-runtime-driver.md) | P1 | `done` | TASK-021 | 补齐 TASK-021 Phase 2 中 Podman `ImageService.Inspect` 的 TODO；移除 `global engineFactory` 与 `SetEngineFactory`；`runtimeinit.NewEngineFactory()` 与 `runtime.EngineFactory` 注入到 `runtimeapi.NewPool`；`sanitizeEngine` / `engineIsUsable` 反射防御 typed-nil 接口；APIVersion 回退覆盖所有错误而非仅 404；`RefreshAll` 替换 `Probe`/`pingAll`；`refreshOne` 对 transient 引擎真实 ping。本条目是 TASK-021 收尾增量 |
 | `TASK-019` | 高级容器操作 | P2 | `todo` | TASK-017、TASK-021 | 评估并分批实现 `update`、`diff`、`export`、`commit`、`wait`、`cp` |
 | `TASK-022` | [Podman REST 适配收紧与 docker/service 统一入口](podman-rest-migration.md) | P1 | `todo` | TASK-021 | `runtime/podman.Client` 改造为方法式 + `dto.*` 签名 + 驱动/REST 双形态；`gpgme` 仅 CGO；`dto/` 具名类型零 `go.podman.io` 依赖；全仓匿名 struct 清零；`docker/service` 建立 Docker/Podman 统一入口（先 4 个核心 service） |
 | `TASK-023` | 清理 `internal/data/docker/podman_*.go` 与旧 `podmanContainerService` 等兼容实现 | P2 | `todo` | TASK-022 | TASK-022 完成后统一移除 `docker/podman_*.go` 共 24 个生产文件 + 8 个测试文件；`docker/Client.podmanREST` 字段清理；engine_factory 切到统一 service |
@@ -97,7 +100,7 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 | Container | ✅ Engine 接口 | ✅ Engine 接口 | ✅ `ContainerDetail` | ✅ CGO+REST |
 | Volume | ✅ Engine 接口 | ✅ Engine 接口 | ✅ `VolumeDetail` | ✅ CGO+REST |
 | Network | ✅ Engine 接口 | ✅ Engine 接口 | ✅ `NetworkDetail` | ✅ CGO+REST |
-| Image | ✅ Engine 接口 | ✅ Engine 接口 | ✅ `ImageSummary`/`ImageDetail` | ✅ CGO+REST |
+| Image | ✅ Engine 接口 | ✅ Engine 接口（Podman 通过 `/v4.0.0/libpod/images/{id}/json` + `/history` 双接口实现） | ✅ `ImageSummary`/`ImageDetail` | ✅ CGO+REST |
 
 ### TASK-021 完成标准检查
 
@@ -111,6 +114,8 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 | 6 | TASK-017 的 5 个操作在两种 runtime 下通过 | ✅ 达标 |
 | 7 | TASK-009 的 create/prune 统一 options/results 就绪 | ✅ 达标 |
 | 8 | CGO/non-CGO 策略清晰，build matrix 通过 | ✅ 达标 |
+| 9 | 镜像详情双 runtime 结构化对齐（含 layer history） | ✅ 达标（TASK-024 收尾） |
+| 10 | ConnectionPool 通过注入工厂取代全局 `engineFactory` | ✅ 达标 |
 
 ### 已完成工作
 
@@ -120,6 +125,10 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 | TUI 持有 `runtime.Engine` 而非 `*docker.Client` | ✅ | 解耦 TUI 与具体适配器 |
 | Volume/Network Inspect/Remove 加入 Service 接口 | ✅ | 完善 `VolumeService`/`NetworkService` 的方法集 |
 | Container Attach | ✅ | 独立 container attach 能力 |
+| Podman Image.Inspect | ✅ | 通过 `/v4.0.0/libpod/images/{id}/json` + `/v4.0.0/libpod/images/{id}/history` 双接口实现；映射到 `runtime.ImageDetail`；History 失败可降级（写入 `detail.HistoryError`） |
+| ConnectionPool 工厂化 | ✅ | 删除全局 `engineFactory` 变量；`runtime.EngineFactory` 由 `runtimeinit.NewEngineFactory()` 注入；typed-nil 接口由反射清理 |
+| RefreshAll 整合 | ✅ | 删除分散的 `Probe`/`pingAll`，统一在 `RefreshAll` 中实现；transient 引擎也执行真实 ping |
+| APIVersion 健壮性 | ✅ | Podman 5.x 任意错误都触发 `/v4.0.0/libpod/version` 回退 |
 
 ## 操作历史与体验
 

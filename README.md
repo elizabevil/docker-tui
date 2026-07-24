@@ -4,6 +4,13 @@
 
 > CLI 名称是 `dtui`，仓库默认构建产物目前为 `dist/docker-tui`。
 
+## 最近变更
+
+- **Podman 镜像详情**：`runtime/podman` 适配器已实现 `Inspect` 路径。`/v4.0.0/libpod/images/{id}/json` 与 `/v4.0.0/libpod/images/{id}/history` 双接口联通，结构化 `ImageDetail` 与 Docker 适配器对齐；缺失字段统一显示 `—` 而不是上报错误。
+- **Podman 版本协商修复**：旧实现只对 404 触发 `/v4.0.0/libpod/version` 回退；现在针对任意失败都会继续尝试带版本前缀的路径，避免在 Podman 5.x 返回 4xx 或重定向时错失真正的版本。
+- **连接池重构**：`ConnectionPool.RefreshAll(timeout)` 统一了原本分散在 `Probe`/`pingAll` 的探测逻辑；`refreshOne` 对新建的瞬时引擎同样执行 ping，Podman 这类“创建即返回”的适配器也能在 selector 中显示真实延迟和真实状态。
+- **类型化 nil 接口防御**：`runtimeinit.sanitizeEngine` 与 `engineIsUsable` 双层保护，连接池不再在 typed-nil 接口上调用 `Close()`，避免了之前 F2 selector 的 panic。
+
 ## 功能
 
 - 管理容器：列表、启动、停止、重启、Pause/Unpause、Rename、Top、Port、Kill、删除、日志、Stats、Inspect 和 Exec
