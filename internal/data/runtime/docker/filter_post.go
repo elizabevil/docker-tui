@@ -10,7 +10,10 @@ import (
 // PostFilterContainers filters runtime-neutral container summaries by the
 // runtime filter contract. Field semantics are kept aligned with the Docker
 // SDK's /containers/json response.
-func PostFilterContainers(items []runtimeapi.ContainerSummary, filters runtimeapi.FilterSet) ([]runtimeapi.ContainerSummary, error) {
+func PostFilterContainers(
+	items []runtimeapi.ContainerSummary,
+	filters runtimeapi.FilterSet,
+) ([]runtimeapi.ContainerSummary, error) {
 	return runtimeapi.FilterSlice(items, func(item runtimeapi.ContainerSummary) (bool, error) {
 		for field, values := range filters {
 			for _, value := range values[1:] {
@@ -60,7 +63,8 @@ func PostFilterImages(items []runtimeapi.ImageSummary, filters runtimeapi.Filter
 					}
 					matched = isDanglingImage(item) == want
 				case runtimeapi.ImageFilterBefore, runtimeapi.ImageFilterSince, runtimeapi.ImageFilterUntil:
-					return false, runtimeapi.UnsupportedError(runtimeapi.Operation(runtimeapi.ResourceImage, "list.filter") + "." + field + ".and")
+					return false, runtimeapi.UnsupportedError(
+						runtimeapi.Operation(runtimeapi.ResourceImage, "list.filter") + "." + field + ".and")
 				}
 				if !matched {
 					return false, nil

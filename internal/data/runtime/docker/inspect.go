@@ -108,22 +108,43 @@ func mapContainerInspect(raw []byte) (*runtimeapi.ContainerDetail, error) {
 
 func mapContainerInspectResponse(info inspectContainer) *runtimeapi.ContainerDetail {
 	detail := &runtimeapi.ContainerDetail{
-		ID: info.ID, Name: info.Name, Created: info.Created, Platform: info.Platform,
-		RestartCount: info.RestartCount, Networks: map[string]runtimeapi.ContainerNetwork{},
-		Ports: map[string][]runtimeapi.ContainerPortBinding{},
+		ID:           info.ID,
+		Name:         info.Name,
+		Created:      info.Created,
+		Platform:     info.Platform,
+		RestartCount: info.RestartCount,
+		Networks:     map[string]runtimeapi.ContainerNetwork{},
+		Ports:        map[string][]runtimeapi.ContainerPortBinding{},
 	}
 	if info.State != nil {
-		detail.State = runtimeapi.ContainerState{Status: info.State.Status, PID: info.State.Pid, StartedAt: info.State.StartedAt, FinishedAt: info.State.FinishedAt}
+		detail.State = runtimeapi.ContainerState{
+			Status:     info.State.Status,
+			PID:        info.State.Pid,
+			StartedAt:  info.State.StartedAt,
+			FinishedAt: info.State.FinishedAt,
+		}
 	}
 	if info.Config != nil {
 		detail.Image = info.Config.Image
-		detail.Config = runtimeapi.ContainerConfig{WorkingDir: info.Config.WorkingDir, User: info.Config.User, Entrypoint: info.Config.Entrypoint, Command: info.Config.Cmd, Environment: info.Config.Env, Labels: info.Config.Labels}
+		detail.Config = runtimeapi.ContainerConfig{
+			WorkingDir:  info.Config.WorkingDir,
+			User:        info.Config.User,
+			Entrypoint:  info.Config.Entrypoint,
+			Command:     info.Config.Cmd,
+			Environment: info.Config.Env,
+			Labels:      info.Config.Labels,
+		}
 		for port := range info.Config.ExposedPorts {
 			detail.Config.ExposedPorts = append(detail.Config.ExposedPorts, port)
 		}
 	}
 	if info.HostConfig != nil {
-		detail.Resources = runtimeapi.ContainerResources{CPUShares: info.HostConfig.CPUShares, Memory: info.HostConfig.Memory, NanoCPUs: info.HostConfig.NanoCPUs, NetworkMode: info.HostConfig.NetworkMode}
+		detail.Resources = runtimeapi.ContainerResources{
+			CPUShares:   info.HostConfig.CPUShares,
+			Memory:      info.HostConfig.Memory,
+			NanoCPUs:    info.HostConfig.NanoCPUs,
+			NetworkMode: info.HostConfig.NetworkMode,
+		}
 		if info.HostConfig.RestartPolicy != nil {
 			detail.Resources.RestartPolicy = info.HostConfig.RestartPolicy.Name
 			detail.Resources.MaximumRetryCount = info.HostConfig.RestartPolicy.MaximumRetryCount
@@ -131,16 +152,28 @@ func mapContainerInspectResponse(info inspectContainer) *runtimeapi.ContainerDet
 	}
 	if info.NetworkSettings != nil {
 		for name, network := range info.NetworkSettings.Networks {
-			detail.Networks[name] = runtimeapi.ContainerNetwork{IPAddress: network.IPAddress, Gateway: network.Gateway, MACAddress: network.MacAddress}
+			detail.Networks[name] = runtimeapi.ContainerNetwork{
+				IPAddress:  network.IPAddress,
+				Gateway:    network.Gateway,
+				MACAddress: network.MacAddress,
+			}
 		}
 		for port, bindings := range info.NetworkSettings.Ports {
 			for _, binding := range bindings {
-				detail.Ports[port] = append(detail.Ports[port], runtimeapi.ContainerPortBinding{HostIP: binding.HostIP, HostPort: binding.HostPort})
+				detail.Ports[port] = append(detail.Ports[port], runtimeapi.ContainerPortBinding{
+					HostIP:   binding.HostIP,
+					HostPort: binding.HostPort,
+				})
 			}
 		}
 	}
 	for _, mount := range info.Mounts {
-		detail.Mounts = append(detail.Mounts, runtimeapi.ContainerMount{Source: mount.Source, Destination: mount.Destination, Mode: mount.Mode, ReadWrite: mount.RW})
+		detail.Mounts = append(detail.Mounts, runtimeapi.ContainerMount{
+			Source:      mount.Source,
+			Destination: mount.Destination,
+			Mode:        mount.Mode,
+			ReadWrite:   mount.RW,
+		})
 	}
 	return detail
 }

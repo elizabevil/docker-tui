@@ -25,7 +25,7 @@ func (c *Client) ContainerUpdate(ctx context.Context, id string, opts runtimeapi
 	}
 	res, err := c.cli.ContainerUpdate(ctx, id, upd)
 	if err != nil {
-		return runtimeapi.ContainerUpdateResult{}, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "update"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Docker)
+		return runtimeapi.ContainerUpdateResult{}, mapContainerErr(err, "update", id)
 	}
 	return runtimeapi.ContainerUpdateResult{Warnings: res.Warnings}, nil
 }
@@ -34,7 +34,7 @@ func (c *Client) ContainerUpdate(ctx context.Context, id string, opts runtimeapi
 func (c *Client) ContainerDiff(ctx context.Context, id string) ([]runtimeapi.ContainerDiffChange, error) {
 	raw, err := c.cli.ContainerDiff(ctx, id)
 	if err != nil {
-		return nil, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "diff"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Docker)
+		return nil, mapContainerErr(err, "diff", id)
 	}
 	out := make([]runtimeapi.ContainerDiffChange, 0, len(raw))
 	for _, ch := range raw {
@@ -50,7 +50,7 @@ func (c *Client) ContainerDiff(ctx context.Context, id string) ([]runtimeapi.Con
 func (c *Client) ContainerExport(ctx context.Context, id string) (io.ReadCloser, error) {
 	rc, err := c.cli.ContainerExport(ctx, id)
 	if err != nil {
-		return nil, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "export"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Docker)
+		return nil, mapContainerErr(err, "export", id)
 	}
 	return rc, nil
 }
@@ -67,7 +67,7 @@ func (c *Client) ContainerCommit(ctx context.Context, id string, opts runtimeapi
 	}
 	res, err := c.cli.ContainerCommit(ctx, id, cfg)
 	if err != nil {
-		return runtimeapi.ContainerCommitResult{}, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "commit"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Docker)
+		return runtimeapi.ContainerCommitResult{}, mapContainerErr(err, "commit", id)
 	}
 	return runtimeapi.ContainerCommitResult{ID: res.ID}, nil
 }
@@ -81,7 +81,7 @@ func (c *Client) ContainerWait(ctx context.Context, id, condition string) (runti
 	select {
 	case err := <-errCh:
 		if err != nil {
-			return runtimeapi.ContainerWaitResult{}, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "wait"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Docker)
+			return runtimeapi.ContainerWaitResult{}, mapContainerErr(err, "wait", id)
 		}
 	case res := <-resCh:
 		out := runtimeapi.ContainerWaitResult{StatusCode: res.StatusCode}
@@ -97,7 +97,7 @@ func (c *Client) ContainerWait(ctx context.Context, id, condition string) (runti
 func (c *Client) ContainerCopyFrom(ctx context.Context, id, srcPath string) (io.ReadCloser, error) {
 	rc, _, err := c.cli.CopyFromContainer(ctx, id, srcPath)
 	if err != nil {
-		return nil, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "copy"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Docker)
+		return nil, mapContainerErr(err, "copy", id)
 	}
 	return rc, nil
 }
@@ -113,6 +113,16 @@ func mapDiffKind(k container.ChangeType) runtimeapi.ChangeKind {
 	default:
 		return runtimeapi.ChangeModified
 	}
+}
+
+// mapContainerErr wraps a Docker SDK error into a typed runtime Error
+// with the operation and resource annotated. It avoids the long inline
+// MapRuntimeError call in every TASK-019 method.
+func mapContainerErr(err error, op, id string) error {
+	return runtimeapi.MapRuntimeError(err,
+		runtimeapi.Operation(runtimeapi.ResourceContainer, op),
+		runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id},
+		runtimeapi.Docker)
 }
 
 // Compile-time check that the adapter implements the extended service.

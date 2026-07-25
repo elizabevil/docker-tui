@@ -28,27 +28,40 @@ func (s containerService) List(ctx context.Context, options runtimeapi.Container
 			items = items[:options.Limit]
 		}
 	}
-	return items, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "list"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer}, runtimeapi.Docker)
+	return items, mapContainerErrWithID(err, "list", "")
 }
 
 func (s containerService) Inspect(ctx context.Context, id string) (*runtimeapi.ContainerDetail, error) {
 	detail, err := s.client.inspectContainerContext(ctx, id)
-	return detail, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "inspect"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Docker)
+	return detail, mapContainerErrWithID(err, "inspect", id)
 }
 
 func (s containerService) Top(ctx context.Context, id string) (runtimeapi.ContainerProcesses, error) {
 	processes, err := s.client.containerTopContext(ctx, id)
-	return processes, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "top"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Docker)
+	return processes, mapContainerErrWithID(err, "top", id)
 }
 
 func (s containerService) Stats(ctx context.Context, id string) (runtimeapi.ContainerStats, error) {
 	stats, err := s.client.containerStatsContext(ctx, id)
-	return stats, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "stats"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Docker)
+	return stats, mapContainerErrWithID(err, "stats", id)
 }
 
 func (s containerService) Logs(ctx context.Context, id string, options runtimeapi.ContainerLogOptions) (io.ReadCloser, error) {
 	reader, err := s.client.containerLogsContext(ctx, id, options)
-	return reader, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "logs"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Docker)
+	return reader, mapContainerErrWithID(err, "logs", id)
+}
+
+// mapContainerErrWithID wraps a Docker SDK error with the container
+// resource ref. An empty id builds an untyped ref (used for list operations).
+func mapContainerErrWithID(err error, op, id string) error {
+	if err == nil {
+		return nil
+	}
+	ref := runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer}
+	if id != "" {
+		ref.ID = id
+	}
+	return runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, op), ref, runtimeapi.Docker)
 }
 
 // TASK-019 advanced container operations. These delegate to the

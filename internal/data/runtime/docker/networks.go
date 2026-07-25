@@ -96,11 +96,25 @@ func (c *Client) CreateNetworkContext(ctx context.Context, options runtimeapi.Ne
 	if options.Name == "" {
 		return nil, runtimeapi.NewError(runtimeapi.ErrorInvalid, "network.create", "", fmt.Errorf("name is required"))
 	}
-	created, err := c.cli.NetworkCreate(ctx, options.Name, network.CreateOptions{Driver: options.Driver, Internal: options.Internal, EnableIPv6: &options.EnableIPv6, Labels: options.Labels, Options: options.Options})
-	if err != nil {
-		return nil, runtimeapi.MapRuntimeError(err, "network.create", runtimeapi.ResourceRef{Type: runtimeapi.ResourceNetwork, ID: options.Name}, runtimeapi.Docker)
+	createOpts := network.CreateOptions{
+		Driver:     options.Driver,
+		Internal:   options.Internal,
+		EnableIPv6: &options.EnableIPv6,
+		Labels:     options.Labels,
+		Options:    options.Options,
 	}
-	return &runtimeapi.Network{Name: options.Name, ID: created.ID, Driver: options.Driver, Internal: options.Internal, Labels: options.Labels}, nil
+	created, err := c.cli.NetworkCreate(ctx, options.Name, createOpts)
+	if err != nil {
+		return nil, runtimeapi.MapRuntimeError(err, "network.create",
+			runtimeapi.ResourceRef{Type: runtimeapi.ResourceNetwork, ID: options.Name}, runtimeapi.Docker)
+	}
+	return &runtimeapi.Network{
+		Name:     options.Name,
+		ID:       created.ID,
+		Driver:   options.Driver,
+		Internal: options.Internal,
+		Labels:   options.Labels,
+	}, nil
 }
 
 // PruneNetworksContext removes unused networks with a caller-provided context.
@@ -113,7 +127,8 @@ func (c *Client) PruneNetworksContext(ctx context.Context, options runtimeapi.Pr
 	}
 	report, err := c.cli.NetworksPrune(ctx, filterArgs)
 	if err != nil {
-		return runtimeapi.PruneResult{}, runtimeapi.MapRuntimeError(err, "network.prune", runtimeapi.ResourceRef{Type: runtimeapi.ResourceNetwork}, runtimeapi.Docker)
+		return runtimeapi.PruneResult{}, runtimeapi.MapRuntimeError(err, "network.prune",
+			runtimeapi.ResourceRef{Type: runtimeapi.ResourceNetwork}, runtimeapi.Docker)
 	}
 	result := runtimeapi.PruneResult{Resources: make([]runtimeapi.ResourceResult, 0, len(report.NetworksDeleted))}
 	for _, name := range report.NetworksDeleted {
