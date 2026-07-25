@@ -2,22 +2,24 @@ package component
 
 import (
 	"image/color"
+
+	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
 
 // StateColor 返回容器状态的调色板颜色。
-func StateColor(state string) color.Color {
-	switch state {
-	case "running":
+func StateColor(containerState string) color.Color {
+	switch containerState {
+	case state.ContainerStateRunning:
 		return GetColor("green")
-	case "stopping":
+	case state.ContainerStateStopping:
 		return GetColor("yellow")
-	case "stopped", "exited", "dead":
+	case state.ContainerStateStopped, state.ContainerStateExited, state.ContainerStateDead:
 		return GetColor("gray")
-	case "paused":
+	case state.ContainerStatePaused:
 		return GetColor("yellow")
-	case "created":
+	case state.ContainerStateCreated:
 		return GetColor("blue")
-	case "restarting":
+	case state.ContainerStateRestarting:
 		return GetColor("orange")
 	default:
 		return GetColor("gray")
@@ -26,7 +28,7 @@ func StateColor(state string) color.Color {
 
 // RenderStateText 返回带状态色的文字（不含圆点）。
 // 用于表格单元格，颜色从 table.jsonc 的 stateStyles 读取。
-func RenderStateText(state string) string {
-	ref := GetStateStyle(state)
-	return buildStyle(ref).Render(state)
+func RenderStateText(containerState string) string {
+	ref := GetStateStyle(containerState)
+	return buildStyle(ref).Render(containerState)
 }

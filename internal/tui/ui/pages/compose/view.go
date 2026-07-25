@@ -48,13 +48,13 @@ func gatherComposeProjects(m *state.AppModel) ([]composeProj, map[string]*compos
 			projects[p] = item
 		}
 		item.total++
-		if c.State == "running" {
+		if c.State == state.ContainerStateRunning {
 			item.running++
 		}
 		info := item.svcs[s]
 		info.count++
 		info.total++
-		if c.State == "running" {
+		if c.State == state.ContainerStateRunning {
 			info.running++
 		}
 		if info.image == "" {
@@ -165,10 +165,10 @@ func renderProjectList(m *state.AppModel, ordered []composeProj, w, panelHeight 
 		p := ordered[i]
 		sts := "partial"
 		if p.running == p.total {
-			sts = "running"
+			sts = state.ContainerStateRunning
 		}
 		if p.running == 0 {
-			sts = "stopped"
+			sts = state.ContainerStateStopped
 		}
 		cells := make([]string, len(colsDef))
 		for j, cd := range colsDef {
@@ -212,10 +212,10 @@ func renderProjectList(m *state.AppModel, ordered []composeProj, w, panelHeight 
 func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int) string {
 	sts := "partial"
 	if proj.running == proj.total {
-		sts = "running"
+		sts = state.ContainerStateRunning
 	}
 	if proj.running == 0 {
-		sts = "stopped"
+		sts = state.ContainerStateStopped
 	}
 	rawTitle := "Services: " + proj.name
 	rawSummary := fmt.Sprintf("Status: %s  Services: %d  Pods: %d", sts, len(proj.svcs), proj.total)

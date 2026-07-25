@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
 )
 
@@ -155,21 +156,21 @@ func GetRowStyle(name string) styleRef {
 }
 
 // GetStateStyle 返回容器状态颜色（running / exited / paused …）
-func GetStateStyle(state string) styleRef {
-	if s, ok := tableCfg.StateStyles[state]; ok {
+func GetStateStyle(containerState string) styleRef {
+	if s, ok := tableCfg.StateStyles[containerState]; ok {
 		return s
 	}
 	// 兼容旧版命名（stateRunning → running）
-	switch state {
-	case "running":
+	switch containerState {
+	case state.ContainerStateRunning:
 		return tableCfg.StateStyles["running"]
-	case "stopped", "exited", "dead":
+	case state.ContainerStateStopped, state.ContainerStateExited, state.ContainerStateDead:
 		return tableCfg.StateStyles["stopped"]
-	case "paused":
+	case state.ContainerStatePaused:
 		return tableCfg.StateStyles["paused"]
-	case "created":
+	case state.ContainerStateCreated:
 		return tableCfg.StateStyles["created"]
-	case "restarting":
+	case state.ContainerStateRestarting:
 		return tableCfg.StateStyles["restarting"]
 	}
 	return styleRef{}

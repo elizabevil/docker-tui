@@ -22,12 +22,14 @@ const (
 	ActionExported  = "exported"
 	ActionCreated   = "created"
 
-	ContainerStateRunning  = "running"
-	ContainerStateExited   = "exited"
-	ContainerStateCreated  = "created"
-	ContainerStateStopped  = "stopped"
-	ContainerStateStopping = "stopping"
-	ContainerStatePaused   = "paused"
+	ContainerStateRunning   = "running"
+	ContainerStateExited    = "exited"
+	ContainerStateCreated   = "created"
+	ContainerStateStopped   = "stopped"
+	ContainerStateStopping  = "stopping"
+	ContainerStatePaused    = "paused"
+	ContainerStateDead      = "dead"
+	ContainerStateRestarting = "restarting"
 )
 
 // ContainerSortColumn identifies which column to sort by on the containers page.
