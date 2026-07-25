@@ -22,6 +22,8 @@ go build -o ./dist/docker-tui ./cmd/docker-tui
 - [architecture.md](architecture.md)：当前实现架构，已按代码核对
 - [project-structure.md](project-structure.md)：目录与包职责，已按代码核对
 - [navigation.md](navigation.md)：当前默认交互与快捷键
+- [ui-design.md](ui-design.md)：UI 设计系统（布局/组件/表格/样式），从 design/current-design.md 提取的开发者参考
+- [i18n.md](i18n.md)：国际化设计（翻译资源/终端宽度/语言切换），从 design/ui-i18n-design.md 提取的开发者参考
 - [requirements.md](requirements.md)：产品范围和路线图，包含规划项，不等于已实现清单
 - [bugfix-requirements.md](bugfix-requirements.md)：历史 bug 修复需求台账，单独跟踪修复项
 - [ai-prompts.md](ai-prompts.md)：面向当前代码结构的 AI 协作提示

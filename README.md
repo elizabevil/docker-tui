@@ -374,11 +374,12 @@ prefixed with `dtui-test-`; the runner cleans them up on exit. See
 | [docs/requirements.md](docs/requirements.md) | Functional & non-functional requirements, status |
 | [docs/project-structure.md](docs/project-structure.md) | Repository conventions and directory map |
 | [docs/navigation.md](docs/navigation.md) | Full key, command and mode reference |
+| [docs/ui-design.md](docs/ui-design.md) | UI design system (layout, components, tables, styles) |
+| [docs/i18n.md](docs/i18n.md) | Internationalization (translations, terminal width, lang switching) |
 | [docs/bugfix-requirements.md](docs/bugfix-requirements.md) | Known issues and remediation notes |
-| [design/current-design.md](design/current-design.md) | UI design and visual language |
-| [design/ui-i18n-design.md](design/ui-i18n-design.md) | i18n key conventions and translation workflow |
+| [design/current-design.md](design/current-design.md) | Full authoritative UI design document |
+| [design/ui-i18n-design.md](design/ui-i18n-design.md) | i18n design with future implementation plans |
 | [design/unified-runtime-driver.md](design/unified-runtime-driver.md) | Docker / Podman driver unification |
-| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Common runtime errors and fixes |
 | [docs/README.md](docs/README.md) | Full documentation index |
 
 ---

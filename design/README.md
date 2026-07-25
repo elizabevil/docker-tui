@@ -7,33 +7,30 @@
 | `current-design.md` | **唯一设计参考** — 布局/组件/表格/搜索/快捷键/样式 |
 | `ui-i18n-design.md` | UI 国际化、翻译资源、终端显示宽度和中英文布局约束 |
 | `bugfix-design.md` | 历史 bug 修复设计、分层策略、变更约束 |
-| `bugfix-discussion-notes.md` | 历史 bug 修复讨论纪要，保存尚未完全收敛的设计背景 |
 | `future-requirements-discussion.md` | 后续需求与规划讨论纪要，记录候选方案和待确认决策 |
 | `future-requirements-task-list.md` | 后续需求实施任务、依赖、状态和完成定义 |
-| `app-model-refactoring.md` | `TASK-015` AppModel 状态域拆分、方法边界与迁移方案 |
-| `page-performance-optimization-design.md` | 页面布局优化、页面模板统一与渲染性能优化设计 |
-| `page-performance-approval-proposals.md` | 页面与性能优化审批方案集，供逐项确认方向 |
-| `page-performance-execution-plan.md` | 页面与性能优化执行计划，拆分阶段、依赖与验收边界 |
-| `page-performance-task-sheet.md` | 页面与性能优化任务单，细化任务、回归矩阵与完成定义 |
-| `page-performance-regression.md` | 页面与性能优化轨道映射、回归模板与阶段验证记录 |
-| `podman-rest-migration.md` | `runtime/podman` 收紧为方法式 + dto-only 签名 + 驱动/REST 双形态；`docker/service` 层建立 Docker / Podman 统一入口 |
+| `podman-rest-migration.md` | `TASK-022` Podman REST 适配收紧：gpgme 隔离 + 匿名 struct 清零 + 验证矩阵 |
+| `podman-capabilities-analysis.md` | Docker / Podman 能力差异对比分析 |
+| `unified-runtime-driver.md` | `TASK-021` Docker / Podman 统一 runtime driver 实施设计 |
 
-旧版 `master.md`, `design-system.md`, `ui/*`, `features/*` 等文件内容已合并至 `current-design.md`，不再单独维护。
+已完成的设计文档已移至 `archived/`，包括：
+
+- `app-model-refactoring.md` — `TASK-015` AppModel 状态域拆分
+- `page-performance-optimization-design.md` — 页面布局优化设计
+- `page-performance-approval-proposals.md` — 页面与性能优化审批方案
+- `page-performance-execution-plan.md` — 页面与性能优化执行计划
+- `page-performance-task-sheet.md` — 页面与性能优化任务单
+- `page-performance-regression.md` — 页面与性能优化回归记录
+- `bugfix-discussion-notes.md` — 历史 bug 修复讨论纪要
 
 说明:
 
 - `current-design.md` 仍是当前 UI / 交互的唯一权威参考。
 - `bugfix-design.md` 仅用于历史 bug 修复工作流，不替代 UI 设计主文档。
-- `bugfix-discussion-notes.md` 用于保留阶段性讨论，不替代正式设计决策。
 - `future-requirements-discussion.md` 用于后续需求讨论；标为 `approved` 前不代表正式设计或实现承诺。
 - `future-requirements-task-list.md` 是后续实施的唯一主任务台账；其他设计文档中的任务编号仅作为分析来源，任务完成必须经过测试和文档同步。
-- `app-model-refactoring.md` 是 `TASK-015` 的实施设计，记录状态边界和分阶段迁移约束。
-- `page-performance-optimization-design.md` 用于记录未来页面与性能优化方案，不代表当前已经实现。
-- `page-performance-approval-proposals.md` 用于逐项审批页面与性能优化方向，不代表已经进入实现。
-- `page-performance-execution-plan.md` 用于将已审批方向拆成实际执行阶段，不代表相关阶段已经开始。
-- `page-performance-task-sheet.md` 用于继续细化阶段内任务与回归任务单，并记录当前执行状态。
-- `page-performance-regression.md` 用于保存固定回归格式和每个执行批次的验证结果。
-- `podman-rest-migration.md` 用于规划 `runtime/podman` 的方法式 + dto-only 签名 + 驱动/REST 双形态改造，以及 `docker/service` 层的 Docker / Podman 统一入口建立；本轮不删除 `docker/podman_*.go`，仅迁移 runtime/podman 实现并新增 docker/service 入口。
+- `podman-rest-migration.md` 用于规划 `runtime/podman` 的方法式 + dto-only 签名 + 驱动/REST 双形态改造。
+- `podman-capabilities-analysis.md` 用于 Docker / Podman 能力差异对比，为 TASK-020 等后续任务提供决策依据。
 
 ## 参考资源
 
@@ -42,3 +39,5 @@
 | `internal/tui/ui/` | Go 代码实现           |
 | `docs/ui-preview/` | 浏览器预览系统 (Vue 3)  |
 | `docs/`            | 当前维护中的实现文档        |
+| `docs/ui-design.md`| UI 设计系统开发者参考（提取自 `current-design.md`） |
+| `docs/i18n.md`     | 国际化设计开发者参考（提取自 `ui-i18n-design.md`） |

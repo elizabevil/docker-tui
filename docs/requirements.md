@@ -31,7 +31,7 @@
 - Filter 与 Search 已拆分：资源列表输入即时过滤并使用双 `Esc` 清除退出，日志搜索按 Enter 应用且不改变原始数据集。
 - 用户业务操作已接入统一审计模型；非审计 UI 提示不会写入审计文件。
 - **`runtime/podman` 仍引用 `runtimeapi.*` 域模型**：当前 `internal/data/runtime/podman/service_*.go` 直接返回 `[]runtimeapi.ContainerSummary` 等。TASK-022 Phase E（`docker/service` 统一入口）需要先把 service 层从 `runtimeapi` 域模型切到 `dto.*` 具名类型，再让 mapper 下沉到 `docker/service/mapper/`。
-- **全仓匿名 struct 仍有 20+ 处**：设计 [podman-rest-migration.md](TODO) 点名 10 处需替换；TASK-022 Phase D 执行。
+- **全仓匿名 struct 仍有 20+ 处**：设计 [podman-rest-migration.md](../design/podman-rest-migration.md) 点名 10 处需替换；TASK-022 Phase D 执行。
 
 ## 竞品参考
 
