@@ -20,12 +20,16 @@
 
 | 状态 | 数量 |
 |---|---:|
-| `done` | 16 |
+| `done` | 18 |
 | `in_progress` | 1 (`TASK-022`) |
-| `todo` | 7 |
+| `todo` | 5 |
 | `blocked` | 0 |
 
-最近一次维护说明：TASK-022（`Podman REST 适配收紧与 docker/service 统一入口`）从 `todo` 提升为 `in_progress`。该任务被识别为高优先级：
+最近一次维护说明：
+
+- `TASK-010`（批量操作聚合）已 `done`：统一 `BatchActioned` 消息，详见该行完成证据。
+- `TASK-011`（事件联动刷新）已 `done`：`handleEventFlush` 按依赖图扩展刷新集。
+- `TASK-022`（Podman REST + docker/service 统一）仍 `in_progress`：详见下方 Phase 分解。
 
 - TASK-021 仅完成"运行时适配解耦 + Podman/Docker 各自独立 Engine"，但**仍有两套 service 入口**（Docker 走 SDK，Podman 走 REST + CGO）。上层调用方仍分散在 `internal/data/runtime/docker/` 与 `internal/data/runtime/podman/` 两个包。
 - 当前没有 `docker/service` 统一入口，业务方仍需知道"当前是 Docker 还是 Podman"。
@@ -37,9 +41,8 @@ TASK-022 的完成将解锁 TASK-023（旧 `podman_*.go` 与 `podmanContainerSer
 
 1. **推进 `TASK-022`（in_progress）** — 按 Phase A→F 顺序，P1 高优先级。
 2. `TASK-023` — 等 TASK-022 完成后立即启动。
-3. `TASK-011` — Compose / 容器 / 镜像联动刷新，P2。
-4. `TASK-010` — 批量操作扩展与部分成功反馈，P2。
-5. `TASK-019` — 高级容器操作（update / diff / export / commit / wait / cp），P2。
+3. `TASK-019` — 高级容器操作（update / diff / export / commit / wait / cp），P2。
+4. `TASK-013` / `TASK-014` / `TASK-020` — P3 后续。
 
 ## 已完成基础
 
@@ -78,8 +81,8 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 | `TASK-021` | [Docker / Podman 统一 runtime driver](unified-runtime-driver.md) | P0 | `done` | TASK-004 | 独立 Docker/Podman Engine；统一 Container/Image/Volume/Network service；Podman native actions、Logs、Events、Exec、镜像 Inspect（runtime.ImageDetail 对齐）；同字段 AND 筛选；统一 errors/capabilities；TUI/state 仅依赖 `runtime.Engine`；CGO/non-CGO 矩阵通过；连接池通过 `EngineFactory` 注入，typed-nil 接口经反射清理 |
 | `TASK-008` | Docker / Podman Events 接入主循环 | P1 | `done` | TASK-003、TASK-021 | 订阅绑定活动连接；切换时取消；1-30 秒退避重连；100ms 事件合并；按资源局部刷新；15 秒轮询降级 |
 | `TASK-009` | Volume / Network 创建与清理 | P1 | `done` | TASK-021 | 已完成 create、prune、确认交互、逐资源部分失败反馈、Docker/Podman contract tests 和双构建矩阵 |
-| `TASK-010` | 批量操作扩展与部分成功反馈 | P2 | `todo` | 审计模型、TASK-017 | 每个目标独立终态、汇总提示和可追溯审计 |
-| `TASK-011` | Compose / 容器 / 镜像联动刷新 | P2 | `todo` | TASK-008 | 事件只使相关资源失效，不直接修改复杂 UI 状态 |
+| `TASK-010` | 批量操作扩展与部分成功反馈 | P2 | `done` | 审计模型、TASK-017 | 统一 `state.BatchActioned` 消息聚合 Total/Success/Failed/Skipped + FailedIDs；`executeBatchAction`、`executeBulkDelete`、`doComposeStart/Stop/Down` 全部发出一条汇总；`handleBatchActioned` 完成审计（succeeded/partial/failed）并按 `ResourceType` fetch 对应列表 |
+| `TASK-011` | Compose / 容器 / 镜像联动刷新 | P2 | `done` | TASK-008 | `handleEventFlush` 现在按依赖关系扩展刷新集：image 事件触发 images + containers；volume / network 事件触发 volumes/networks + containers；容器列表更新即重新渲染 Compose / 镜像容器数面板 |
 | `TASK-017` | 高频容器操作 | P0 | `done` | TASK-004 | 已实现状态约束的 `pause` / `unpause`、批量跳过汇总、`rename` 输入校验、独立 `top` 页面和结构化 `port` 展示，并通过 Docker / Podman 兼容 API 契约测试 |
 | `TASK-018` | 镜像标签与传输工作流 | P1 | `done` | TASK-021 | runtime-neutral transfer service；`tag`、`push`、`save`、`load`；字节/daemon 进度、context 取消、错误展示和审计终态 |
 | `TASK-024` | [Podman 镜像详情 + 连接池工厂化重构](unified-runtime-driver.md) | P1 | `done` | TASK-021 | 补齐 TASK-021 Phase 2 中 Podman `ImageService.Inspect` 的 TODO；移除 `global engineFactory` 与 `SetEngineFactory`；`runtimeinit.NewEngineFactory()` 与 `runtime.EngineFactory` 注入到 `runtimeapi.NewPool`；`sanitizeEngine` / `engineIsUsable` 反射防御 typed-nil 接口；APIVersion 回退覆盖所有错误而非仅 404；`RefreshAll` 替换 `Probe`/`pingAll`；`refreshOne` 对 transient 引擎真实 ping。本条目是 TASK-021 收尾增量 |
@@ -236,7 +239,9 @@ G2 取消双签名 / G4 取消 docker/service 层 / G5 取消 docker/service 层
   |-> TASK-021 统一 runtime driver [done]
   |     |-> TASK-009 Volume / Network         [done]
   |     |-> TASK-018 镜像工作流               [done]
-  |     `-> TASK-008 Events [done] -> TASK-011 联动刷新 [todo]
+  |     `-> TASK-008 Events [done]
+  |           `-> TASK-010 批量聚合           [done]
+  |           `-> TASK-011 联动刷新           [done]
   `-> TASK-012 审计历史面板 [done]
   `-> TASK-022 Podman REST + docker/service 统一 [in_progress]
        |     Phase A: gpgme 仅 CGO         [todo]
@@ -249,7 +254,7 @@ G2 取消双签名 / G4 取消 docker/service 层 / G5 取消 docker/service 层
                 (TASK-022 完成后立即启动;
                  24 个生产文件 + 8 个测试文件)
 
-独立后续: TASK-013 / TASK-014 / TASK-020
+独立后续: TASK-013 / TASK-014 / TASK-019 / TASK-020
 ```
 
 #### 决策项（TASK-022；2026-07-24 用户最终修订）
