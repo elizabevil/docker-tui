@@ -1,4 +1,4 @@
-package tui
+package update
 
 import (
 	"github.com/elizabevil/docker-tui/internal/tui/state"

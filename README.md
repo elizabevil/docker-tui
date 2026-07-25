@@ -315,9 +315,11 @@ Source layout:
 ```text
 cmd/docker-tui/        CLI entrypoint and bootstrap
 internal/data/         config, runtime adapters, i18n, audit
+internal/tui/          top-level dispatcher + theme/layout bootstrap
 internal/tui/state/    application state and message types
 internal/tui/keys/     action registry and effective key bindings
 internal/tui/keyboard/ interaction and business commands
+internal/tui/update/   tea.Msg dispatch + per-message handlers
 internal/tui/ui/       pages, components, layout rendering
 internal/utils/        shared helpers (JSONC, formatting, TLS, URIs)
 test/                  cross-package tests, diagnostics, benchmarks, integration

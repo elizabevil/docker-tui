@@ -21,6 +21,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	view "github.com/elizabevil/docker-tui/internal/tui/ui/app"
+	"github.com/elizabevil/docker-tui/internal/tui/update"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
@@ -216,7 +217,7 @@ func connectDocker(pool *runtimeapi.ConnectionPool, name string) tea.Cmd {
 }
 
 func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	updatedModel, cmd := tui.Update(msg, m.model)
+	updatedModel, cmd := update.Update(msg, m.model)
 	m.model = updatedModel
 	return m, cmd
 }

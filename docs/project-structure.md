@@ -74,11 +74,16 @@ docker-tui/
 
 ### 更新循环
 
-- `update.go`：`tea.Msg` 总路由
+`internal/tui/update/` 子包集中了 tea.Msg 的路由与处理：
+
+- `update.go`：`Update` 总路由入口
 - `update_resources.go`：列表装载结果处理
-- `update_actions.go`：操作结果处理
+- `update_actions.go`：操作结果处理（含 `BatchActioned` 聚合）
 - `update_tick.go`：stats、toast、host 监控等定时消息
 - `update_log.go`：日志流处理
+- `update_events.go`：runtime 事件流与联动刷新
+- `update_image_transfer.go`：镜像传输进度与终态
+- `handler_container.go`：容器命令与动作的胶水函数
 
 ### UI 渲染
 
@@ -116,7 +121,7 @@ docker-tui/
 1. 先改 `internal/data/docker/*`
 2. 再补 `internal/tui/state/*` 消息和状态
 3. 在 `internal/tui/keyboard/*` 接入动作
-4. 在 `internal/tui/update*.go` 处理结果
+4. 在 `internal/tui/update/*` 处理结果
 5. 最后在 `internal/tui/ui/pages/*` 渲染反馈
 
 ### 改布局或视觉
