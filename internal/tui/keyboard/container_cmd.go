@@ -52,7 +52,8 @@ func containerPauseCmd(client runtimeapi.Engine, id string, unpause bool) tea.Cm
 
 func containerRenameCmd(client runtimeapi.Engine, id, name string) tea.Cmd {
 	return func() tea.Msg {
-		_, err := client.Actions().Execute(context.Background(), containerRef(id), runtimeapi.ActionRename, runtimeapi.ActionOptions{Name: name})
+		_, err := client.Actions().Execute(context.Background(), containerRef(id), runtimeapi.ActionRename,
+			runtimeapi.ActionOptions{Lifecycle: runtimeapi.LifecycleOptions{Name: name}})
 		return state.ContainerActioned{Action: state.ActionRenamed, ID: id, Success: err == nil, Error: err}
 	}
 }
@@ -66,7 +67,8 @@ func fetchContainerProcesses(service runtimeapi.ContainerService, id string) tea
 
 func containerRemoveCmd(client runtimeapi.Engine, id string, force bool) tea.Cmd {
 	return func() tea.Msg {
-		_, err := client.Actions().Execute(context.Background(), containerRef(id), runtimeapi.ActionRemove, runtimeapi.ActionOptions{Force: force})
+		_, err := client.Actions().Execute(context.Background(), containerRef(id), runtimeapi.ActionRemove,
+			runtimeapi.ActionOptions{Lifecycle: runtimeapi.LifecycleOptions{Force: force}})
 		return state.ContainerActioned{Action: state.ActionRemoved, ID: id, Success: err == nil, Error: err}
 	}
 }

@@ -2,6 +2,7 @@ package podman
 
 import (
 	"context"
+	"fmt"
 
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	podman "github.com/elizabevil/docker-tui/internal/driver/podman"
@@ -22,11 +23,12 @@ func (s PodmanResourceActionService) Execute(ctx context.Context, ref runtimeapi
 }
 
 func (s PodmanResourceActionService) execute(ctx context.Context, ref runtimeapi.ResourceRef, action runtimeapi.Action, options runtimeapi.ActionOptions, result *runtimeapi.ActionResult) error {
+	lc := options.Lifecycle
 	switch ref.Type {
 	case runtimeapi.ResourceContainer:
 		return s.executeContainer(ctx, ref.ID, action, options)
 	case runtimeapi.ResourceImage:
-		stream, err := s.Client.REST.ExecuteImageAction(ctx, ref.ID, string(action), options.Force, &result.SpaceReclaimed)
+		stream, err := s.Client.REST.ExecuteImageAction(ctx, ref.ID, string(action), lc.Force, &result.SpaceReclaimed)
 		if err != nil {
 			return err
 		}
@@ -39,7 +41,7 @@ func (s PodmanResourceActionService) execute(ctx context.Context, ref runtimeapi
 		if action != runtimeapi.ActionRemove {
 			return runtimeapi.UnsupportedError(runtimeapi.Operation(runtimeapi.ResourceVolume, string(action)))
 		}
-		return s.Client.REST.RemoveVolume(ctx, ref.ID, options.Force)
+		return s.Client.REST.RemoveVolume(ctx, ref.ID, lc.Force)
 	case runtimeapi.ResourceNetwork:
 		if action != runtimeapi.ActionRemove {
 			return runtimeapi.UnsupportedError(runtimeapi.Operation(runtimeapi.ResourceNetwork, string(action)))
@@ -59,7 +61,8 @@ func (s PodmanResourceActionService) executeContainer(ctx context.Context, id st
 		runtimeapi.ActionCommit, runtimeapi.ActionWait, runtimeapi.ActionCopy:
 		return s.dispatchAdvanced(ctx, id, action, options)
 	default:
-		return s.Client.REST.ExecuteContainerAction(ctx, id, string(action), options.Timeout, options.Force, options.Signal, options.Name)
+		lc := options.Lifecycle
+		return s.Client.REST.ExecuteContainerAction(ctx, id, string(action), lc.Timeout, lc.Force, lc.Signal, lc.Name)
 	}
 }
 
@@ -70,11 +73,14 @@ func (s PodmanResourceActionService) dispatchAdvanced(ctx context.Context, id st
 	svc := PodmanContainerService{Client: s.Client}
 	switch action {
 	case runtimeapi.ActionUpdate:
+		if options.Update == nil {
+			return runtimeapi.NewError(runtimeapi.ErrorInvalid, runtimeapi.Operation(runtimeapi.ResourceContainer, string(action)), id, fmt.Errorf("update options required"))
+		}
 		_, err := svc.Update(ctx, id, runtimeapi.ContainerUpdateOptions{
-			Memory:            options.Memory,
-			NanoCPUs:          options.NanoCPUs,
-			RestartPolicy:     options.RestartPolicy,
-			RestartMaxRetries: options.RestartMaxRetries,
+			Memory:            options.Update.Memory,
+			NanoCPUs:          options.Update.NanoCPUs,
+			RestartPolicy:     options.Update.RestartPolicy,
+			RestartMaxRetries: options.Update.RestartMaxRetries,
 		})
 		return err
 	case runtimeapi.ActionDiff:
@@ -87,19 +93,29 @@ func (s PodmanResourceActionService) dispatchAdvanced(ctx context.Context, id st
 		}
 		return rc.Close()
 	case runtimeapi.ActionCommit:
+		if options.Commit == nil {
+			return runtimeapi.NewError(runtimeapi.ErrorInvalid, runtimeapi.Operation(runtimeapi.ResourceContainer, string(action)), id, fmt.Errorf("commit options required"))
+		}
 		_, err := svc.Commit(ctx, id, runtimeapi.ContainerCommitOptions{
-			Repository: options.Repository,
-			Tag:        options.Tag,
-			Comment:    options.Comment,
-			Author:     options.Author,
-			Pause:      options.Pause,
+			Repository: options.Commit.Repository,
+			Tag:        options.Commit.Tag,
+			Comment:    options.Commit.Comment,
+			Author:     options.Commit.Author,
+			Pause:      options.Commit.Pause,
 		})
 		return err
 	case runtimeapi.ActionWait:
-		_, err := svc.Wait(ctx, id, options.Condition)
+		var cond string
+		if options.Wait != nil {
+			cond = options.Wait.Condition
+		}
+		_, err := svc.Wait(ctx, id, cond)
 		return err
 	case runtimeapi.ActionCopy:
-		rc, err := svc.CopyFromContainer(ctx, id, options.SourcePath)
+		if options.Copy == nil {
+			return runtimeapi.NewError(runtimeapi.ErrorInvalid, runtimeapi.Operation(runtimeapi.ResourceContainer, string(action)), id, fmt.Errorf("copy options required"))
+		}
+		rc, err := svc.CopyFromContainer(ctx, id, options.Copy.SourcePath)
 		if err != nil {
 			return err
 		}

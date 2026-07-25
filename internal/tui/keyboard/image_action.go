@@ -36,7 +36,8 @@ func imagePruneCmd(client runtimeapi.Engine) tea.Cmd {
 
 func imageRemoveCmd(client runtimeapi.Engine, id string, force bool) tea.Cmd {
 	return func() tea.Msg {
-		_, err := client.Actions().Execute(context.Background(), runtimeapi.ResourceRef{Type: runtimeapi.ResourceImage, ID: id}, runtimeapi.ActionRemove, runtimeapi.ActionOptions{Force: force})
+		_, err := client.Actions().Execute(context.Background(), runtimeapi.ResourceRef{Type: runtimeapi.ResourceImage, ID: id}, runtimeapi.ActionRemove,
+			runtimeapi.ActionOptions{Lifecycle: runtimeapi.LifecycleOptions{Force: force}})
 		return state.ImageActioned{Action: state.ActionRemoved, Ref: id, Success: err == nil, Error: err}
 	}
 }

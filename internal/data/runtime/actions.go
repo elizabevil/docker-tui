@@ -54,33 +54,100 @@ type ResourceRef struct {
 	ID   string
 }
 
-// ActionOptions carries parameters for an action execution. Not all fields
-// apply to every action; the adapter interprets only the relevant subset.
+// LifecycleOptions is the parameter set for the simple container / image
+// lifecycle actions (start, stop, restart, kill, pause, unpause, rename,
+// remove, pull, prune, create, destroy). It is a flat value (not a pointer)
+// because every field has a meaningful zero value for callers that do
+// not care about it.
+type LifecycleOptions struct {
+	// Force applies to remove/kill. False is the safe default.
+	Force bool
+	// Name applies to rename. Empty means "no rename requested".
+	Name string
+	// Signal applies to kill. Empty defaults to SIGKILL on POSIX.
+	Signal string
+	// Timeout applies to stop / restart. Zero means "engine default".
+	Timeout time.Duration
+}
+
+// UpdateOptions carries parameters for ActionUpdate. Each field is a
+// pointer so the caller can distinguish "do not change" (nil) from "set
+// to zero". Fields with engine-side zero values (e.g. policy "no") are
+// encoded as plain strings; the adapter maps them to SDK enums.
+type UpdateOptions struct {
+	Memory           *int64 // bytes; nil = leave unchanged
+	NanoCPUs         *int64 // nil = leave unchanged
+	RestartPolicy    *string // "no"|"always"|"unless-stopped"|"on-failure"; nil = leave unchanged
+	RestartMaxRetries *int  // only meaningful with RestartPolicy == "on-failure"
+}
+
+// DiffOptions is empty for now — ContainerDiff takes no parameters today
+// but the type is reserved for symmetry with the other action families
+// and for future filters (e.g. by path glob).
+type DiffOptions struct{}
+
+// ExportOptions identifies where the exported tar should be written.
+// Destination is a host path; the adapter is responsible for opening it.
+type ExportOptions struct {
+	Destination string
+}
+
+// CommitOptions configures a container-to-image commit. Pause is the
+// container pause flag (true = pause while committing to get a clean
+// snapshot). The other fields map directly to Docker / Podman labels.
+type CommitOptions struct {
+	Repository string // image repository name (e.g. "myapp"); empty = engine default
+	Tag        string // image tag; empty = "latest"
+	Comment    string
+	Author     string
+	Pause      bool
+}
+
+// WaitOptions carries parameters for ActionWait. Condition matches
+// Docker / Podman's documented values:
+//   - "" or "not-running" — default; blocks until the container exits
+//   - "next-exit" — blocks until the next time the container exits
+//   - "removed" — blocks until the container is removed
+type WaitOptions struct {
+	Condition string
+}
+
+// CopyOptions is the parameter for ActionCopy (extract a file from a
+// container). SourcePath is the container-side path; the adapter returns
+// an io.ReadCloser containing a tar archive.
+type CopyOptions struct {
+	SourcePath string
+}
+
+// ActionOptions is a discriminated union: for each call, exactly one
+// sub-payload (Lifecycle or one of the six typed pointers) is populated,
+// matching the Action passed to Execute.
 //
-// TASK-019 advanced-container fields:
+// Lifecycle actions (start, stop, restart, kill, pause, unpause, rename,
+// remove, pull, prune, create, destroy) populate Lifecycle directly:
 //
-//	Memory, NanoCPUs, RestartPolicy, RestartMaxRetries — ActionUpdate
-//	SourcePath                    — ActionCopy (path inside the container)
-//	Destination                   — ActionExport (writer target)
-//	Repository, Tag, Comment, Author, Pause — ActionCommit
-//	Condition                     — ActionWait (exit condition)
+//	opts := ActionOptions{Lifecycle: LifecycleOptions{Force: true}}
+//	svc.Execute(ctx, ref, ActionRemove, opts)
+//
+// Advanced actions (update, diff, export, commit, wait, copy) populate
+// the corresponding typed pointer:
+//
+//	opts := ActionOptions{Update: &UpdateOptions{Memory: &mem}}
+//	svc.Execute(ctx, ref, ActionUpdate, opts)
+//
+// The adapter uses a type switch on the action and reads only the
+// matching sub-payload. Fields that do not match the action are ignored,
+// which makes the type system self-documenting and removes the
+// "pause the container" vs "pause while committing" ambiguity.
 type ActionOptions struct {
-	Force            bool
-	Name             string
-	Signal           string
-	Timeout          time.Duration
-	Memory           *int64 // ActionUpdate: memory limit (bytes); nil = unset
-	NanoCPUs         *int64 // ActionUpdate: nano-CPUs quota; nil = unset
-	RestartPolicy    *string // ActionUpdate: "no"|"always"|"unless-stopped"|"on-failure"; nil = unset
-	RestartMaxRetries *int  // ActionUpdate: max retries for on-failure; nil = unset
-	SourcePath       string // ActionCopy: container path to read
-	Destination      string // ActionExport: local destination
-	Repository       string // ActionCommit: repository name for the new image
-	Tag              string // ActionCommit: tag for the new image
-	Comment          string // ActionCommit: commit message
-	Author           string // ActionCommit: author string
-	Pause            bool   // ActionCommit: pause container during commit
-	Condition        string // ActionWait: "not-running" (default) or "next-exit"
+	Lifecycle LifecycleOptions
+
+	Update *UpdateOptions
+	Diff   *DiffOptions
+	Export *ExportOptions
+	Commit *CommitOptions
+	Wait   *WaitOptions
+	Copy   *CopyOptions
 }
 
 // ActionResult is the outcome of a successful action execution.
