@@ -1,140 +1,157 @@
 # dtui
 
-`dtui` 是一个使用 Go、Bubble Tea 和 Lip Gloss 构建的 Docker / Podman 终端管理工具。它将容器、镜像、卷、网络和 Compose 项目集中在同一个键盘驱动界面中，并提供资源详情、日志搜索、容器 Exec、可配置快捷键和用户操作审计。
+A keyboard-driven terminal UI for managing Docker and Podman from a single
+interface. Browse containers, images, volumes, networks and Compose
+projects; inspect resources, follow logs, exec into running containers,
+and audit every action — all without leaving the keyboard.
 
-> CLI 名称是 `dtui`，仓库默认构建产物目前为 `dist/docker-tui`。
+Built with Go, [Bubble Tea v2](https://charm.land/bubbletea/v2), and
+[Lip Gloss](https://github.com/charmbracelet/lipgloss).
 
-## 最近变更
+> The CLI binary is `dtui` (built to `dist/docker-tui` by default).
 
-- **TASK-022 推进中（含用户最终修订：G2 / G4 / G5 / G9 决策）**：P1 高优任务 `Podman REST 适配收紧与 docker/service 统一入口` 提升为 `in_progress`。**最终架构决议**：
-  - **G2（不再保留双签名）**：`runtime/podman.Client` 移除 `string action` 重载；一次性破坏性迁移到 `dto.Action`
-  - **G4（不再抽象 docker/service 层）**：mapper 直接拆双——`runtime/docker/mapper/` + `runtime/podman/mapper/`，跳过 docker/service 中间层
-  - **G5（不再经 docker/service）**：原生 action 直接走两侧 mapper，runtime/docker/mapper 与 runtime/podman/mapper 各自完成 `dto.Action` ↔ `runtimeapi.Action` 映射
-  - **G6**：零匿名 struct 仅作用于 public API 路径；internal helper（`ProgressWriter/Reader` 等）标 TODO
-  - **G8**：mapper 双位置各自落独立目录
-  - **G10**：`aliases.go` 等未被实际依赖的源文件**不强求**加 `//go:build cgo`，按 `go mod why` 锁定传染源后定向打 tag
-  - 当前合规审计 10 个验收目标中：✅ 2（G3、G7）· ⚠️ 3（G1、G2、G6、G10）· ❌ 3（G4、G5、G8）· **取消 1（G9）**
-  - 完成 TASK-022 后将解锁 TASK-023（旧 `podman_*.go` 与 `podmanContainerService` 兼容层清理）
-  - 详细 Phase A→E 进度与 G1-G10 状态见 [后续需求任务清单 §TASK-022 进度分解](design/future-requirements-task-list.md)；Phase E（docker/service 统一入口）整 Phase 取消
-- **Podman 镜像详情**：`runtime/podman` 适配器已实现 `Inspect` 路径。`/v4.0.0/libpod/images/{id}/json` 与 `/v4.0.0/libpod/images/{id}/history` 双接口联通，结构化 `ImageDetail` 与 Docker 适配器对齐；缺失字段统一显示 `—` 而不是上报错误。
-- **Podman 版本协商修复**：旧实现只对 404 触发 `/v4.0.0/libpod/version` 回退；现在针对任意失败都会继续尝试带版本前缀的路径，避免在 Podman 5.x 返回 4xx 或重定向时错失真正的版本。
-- **连接池重构**：`ConnectionPool.RefreshAll(timeout)` 统一了原本分散在 `Probe`/`pingAll` 的探测逻辑；`refreshOne` 对新建的瞬时引擎同样执行 ping，Podman 这类“创建即返回”的适配器也能在 selector 中显示真实延迟和真实状态。
-- **类型化 nil 接口防御**：`runtimeinit.sanitizeEngine` 与 `engineIsUsable` 双层保护，连接池不再在 typed-nil 接口上调用 `Close()`，避免了之前 F2 selector 的 panic。
+---
 
-## 功能
+## Features
 
-- 管理容器：列表、启动、停止、重启、Pause/Unpause、Rename、Top、Port、Kill、删除、日志、Stats、Inspect 和 Exec
-- 管理镜像：列表、Pull、Prune、Tag、Push、Save、Load、删除和结构化详情；传输支持进度与取消
-- 创建、查看、清理和删除 Volume / Network，并查看关联资源
-- 订阅运行时 Events，并按资源类型合并和局部刷新；断线时退避重连并降级轮询
-- 基于容器 labels 聚合 Compose 项目与服务，支持 start、stop、down 和日志
-- 在 Docker / Podman 本地连接之间切换
-- 即时过滤资源列表，在日志页搜索并跳转匹配项
-- 通过 YAML 覆盖动作快捷键，Help 和 Footer 显示当前有效绑定
-- 为用户资源操作生成 trace，并将结果投影到 Toast、Footer 和按日 JSONL 审计日志
+- **Containers** — list, start, stop, restart, pause / unpause, rename,
+  top, ports, kill, delete, logs, stats, inspect, exec
+- **Images** — list, pull, prune, tag, push, save, load, delete, structured
+  detail with manifest variants and layer history
+- **Volumes & Networks** — create, view, prune, delete with cross-resource
+  references
+- **Compose projects** — aggregated from container labels; start, stop,
+  down, log streaming
+- **Runtime events** — subscribed and merged per resource type, with
+  reconnect-and-poll fallback
+- **Instant filtering & log search** — apply filters as you type; jump
+  between log matches with `n` / `Ctrl+N`
+- **Configurable keymap** — override per-action keys in YAML; Help and
+  Footer always reflect the effective bindings
+- **User-action audit** — typed traces projected to toast, footer, and
+  daily JSONL audit logs
+- **Localized UI** — English and Simplified Chinese out of the box, with
+  extensible JSONC-based translation files
+- **Runtime auto-discovery** — Docker and Podman sockets detected
+  automatically; connect via TLS with per-connection verification
 
-当前尚未完整实现的能力包括完整多主机工作流、镜像传输、更完整的批量操作和鼠标交互。详细状态见 [需求规格](docs/requirements.md)。
+Multi-host workflows, image transfers, full batch operations and mouse
+interaction are still in progress. See [docs/requirements.md](docs/requirements.md)
+for the full status.
 
-## 环境要求
+---
 
-- Go：使用与 [go.mod](go.mod) 一致的版本
-- Docker 或 Podman daemon，并允许当前用户访问对应 socket
-- 可选：[`just`](https://github.com/casey/just)，用于统一执行构建和测试命令
+## Table of contents
 
-Linux 下常见 socket：
+- [Requirements](#requirements)
+- [Install](#install)
+- [Build & run](#build--run)
+- [Configuration](#configuration)
+- [Keyboard reference](#keyboard-reference)
+- [Localization](#localization)
+- [Audit log](#audit-log)
+- [Architecture](#architecture)
+- [Development & testing](#development--testing)
+- [Documentation](#documentation)
+- [License](#license)
+
+---
+
+## Requirements
+
+| Dependency | Notes |
+|------------|-------|
+| Go | Use the version pinned in [`go.mod`](go.mod) |
+| Docker **or** Podman daemon | Current user must have access to the socket |
+| [`just`](https://github.com/casey/just) *(optional)* | Convenience runner for build / test recipes |
+
+Typical Linux socket paths:
 
 ```text
 Docker: unix:///var/run/docker.sock
 Podman: unix:///run/user/1000/podman/podman.sock
 ```
 
-## 构建与运行
+---
 
-使用 `just`：
+## Install
+
+```bash
+# Clone
+git clone https://github.com/elizabevil/docker-tui.git
+cd docker-tui
+
+# Build (CGO disabled for a static binary)
+CGO_ENABLED=0 go build -o ./dist/docker-tui ./cmd/docker-tui
+
+# Run
+./dist/docker-tui
+```
+
+If you prefer the recipe runner:
 
 ```bash
 just build
 just run
 ```
 
-直接使用 Go：
+Pre-built binaries are not published; build from source.
 
-```bash
-CGO_ENABLED=0 go build -o ./dist/docker-tui ./cmd/docker-tui
-./dist/docker-tui
-```
+---
 
-直接连接 Podman：
+## Build & run
 
-```bash
-just run-podman
-```
+| Task | Command |
+|------|---------|
+| Build binary | `just build` |
+| Run (Docker) | `just run` |
+| Run (Podman) | `just run-podman` |
+| List built-in themes | `./dist/docker-tui --list-themes` |
+| Show version | `./dist/docker-tui --version` |
 
-常用 CLI 参数：
+CLI flags:
 
 ```text
--f, --config PATH    指定配置文件
--t, --theme NAME     指定主题
--L, --lang zh|en     指定界面语言
--p, --podman         使用 Podman socket
-    --list-themes    列出内置主题
--v, --version        显示版本
+-f, --config PATH    Override config file path
+-t, --theme NAME     Theme name (default, dark, light, nord, dracula, solarized)
+-L, --lang zh|en     Interface language
+-p, --podman         Connect to local Podman socket instead of Docker
+    --list-themes    Print available themes and exit
+-v, --version        Print version and exit
+-H, --host URI       Daemon socket or remote endpoint URI
 ```
 
-程序会始终注册本地 Docker 与 Podman 候选，默认优先连接 `local-docker`；Docker 不可用且本地 Podman 可用时自动连接 Podman，并显示切换提示。可通过 `runtime.default` 选择配置连接，或使用 `--podman` 明确选择本地 Podman。`runtime.connections` 支持独立 TLS 配置，远程连接需提供证书与校验参数。
+The program always registers local Docker and Podman candidates. By
+default it prefers `local-docker`; if Docker is unreachable and local
+Podman is available it falls back automatically and shows a notice.
+Override the default with `runtime.default` in the config file, or
+explicitly force Podman with `--podman`.
 
-## 基本使用
+Remote connections require per-connection TLS configuration — see
+[`runtime.connections`](#configuration).
 
-### 全局按键
+---
 
-| 按键 | 操作 |
-|---|---|
-| `Tab` / `Shift+Tab` | 切换主面板 |
-| `j` / `k` / `↑` / `↓` | 移动光标 |
-| `Enter` | 打开当前项目或执行主动作 |
-| `Esc` | 返回；主界面双击退出 |
-| `/` | 过滤资源；日志页中进入搜索 |
-| `:` | 打开命令模式 |
-| `?` / `F1` | 打开帮助 |
-| `r` | 刷新全部资源 |
-| `F2` | 切换运行时连接 |
-| `Space` | 进入或操作标记模式 |
-| `Ctrl+D` | 删除当前资源 |
+## Configuration
 
-### 资源操作
-
-| 面板 | 常用按键 |
-|---|---|
-| Containers | `s` 启动、`Ctrl+S` 停止、`Ctrl+R` 重启、`p` Pause/Unpause、`Ctrl+K` Kill、`l` 日志、`e` Exec、`d` 详情、`m` Stats |
-| Images | `Ctrl+P` Pull、`p` Prune、`d` 详情、`Ctrl+D` 删除 |
-| Volumes | `Enter` 展开、`d` 详情、`Ctrl+D` 删除 |
-| Networks | `d` 详情、`Ctrl+D` 删除 |
-| Compose | `s` start、`Ctrl+S` stop、`Ctrl+D` down、`l` 日志、`d` 详情 |
-
-资源过滤会随输入即时生效。`Enter` 保留过滤并退出编辑；5 秒内连续按两次 `Esc` 会清空过滤并退出。日志搜索在按下 `Enter` 后应用，使用 `n` / `Ctrl+N` 跳转到下一个 / 上一个匹配。
-
-容器命令模式提供 `:rename`、`:top` 和 `:port`。Top 仅允许运行中的容器进入，支持 `j` / `k` 滚动和 `r` 刷新；Port 详情显示结构化的容器端口、协议、Host IP 与 Host Port。批量 Pause/Unpause 会跳过状态不适用的容器并汇总成功、跳过和失败数量。
-
-完整按键和模式说明见 [交互与导航](docs/navigation.md)。运行时 Help 与 Footer 是当前有效快捷键的权威展示。
-
-## 配置
-
-默认配置路径：
+Default path:
 
 ```text
 ~/.config/docker-tui/config.yml
 ```
 
-也可以通过 `--config` 指定其他 YAML 文件。配置会覆盖内嵌默认值，未设置字段继续使用默认配置。
+Pass `--config` to use a different YAML file. Missing fields fall back
+to the embedded defaults in
+[`internal/data/config/default.jsonc`](internal/data/config/default.jsonc).
 
-最小示例：
+Minimal example:
 
 ```yaml
 configVersion: 1
 
 general:
-  lang: zh
-  sizeFormat: binary
+  lang: zh           # en | zh
+  sizeFormat: binary # binary | si
 
 runtime:
   default: local-docker
@@ -149,14 +166,14 @@ runtime:
     - name: remote-docker
       driver: docker
       endpoint: tcp://docker.example.com:2376
-      apiVersion: "" # 留空时自动协商
+      apiVersion: ""   # auto-negotiate when empty
       tls:
         enabled: true
         verify: true
         insecureSkipVerify: false
-        caFile: /etc/docker/certs/ca.pem
-        certFile: /etc/docker/certs/cert.pem
-        keyFile: /etc/docker/certs/key.pem
+        caFile:    /etc/docker/certs/ca.pem
+        certFile:  /etc/docker/certs/cert.pem
+        keyFile:   /etc/docker/certs/key.pem
 
 logs:
   since: 1h
@@ -164,85 +181,207 @@ logs:
   timestamps: false
 
 keymap:
-  help: [f1]
+  help:           [f1]
   containerStart: [s]
-  containerStop: [ctrl+s]
+  containerStop:  [ctrl+s]
   containerPause: [p]
-  imagePull: [ctrl+p]
-  imageTag: [ctrl+t]
-  imagePush: [ctrl+u]
-  imageSave: [ctrl+e]
-  imageLoad: [ctrl+l]
+  imagePull:      [ctrl+p]
+  imageTag:       [ctrl+t]
+  imagePush:      [ctrl+u]
+  imageSave:      [ctrl+e]
+  imageLoad:      [ctrl+l]
 ```
 
-连接配置只接受新的 `runtime` schema。旧的 `docker.host`、`docker.tlsVerify`、`docker.tlsCertPath` 和 `general.runtime` 字段不会迁移，加载时会直接返回配置错误。
+> Only the `runtime` schema is accepted. Legacy `docker.host`,
+> `docker.tlsVerify`, `docker.tlsCertPath` and `general.runtime` keys
+> are rejected on load.
 
-可配置内容包括语言、运行时连接、Stats 轮询间隔、日志范围、布局、主题和动作快捷键。完整字段见 [默认配置](internal/data/config/default.jsonc) 与 [配置类型](internal/data/config/types.go)。
+All fields are documented in
+[`internal/data/config/default.jsonc`](internal/data/config/default.jsonc)
+and [`internal/data/config/types.go`](internal/data/config/types.go).
 
-## 审计日志
+---
 
-容器、镜像、卷、网络、Compose、运行时切换和 Exec 等用户操作会生成统一 trace。每条审计记录包含操作、结果、运行时、UI 上下文和强类型资源目标。
+## Keyboard reference
 
-默认落盘路径：
+### Global
+
+| Key | Action |
+|-----|--------|
+| `Tab` / `Shift+Tab` | Switch panel |
+| `j` / `k` / `↑` / `↓` | Move cursor |
+| `Enter` | Open item or execute primary action |
+| `Esc` | Back; double-tap on main view to quit |
+| `/` | Filter resources; log search in the Logs page |
+| `:` | Command palette |
+| `?` / `F1` | Open Help |
+| `r` | Refresh all resources |
+| `F2` | Switch runtime connection |
+| `Space` | Toggle mark mode |
+| `Ctrl+D` | Delete current resource |
+
+### Per-resource
+
+| Panel | Keys |
+|-------|------|
+| Containers | `s` start · `Ctrl+S` stop · `Ctrl+R` restart · `p` pause/unpause · `Ctrl+K` kill · `l` logs · `e` exec · `d` detail · `m` stats |
+| Images | `Ctrl+P` pull · `p` prune · `d` detail · `Ctrl+D` delete |
+| Volumes | `Enter` expand · `d` detail · `Ctrl+D` delete |
+| Networks | `d` detail · `Ctrl+D` delete |
+| Compose | `s` start · `Ctrl+S` stop · `Ctrl+D` down · `l` logs · `d` detail |
+
+Filters apply as you type; `Enter` commits and exits edit, double `Esc`
+within 5 s clears the filter. In Logs, `n` / `Ctrl+N` jump between
+search matches.
+
+The container command palette accepts `:rename`, `:top`, and `:port`.
+`Top` requires a running container and supports `j`/`k` scroll plus `r`
+refresh. `Port` shows structured container ports, protocols, host IP and
+host port. Batch pause / unpause skip state-incompatible containers and
+summarize succeeded / skipped / failed counts.
+
+For the full guide see [docs/navigation.md](docs/navigation.md). The
+in-app Help and Footer are always authoritative for the current
+bindings.
+
+---
+
+## Localization
+
+Translations live as JSONC files under
+[`internal/data/i18n/lang/`](internal/data/i18n/lang/):
+
+```text
+lang/
+├── en.jsonc   # English (default)
+├── zh.jsonc   # Simplified Chinese
+└── ja.jsonc   # Japanese
+```
+
+Each file is a flat key → string map, with `{0}`, `{1}` placeholders for
+arguments. Comments (`//` and `/* */`) are allowed and stripped at load
+time via [`internal/utils/jsonc.go`](internal/utils/jsonc.go).
+
+Adding a new language:
+
+1. Copy an existing file (e.g. `en.jsonc`) to `lang/<code>.jsonc`.
+2. Translate each value.
+3. Add the language code to the `tags` map and `parseTag` switch in
+   [`internal/data/i18n/lang.go`](internal/data/i18n/lang.go).
+4. Rebuild.
+
+Set the active language with `--lang`, the `general.lang` config field,
+or the `LANG` environment variable. Missing keys fall back to English
+and never panic.
+
+---
+
+## Audit log
+
+Every user-initiated resource action (start, stop, exec, prune, runtime
+switch …) emits a typed trace with the action, outcome, runtime, UI
+context, and strongly-typed resource target.
+
+Default path:
 
 ```text
 ~/.config/docker-tui/logs/audit-YYYY-MM-DD.jsonl
 ```
 
-审计结果同时驱动顶部通知和 Footer 操作行。过滤、导航、后台刷新等非业务操作不会写入审计日志。
+Audit events also drive the toast notification and footer action line.
+Pure navigation, filtering and background refresh are not audited.
 
-## 设计与架构
+---
 
-界面采用稳定的三段式布局：顶部状态区、中部资源工作区、底部查询/消息/Footer 区。资源页面与覆盖层共享顶层 `AppModel`，键盘动作经上下文解析后生成 Bubble Tea 命令，异步结果再回到统一 Update 循环。
+## Architecture
+
+A stable three-section layout — status bar on top, resource workspace
+in the middle, query / message / footer row at the bottom — is shared
+by all resource pages and overlays. Keyboard input is resolved against
+the active context, dispatched as a `tea.Cmd`, and the resulting
+message flows back through a single Update loop.
 
 ```text
 keyboard input
   -> action registry and context resolver
   -> tea.Cmd
   -> resource/action message
-  -> state update and audit projection
+  -> state update + audit projection
   -> render
 ```
 
-代码按职责分为：
+Source layout:
 
 ```text
-cmd/docker-tui/       CLI 与启动流程
-internal/data/        配置、Docker/Podman、i18n、审计
-internal/tui/state/   应用状态与消息
-internal/tui/keys/    动作注册表和有效键位
-internal/tui/keyboard/交互与业务命令
-internal/tui/ui/      页面、组件和布局渲染
-test/                 跨包测试、诊断、基准和集成测试
+cmd/docker-tui/        CLI entrypoint and bootstrap
+internal/data/         config, runtime adapters, i18n, audit
+internal/tui/state/    application state and message types
+internal/tui/keys/     action registry and effective key bindings
+internal/tui/keyboard/ interaction and business commands
+internal/tui/ui/       pages, components, layout rendering
+internal/utils/        shared helpers (JSONC, formatting, TLS, URIs)
+test/                  cross-package tests, diagnostics, benchmarks, integration
 ```
 
-设计和实现资料：
+JSONC parsing is centralised in
+[`internal/utils/jsonc.go`](internal/utils/jsonc.go) so every config,
+theme, table profile and translation file shares one comment-tolerant
+loader backed by both `encoding/json` and `bytedance/sonic`.
 
-- [当前 UI 设计](design/current-design.md)
-- [架构说明](docs/architecture.md)
-- [项目结构](docs/project-structure.md)
-- [历史修复设计](design/bugfix-design.md)
-- [历史修复需求](docs/bugfix-requirements.md)
-- [后续需求与规划讨论](design/future-requirements-discussion.md)
-- [后续需求实施任务清单](design/future-requirements-task-list.md)
-- [文档索引](docs/README.md)
+---
 
-## 开发与测试
+## Development & testing
 
-查看全部任务：
+List all recipes:
 
 ```bash
 just --list
 ```
 
-常用检查：
+Common checks:
 
 ```bash
-just check             # go vet + 全量 Go 测试
-just test              # 全量 Go 测试
-just test-unit         # cmd/ 与 internal/ 单元测试
-just test-integration  # 构建并运行容器引擎集成测试
-just bench             # 序列化基准测试
+just check              # go vet + full Go test suite
+just test               # all Go tests
+just test-unit          # cmd/ and internal/ unit tests only
+just test-integration   # build and run container-engine integration tests
+just bench              # serialization benchmarks
 ```
 
-集成测试可能拉取镜像并创建带 `dtui-test-` 前缀的临时容器，测试退出时会执行清理。测试目录说明见 [test/README.md](test/README.md)。
+Direct equivalents:
+
+```bash
+go vet ./...
+go test ./...
+go test ./cmd/... ./internal/...
+go test -tags=integration ./test/integration/...
+go test -bench=. -benchmem ./test/benchmarks/...
+```
+
+Integration tests may pull images and create temporary containers
+prefixed with `dtui-test-`; the runner cleans them up on exit. See
+[test/README.md](test/README.md) for details.
+
+---
+
+## Documentation
+
+| Document | Purpose |
+|----------|---------|
+| [docs/architecture.md](docs/architecture.md) | Module layering, runtime adapters, message flow |
+| [docs/requirements.md](docs/requirements.md) | Functional & non-functional requirements, status |
+| [docs/project-structure.md](docs/project-structure.md) | Repository conventions and directory map |
+| [docs/navigation.md](docs/navigation.md) | Full key, command and mode reference |
+| [docs/bugfix-requirements.md](docs/bugfix-requirements.md) | Known issues and remediation notes |
+| [design/current-design.md](design/current-design.md) | UI design and visual language |
+| [design/ui-i18n-design.md](design/ui-i18n-design.md) | i18n key conventions and translation workflow |
+| [design/unified-runtime-driver.md](design/unified-runtime-driver.md) | Docker / Podman driver unification |
+| [TROUBLESHOOTING.md](TROUBLESHOOTING.md) | Common runtime errors and fixes |
+| [docs/README.md](docs/README.md) | Full documentation index |
+
+---
+
+## License
+
+This project does not currently declare a license. Treat the source as
+**all rights reserved** until a `LICENSE` file is added.
