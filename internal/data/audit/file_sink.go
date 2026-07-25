@@ -16,8 +16,13 @@ type FileSink struct {
 	mu  sync.Mutex
 }
 
-func NewFileSink(dir string) *FileSink {
-	return &FileSink{dir: dir, now: time.Now}
+func NewFileSink(dir string) (*FileSink, error) {
+	if dir != "" {
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			return nil, fmt.Errorf("create audit directory: %w", err)
+		}
+	}
+	return &FileSink{dir: dir, now: time.Now}, nil
 }
 
 func (s *FileSink) WriteAudit(_ context.Context, record Record) error {

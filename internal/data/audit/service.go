@@ -78,6 +78,25 @@ func (s *Service) LastError() error {
 	return s.lastError
 }
 
+// LogSession writes a one-off session event (e.g. startup, shutdown, connection).
+// Unlike Begin/Finish it does not require a follow-up Finish call.
+func (s *Service) LogSession(action string, runtime RuntimeContext, target SessionTarget, message string) {
+	if s == nil || action == "" {
+		return
+	}
+	s.publish(Record{
+		Time:    s.now().UTC(),
+		TraceID: s.newID(),
+		EventID: s.newID(),
+		Action:  action,
+		Result:  ResultSucceeded,
+		Level:   LevelInfo,
+		Message: message,
+		Runtime: runtime,
+		Target:  target.ToDTO(),
+	})
+}
+
 func (s *Service) publish(record Record) {
 	s.operations.OnAuditRecord(record)
 	s.notifications.OnAuditRecord(record)

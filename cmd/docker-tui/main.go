@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -97,9 +98,36 @@ func runTUI(ctx *orpheus.Context) error {
 
 	m := state.NewAppModel(cfg, nil, version)
 	if dir, configErr := config.ConfigDir(); configErr == nil {
-		m.Dependencies.Audit = audit.NewService(audit.NewFileSink(filepath.Join(dir, "logs")))
+		logsDir := filepath.Join(dir, "logs")
+		if sink, err := audit.NewFileSink(logsDir); err == nil {
+			m.Dependencies.Audit = audit.NewService(sink)
+		} else {
+			fmt.Fprintf(os.Stderr, "Warning: audit log init failed: %v\n", err)
+			m.Dependencies.Audit = audit.NewService(nil)
+		}
 	} else {
 		m.Dependencies.Audit = audit.NewService(nil)
+	}
+	m.Connection.Pool = pool
+	m.Dependencies.Theme = theme
+	m.Viewport.HeaderVisible = true
+	m.Connection.Connecting = true
+	m.Connection.RuntimeSelectorDisabled = dockerHost != ""
+	if m.Dependencies.Audit != nil {
+		runtimeType := "docker"
+		if podmanMode {
+			runtimeType = "podman"
+		}
+		m.Dependencies.Audit.LogSession(
+			"session.start",
+			audit.RuntimeContext{Type: runtimeType, Name: initialConnection, Host: dockerHost},
+			audit.SessionTarget{
+				ID:   "session-" + version,
+				Name: "dtui " + version,
+				Meta: audit.SessionMeta{Version: version, OS: runtime.GOOS, Arch: runtime.GOARCH},
+			},
+			"dtui session started",
+		)
 	}
 	m.Connection.Pool = pool
 	m.Dependencies.Theme = theme

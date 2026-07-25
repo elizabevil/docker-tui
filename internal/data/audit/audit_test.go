@@ -46,7 +46,10 @@ func TestServiceWritesTraceAndProjectsTerminalResult(t *testing.T) {
 
 func TestFileSinkWritesDatedJSONL(t *testing.T) {
 	dir := t.TempDir()
-	sink := NewFileSink(dir)
+	sink, err := NewFileSink(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
 	record := Record{Time: time.Date(2026, 7, 20, 1, 2, 3, 0, time.UTC), TraceID: "trace", EventID: "event", Action: "resource.image.pull", Result: ResultStarted, Level: LevelInfo, Target: ImageTarget{ID: "nginx", Name: "nginx"}.ToDTO()}
 	if err := sink.WriteAudit(context.Background(), record); err != nil {
 		t.Fatal(err)
@@ -78,5 +81,38 @@ func TestOperationProjectorIsBounded(t *testing.T) {
 	recent := projector.Recent()
 	if len(recent) != 2 || recent[0].EventID != "two" || recent[1].EventID != "three" {
 		t.Fatalf("recent=%#v", recent)
+	}
+}
+
+func TestServiceLogSessionEmitsRecord(t *testing.T) {
+	sink := &memorySink{}
+	service := NewService(sink)
+	service.LogSession(
+		"session.start",
+		RuntimeContext{Type: "docker", Name: "local-docker"},
+		SessionTarget{ID: "session-1", Name: "dtui 0.2.0", Meta: SessionMeta{Version: "0.2.0", OS: "linux", Arch: "amd64"}},
+		"dtui session started",
+	)
+	if len(sink.records) != 1 {
+		t.Fatalf("records=%d, want 1", len(sink.records))
+	}
+	r := sink.records[0]
+	if r.Action != "session.start" {
+		t.Errorf("action=%q", r.Action)
+	}
+	if r.Target.Type != "session" || r.Target.ID != "session-1" {
+		t.Errorf("target=%#v", r.Target)
+	}
+	if r.Result != ResultSucceeded {
+		t.Errorf("result=%q, want succeeded", r.Result)
+	}
+}
+
+func TestServiceLogSessionIgnoresEmptyAction(t *testing.T) {
+	sink := &memorySink{}
+	service := NewService(sink)
+	service.LogSession("", RuntimeContext{}, SessionTarget{}, "")
+	if len(sink.records) != 0 {
+		t.Fatalf("expected no records, got %d", len(sink.records))
 	}
 }

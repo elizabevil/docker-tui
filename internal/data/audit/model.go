@@ -91,3 +91,26 @@ type UIMessage struct {
 	Level   Level
 	Message string
 }
+
+// SessionTarget represents the application session itself, used to log
+// startup, shutdown, and runtime-connection lifecycle events that are not
+// tied to a specific container, image, volume, etc.
+type SessionTarget struct {
+	ID   string
+	Name string
+	Meta SessionMeta
+}
+
+type SessionMeta struct {
+	Version string `json:"version,omitempty"`
+	OS      string `json:"os,omitempty"`
+	Arch    string `json:"arch,omitempty"`
+}
+
+func (t SessionTarget) TargetType() string { return "session" }
+func (t SessionTarget) TargetID() string   { return t.ID }
+func (t SessionTarget) TargetName() string { return t.Name }
+func (t SessionTarget) ToDTO() TargetDTO {
+	raw, _ := json.Marshal(t.Meta)
+	return TargetDTO{Type: "session", ID: t.ID, Name: t.Name, Meta: raw}
+}
