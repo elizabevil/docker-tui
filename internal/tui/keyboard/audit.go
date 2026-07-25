@@ -190,17 +190,23 @@ func imageTarget(m *state.AppModel, id string) audit.ImageTarget {
 }
 
 func bulkResourceName(panel state.PanelType) string {
+	return string(bulkResourceType(panel))
+}
+
+// bulkResourceType returns the ResourceType matching the active panel for
+// batch operations and audit traces.
+func bulkResourceType(panel state.PanelType) state.ResourceType {
 	switch panel {
 	case state.PanelContainers:
-		return string(state.ResourceContainer)
+		return state.ResourceContainer
 	case state.PanelImages:
-		return string(state.ResourceImage)
+		return state.ResourceImage
 	case state.PanelVolumes:
-		return string(state.ResourceVolume)
+		return state.ResourceVolume
 	case state.PanelNetworks:
-		return string(state.ResourceNetwork)
+		return state.ResourceNetwork
 	default:
-		return "resource"
+		return state.ResourceType("resource")
 	}
 }
 

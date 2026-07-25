@@ -72,7 +72,7 @@ type (
 	// toast/audit instead of N independent notifications.
 	BatchActioned struct {
 		Scope      string // e.g. "container.batch.start", "bulk-delete", "compose.start"
-		Resource   string // e.g. "container", "image", "volume", "network", "compose_project"
+		Resource   ResourceType
 		Total      int    // total targets attempted
 		Success    int    // succeeded
 		Failed     int    // failed (engine error)

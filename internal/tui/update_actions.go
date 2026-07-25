@@ -59,15 +59,15 @@ func handleBatchActioned(m *state.AppModel, msg state.BatchActioned) (*state.App
 	}
 	// Refresh whichever resource lists the affected scope implies.
 	switch msg.Resource {
-	case "container":
+	case state.ResourceContainer:
 		return m, keyboard.FetchContainers(m.Connection.Engine, true)
-	case "image":
+	case state.ResourceImage:
 		return m, keyboard.FetchImages(m.Connection.Engine)
-	case "volume":
+	case state.ResourceVolume:
 		return m, keyboard.FetchVolumes(m.Connection.Engine)
-	case "network":
+	case state.ResourceNetwork:
 		return m, keyboard.FetchNetworks(m.Connection.Engine)
-	case "compose_project":
+	case state.ResourceComposeProject:
 		// Compose down/up/stop also touches containers; refresh those.
 		return m, tea.Batch(
 			keyboard.FetchContainers(m.Connection.Engine, true),

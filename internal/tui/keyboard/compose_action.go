@@ -83,7 +83,7 @@ func doComposeStart(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	return m, func() tea.Msg {
 		result := state.BatchActioned{
 			Scope:    "compose.start",
-			Resource: "compose_project",
+			Resource: state.ResourceComposeProject,
 			Total:    len(containers),
 			Audit:    trace,
 		}
@@ -129,7 +129,7 @@ func doComposeStop(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	return m, func() tea.Msg {
 		result := state.BatchActioned{
 			Scope:    "compose.stop",
-			Resource: "compose_project",
+			Resource: state.ResourceComposeProject,
 			Total:    len(containers),
 			Audit:    trace,
 		}
@@ -177,7 +177,7 @@ func doComposeDown(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	return m, func() tea.Msg {
 		result := state.BatchActioned{
 			Scope:    "compose.down",
-			Resource: "compose_project",
+			Resource: state.ResourceComposeProject,
 			Total:    len(containers) + len(volumes) + len(networks),
 			Audit:    trace,
 		}

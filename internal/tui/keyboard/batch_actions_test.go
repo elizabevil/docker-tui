@@ -69,7 +69,7 @@ func TestExecuteBatchActionAggregatesResults(t *testing.T) {
 	if batch.Total != 2 || batch.Success != 1 || batch.Failed != 1 {
 		t.Errorf("unexpected summary: total=%d success=%d failed=%d", batch.Total, batch.Success, batch.Failed)
 	}
-	if batch.Resource != "container" {
+	if batch.Resource != state.ResourceContainer {
 		t.Errorf("resource = %q, want container", batch.Resource)
 	}
 	if batch.Scope != "container.batch.start" {
@@ -139,7 +139,7 @@ func TestExecuteBulkDeleteAggregatesImages(t *testing.T) {
 	if batch.Scope != "bulk-delete" {
 		t.Errorf("scope = %q", batch.Scope)
 	}
-	if batch.Resource != "image" {
+	if batch.Resource != state.ResourceImage {
 		t.Errorf("resource = %q, want image", batch.Resource)
 	}
 	if len(batch.FailedIDs) != 1 || batch.FailedIDs[0] != "img-2" {
@@ -162,7 +162,7 @@ func TestExecuteBulkDeleteContainerPanelSanity(t *testing.T) {
 	if batch.Total != 1 || batch.Success != 1 {
 		t.Errorf("summary = %+v", batch)
 	}
-	if batch.Resource != "container" {
+	if batch.Resource != state.ResourceContainer {
 		t.Errorf("resource = %q", batch.Resource)
 	}
 }
@@ -191,7 +191,7 @@ func TestComposeStartAggregatesContainers(t *testing.T) {
 	if batch.Scope != "compose.start" {
 		t.Errorf("scope = %q", batch.Scope)
 	}
-	if batch.Resource != "compose_project" {
+	if batch.Resource != state.ResourceComposeProject {
 		t.Errorf("resource = %q", batch.Resource)
 	}
 	if len(batch.FailedIDs) != 1 || batch.FailedIDs[0] != "c2" {

@@ -106,7 +106,7 @@ func executeBulkDelete(m *state.AppModel, trace audit.Trace) (*state.AppModel, t
 	return m, func() tea.Msg {
 		result := state.BatchActioned{
 			Scope:    "bulk-delete",
-			Resource: bulkResourceName(panel),
+			Resource: bulkResourceType(panel),
 			Total:    len(ids),
 			Audit:    trace,
 		}
