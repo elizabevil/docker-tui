@@ -3,10 +3,10 @@ package benchmarks
 import (
 	"encoding/json"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/bytedance/sonic"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 // benchDataJSONC holds a JSONC dataset with comments to verify the parser
@@ -39,78 +39,17 @@ func init() {
 	}
 }
 
-// stripJSONCComments removes // and /* */ comments from a JSONC document
-// while preserving their content when it appears inside string literals.
-func stripJSONCComments(data []byte) []byte {
-	var out strings.Builder
-	out.Grow(len(data))
-
-	inString := false
-	escape := false
-	i := 0
-	for i < len(data) {
-		c := data[i]
-
-		if inString {
-			out.WriteByte(c)
-			if escape {
-				escape = false
-			} else if c == '\\' {
-				escape = true
-			} else if c == '"' {
-				inString = false
-			}
-			i++
-			continue
-		}
-
-		// not in a string
-		if c == '"' {
-			inString = true
-			out.WriteByte(c)
-			i++
-			continue
-		}
-
-		// potential start of comment
-		if c == '/' && i+1 < len(data) {
-			next := data[i+1]
-			if next == '/' {
-				// line comment: skip until newline (keep the newline)
-				i += 2
-				for i < len(data) && data[i] != '\n' {
-					i++
-				}
-				continue
-			}
-			if next == '*' {
-				// block comment: skip until closing */
-				i += 2
-				for i+1 < len(data) && !(data[i] == '*' && data[i+1] == '/') {
-					i++
-				}
-				i += 2
-				continue
-			}
-		}
-
-		out.WriteByte(c)
-		i++
-	}
-	return []byte(out.String())
-}
-
 // ── JSONC parser benchmarks ────────────────────────────────
 
 func BenchmarkStripJSONCComments(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = stripJSONCComments(jsoncBytes)
+		_ = utils.StripJSONCComments(jsoncBytes)
 	}
 }
 
 func BenchmarkUnmarshalJSONCStd(b *testing.B) {
-	clean := stripJSONCComments(jsoncBytes)
+	clean := utils.StripJSONCComments(jsoncBytes)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		var d benchDataJSONC
@@ -121,7 +60,7 @@ func BenchmarkUnmarshalJSONCStd(b *testing.B) {
 }
 
 func BenchmarkUnmarshalJSONCSonic(b *testing.B) {
-	clean := stripJSONCComments(jsoncBytes)
+	clean := utils.StripJSONCComments(jsoncBytes)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		var d benchDataJSONC
@@ -181,7 +120,7 @@ func TestStripJSONCComments(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := string(stripJSONCComments([]byte(tc.in)))
+			got := string(utils.StripJSONCComments([]byte(tc.in)))
 			if got != tc.want {
 				t.Fatalf("got %q\nwant %q", got, tc.want)
 			}
@@ -190,7 +129,7 @@ func TestStripJSONCComments(t *testing.T) {
 }
 
 func TestUnmarshalJSONCStd(t *testing.T) {
-	clean := stripJSONCComments(jsoncBytes)
+	clean := utils.StripJSONCComments(jsoncBytes)
 	var d benchDataJSONC
 	if err := json.Unmarshal(clean, &d); err != nil {
 		t.Fatalf("json.Unmarshal: %v", err)
@@ -204,7 +143,7 @@ func TestUnmarshalJSONCStd(t *testing.T) {
 }
 
 func TestUnmarshalJSONCSonic(t *testing.T) {
-	clean := stripJSONCComments(jsoncBytes)
+	clean := utils.StripJSONCComments(jsoncBytes)
 	var d benchDataJSONC
 	if err := sonic.Unmarshal(clean, &d); err != nil {
 		t.Fatalf("sonic.Unmarshal: %v", err)
@@ -233,7 +172,7 @@ func TestRawJSONCUnmarshalFails(t *testing.T) {
 }
 
 func TestJSONCRoundtripStd(t *testing.T) {
-	clean := stripJSONCComments(jsoncBytes)
+	clean := utils.StripJSONCComments(jsoncBytes)
 	var d benchDataJSONC
 	if err := json.Unmarshal(clean, &d); err != nil {
 		t.Fatalf("unmarshal: %v", err)
@@ -252,7 +191,7 @@ func TestJSONCRoundtripStd(t *testing.T) {
 }
 
 func TestJSONCRoundtripSonic(t *testing.T) {
-	clean := stripJSONCComments(jsoncBytes)
+	clean := utils.StripJSONCComments(jsoncBytes)
 	var d benchDataJSONC
 	if err := sonic.Unmarshal(clean, &d); err != nil {
 		t.Fatalf("unmarshal: %v", err)

@@ -1,7 +1,7 @@
 package component
 
 import (
-	"encoding/json"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 // ConfigLoader loads embedded JSONC config into a strongly-typed struct.
@@ -24,7 +24,7 @@ func (l ConfigLoader[T]) Load() T {
 	}
 
 	var cfg T
-	if err := json.Unmarshal(l.RawData, &cfg); err != nil {
+	if err := utils.UnmarshalJSONCSonic(l.RawData, &cfg); err != nil {
 		cfg = l.Fallback
 	}
 	if l.Normalize != nil {

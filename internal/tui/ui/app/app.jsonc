@@ -1,6 +1,7 @@
 {
   // App window layout — 应用窗口在终端中的占比
-  "marginTopPct": 5,
-  "marginBottomPct": 5,
-  "contentWidthPct": 98
+  // App window is centered in the terminal with margins and content area
+  "marginTopPct": 2,
+  "marginBottomPct": 2,
+  "contentWidthPct": 99
 }
