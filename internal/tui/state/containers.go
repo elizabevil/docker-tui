@@ -22,13 +22,13 @@ const (
 	ActionExported  = "exported"
 	ActionCreated   = "created"
 
-	ContainerStateRunning   = "running"
-	ContainerStateExited    = "exited"
-	ContainerStateCreated   = "created"
-	ContainerStateStopped   = "stopped"
-	ContainerStateStopping  = "stopping"
-	ContainerStatePaused    = "paused"
-	ContainerStateDead      = "dead"
+	ContainerStateRunning    = "running"
+	ContainerStateExited     = "exited"
+	ContainerStateCreated    = "created"
+	ContainerStateStopped    = "stopped"
+	ContainerStateStopping   = "stopping"
+	ContainerStatePaused     = "paused"
+	ContainerStateDead       = "dead"
 	ContainerStateRestarting = "restarting"
 )
 
@@ -75,10 +75,10 @@ type (
 	BatchActioned struct {
 		Scope      string // e.g. "container.batch.start", "bulk-delete", "compose.start"
 		Resource   ResourceType
-		Total      int    // total targets attempted
-		Success    int    // succeeded
-		Failed     int    // failed (engine error)
-		Skipped    int    // rejected pre-flight (state-incompatible, etc.)
+		Total      int // total targets attempted
+		Success    int // succeeded
+		Failed     int // failed (engine error)
+		Skipped    int // rejected pre-flight (state-incompatible, etc.)
 		FailedIDs  []string
 		SkippedIDs []string
 		Audit      audit.Trace
