@@ -35,9 +35,16 @@ func (s *Service) Begin(action string, target Target, runtime RuntimeContext, ui
 		return Trace{}
 	}
 	now := s.now().UTC()
-	trace := Trace{ID: s.newID(), Action: action, StartedAt: now, Runtime: runtime, UI: ui, Target: target.ToDTO()}
-	s.publish(Record{Time: now, TraceID: trace.ID, EventID: s.newID(), Action: action, Result: ResultRequested, Level: LevelInfo, Message: message, Runtime: runtime, UI: ui, Target: trace.Target})
-	s.publish(Record{Time: s.now().UTC(), TraceID: trace.ID, EventID: s.newID(), Action: action, Result: ResultStarted, Level: LevelInfo, Message: message, Runtime: runtime, UI: ui, Target: trace.Target})
+	trace := Trace{
+		ID:        s.newID(),
+		Action:    action,
+		StartedAt: now,
+		Runtime:   runtime,
+		UI:        ui,
+		Target:    target.ToDTO(),
+	}
+	s.publish(s.buildRecord(trace, now, ResultRequested, message))
+	s.publish(s.buildRecord(trace, s.now().UTC(), ResultStarted, message))
 	return trace
 }
 
@@ -48,13 +55,54 @@ func (s *Service) Finish(trace Trace, result Result, message string, details Det
 	if details.DurationMs == 0 {
 		details.DurationMs = s.now().Sub(trace.StartedAt).Milliseconds()
 	}
-	level := LevelInfo
-	if result == ResultFailed {
-		level = LevelError
-	} else if result == ResultCancelled {
-		level = LevelWarn
+	level := levelForResult(result)
+	s.publish(s.finishRecord(trace, result, level, message, details))
+}
+
+// buildRecord returns a Record sharing the trace context, used for the
+// requested/started events emitted by Begin.
+func (s *Service) buildRecord(trace Trace, ts time.Time, result Result, message string) Record {
+	return Record{
+		Time:    ts,
+		TraceID: trace.ID,
+		EventID: s.newID(),
+		Action:  trace.Action,
+		Result:  result,
+		Level:   LevelInfo,
+		Message: message,
+		Runtime: trace.Runtime,
+		UI:      trace.UI,
+		Target:  trace.Target,
 	}
-	s.publish(Record{Time: s.now().UTC(), TraceID: trace.ID, EventID: s.newID(), Action: trace.Action, Result: result, Level: level, Message: message, Runtime: trace.Runtime, UI: trace.UI, Target: trace.Target, Details: details})
+}
+
+// finishRecord returns the Record emitted by Finish. It carries the operator-
+// supplied details alongside the level that maps to the result.
+func (s *Service) finishRecord(trace Trace, result Result, level Level, message string, details Details) Record {
+	return Record{
+		Time:    s.now().UTC(),
+		TraceID: trace.ID,
+		EventID: s.newID(),
+		Action:  trace.Action,
+		Result:  result,
+		Level:   level,
+		Message: message,
+		Runtime: trace.Runtime,
+		UI:      trace.UI,
+		Target:  trace.Target,
+		Details: details,
+	}
+}
+
+func levelForResult(result Result) Level {
+	switch result {
+	case ResultFailed:
+		return LevelError
+	case ResultCancelled:
+		return LevelWarn
+	default:
+		return LevelInfo
+	}
 }
 
 func (s *Service) PublishUI(level Level, message string) {
