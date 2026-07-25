@@ -88,6 +88,9 @@ type UIConfig struct {
 	ShowHelp           bool        `json:"showHelp" yaml:"showHelp"`
 	HintTimeout        int         `json:"hintTimeout" yaml:"hintTimeout"`               // seconds, default 3
 	DialogOverlayColor string      `json:"dialogOverlayColor" yaml:"dialogOverlayColor"` // hex, e.g. "#0d1117"
+	// EnableMouse toggles the bubbletea MouseMode; mouse clicks move
+	// the cursor and scroll, keyboard input remains the primary path.
+	EnableMouse bool `json:"enableMouse" yaml:"enableMouse"`
 }
 
 // ThemeConfig defines the color theme.

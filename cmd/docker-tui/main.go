@@ -225,6 +225,10 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *mainModel) View() tea.View {
 	v := tea.NewView(view.RenderApp(m.model))
 	v.AltScreen = true
-	v.MouseMode = tea.MouseModeCellMotion
+	// Mouse support is opt-out via config.ui.enableMouse; keyboard
+	// remains the primary input path even when mouse is on.
+	if m.model.Dependencies.Config != nil && m.model.Dependencies.Config.UI.EnableMouse {
+		v.MouseMode = tea.MouseModeCellMotion
+	}
 	return v
 }

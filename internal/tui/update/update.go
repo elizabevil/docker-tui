@@ -7,6 +7,7 @@ import (
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keyboard"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
+	view "github.com/elizabevil/docker-tui/internal/tui/ui/app"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -33,6 +34,15 @@ func handleMouseWheel(m *state.AppModel, msg tea.MouseWheelMsg) *state.AppModel 
 	return m
 }
 
+// handleMouseClick translates a mouse click into a cursor move or a
+// scroll step. It delegates to the view package so the layout math
+// stays in one place; keyboard input remains the primary control
+// surface and mouse is purely additive.
+func handleMouseClick(m *state.AppModel, msg tea.MouseClickMsg) (*state.AppModel, tea.Cmd) {
+	view.ApplyMouseClick(m, msg)
+	return m, nil
+}
+
 func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	switch msg := msg.(type) {
 
@@ -47,6 +57,9 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 	case tea.MouseWheelMsg:
 		return handleMouseWheel(m, msg), nil
+
+	case tea.MouseClickMsg:
+		return handleMouseClick(m, msg)
 
 	case tea.KeyPressMsg:
 		updatedModel, cmd := keyboard.HandleKeyPress(msg, m)

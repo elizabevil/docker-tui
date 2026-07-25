@@ -141,8 +141,85 @@ func TestRenderAppRegressionMatrix(t *testing.T) {
 
 func TestRenderAppRejectsUnsupportedTerminal(t *testing.T) {
 	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
-	app.Viewport.Width, app.Viewport.Height = 79, 19
-	if got := RenderApp(app); !strings.Contains(got, "minimum 80x20") {
+	app.Viewport.Width, app.Viewport.Height = 40, 10
+	if got := RenderApp(app); !strings.Contains(got, "Terminal too small") {
 		t.Fatalf("unexpected degradation message: %q", got)
+	}
+}
+
+func TestRenderAppCompactTierKeepsCoreActionsReachable(t *testing.T) {
+	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app.Viewport.Width, app.Viewport.Height = 79, 19
+	rendered := RenderApp(app)
+	if strings.Contains(rendered, "Terminal too small") {
+		t.Fatalf("compact tier should not show error at 79x19: %q", rendered)
+	}
+	// Compact footer must keep the navigation shortcuts reachable.
+	for _, hint := range []string{"Tab", "Enter", "Esc"} {
+		if !strings.Contains(rendered, hint) {
+			t.Fatalf("compact footer missing %q: %q", hint, rendered)
+		}
+	}
+	rows := strings.Count(rendered, "\n") + 1
+	// The compact panel renders one fewer row than the viewport because
+	// the body uses space-between layout; we accept a +/-1 slack so this
+	// test stays stable across content changes.
+	if rows < app.Viewport.Height-1 || rows > app.Viewport.Height {
+		t.Fatalf("compact layout rows=%d, want ~%d", rows, app.Viewport.Height)
+	}
+}
+
+func TestClassifyTerminal(t *testing.T) {
+	cases := []struct {
+		w, h int
+		want TerminalClass
+	}{
+		{40, 10, TerminalUnsupported},
+		{59, 14, TerminalUnsupported},
+		{60, 14, TerminalCompact},
+		{79, 19, TerminalCompact},
+		{80, 20, TerminalStandard},
+		{120, 32, TerminalStandard},
+		{200, 60, TerminalStandard},
+	}
+	for _, tc := range cases {
+		if got := ClassifyTerminal(tc.w, tc.h); got != tc.want {
+			t.Errorf("ClassifyTerminal(%d,%d) = %d, want %d", tc.w, tc.h, got, tc.want)
+		}
+	}
+}
+
+func TestPlanForAllocatesAllRows(t *testing.T) {
+	for _, h := range []int{14, 16, 19, 20, 24, 32, 50} {
+		class := ClassifyTerminal(80, h)
+		plan := planFor(class, h)
+		if plan.header <= 0 || plan.footer <= 0 || plan.panel <= 0 {
+			t.Errorf("plan for h=%d class=%d has zero rail: %+v", h, class, plan)
+		}
+		if plan.total() > h {
+			t.Errorf("plan for h=%d total=%d exceeds viewport", h, plan.total())
+		}
+	}
+}
+
+func TestRenderAppCompactDoesNotDropToast(t *testing.T) {
+	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app.Viewport.Width, app.Viewport.Height = 79, 19
+	app.Feedback.ToastMessage = "container started"
+	app.Feedback.ToastLevel = state.NotificationSuccess
+	rendered := RenderApp(app)
+	if !strings.Contains(rendered, "container started") {
+		t.Fatalf("compact tier dropped toast: %q", rendered)
+	}
+}
+
+func TestRenderAppCompactHandlesQueryInput(t *testing.T) {
+	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app.Viewport.Width, app.Viewport.Height = 79, 19
+	app.Navigation.Mode = state.ModeFilter
+	app.Navigation.FilterInput = state.QueryInputState{Text: "nginx", Cursor: 5}
+	rendered := RenderApp(app)
+	if !strings.Contains(rendered, "Filter:") {
+		t.Fatalf("compact tier dropped filter input: %q", rendered)
 	}
 }

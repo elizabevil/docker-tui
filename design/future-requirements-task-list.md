@@ -20,13 +20,14 @@
 
 | 状态 | 数量 |
 |---|---:|
-| `done` | 20 |
+| `done` | 21 |
 | `in_progress` | 1 (`TASK-022`) |
-| `todo` | 4 |
+| `todo` | 3 |
 | `blocked` | 0 |
 
 最近一次维护说明：
 
+- `TASK-013`（鼠标与小终端降级布局）已 `done`：新增 `internal/tui/ui/app/compact.go` 提供 `TerminalClass` 分级（`Unsupported` / `Compact` / `Standard`）+ `renderCompactApp` 单行 header/footer 紧凑布局；`internal/tui/ui/app/mouse.go` 提供 `HitTest`/`ApplyMouseClick` 命中测试与指针路由，仅左键生效、不破坏键盘路径；新增 `UIConfig.EnableMouse` 配置项（默认开启）。
 - `TASK-025`（企业级 lint 规则与代码整洁度治理）已 `done`：`.golangci.yml` 启用 130/120/15/5 规则，9 大类 linter（`errcheck`/`unused`/`ineffassign`/`staticcheck`/`gosimple`/`gofmt`/`revive`/`gocritic` 等）累计清零或显著收敛；新增 `mapContainerErr` / `mapPodmanContainerErr` 等 6 个错误映射 helper；`errdefs` 完成从 `docker/errdefs` 到 `containerd/errdefs` 的迁移；总计 9473 → 524 个 lint 问题（94.5% 收敛）。见下方"TASK-025"章节。
 - `TASK-019`（高级容器操作 `update`/`diff`/`export`/`commit`/`wait`/`copy`）已 `done`：双适配器 + 调度路由 + 键位 + 测试全部落地。
 - `TASK-010`（批量操作聚合）已 `done`：统一 `BatchActioned` 消息。
@@ -224,7 +225,7 @@ G2 取消双签名 / G4 取消 docker/service 层 / G5 取消 docker/service 层
 | 编号 | 任务 | 优先级 | 状态 | 依赖 | 验收重点 |
 |---|---|---:|---|---|---|
 | `TASK-012` | 审计操作历史面板 | P2 | `done` | TASK-001、审计模型 | 已实现 PanelAudit 面板、AuditState 状态域、文本/级别筛选、记录详情视图、键盘导航（Enter/Esc/E），审计记录从 Service.RecentOperations() 实时同步 |
-| `TASK-013` | 鼠标与小终端降级布局 | P3 | `todo` | 页面固定轨道 | 鼠标不破坏键盘路径，小终端无重叠且核心操作可达 |
+| `TASK-013` | 鼠标与小终端降级布局 | P3 | `done` | 页面固定轨道 | 三档终端分级：`Unsupported` (< 60x14 错误信息)、`Compact` (60x14-79x19 单行 header + 单行 footer)、`Standard` (≥ 80x20 完整布局)；鼠标通过 `tea.MouseClickMsg` 路由到 `view.ApplyMouseClick`，仅左键生效，命中测试 `HitTest` 与 `ResolveLayout` 在 Update 与 Render 路径复用同一套坐标计算；`UIConfig.EnableMouse` 配置可关闭；`internal/tui/ui/app/compact_test.go` 与 `mouse_test.go` 覆盖分级、布局命中、面板游标移动、详情滚动、右键忽略等场景。详见下方"TASK-013 完成明细"。 |
 | `TASK-014` | 发布、命名和跨平台分发 | P3 | `todo` | 新配置稳定 | 统一命名、构建产物、版本信息、Linux / macOS 发布说明 |
 | `TASK-020` | Docker / Podman 专有能力评估 | P3 | `todo` | TASK-004 | Podman pod/secret/kube 与 Docker buildx/context 等能力分开决策 |
 
@@ -255,7 +256,7 @@ G2 取消双签名 / G4 取消 docker/service 层 / G5 取消 docker/service 层
                 (TASK-022 完成后立即启动;
                  24 个生产文件 + 8 个测试文件)
 
-独立后续: TASK-013 / TASK-014 / TASK-020
+独立后续: TASK-014 / TASK-020
 ```
 
 ## 代码质量与 lint 治理
@@ -315,6 +316,45 @@ b909a87 refactor(podman): extract error-mapping helpers
 7ba2320 refactor(tui): tighten containers.go for line-length
 e0879b1 style: misc gofmt + small lint cleanups
 ```
+
+### `TASK-013` 完成明细（2026-07-25）
+
+**终端分级（`internal/tui/ui/app/compact.go`）**
+
+| Tier | 视口 | 渲染路径 |
+|------|------|----------|
+| `TerminalUnsupported` | `width < 60` 或 `height < 14` | `renderTerminalError` 仅显示放大居中的错误信息 |
+| `TerminalCompact` | `60..79` 且 `14..19` | `renderCompactApp` 单行 header（Engine + Socket + 计数）+ 单行 footer（Tab/Enter/Esc/:/F1）+ 3 行 query rail（仅在输入激活时存在） |
+| `TerminalStandard` | `≥ 80x20` | 既有完整布局（header=4 / message=1 / query=3 / footer=3 + 比例 margin） |
+
+边界常量 `compactMinWidth=60` / `compactMinHeight=14` / `minimumTerminalWidth=80` / `minimumTerminalHeight=20` 集中在文件顶部，方便后续调整。
+
+**鼠标支持（`internal/tui/ui/app/mouse.go`）**
+
+- `LayoutHit` 枚举（Header / Message / Query / Panel / Footer / Outside）+ `ResolveLayout(m)` 计算当前 rail 几何（标准 + 紧凑两种模式）。
+- `HitTest(m, x, y) (LayoutHit, row)` 一行命中测试。
+- `ApplyMouseClick(m, msg)`：
+  - 只接受左键（`tea.MouseLeft`），右键 / 中键忽略。
+  - 命中 panel：列表面板（containers/images/volumes/networks/audit/"containers of image" 子视图）移动 cursor 到点击行；Detail / Log / Top / AuditDetail / Help 等滚动面板按 `row - 3` 滚动。
+  - 命中 panel 边框或标题（`row < 0`）：单步向上滚动。
+  - 命中其他 rail：不动作（键盘路径不受影响）。
+- `internal/tui/update/update.go` 新增 `case tea.MouseClickMsg:` 分发到 `view.ApplyMouseClick`，保持 Update 主循环薄。
+
+**配置项（`internal/data/config/types.go` / `default.jsonc`）**
+
+```yaml
+ui:
+  enableMouse: true   # 默认开启；false 时 cmd/docker-tui/main.go 不会设置 MouseMode
+```
+
+**测试（`internal/tui/ui/app/compact_test.go` / `mouse_test.go`）**
+
+- `TestClassifyTerminal`：边界值矩阵（40x10/59x14/60x14/79x19/80x20/120x32/200x60）。
+- `TestPlanForAllocatesAllRows`：所有视口的 rail 计划都能容纳至少 1 行 panel。
+- `TestRenderAppCompactTierKeepsCoreActionsReachable`：79x19 不再返回 "Terminal too small"，且 footer 包含 Tab/Enter/Esc。
+- `TestRenderAppCompactDoesNotDropToast` / `TestRenderAppCompactHandlesQueryInput`：紧凑模式下 toast 与 filter 输入仍然可见。
+- `TestHitTestStandardLayout` / `TestHitTestCompactLayout` / `TestHitTestOutsideViewport` / `TestHitTestBordersAndTitle`：命中测试覆盖标准、紧凑、越界、边框/标题场景。
+- `TestApplyMouseClickMovesContainerCursor` / `TestApplyMouseClickClampsCursor` / `TestApplyMouseClickIgnoresRightButton` / `TestApplyMouseClickIgnoredOutsidePanel` / `TestApplyMouseClickScrollsDetail` / `TestApplyMouseClickActivePanelVolumes` / `TestApplyMouseClickEmptyListIsNoop`：覆盖 cursor 移动、夹紧、右键忽略、rail 外忽略、详情滚动、面板切换、空列表等场景。
 
 #### 决策项（TASK-022；2026-07-24 用户最终修订）
 

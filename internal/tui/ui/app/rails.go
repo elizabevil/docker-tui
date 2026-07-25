@@ -10,9 +10,6 @@ import (
 )
 
 const (
-	minimumTerminalWidth  = 80
-	minimumTerminalHeight = 20
-
 	headerRailHeight   = 4
 	messageRailHeight  = 1
 	queryRailHeight    = 3

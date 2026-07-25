@@ -102,8 +102,11 @@ func RenderApp(m *state.AppModel) string {
 	if m.Viewport.Width == 0 || m.Viewport.Height == 0 {
 		return i18n.T("msg.loading")
 	}
-	if m.Viewport.Width < minimumTerminalWidth || m.Viewport.Height < minimumTerminalHeight {
-		return terminalSizeMessage(m.Viewport.Width, m.Viewport.Height)
+	switch ClassifyTerminal(m.Viewport.Width, m.Viewport.Height) {
+	case TerminalUnsupported:
+		return renderTerminalError(m.Viewport.Width, m.Viewport.Height)
+	case TerminalCompact:
+		return renderCompactApp(m)
 	}
 
 	// Window margin: percentage of terminal height for top/bottom spacing

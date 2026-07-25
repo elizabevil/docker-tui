@@ -15,7 +15,8 @@
     "borderStyle": "rounded",
     "showHelp": true,
     "hintTimeout": 3,
-    "dialogOverlayColor": "#0d1117cc"
+    "dialogOverlayColor": "#0d1117cc",
+    "enableMouse": true
   },
   "docker": {
     "timeout": 30000000000,
