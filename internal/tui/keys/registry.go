@@ -179,7 +179,7 @@ func configuredBindings(keymap config.KeymapConfig) map[KeyAction][]string {
 		ActionContainerUpdate: keymap.ContainerUpdate, ActionContainerDiff: keymap.ContainerDiff,
 		ActionContainerExport: keymap.ContainerExport, ActionContainerCommit: keymap.ContainerCommit,
 		ActionContainerWait: keymap.ContainerWait, ActionContainerCopy: keymap.ContainerCopy,
-		ActionImagePull: keymap.ImagePull,
+		ActionImagePull:   keymap.ImagePull,
 		ActionImageRemove: keymap.ImageRemove, ActionImagePrune: keymap.ImagePrune,
 		ActionImageTag: keymap.ImageTag, ActionImagePush: keymap.ImagePush, ActionImageSave: keymap.ImageSave, ActionImageLoad: keymap.ImageLoad,
 		ActionVolumeCreate: keymap.VolumeCreate, ActionVolumePrune: keymap.VolumePrune, ActionVolumeRemove: keymap.VolumeRemove,

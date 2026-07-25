@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
-	podman "github.com/elizabevil/docker-tui/internal/driver/podman"
+	"github.com/elizabevil/docker-tui/internal/driver/podman"
 )
 
 type PodmanEngine struct {

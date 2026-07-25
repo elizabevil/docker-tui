@@ -292,9 +292,7 @@ func buildImageDetailSections(content string) []detailSection {
 	appendKV(&sections[3], "Driver", i18n.T("inspect.driver"))
 	appendKV(&sections[3], "Layers", i18n.T("inspect.layers"))
 
-	for _, line := range labels {
-		sections[4].Lines = append(sections[4].Lines, line)
-	}
+	sections[4].Lines = append(sections[4].Lines, labels...)
 
 	sections[5].Lines = append(sections[5].Lines,
 		i18n.T("inspect.source"),

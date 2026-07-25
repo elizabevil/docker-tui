@@ -10,7 +10,7 @@ import (
 type AuditFilterLevel int
 
 const (
-	AuditFilterAll    AuditFilterLevel = iota
+	AuditFilterAll AuditFilterLevel = iota
 	AuditFilterErrors
 	AuditFilterWarnings
 )

@@ -111,10 +111,13 @@ func TestHandleEventFlushNetworkTriggersContainerRefresh(t *testing.T) {
 func TestHandleEventFlushCoalescesMixedDeps(t *testing.T) {
 	model := newFlushModel(t)
 	_, generation := model.Events.Begin()
-	token, _ := model.Events.MarkDirty("image")
-	token, _ = model.Events.MarkDirty("volume")
-	token, _ = model.Events.MarkDirty("network")
-	_, cmd := handleEventFlush(model, state.EventFlush{Generation: generation, Token: token})
+	firstToken, _ := model.Events.MarkDirty("image")
+	secondToken, _ := model.Events.MarkDirty("volume")
+	thirdToken, _ := model.Events.MarkDirty("network")
+	if firstToken != secondToken || secondToken != thirdToken {
+		t.Fatalf("expected coalesced tokens to match, got %d/%d/%d", firstToken, secondToken, thirdToken)
+	}
+	_, cmd := handleEventFlush(model, state.EventFlush{Generation: generation, Token: firstToken})
 	if cmd == nil {
 		t.Fatal("expected non-nil cmd")
 	}

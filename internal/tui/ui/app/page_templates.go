@@ -12,7 +12,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/images"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/logs"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/networks"
-	processes "github.com/elizabevil/docker-tui/internal/tui/ui/pages/processes"
+	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/processes"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/volumes"
 )
 

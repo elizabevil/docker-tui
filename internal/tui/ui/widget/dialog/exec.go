@@ -1,9 +1,10 @@
 package dialog
 
 import (
+	"strings"
+
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
-	"strings"
 
 	"charm.land/lipgloss/v2"
 

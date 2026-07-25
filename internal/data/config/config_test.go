@@ -27,7 +27,7 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.General.ScrollHeight != 2 {
 		t.Errorf("expected scrollHeight 2, got %d", cfg.General.ScrollHeight)
 	}
-	if cfg.Keymap.Quit == nil || len(cfg.Keymap.Quit) == 0 {
+	if len(cfg.Keymap.Quit) == 0 {
 		t.Error("expected Quit keybindings to be set")
 	}
 	if cfg.UI.Theme.ActiveBorderColor == nil {

@@ -170,7 +170,7 @@ func selectedRowForCursor(items []dockerclient.ContainerSummary, offset, cursor 
 }
 
 func buildMarkedRows(rows [][]string, items []dockerclient.ContainerSummary, offset int, markedIDs map[string]bool) map[int]bool {
-	if markedIDs == nil || len(markedIDs) == 0 {
+	if len(markedIDs) == 0 {
 		return nil
 	}
 	result := make(map[int]bool)

@@ -21,10 +21,10 @@ const (
 // ContainerUpdateOptions is the request body for
 // /libpod/containers/{id}/update.
 type ContainerUpdateOptions struct {
-	Memory             int64
-	NanoCPUs           int64
-	RestartPolicy      string
-	RestartMaxRetries  int
+	Memory            int64
+	NanoCPUs          int64
+	RestartPolicy     string
+	RestartMaxRetries int
 }
 
 // ContainerUpdateResponse is the response for

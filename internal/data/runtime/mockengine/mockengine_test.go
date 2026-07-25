@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/elizabevil/docker-tui/internal/data/runtime/mockengine"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/data/runtime/mockengine"
 )
 
 // TestNewEngineHasNoFailures verifies a fresh mock engine accepts all calls.

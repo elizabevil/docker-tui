@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/elizabevil/docker-tui/internal/utils"
@@ -102,7 +103,7 @@ func TestJSONCBlockCommentMidLine(t *testing.T) {
 func TestStripJSONCommentsNoComments(t *testing.T) {
 	input := []byte(`{"a": 1, "b": [2, 3]}`)
 	cleaned := utils.StripJSONCComments(input)
-	if string(cleaned) != string(input) {
+	if !bytes.Equal(cleaned, input) {
 		t.Errorf("expected no change:\n  got:  %s\n  want: %s", string(cleaned), string(input))
 	}
 }

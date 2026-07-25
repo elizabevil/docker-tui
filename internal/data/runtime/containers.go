@@ -171,9 +171,9 @@ type ContainerLogOptions struct {
 // surfaced to the UI. Fields are pointers so the adapter can detect
 // "unset" vs "set to zero".
 type ContainerUpdateOptions struct {
-	Memory           *int64
-	NanoCPUs         *int64
-	RestartPolicy    *string
+	Memory            *int64
+	NanoCPUs          *int64
+	RestartPolicy     *string
 	RestartMaxRetries *int
 }
 

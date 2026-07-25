@@ -398,7 +398,7 @@ func renderComposeContainers(m *state.AppModel, panelWidth int, panelHeight int)
 			BannerW:           tableBannerWidth(panelWidth-4, ts),
 			RowPrefix:         ts.RowPrefix,
 			RowPrefixSelected: ts.RowPrefixSelected,
-			FooterHint:        fmt.Sprintf("Esc back  |  l:logs  d:detail"),
+			FooterHint:        "Esc back  |  l:logs  d:detail",
 		}),
 		"",
 		bc,

@@ -25,10 +25,10 @@ const (
 type ResourceType string
 
 const (
-	ResourceContainer     ResourceType = "container"
-	ResourceNetwork       ResourceType = "network"
-	ResourceVolume        ResourceType = "volume"
-	ResourceImage         ResourceType = "image"
+	ResourceContainer      ResourceType = "container"
+	ResourceNetwork        ResourceType = "network"
+	ResourceVolume         ResourceType = "volume"
+	ResourceImage          ResourceType = "image"
 	ResourceComposeProject ResourceType = "compose_project"
 )
 

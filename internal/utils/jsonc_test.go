@@ -43,7 +43,7 @@ func TestStripJSONCComments(t *testing.T) {
 func TestStripJSONCComments_NoChangeWhenNoComments(t *testing.T) {
 	input := []byte(`{"a":1,"b":"x","c":[1,2,3]}`)
 	out := StripJSONCComments(input)
-	if string(out) != string(input) {
+	if !bytes.Equal(out, input) {
 		t.Fatalf("expected unchanged, got %s", out)
 	}
 }

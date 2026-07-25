@@ -2,7 +2,6 @@
   // Default configuration — embedded at build time.
   // Users can override any field in ~/.config/docker-tui/config.yml
   "configVersion": 1,
-
   "general": {
     "scrollHeight": 2,
     "reporting": "off",

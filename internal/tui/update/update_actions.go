@@ -2,6 +2,7 @@ package update
 
 import (
 	"fmt"
+
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"

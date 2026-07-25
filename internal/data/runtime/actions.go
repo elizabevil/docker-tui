@@ -75,10 +75,10 @@ type LifecycleOptions struct {
 // to zero". Fields with engine-side zero values (e.g. policy "no") are
 // encoded as plain strings; the adapter maps them to SDK enums.
 type UpdateOptions struct {
-	Memory           *int64 // bytes; nil = leave unchanged
-	NanoCPUs         *int64 // nil = leave unchanged
-	RestartPolicy    *string // "no"|"always"|"unless-stopped"|"on-failure"; nil = leave unchanged
-	RestartMaxRetries *int  // only meaningful with RestartPolicy == "on-failure"
+	Memory            *int64  // bytes; nil = leave unchanged
+	NanoCPUs          *int64  // nil = leave unchanged
+	RestartPolicy     *string // "no"|"always"|"unless-stopped"|"on-failure"; nil = leave unchanged
+	RestartMaxRetries *int    // only meaningful with RestartPolicy == "on-failure"
 }
 
 // DiffOptions is empty for now — ContainerDiff takes no parameters today

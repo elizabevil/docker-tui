@@ -283,7 +283,7 @@ func computeGap(contentWidths []int, containerWidth int) int {
 
 // BuildMarkedRows maps visible row indices to true for items whose IDs are in markedIDs.
 func BuildMarkedRows[T any](rows [][]string, items []T, offset int, markedIDs map[string]bool, idFn func(T) string) map[int]bool {
-	if markedIDs == nil || len(markedIDs) == 0 {
+	if len(markedIDs) == 0 {
 		return nil
 	}
 	result := make(map[int]bool)

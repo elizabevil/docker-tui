@@ -1,8 +1,9 @@
 package dialog
 
 import (
-	sty "github.com/elizabevil/docker-tui/internal/tui/ui/style"
 	"image/color"
+
+	sty "github.com/elizabevil/docker-tui/internal/tui/ui/style"
 
 	"charm.land/lipgloss/v2"
 )

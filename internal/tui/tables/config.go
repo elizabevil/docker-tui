@@ -218,7 +218,6 @@ func (tc *TableConfig) ColumnWidths(profile string, totalWidth int) []int {
 		for i := len(cols) - 1; i >= 0; i-- {
 			if cols[i].Fixed <= 0 {
 				widths[i] += remain
-				remain = 0
 				break
 			}
 		}

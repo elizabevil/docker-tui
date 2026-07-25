@@ -82,9 +82,7 @@ func imageSubContainerID(m *state.AppModel) string {
 	var imgNames []string
 	for _, item := range m.Resources.Images.Items {
 		if item.ID == m.Resources.Images.ContainersViewID || item.ID[:12] == imgShort {
-			for _, tag := range item.RepoTags {
-				imgNames = append(imgNames, tag)
-			}
+			imgNames = append(imgNames, item.RepoTags...)
 			break
 		}
 	}
@@ -145,9 +143,7 @@ func doImageContainerLog(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	var imgNames []string
 	for _, item := range m.Resources.Images.Items {
 		if item.ID == m.Resources.Images.ContainersViewID || item.ID[:12] == imgShort {
-			for _, tag := range item.RepoTags {
-				imgNames = append(imgNames, tag)
-			}
+			imgNames = append(imgNames, item.RepoTags...)
 			break
 		}
 	}

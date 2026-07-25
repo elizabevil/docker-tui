@@ -87,7 +87,7 @@ func truncateCells(s string, width int) string {
 	}
 	used := 0
 	var out strings.Builder
-	for _, r := range []rune(s) {
+	for _, r := range s {
 		w := runewidth.RuneWidth(r)
 		if used+w > width {
 			break
