@@ -190,9 +190,7 @@ func renderContainers(im *state.ImageListModel, cm *state.ContainerListModel, wi
 	var imgNames []string
 	for _, item := range im.Items {
 		if item.ID == imgID || item.ID[:12] == imgShort {
-			for _, tag := range item.RepoTags {
-				imgNames = append(imgNames, tag)
-			}
+			imgNames = append(imgNames, item.RepoTags...)
 			break
 		}
 	}
@@ -381,11 +379,6 @@ func imgHasContainer(containerImages []string, imgID string, tags []string) bool
 		}
 	}
 	return false
-}
-
-func hasContainers(cm *state.ContainerListModel, imgID string, tags []string) bool {
-	containerImages := precomputeContainerIDs(cm)
-	return imgHasContainer(containerImages, imgID, tags)
 }
 
 func splitRef(tags []string) (reg, name, tag string) {

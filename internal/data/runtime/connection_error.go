@@ -36,10 +36,6 @@ type classifiedConnectionError struct {
 func (e *classifiedConnectionError) Error() string { return e.cause.Error() }
 func (e *classifiedConnectionError) Unwrap() error { return e.cause }
 
-func connectionError(kind ConnectionErrorKind, cause error) error {
-	return &classifiedConnectionError{kind: kind, cause: cause}
-}
-
 // ClassifyConnectionError inspects the error chain and returns the most
 // specific connection failure kind. It unwraps TLS, x509, and net errors
 // to map them to the appropriate ConnectionErrorKind.

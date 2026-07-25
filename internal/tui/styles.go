@@ -1,18 +1,12 @@
 package tui
 
 import (
-	"image/color"
-
 	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 
 	"charm.land/lipgloss/v2"
 )
-
-// resolveColor resolves a color name to a lipgloss color via style.Colors.
-// Set by ApplyTheme; used by ApplyLayoutConfig.
-var resolveColor func(name string) color.Color
 
 var (
 	ActiveBorderStyle   lipgloss.Style
@@ -34,10 +28,6 @@ func ApplyTheme(theme *config.Theme) {
 	style.Colors.Dark = lipgloss.Color(c.Dark)
 	style.Colors.Surface = lipgloss.Color(c.Surface)
 	style.Colors.BG = lipgloss.Color(c.Background)
-
-	resolveColor = func(name string) color.Color {
-		return style.Color(name)
-	}
 
 	br := component.ResolveBorder(theme.Border.Style)
 	ActiveBorderStyle = lipgloss.NewStyle().Border(br).Foreground(style.Color(theme.Main.BorderActive)).Padding(0)

@@ -86,10 +86,3 @@ func runtimeConnectionCmd(m *state.AppModel, name string) tea.Cmd {
 		return state.DockerConnected{Name: name, Engine: m.Connection.Pool.ActiveEngine()}
 	}
 }
-
-func selectorError(m *state.AppModel, name string, err error) {
-	if m.Connection.RuntimeSelectorError == nil {
-		m.Connection.RuntimeSelectorError = make(map[string]dockerclient.ConnectionFailure)
-	}
-	m.Connection.RuntimeSelectorError[name] = dockerclient.ClassifyConnectionError(err)
-}

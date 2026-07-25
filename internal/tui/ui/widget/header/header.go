@@ -224,14 +224,6 @@ func Render(app *state.AppModel, usableW int) string {
 	return component.GetStyle("headerBar").Render(rendered)
 }
 
-// spinnerBorders cycles corner patterns for a subtle spinning box effect.
-var spinnerBorders = []lipgloss.Border{
-	{Top: "─", Bottom: "─", Left: "│", Right: "│", TopLeft: "╭", TopRight: "╮", BottomLeft: "╰", BottomRight: "╯"},
-	{Top: "─", Bottom: "─", Left: "│", Right: "│", TopLeft: "╰", TopRight: "╮", BottomLeft: "╭", BottomRight: "╯"},
-	{Top: "─", Bottom: "─", Left: "│", Right: "│", TopLeft: "╰", TopRight: "╯", BottomLeft: "╭", BottomRight: "╮"},
-	{Top: "─", Bottom: "─", Left: "│", Right: "│", TopLeft: "╭", TopRight: "╯", BottomLeft: "╰", BottomRight: "╮"},
-}
-
 // renderKeyStrokeColumn 显示快捷键日志（简化版，仅收集期间显示）。
 func renderKeyStrokeColumn(app *state.AppModel, colW int) string {
 	var content string

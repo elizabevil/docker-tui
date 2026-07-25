@@ -25,7 +25,6 @@ type Client struct {
 	APIVersion    string
 	TLS           utils.TLSConfig
 	EngineVersion string
-	httpClient    *http.Client
 }
 
 // NewClient creates and pings a Docker client using the given configuration.
@@ -67,7 +66,7 @@ func NewClient(cfg runtimeapi.ClientConfig) (*Client, error) {
 	defer cancel()
 
 	if _, err := cli.Ping(ctx); err != nil {
-		cli.Close()
+		_ = cli.Close() //nolint:errcheck // client failed to ping; closing best-effort.
 		return nil, fmt.Errorf("ping failed (%s): %w", host, err)
 	}
 

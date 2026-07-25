@@ -35,7 +35,8 @@ func doContainerAction(m *state.AppModel, action string, cmdFn func(runtimeapi.E
 	}
 	// Destructive actions (stop/kill/restart) require confirmation
 	confirmAction(m, "container-"+action, ctr.ID, fmt.Sprintf("%s container %s?", action, ctr.Name))
-	m.Confirm.ConfirmAudit = beginAudit(m, "resource.container."+action, containerTarget(m, ctr.ID), fmt.Sprintf("%s container %s", action, ctr.Name))
+	m.Confirm.ConfirmAudit = beginAudit(m, "resource.container."+action, containerTarget(m, ctr.ID),
+		fmt.Sprintf("%s container %s", action, ctr.Name))
 	return m, nil
 }
 
@@ -43,11 +44,16 @@ func doBatchContainerAction(m *state.AppModel, action string, cmdFn func(runtime
 	if len(m.Selection.MarkedIDs) == 0 {
 		return m, nil
 	}
+	count := len(m.Selection.MarkedIDs)
 	m.Navigation.Mode = state.ModeConfirm
 	m.Confirm.ConfirmAction = "batch-" + action
-	m.Confirm.ConfirmTarget = fmt.Sprintf("%d items", len(m.Selection.MarkedIDs))
-	m.Confirm.ConfirmMessage = fmt.Sprintf("Batch %s %d containers?", action, len(m.Selection.MarkedIDs))
-	m.Confirm.ConfirmAudit = beginAudit(m, "resource.container."+action, audit.ContainerTarget{ID: fmt.Sprintf("batch-%d", len(m.Selection.MarkedIDs)), Name: fmt.Sprintf("%d containers", len(m.Selection.MarkedIDs))}, m.Confirm.ConfirmMessage)
+	m.Confirm.ConfirmTarget = fmt.Sprintf("%d items", count)
+	m.Confirm.ConfirmMessage = fmt.Sprintf("Batch %s %d containers?", action, count)
+	m.Confirm.ConfirmAudit = beginAudit(m, "resource.container."+action,
+		audit.ContainerTarget{
+			ID:   fmt.Sprintf("batch-%d", count),
+			Name: fmt.Sprintf("%d containers", count),
+		}, m.Confirm.ConfirmMessage)
 	return m, nil
 }
 
@@ -107,19 +113,6 @@ func executeBatchAction(m *state.AppModel, action string, trace audit.Trace) (*s
 		result.Error = errors.Join(failures...)
 		return result
 	}
-}
-
-func doContainerRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelContainers {
-		return m, nil
-	}
-	ctr := m.Resources.Containers.Selected()
-	if ctr == nil {
-		return m, nil
-	}
-	confirmAction(m, "container-remove", ctr.ID, fmt.Sprintf("Remove container %s?", ctr.Name))
-	m.Confirm.ConfirmAudit = beginAudit(m, "resource.container.delete", containerTarget(m, ctr.ID), "Remove container "+ctr.Name)
-	return m, nil
 }
 
 func doLogAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
@@ -194,7 +187,9 @@ func doBatchPauseAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		}
 	}
 	m.Selection.ClearMarks()
-	trace := beginAudit(m, "resource.container.pause_toggle", audit.ContainerTarget{ID: "batch", Name: fmt.Sprintf("%d containers", len(marked))}, "Toggle pause for selected containers")
+	trace := beginAudit(m, "resource.container.pause_toggle",
+		audit.ContainerTarget{ID: "batch", Name: fmt.Sprintf("%d containers", len(marked))},
+		"Toggle pause for selected containers")
 	client := m.Connection.Engine
 	return m, func() tea.Msg {
 		result := state.ContainerBatchActioned{Action: "pause", Skipped: skipped, Audit: trace}
@@ -222,7 +217,12 @@ func openRenameDialog(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelContainers || ctr == nil {
 		return m, nil
 	}
-	m.Dialog.Open(state.DialogSpec{Kind: state.DialogContainerRename, Title: i18n.T("container.rename.title"), Body: ctr.ID, Input: ctr.Name})
+	m.Dialog.Open(state.DialogSpec{
+		Kind:  state.DialogContainerRename,
+		Title: i18n.T("container.rename.title"),
+		Body:  ctr.ID,
+		Input: ctr.Name,
+	})
 	m.Navigation.Mode = state.ModeRename
 	return m, nil
 }
@@ -301,7 +301,9 @@ func doExecAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		shell = "/bin/sh"
 	}
 	m.Exec.ExecShell = ""
-	trace := beginAudit(m, "resource.container.exec", audit.ExecTarget{ID: ctr.ID, Name: ctr.Name, Meta: audit.ExecMeta{ContainerID: ctr.ID}}, "Starting exec session in "+ctr.Name)
+	trace := beginAudit(m, "resource.container.exec",
+		audit.ExecTarget{ID: ctr.ID, Name: ctr.Name, Meta: audit.ExecMeta{ContainerID: ctr.ID}},
+		"Starting exec session in "+ctr.Name)
 
 	ctx := context.Background()
 	session, err := m.Connection.Engine.Exec().Open(ctx, ctr.ID, runtimeapi.ExecOptions{
@@ -318,7 +320,9 @@ func doExecAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 
 	if m.Viewport.Width > 0 && m.Viewport.Height > 0 {
-		go session.Resize(context.Background(), runtimeapi.TerminalSize{Height: uint(m.Viewport.Height), Width: uint(m.Viewport.Width)})
+		go func() {
+			_ = session.Resize(context.Background(), runtimeapi.TerminalSize{Height: uint(m.Viewport.Height), Width: uint(m.Viewport.Width)})
+		}() //nolint:errcheck // fire-and-forget resize on session start.
 	}
 
 	ch := make(chan string, 100)
@@ -331,7 +335,7 @@ func doExecAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	go func() {
 		buf := make([]byte, 4096)
 		defer close(done)
-		defer session.Close()
+		defer func() { _ = session.Close() }() //nolint:errcheck // exec reader exits; close best-effort.
 		for {
 			n, err := session.Read(buf)
 			if n > 0 {
@@ -393,7 +397,9 @@ func doSwitchRuntime(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if current == next {
 		next = names[0]
 	}
-	trace := beginAudit(m, "panel.runtime.switch", audit.RuntimeTarget{Name: next, Meta: audit.RuntimeMeta{Previous: current}}, fmt.Sprintf("Switching runtime from %s to %s", current, next))
+	trace := beginAudit(m, "panel.runtime.switch",
+		audit.RuntimeTarget{Name: next, Meta: audit.RuntimeMeta{Previous: current}},
+		fmt.Sprintf("Switching runtime from %s to %s", current, next))
 	if err := m.Connection.Pool.Connect(next, 10*time.Second); err != nil {
 		safeError := i18n.ConnectionFailureMessage(string(runtimeapi.ClassifyConnectionError(err).Kind))
 		FinishAudit(m, trace, audit.ResultFailed, "Runtime switch failed", audit.Details{Error: safeError})

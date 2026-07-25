@@ -45,10 +45,3 @@ func handleLogKeys(key string, m *state.AppModel) bool {
 	}
 	return true
 }
-
-func logSearchMatchCount(m *state.AppModel) int {
-	if m == nil {
-		return 0
-	}
-	return m.Log.MatchCount()
-}

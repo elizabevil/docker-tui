@@ -247,13 +247,3 @@ func RenderExecOverlay(content string, m *state.AppModel) string {
 	dialogBox := ExecDialog(m, oc, dlgCfg)
 	return PlaceDialog(content, dialogBox, m.Viewport.Width, m.Viewport.Height, oc, dlgCfg)
 }
-
-func clamp(v, lo, hi int) int {
-	if v < lo {
-		return lo
-	}
-	if v > hi {
-		return hi
-	}
-	return v
-}

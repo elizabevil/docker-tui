@@ -78,20 +78,9 @@ func classifyContextError(err error) ErrorKind {
 	}
 }
 
-// isRetryableKind reports whether the error kind indicates a transient failure.
-func isRetryableKind(kind ErrorKind) bool {
-	return kind == KindConnection || kind == KindInternal
-}
-
 // IsPodmanError checks whether err wraps a Podman transport Error of the
 // given kind.
 func IsPodmanError(err error, kind ErrorKind) bool {
 	var pe *Error
 	return errors.As(err, &pe) && pe.Kind == kind
-}
-
-// newPodmanErrorf is a convenience wrapper that creates a podman.Error with
-// a formatted message.
-func newPodmanErrorf(kind ErrorKind, format string, args ...any) *Error {
-	return newPodmanError(kind, "", fmt.Errorf(format, args...))
 }
