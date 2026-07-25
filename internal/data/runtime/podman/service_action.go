@@ -62,7 +62,12 @@ func (s PodmanResourceActionService) executeContainer(ctx context.Context, id st
 		return s.dispatchAdvanced(ctx, id, action, options)
 	default:
 		lc := options.Lifecycle
-		return s.Client.REST.ExecuteContainerAction(ctx, id, string(action), lc.Timeout, lc.Force, lc.Signal, lc.Name)
+		return s.Client.REST.ExecuteContainerAction(ctx, id, string(action), podman.ContainerActionOptions{
+			Timeout: lc.Timeout,
+			Force:   lc.Force,
+			Signal:  lc.Signal,
+			Name:    lc.Name,
+		})
 	}
 }
 
