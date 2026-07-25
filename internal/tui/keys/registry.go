@@ -59,6 +59,16 @@ func Registry() []ActionSpec {
 		{ActionContainerInspect, []string{KeyI}, []Context{{View: "containers"}}},
 		{ActionContainerStats, []string{KeyM}, []Context{{View: "containers"}}},
 		{ActionContainerPause, []string{KeyP}, []Context{{View: "containers"}}},
+
+		// TASK-019 advanced container actions. Keys chosen to avoid
+		// collisions with the existing lifecycle bindings above; users can
+		// override via the keymap config.
+		{ActionContainerUpdate, []string{KeyCtrlW}, containers},
+		{ActionContainerDiff, []string{KeyF2}, containers},
+		{ActionContainerExport, []string{KeyCtrlX}, containers},
+		{ActionContainerCommit, []string{KeyCtrlK}, containers},
+		{ActionContainerWait, []string{KeyCtrlY}, containers},
+		{ActionContainerCopy, []string{KeyCtrlO}, containers},
 		{ActionImagePull, []string{KeyCtrlP}, images},
 		{ActionImageRemove, []string{KeyCtrlD}, images},
 		{ActionImagePrune, []string{KeyP}, images},
@@ -164,7 +174,12 @@ func configuredBindings(keymap config.KeymapConfig) map[KeyAction][]string {
 		ActionContainerRestart: keymap.ContainerRestart, ActionContainerKill: keymap.ContainerKill,
 		ActionContainerRemove: keymap.ContainerRemove, ActionContainerLogs: keymap.ContainerLogs,
 		ActionContainerExec: keymap.ContainerExec, ActionContainerInspect: keymap.ContainerInspect,
-		ActionContainerStats: keymap.ContainerStats, ActionContainerPause: keymap.ContainerPause, ActionImagePull: keymap.ImagePull,
+		ActionContainerStats: keymap.ContainerStats, ActionContainerPause: keymap.ContainerPause,
+		// TASK-019 advanced container actions.
+		ActionContainerUpdate: keymap.ContainerUpdate, ActionContainerDiff: keymap.ContainerDiff,
+		ActionContainerExport: keymap.ContainerExport, ActionContainerCommit: keymap.ContainerCommit,
+		ActionContainerWait: keymap.ContainerWait, ActionContainerCopy: keymap.ContainerCopy,
+		ActionImagePull: keymap.ImagePull,
 		ActionImageRemove: keymap.ImageRemove, ActionImagePrune: keymap.ImagePrune,
 		ActionImageTag: keymap.ImageTag, ActionImagePush: keymap.ImagePush, ActionImageSave: keymap.ImageSave, ActionImageLoad: keymap.ImageLoad,
 		ActionVolumeCreate: keymap.VolumeCreate, ActionVolumePrune: keymap.VolumePrune, ActionVolumeRemove: keymap.VolumeRemove,

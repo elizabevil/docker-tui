@@ -118,6 +118,25 @@
     "containerPause": [
       "p"
     ],
+    // TASK-019: advanced container actions.
+    "containerUpdate": [
+      "ctrl+w"
+    ],
+    "containerDiff": [
+      "f2"
+    ],
+    "containerExport": [
+      "ctrl+x"
+    ],
+    "containerCommit": [
+      "ctrl+k"
+    ],
+    "containerWait": [
+      "ctrl+y"
+    ],
+    "containerCopy": [
+      "ctrl+o"
+    ],
     "imagePull": [
       "ctrl+p"
     ],

@@ -20,16 +20,17 @@
 
 | 状态 | 数量 |
 |---|---:|
-| `done` | 18 |
+| `done` | 19 |
 | `in_progress` | 1 (`TASK-022`) |
-| `todo` | 5 |
+| `todo` | 4 |
 | `blocked` | 0 |
 
 最近一次维护说明：
 
-- `TASK-010`（批量操作聚合）已 `done`：统一 `BatchActioned` 消息，详见该行完成证据。
+- `TASK-019`（高级容器操作 `update`/`diff`/`export`/`commit`/`wait`/`copy`）已 `done`：双适配器 + 调度路由 + 键位 + 测试全部落地。
+- `TASK-010`（批量操作聚合）已 `done`：统一 `BatchActioned` 消息。
 - `TASK-011`（事件联动刷新）已 `done`：`handleEventFlush` 按依赖图扩展刷新集。
-- `TASK-022`（Podman REST + docker/service 统一）仍 `in_progress`：详见下方 Phase 分解。
+- `TASK-022`（Podman REST + docker/service 统一）仍 `in_progress`：Phase A/D/F 已落地，B/C/D-2/E 已取消。
 
 - TASK-021 仅完成"运行时适配解耦 + Podman/Docker 各自独立 Engine"，但**仍有两套 service 入口**（Docker 走 SDK，Podman 走 REST + CGO）。上层调用方仍分散在 `internal/data/runtime/docker/` 与 `internal/data/runtime/podman/` 两个包。
 - 当前没有 `docker/service` 统一入口，业务方仍需知道"当前是 Docker 还是 Podman"。
@@ -39,10 +40,9 @@ TASK-022 的完成将解锁 TASK-023（旧 `podman_*.go` 与 `podmanContainerSer
 
 当前执行队列：
 
-1. **推进 `TASK-022`（in_progress）** — 按 Phase A→F 顺序，P1 高优先级。
-2. `TASK-023` — 等 TASK-022 完成后立即启动。
-3. `TASK-019` — 高级容器操作（update / diff / export / commit / wait / cp），P2。
-4. `TASK-013` / `TASK-014` / `TASK-020` — P3 后续。
+1. **推进 `TASK-022`（in_progress）** — Phase A/D/F 已完成，B/C/D-2/E 已取消。
+2. `TASK-023` — 等 TASK-022 收尾后启动。
+3. `TASK-013` / `TASK-014` / `TASK-020` — P3 后续。
 
 ## 已完成基础
 
@@ -86,8 +86,8 @@ TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示�
 | `TASK-017` | 高频容器操作 | P0 | `done` | TASK-004 | 已实现状态约束的 `pause` / `unpause`、批量跳过汇总、`rename` 输入校验、独立 `top` 页面和结构化 `port` 展示，并通过 Docker / Podman 兼容 API 契约测试 |
 | `TASK-018` | 镜像标签与传输工作流 | P1 | `done` | TASK-021 | runtime-neutral transfer service；`tag`、`push`、`save`、`load`；字节/daemon 进度、context 取消、错误展示和审计终态 |
 | `TASK-024` | [Podman 镜像详情 + 连接池工厂化重构](unified-runtime-driver.md) | P1 | `done` | TASK-021 | 补齐 TASK-021 Phase 2 中 Podman `ImageService.Inspect` 的 TODO；移除 `global engineFactory` 与 `SetEngineFactory`；`runtimeinit.NewEngineFactory()` 与 `runtime.EngineFactory` 注入到 `runtimeapi.NewPool`；`sanitizeEngine` / `engineIsUsable` 反射防御 typed-nil 接口；APIVersion 回退覆盖所有错误而非仅 404；`RefreshAll` 替换 `Probe`/`pingAll`；`refreshOne` 对 transient 引擎真实 ping。本条目是 TASK-021 收尾增量 |
-| `TASK-019` | 高级容器操作 | P2 | `todo` | TASK-017、TASK-021 | 评估并分批实现 `update`、`diff`、`export`、`commit`、`wait`、`cp` |
-| `TASK-022` | [Podman REST 适配收紧与 docker/service 统一入口](podman-rest-migration.md) | P1 | `in_progress` | TASK-021 | `runtime/podman.Client` 方法式 + `dto.*` 签名 + 驱动/REST 双形态（已部分达标）；`gpgme` 仅 CGO；`dto/` 具名类型零 `go.podman.io` 依赖；全仓匿名 struct 清零；`docker/service` 建立 Docker/Podman 统一入口（先 4 个核心 service） |
+| `TASK-019` | 高级容器操作 | P2 | `done` | TASK-017、TASK-021 | 6 个新 Action 常量（`update`/`diff`/`export`/`commit`/`wait`/`copy`）；`ContainerService` 接口新增 6 个方法 + 对应类型（`ContainerUpdateOptions`/`ContainerUpdateResult`、`ContainerDiffChange`/`ChangeKind`、`ContainerCommitOptions`/`ContainerCommitResult`、`ContainerWaitResult`/`ContainerWaitError`）；Docker SDK + Podman Libpod REST 双适配器实现；`ResourceActionService` 调度路由更新；`default.jsonc` 添加 6 个键位（ctrl+w/f2/ctrl+x/ctrl+k/ctrl+y/ctrl+o）；`KeymapConfig` + 6 个新 `KeyAction`；`ActionOptions` 扩展 11 个新字段；测试 4 个用例 + 7 个 URL 测试。 |
+| `TASK-022` | [Podman REST 适配收紧与 docker/service 统一入口](podman-rest-migration.md) | P1 | `in_progress` | TASK-021 | `runtime/podman.Client` 方法式 + `dto.*` 签名 + 驱动/REST 双形态（已部分达标）；`gpgme` 仅 CGO；`dto/` 具名类型零 `go.podman.io` 依赖；全仓匿名 struct 清零；`docker/service` 建立 Docker/Podman 统一入口（先 4 个核心 service）。**Phase A/F 已落地（gpgme 隔离 + 双构建验证矩阵），Phase B/C/E 已取消，Phase D-2 已取消。** |
 | `TASK-023` | 清理 `internal/data/docker/podman_*.go` 与旧 `podmanContainerService` 等兼容实现 | P2 | `todo` | TASK-022 | TASK-022 完成后统一移除 `docker/podman_*.go` 共 24 个生产文件 + 8 个测试文件；`docker/Client.podmanREST` 字段清理；engine_factory 切到统一 service |
 
 #### `TASK-022` 进度分解（2026-07-24 用户最终修订）
@@ -233,12 +233,13 @@ G2 取消双签名 / G4 取消 docker/service 层 / G5 取消 docker/service 层
 已完成连接基础 (TASK-001..007)
   |-> TASK-015 状态域拆分
   |-> TASK-016 TLS 错误体验
-  |-> TASK-017 高频容器操作 -> TASK-010 / TASK-019
+  |-> TASK-017 高频容器操作
+  |     `-> TASK-010 批量聚合           [done]
+  |     `-> TASK-019 高级容器操作       [done]
   |-> TASK-021 统一 runtime driver [done]
   |     |-> TASK-009 Volume / Network         [done]
   |     |-> TASK-018 镜像工作流               [done]
   |     `-> TASK-008 Events [done]
-  |           `-> TASK-010 批量聚合           [done]
   |           `-> TASK-011 联动刷新           [done]
   `-> TASK-012 审计历史面板 [done]
   `-> TASK-022 Podman REST + docker/service 统一 [in_progress]
@@ -246,13 +247,14 @@ G2 取消双签名 / G4 取消 docker/service 层 / G5 取消 docker/service 层
        |     Phase B: dto 具名类型补齐     [cancelled]
        |     Phase C: Client 方法化        [cancelled]
        |     Phase D: 匿名 struct 清零     [done]
+       |     Phase D-2: 双 mapper 拆分     [cancelled]
        |     Phase E: docker/service 入口  [cancelled]
        `-----> Phase F: 验证矩阵           [done]
         `---> TASK-023 清理兼容层          [todo]
                 (TASK-022 完成后立即启动;
                  24 个生产文件 + 8 个测试文件)
 
-独立后续: TASK-013 / TASK-014 / TASK-019 / TASK-020
+独立后续: TASK-013 / TASK-014 / TASK-020
 ```
 
 #### 决策项（TASK-022；2026-07-24 用户最终修订）

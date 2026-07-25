@@ -124,6 +124,13 @@ type KeymapConfig struct {
 	ContainerInspect []string `json:"containerInspect" yaml:"containerInspect"`
 	ContainerStats   []string `json:"containerStats" yaml:"containerStats"`
 	ContainerPause   []string `json:"containerPause" yaml:"containerPause"`
+	// TASK-019: advanced container actions.
+	ContainerUpdate []string `json:"containerUpdate" yaml:"containerUpdate"`
+	ContainerDiff   []string `json:"containerDiff" yaml:"containerDiff"`
+	ContainerExport []string `json:"containerExport" yaml:"containerExport"`
+	ContainerCommit []string `json:"containerCommit" yaml:"containerCommit"`
+	ContainerWait   []string `json:"containerWait" yaml:"containerWait"`
+	ContainerCopy   []string `json:"containerCopy" yaml:"containerCopy"`
 
 	ImagePull   []string `json:"imagePull" yaml:"imagePull"`
 	ImageRemove []string `json:"imageRemove" yaml:"imageRemove"`

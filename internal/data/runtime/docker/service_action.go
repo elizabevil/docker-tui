@@ -74,9 +74,63 @@ func (s resourceActionService) executeContainer(ctx context.Context, id string, 
 		return s.client.cli.ContainerRename(ctx, id, options.Name)
 	case runtimeapi.ActionRemove:
 		return s.client.cli.ContainerRemove(ctx, id, container.RemoveOptions{Force: options.Force})
+
+	// TASK-019 advanced container actions. These are not lifecycle ops;
+	// they operate on rich data and are dispatched through the dedicated
+	// ContainerService methods. The action-service Execute path is only
+	// used here as a thin routing layer so callers can keep using the
+	// single ResourceActionService entrypoint.
+	case runtimeapi.ActionUpdate, runtimeapi.ActionDiff, runtimeapi.ActionExport,
+		runtimeapi.ActionCommit, runtimeapi.ActionWait, runtimeapi.ActionCopy:
+		return s.dispatchAdvanced(ctx, id, action, options)
+
 	default:
 		return runtimeapi.UnsupportedError(runtimeapi.Operation(runtimeapi.ResourceContainer, string(action)))
 	}
+}
+
+// dispatchAdvanced routes the TASK-019 actions to their dedicated
+// ContainerService implementations.
+func (s resourceActionService) dispatchAdvanced(ctx context.Context, id string, action runtimeapi.Action, options runtimeapi.ActionOptions) error {
+	svc := s.client.Containers()
+	switch action {
+	case runtimeapi.ActionUpdate:
+		_, err := svc.Update(ctx, id, runtimeapi.ContainerUpdateOptions{
+			Memory:            options.Memory,
+			NanoCPUs:          options.NanoCPUs,
+			RestartPolicy:     options.RestartPolicy,
+			RestartMaxRetries: options.RestartMaxRetries,
+		})
+		return err
+	case runtimeapi.ActionDiff:
+		_, err := svc.Diff(ctx, id)
+		return err
+	case runtimeapi.ActionExport:
+		rc, err := svc.Export(ctx, id)
+		if err != nil {
+			return err
+		}
+		return rc.Close()
+	case runtimeapi.ActionCommit:
+		_, err := svc.Commit(ctx, id, runtimeapi.ContainerCommitOptions{
+			Repository: options.Repository,
+			Tag:        options.Tag,
+			Comment:    options.Comment,
+			Author:     options.Author,
+			Pause:      options.Pause,
+		})
+		return err
+	case runtimeapi.ActionWait:
+		_, err := svc.Wait(ctx, id, options.Condition)
+		return err
+	case runtimeapi.ActionCopy:
+		rc, err := svc.CopyFromContainer(ctx, id, options.SourcePath)
+		if err != nil {
+			return err
+		}
+		return rc.Close()
+	}
+	return runtimeapi.UnsupportedError(runtimeapi.Operation(runtimeapi.ResourceContainer, string(action)))
 }
 
 func (s resourceActionService) executeImage(ctx context.Context, id string, action runtimeapi.Action, options runtimeapi.ActionOptions, result *runtimeapi.ActionResult) error {

@@ -18,6 +18,14 @@ const (
 	ActionContainerInspect   KeyAction = "containerInspect"
 	ActionContainerStats     KeyAction = "containerStats"
 	ActionContainerPause     KeyAction = "containerPause"
+
+	// TASK-019 advanced container actions.
+	ActionContainerUpdate     KeyAction = "containerUpdate"
+	ActionContainerDiff       KeyAction = "containerDiff"
+	ActionContainerExport     KeyAction = "containerExport"
+	ActionContainerCommit     KeyAction = "containerCommit"
+	ActionContainerWait       KeyAction = "containerWait"
+	ActionContainerCopy       KeyAction = "containerCopy"
 	ActionImagePull          KeyAction = "imagePull"
 	ActionImageRemove        KeyAction = "imageRemove"
 	ActionImagePrune         KeyAction = "imagePrune"

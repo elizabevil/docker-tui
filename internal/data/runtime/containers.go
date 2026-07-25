@@ -167,6 +167,63 @@ type ContainerLogOptions struct {
 	Timestamps bool
 }
 
+// ContainerUpdateOptions captures a subset of Docker / Podman update knobs
+// surfaced to the UI. Fields are pointers so the adapter can detect
+// "unset" vs "set to zero".
+type ContainerUpdateOptions struct {
+	Memory           *int64
+	NanoCPUs         *int64
+	RestartPolicy    *string
+	RestartMaxRetries *int
+}
+
+// ContainerUpdateResult captures the engine's response to an update call.
+type ContainerUpdateResult struct {
+	Warnings []string
+}
+
+// ContainerDiffChange describes one filesystem change between a container
+// and its base image. Mirrors Docker's container.FilesystemChange.
+type ContainerDiffChange struct {
+	Kind ChangeKind
+	Path string
+}
+
+// ChangeKind enumerates the change kinds reported by container diff.
+type ChangeKind int
+
+const (
+	ChangeModified ChangeKind = 0
+	ChangeAdded    ChangeKind = 1
+	ChangeDeleted  ChangeKind = 2
+)
+
+// ContainerCommitOptions captures the parameters of a container-to-image
+// commit. Empty fields fall back to engine defaults.
+type ContainerCommitOptions struct {
+	Repository string
+	Tag        string
+	Comment    string
+	Author     string
+	Pause      bool
+}
+
+// ContainerCommitResult is the engine's response to a commit call.
+type ContainerCommitResult struct {
+	ID string
+}
+
+// ContainerWaitResult describes why a container exited.
+type ContainerWaitResult struct {
+	StatusCode int64
+	Error      *ContainerWaitError
+}
+
+// ContainerWaitError carries the structured error code from the engine.
+type ContainerWaitError struct {
+	Message string
+}
+
 // ContainerService provides container lifecycle and inspection operations.
 type ContainerService interface {
 	List(context.Context, ContainerListOptions) ([]ContainerSummary, error)
@@ -174,4 +231,12 @@ type ContainerService interface {
 	Top(context.Context, string) (ContainerProcesses, error)
 	Stats(context.Context, string) (ContainerStats, error)
 	Logs(context.Context, string, ContainerLogOptions) (io.ReadCloser, error)
+
+	// TASK-019 advanced operations.
+	Update(context.Context, string, ContainerUpdateOptions) (ContainerUpdateResult, error)
+	Diff(context.Context, string) ([]ContainerDiffChange, error)
+	Export(context.Context, string) (io.ReadCloser, error)
+	Commit(context.Context, string, ContainerCommitOptions) (ContainerCommitResult, error)
+	Wait(context.Context, string, string) (ContainerWaitResult, error)
+	CopyFromContainer(context.Context, string, string) (io.ReadCloser, error)
 }

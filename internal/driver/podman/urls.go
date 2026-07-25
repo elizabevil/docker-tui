@@ -81,6 +81,24 @@ func ContainerRemovePath(id string) string {
 func ContainerExecPath(id string) string {
 	return fmt.Sprintf("/libpod/containers/%s/exec", escape(id))
 }
+func ContainerUpdatePath(id string) string {
+	return fmt.Sprintf("/libpod/containers/%s/update", escape(id))
+}
+func ContainerWaitPath(id string) string {
+	return fmt.Sprintf("/libpod/containers/%s/wait", escape(id))
+}
+func ContainerChangesPath(id string) string {
+	return fmt.Sprintf("/libpod/containers/%s/changes", escape(id))
+}
+func ContainerExportPath(id string) string {
+	return fmt.Sprintf("/libpod/containers/%s/export", escape(id))
+}
+func ContainerCommitPath(id string) string {
+	return fmt.Sprintf("/libpod/containers/%s/commit", escape(id))
+}
+func ContainerArchivePath(id string) string {
+	return fmt.Sprintf("/libpod/containers/%s/archive", escape(id))
+}
 
 // Exec
 func ExecPath(id, suffix string) string {

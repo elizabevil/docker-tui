@@ -105,3 +105,130 @@ func (s PodmanContainerService) Logs(ctx context.Context, id string, options run
 	}
 	return io.NopCloser(bytes.NewReader(output.Bytes())), nil
 }
+
+// TASK-019 advanced container operations.
+
+// Update applies resource-limit changes to a running container.
+func (s PodmanContainerService) Update(ctx context.Context, id string, options runtimeapi.ContainerUpdateOptions) (runtimeapi.ContainerUpdateResult, error) {
+	if s.Client.REST == nil {
+		return runtimeapi.ContainerUpdateResult{}, runtimeapi.NewError(runtimeapi.ErrorUnavailable, runtimeapi.Operation(runtimeapi.ResourceContainer, "update"), id, podman.ErrPodmanRESTNotReady)
+	}
+	upd := dto.ContainerUpdateOptions{}
+	if options.Memory != nil {
+		upd.Memory = *options.Memory
+	}
+	if options.NanoCPUs != nil {
+		upd.NanoCPUs = *options.NanoCPUs
+	}
+	if options.RestartPolicy != nil {
+		upd.RestartPolicy = *options.RestartPolicy
+	}
+	if options.RestartMaxRetries != nil {
+		upd.RestartMaxRetries = *options.RestartMaxRetries
+	}
+	res, err := s.Client.REST.ContainerUpdate(ctx, id, upd)
+	if err != nil {
+		return runtimeapi.ContainerUpdateResult{}, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "update"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Podman)
+	}
+	if res == nil {
+		return runtimeapi.ContainerUpdateResult{}, nil
+	}
+	return runtimeapi.ContainerUpdateResult{Warnings: res.Warnings}, nil
+}
+
+// Diff returns filesystem changes between a container and its base image.
+func (s PodmanContainerService) Diff(ctx context.Context, id string) ([]runtimeapi.ContainerDiffChange, error) {
+	if s.Client.REST == nil {
+		return nil, runtimeapi.NewError(runtimeapi.ErrorUnavailable, runtimeapi.Operation(runtimeapi.ResourceContainer, "diff"), id, podman.ErrPodmanRESTNotReady)
+	}
+	raw, err := s.Client.REST.ContainerDiff(ctx, id)
+	if err != nil {
+		return nil, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "diff"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Podman)
+	}
+	out := make([]runtimeapi.ContainerDiffChange, 0, len(raw))
+	for _, ch := range raw {
+		out = append(out, runtimeapi.ContainerDiffChange{
+			Kind: mapPodmanChangeKind(ch.Kind),
+			Path: ch.Path,
+		})
+	}
+	return out, nil
+}
+
+// Export returns a tar stream of the container's filesystem. Caller must close.
+func (s PodmanContainerService) Export(ctx context.Context, id string) (io.ReadCloser, error) {
+	if s.Client.REST == nil {
+		return nil, runtimeapi.NewError(runtimeapi.ErrorUnavailable, runtimeapi.Operation(runtimeapi.ResourceContainer, "export"), id, podman.ErrPodmanRESTNotReady)
+	}
+	rc, err := s.Client.REST.ContainerExport(ctx, id)
+	if err != nil {
+		return nil, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "export"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Podman)
+	}
+	return rc, nil
+}
+
+// Commit snapshots a container's filesystem changes as a new image.
+func (s PodmanContainerService) Commit(ctx context.Context, id string, options runtimeapi.ContainerCommitOptions) (runtimeapi.ContainerCommitResult, error) {
+	if s.Client.REST == nil {
+		return runtimeapi.ContainerCommitResult{}, runtimeapi.NewError(runtimeapi.ErrorUnavailable, runtimeapi.Operation(runtimeapi.ResourceContainer, "commit"), id, podman.ErrPodmanRESTNotReady)
+	}
+	cfg := dto.ContainerCommitOptions{
+		Repository: options.Repository,
+		Tag:        options.Tag,
+		Comment:    options.Comment,
+		Author:     options.Author,
+		Pause:      options.Pause,
+	}
+	res, err := s.Client.REST.ContainerCommit(ctx, id, cfg)
+	if err != nil {
+		return runtimeapi.ContainerCommitResult{}, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "commit"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Podman)
+	}
+	if res == nil {
+		return runtimeapi.ContainerCommitResult{}, nil
+	}
+	return runtimeapi.ContainerCommitResult{ID: res.ID}, nil
+}
+
+// Wait blocks until the container exits or the condition is met.
+func (s PodmanContainerService) Wait(ctx context.Context, id, condition string) (runtimeapi.ContainerWaitResult, error) {
+	if s.Client.REST == nil {
+		return runtimeapi.ContainerWaitResult{}, runtimeapi.NewError(runtimeapi.ErrorUnavailable, runtimeapi.Operation(runtimeapi.ResourceContainer, "wait"), id, podman.ErrPodmanRESTNotReady)
+	}
+	res, err := s.Client.REST.ContainerWait(ctx, id, condition)
+	if err != nil {
+		return runtimeapi.ContainerWaitResult{}, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "wait"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Podman)
+	}
+	if res == nil {
+		return runtimeapi.ContainerWaitResult{}, nil
+	}
+	out := runtimeapi.ContainerWaitResult{StatusCode: res.StatusCode}
+	if res.Error != "" {
+		out.Error = &runtimeapi.ContainerWaitError{Message: res.Error}
+	}
+	return out, nil
+}
+
+// CopyFromContainer streams a single file or directory out of a container.
+func (s PodmanContainerService) CopyFromContainer(ctx context.Context, id, srcPath string) (io.ReadCloser, error) {
+	if s.Client.REST == nil {
+		return nil, runtimeapi.NewError(runtimeapi.ErrorUnavailable, runtimeapi.Operation(runtimeapi.ResourceContainer, "copy"), id, podman.ErrPodmanRESTNotReady)
+	}
+	rc, err := s.Client.REST.ContainerCopyFrom(ctx, id, srcPath)
+	if err != nil {
+		return nil, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "copy"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Podman)
+	}
+	return rc, nil
+}
+
+// mapPodmanChangeKind translates the podman dto ChangeKind into the
+// runtime enum. The dto mirrors go.podman.io/image/v5/archive.Change.
+func mapPodmanChangeKind(k dto.ChangeKind) runtimeapi.ChangeKind {
+	switch k {
+	case dto.ArchiveChangeAdded:
+		return runtimeapi.ChangeAdded
+	case dto.ArchiveChangeDeleted:
+		return runtimeapi.ChangeDeleted
+	default:
+		return runtimeapi.ChangeModified
+	}
+}
