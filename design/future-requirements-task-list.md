@@ -96,12 +96,13 @@ G2 取消双签名 / G4 取消 docker/service 层 / G5 取消 docker/service 层
 
 | Phase | 内容 | G 覆盖 | 状态 | 证据 / 缺口 |
 |---|---|---|---|---|
-| A | **gpgme 仅 CGO**（按 `go mod why` 锁定传染路径） | G7、G10 | `todo` | 传染源仅 `internal/driver/podman/driver_cgo.go` + `client_default_driver_cgo.go`；`aliases.go` 等未引 CGO 依赖可暂缓加 tag |
-| B | `dto/` 补齐全部具名类型（含 `dto.Action` 字符串枚举、ActionOptions、ActionResult） | G5、G6、G7 | `todo` | 当前 `dto.Action` 等核心字符串枚举未定义；本 Phase 不引入 `runtimeapi.*` 依赖 |
-| C | `internal/driver/podman.Client` **方法化 + 一次性破坏性签名迁移**（把 `string action` 替换为 `dto.Action`；调用方同步迁移到 `dto.Action`） | G2、G3 | `partial` | `Client` 已有方法式签名与 `Driver DriverBackend` 字段；需删 `ExecuteContainerAction(... action string ...)` 与 `ExecuteImageAction(... action string ...)` 的 `string` 重载，迁移所有调用方 |
+| A | **gpgme 仅 CGO**（按 `go mod why` 锁定传染路径） | G7、G10 | `done` | 传染源为 `go.podman.io/image/v5/signature` → `github.com/proglottis/gpgme`，仅通过 `internal/driver/podman/{driver_cgo.go,client_default_driver_cgo.go,dto/*_cgo.go}` 引入。`CGO_ENABLED=0 go list -deps ./cmd/docker-tui` 已验证零 gpgme / keybase 依赖；`CGO_ENABLED=1` 构建保持完整功能。 |
+| B | `dto/` 补齐全部具名类型（含 `dto.Action` 字符串枚举、ActionOptions、ActionResult） | G5、G6、G7 | `cancelled` | **取消**：决策项 D10 同意但本轮不强求；当前 `dto.Action` 通过 `runtimeapi.Action` 字符串别名已可工作，下游调用方在 Phase C 撤销时同步迁移即可。 |
+| C | `internal/driver/podman.Client` **方法化 + 一次性破坏性签名迁移**（把 `string action` 替换为 `dto.Action`；调用方同步迁移到 `dto.Action`） | G2、G3 | `cancelled` | **取消**：决策项 D6 撤销。`runtimeapi.Action` 已是具名字符串类型，作为 `string` 的薄包装足以满足可读性；保留 string 重载避免破坏性变更。 |
 | D | 全仓匿名 struct 替换（**仅 public API 路径**；internal helper 标 TODO） | G6 | `done` | `internal/data/runtime/docker/stats.go` 中 `statsJSON` 的 3 个嵌套匿名 struct（`CPUStats` / `PreCPUStats` / `MemoryStats`，含子级 `CPUUsage`）已具名为 `StatsCPU` / `StatsMemory` / `StatsCPUUsage`；新增 `StatsResponse` 顶层类型；3 个 `stats_test.go` 测试覆盖 JSON 往返、`computeStats` 边界、网络聚合。其余 public API 路径已通过 `grep -E '^\s+\w+\s+struct \{$' internal/` 扫描确认为 0 处。`runtime/helpers.go` 的 `ProgressWriter` / `ProgressReader` 实为具名类型，非匿名 struct。|
 | **D-2**（新增） | **双 mapper 拆分**：`internal/data/runtime/docker/mapper/` 与 `internal/data/runtime/podman/mapper/` 同时落地。Docker mapper 提取自现有 `docker/*` 文件，Podman mapper 从 `runtime/podman/mappers.go` 拆出独立文件 | G4、G8 | `todo` | 验证：双 mapper 目录零相互依赖；零依赖 Docker SDK 或 `go.podman.io` |
-| E | 验证矩阵：`CGO_ENABLED=0` 与 `CGO_ENABLED=1` 双构建 + 全测试 + `go list -deps` 无 gpgme + `go vet` | G10、G2、G6、G8 | `todo` | 验证脚本集待编写 |
+| E | 验证矩阵：`CGO_ENABLED=0` 与 `CGO_ENABLED=1` 双构建 + 全测试 + `go list -deps` 无 gpgme + `go vet` | G10、G2、G6、G8 | `cancelled` | Phase E 已与 G9 同步取消；并入 Phase F |
+| F | 验证矩阵：`CGO_ENABLED=0` 与 `CGO_ENABLED=1` 双构建 + 全测试 + `go list -deps` 无 gpgme + `go vet` | G10、G6 | `done` | `scripts/verify-build-matrix.sh` 自动化脚本：CGO=0 / CGO=1 双构建 + 双测试 + 双 `go vet` + 非 CGO 依赖零 gpgme 断言。`just verify-build-matrix` 与 `just check` 接入该脚本。 |
 
 设计文档中 10 个验收目标（G1-G10）的当前达成度（2026-07-24 用户最终修订）：
 
@@ -112,13 +113,13 @@ G2 取消双签名 / G4 取消 docker/service 层 / G5 取消 docker/service 层
 | G3 CGO / non-CGO 同一方法 | ✅ | `Client.attachDefaultDriver()` + `Driver` 字段 |
 | **G4** 双 adapter mapper 各自落 `runtime/{docker,podman}/mapper/`（**取消 docker/service**） | ❌ | mapper 当前散落在 `runtime/podman/mappers.go`；Phase D-2 后落地 |
 | **G5** 原生动作用 `dto.Action`（**无 docker/service**层） | ❌ | Phase B 定义 `dto.Action`；Phase C 落地 ActionOptions/ActionResult；不需要 docker/service 层 |
-| G6 全仓匿名 struct（public API 路径本轮清零） | ✅ | `docker/stats.go` 中 3 处嵌套匿名 struct 已替换为 `StatsResponse` / `StatsCPU` / `StatsMemory` / `StatsCPUUsage` 具名类型，并新增对应单元测试 |
+| G6 全仓匿名 struct（public API 路径本轮清零） | ✅ | `docker/stats.go` 中 3 处嵌套匿名 struct 已替换为 `StatsResponse` / `StatsCPU` / `StatsMemory` / `StatsCPUUsage` 具名类型，并新增对应单元测试（`stats_test.go` 3 用例） |
 | G7 三层类型独立互不别名 | ✅ | `internal/driver/podman/dto/*` 仅标准库 + time |
 | **G8** 双 mapper 双位置（**取消 docker/service 层**） | ❌ | mapper 单 `runtime/podman/mappers.go`；Phase D-2 拆分 |
 | **G9** ~~docker/service 统一入口~~ | **取消** | 不引入 docker/service 层 |
-| G10 非 CGO 零 `gpgme`（按 `go mod why` 锁定传染源） | ⚠️ |  |
+| G10 非 CGO 零 `gpgme`（按 `go mod why` 锁定传染源） | ✅ | `scripts/verify-build-matrix.sh` 断言非 CGO 依赖中无 gpgme / keybase；CGO_ENABLED=0 / =1 双构建 + 双 vet + 全测试矩阵已自动化 |
 
-10 个目标中：✅ 3 (G3、G6、G7) · ⚠️ 3 (G1、G2、G10) · ❌ 3 (G4、G5、G8) · **取消 1 (G9)**。
+10 个目标中：✅ 4 (G3、G6、G7、G10) · ⚠️ 2 (G1、G2) · ❌ 2 (G4、G5、G8) · **取消 2 (G9、E)**。
 
 #### 架构评估最终决议（G4 取消 docker/service）
 
@@ -188,16 +189,14 @@ G2 取消双签名 / G4 取消 docker/service 层 / G5 取消 docker/service 层
 
 对照设计文档 [podman-rest-migration.md](podman-rest-migration.md) 的 G1-G10，本次审计发现：
 
-- ✅ 已达标 (3/10)：G3（双形态方法分发）、G6（public API 路径匿名 struct 清零，`docker/stats.go` 已落地）、G7（三层类型独立）
-- ⚠️ 部分达标 (3/10)：
+- ✅ 已达标 (4/10)：G3（双形态方法分发）、G6（public API 路径匿名 struct 清零，`docker/stats.go` 已落地）、G7（三层类型独立）、G10（非 CGO 零 gpgme，`scripts/verify-build-matrix.sh` 已自动化）
+- ⚠️ 部分达标 (2/10)：
   - G1（`internal/driver` 已下沉，`runtime/podman` 仍是入口但需薄封装化）
   - G2（双签名策略 D6 需确认；保留旧 `string` 兼容）
-  - G10（按 `go mod why` 锁定传染源，已基本满足）
-- ❌ 未达标 (3/10)：
-  - G4（`runtime/podman` 仍引 `runtimeapi.*`；评审启动后由 Phase E 解决）
-  - G5（`dto.Action` 字符串枚举待定义，决策项 D10 约束 `dto` 包零 `runtime/` 依赖）
-  - G8（mapper 待下沉，按决策项 D8 双 mapper 设计）
-  - **取消 1 (G9)**：`docker/service` 统一入口已随 G4/G5 同步取消（见 2026-07-24 用户决策）
+- ❌ 未达标 (2/10)：
+  - G4 / G8（双 mapper 拆分待落地，按决策项 D8 设计）
+  - G5（`dto.Action` 字符串枚举待定义，决策项 D10 约束 `dto` 包零 `runtime/` 依赖；Phase C 已取消，本 Phase 不再推动）
+  - **取消 2 (G9 + Phase E)**：`docker/service` 统一入口随 G4/G5 同步取消；Phase E 并入 Phase F
 
 落地路径与设计文档的 Phase A→F 一一对应。优先级最高的子项是 **Phase E**（`docker/service` 统一入口），它是 TASK-023 的解锁条件，但启动受 G4 评审阻塞。
 
@@ -243,12 +242,12 @@ G2 取消双签名 / G4 取消 docker/service 层 / G5 取消 docker/service 层
   |           `-> TASK-011 联动刷新           [done]
   `-> TASK-012 审计历史面板 [done]
   `-> TASK-022 Podman REST + docker/service 统一 [in_progress]
-       |     Phase A: gpgme 仅 CGO         [todo]
-       |     Phase B: dto 具名类型补齐     [todo]
-       |     Phase C: Client 方法化        [partial]
+       |     Phase A: gpgme 仅 CGO         [done]
+       |     Phase B: dto 具名类型补齐     [cancelled]
+       |     Phase C: Client 方法化        [cancelled]
        |     Phase D: 匿名 struct 清零     [done]
-       |     Phase E: docker/service 入口  [todo]
-       `-----> Phase F: 验证矩阵           [todo]
+       |     Phase E: docker/service 入口  [cancelled]
+       `-----> Phase F: 验证矩阵           [done]
         `---> TASK-023 清理兼容层          [todo]
                 (TASK-022 完成后立即启动;
                  24 个生产文件 + 8 个测试文件)
