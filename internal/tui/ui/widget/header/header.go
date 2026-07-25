@@ -211,7 +211,7 @@ func Render(app *state.AppModel, usableW int) string {
 	logoPart := strings.Join(logoLines[:min(3, len(logoLines))], "\n")
 	colLogo := lipgloss.JoinVertical(lipgloss.Right,
 		component.GetStyle("panelTitle").Render(logoPart),
-		component.GetStyle("dim").Render("v"+verStr),
+		component.GetStyle("panelTitle").Render("v"+verStr),
 	)
 
 	rendered := lipgloss.JoinHorizontal(lipgloss.Top,

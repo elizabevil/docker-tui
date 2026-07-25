@@ -9,6 +9,8 @@ import (
 	"runtime/debug"
 )
 
+var version = "0.2.0"
+
 // Info is the JSON-serializable record exposed by `dtui version`. Fields are
 // tagged with omitempty for fields that are not always populated (commit /
 // build time are only set when the binary is built with VCS metadata, e.g.
@@ -26,7 +28,7 @@ type Info struct {
 // are injected by the caller (typically the main package's hard-coded
 // version constant); the rest is read from the Go runtime and the embedded
 // build info populated by the go toolchain.
-func Read(name, version string) Info {
+func Read(name string) Info {
 	info := Info{
 		Name:      name,
 		Version:   version,

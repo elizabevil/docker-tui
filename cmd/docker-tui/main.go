@@ -25,11 +25,10 @@ import (
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
-var version = "0.2.0"
+var dtuiInfo = buildinfo.Read("dtui")
 
 func main() {
-	read := buildinfo.Read("dtui", version)
-	marshal, _ := sonic.MarshalIndent(read, " ", " ") //nolint:errcheck // version info struct; marshal cannot fail in practice.
+	marshal, _ := sonic.MarshalIndent(dtuiInfo, " ", " ") //nolint:errcheck // version info struct; marshal cannot fail in practice.
 	app := orpheus.New("dtui").
 		SetDescription("Docker & Podman TUI Manager").
 		SetVersion(string(marshal))
@@ -96,8 +95,9 @@ func runTUI(ctx *orpheus.Context) error {
 	for _, connection := range connections {
 		pool.AddHost(connection)
 	}
+	dtuInfo := buildinfo.Read("dtui")
 
-	m := state.NewAppModel(cfg, nil, version)
+	m := state.NewAppModel(cfg, nil, dtuInfo.Version)
 	if dir, configErr := config.ConfigDir(); configErr == nil {
 		logsDir := filepath.Join(dir, "logs")
 		if sink, err := audit.NewFileSink(logsDir); err == nil {
@@ -123,9 +123,9 @@ func runTUI(ctx *orpheus.Context) error {
 			"session.start",
 			audit.RuntimeContext{Type: runtimeType, Name: initialConnection, Host: dockerHost},
 			audit.SessionTarget{
-				ID:   "session-" + version,
-				Name: "dtui " + version,
-				Meta: audit.SessionMeta{Version: version, OS: runtime.GOOS, Arch: runtime.GOARCH},
+				ID:   "session-" + dtuiInfo.Version,
+				Name: "dtui " + dtuiInfo.Version,
+				Meta: audit.SessionMeta{Version: dtuiInfo.Version, OS: runtime.GOOS, Arch: runtime.GOARCH},
 			},
 			"dtui session started",
 		)
