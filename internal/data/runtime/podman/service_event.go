@@ -9,7 +9,7 @@ import (
 	"time"
 
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
-	podman "github.com/elizabevil/docker-tui/internal/driver/podman"
+	"github.com/elizabevil/docker-tui/internal/driver/podman"
 )
 
 // PodmanEventService implements EventService for the Podman adapter.
@@ -36,7 +36,7 @@ func (s PodmanEventService) Subscribe(ctx context.Context, options runtimeapi.Ev
 	output := make(chan runtimeapi.EventItem, 100)
 	go func() {
 		defer close(output)
-		defer reader.Close()
+		defer func() { _ = reader.Close() }() //nolint:errcheck // event stream broken by context cancel.
 		decoder := json.NewDecoder(reader)
 		for {
 			var event podman.EventItem

@@ -71,11 +71,6 @@ func (p *ConnectionPool) SetEngineFactory(factory EngineFactory) {
 	p.factory = factory
 }
 
-// newEngine delegates engine creation to the pool's factory.
-func (p *ConnectionPool) newEngine(cfg ClientConfig) (Engine, error) {
-	return p.newEngineWithFactory(p.factory, cfg)
-}
-
 // newEngineWithFactory creates an engine using a factory captured outside the
 // lock. Connect and refreshOne copy the factory before dropping the lock so
 // concurrent SetEngineFactory calls don't race with in-flight connections.
@@ -226,7 +221,7 @@ func (p *ConnectionPool) Connect(name string, timeout time.Duration) error {
 	}
 
 	if entry.Engine != nil && entry.Engine != engine {
-		entry.Engine.Close()
+		_ = entry.Engine.Close() //nolint:errcheck // closing a stale engine; failure is non-fatal during reconnect.
 	}
 	entry.Engine = engine
 	entry.State = StateConnected
@@ -301,7 +296,7 @@ func (p *ConnectionPool) refreshOne(entry *PoolEntry, timeout time.Duration) Ref
 			latency = time.Since(start)
 		}
 		if engineIsUsable(engine) {
-			_ = engine.Close()
+			_ = engine.Close() //nolint:errcheck // closing a probe engine; failure is non-fatal.
 		}
 	}
 
@@ -350,7 +345,7 @@ func (p *ConnectionPool) Close() {
 	defer p.mu.Unlock()
 	for _, entry := range p.entries {
 		if entry.Engine != nil {
-			entry.Engine.Close()
+			_ = entry.Engine.Close() //nolint:errcheck // best-effort shutdown during pool reset.
 		}
 	}
 	p.entries = make(map[string]*PoolEntry)

@@ -256,11 +256,11 @@ func doImageCopyRef(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 			cmd = exec.Command("pbcopy")
 		} else {
 			// Fallback: write to temp file
-			os.WriteFile("/tmp/dtui-clipboard.txt", []byte(ref), 0644)
+			_ = os.WriteFile("/tmp/dtui-clipboard.txt", []byte(ref), 0644) //nolint:errcheck // fallback clipboard; write failure is non-fatal.
 			return nil
 		}
 		cmd.Stdin = strings.NewReader(ref)
-		cmd.Run()
+		_ = cmd.Run() //nolint:errcheck // clipboard best-effort.
 		return nil
 	}
 }

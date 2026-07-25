@@ -39,7 +39,9 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.Viewport.Resize(msg.Width, msg.Height)
 		if m.Navigation.Mode == state.ModeExecPassthrough && m.Exec.ExecConn != nil {
-			go m.Exec.ExecConn.Resize(context.Background(), runtimeapi.TerminalSize{Height: uint(msg.Height), Width: uint(msg.Width)})
+			go func() {
+				_ = m.Exec.ExecConn.Resize(context.Background(), runtimeapi.TerminalSize{Height: uint(msg.Height), Width: uint(msg.Width)})
+			}() //nolint:errcheck // fire-and-forget resize on window change.
 		}
 		return m, nil
 

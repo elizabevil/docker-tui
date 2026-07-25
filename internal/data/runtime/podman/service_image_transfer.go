@@ -6,7 +6,7 @@ import (
 	"os"
 
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
-	podman "github.com/elizabevil/docker-tui/internal/driver/podman"
+	"github.com/elizabevil/docker-tui/internal/driver/podman"
 )
 
 // PodmanImageTransferService implements ImageTransferService for the Podman adapter.
@@ -42,14 +42,14 @@ func (s PodmanImageTransferService) execute(ctx context.Context, request runtime
 		if err != nil {
 			return result, err
 		}
-		defer reader.Close()
+		defer func() { _ = reader.Close() }() //nolint:errcheck // push stream drained by DecodeImageProgress.
 		return result, runtimeapi.DecodeImageProgress(ctx, reader, output)
 	case runtimeapi.ImageTransferSave:
 		reader, err := s.Client.REST.SaveImageStream(ctx, request.Source)
 		if err != nil {
 			return result, err
 		}
-		defer reader.Close()
+		defer func() { _ = reader.Close() }() //nolint:errcheck // save stream drained via io.Copy.
 		file, err := os.OpenFile(request.Path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 		if err != nil {
 			return result, err
@@ -61,7 +61,7 @@ func (s PodmanImageTransferService) execute(ctx context.Context, request runtime
 				err = closeErr
 			}
 			if !completed {
-				_ = os.Remove(request.Path)
+				_ = os.Remove(request.Path) //nolint:errcheck // partial save cleanup; best-effort.
 			}
 		}()
 		writer := &runtimeapi.ProgressWriter{Ctx: ctx, Output: output, Status: "saving", Writer: file}
@@ -75,7 +75,7 @@ func (s PodmanImageTransferService) execute(ctx context.Context, request runtime
 		if err != nil {
 			return result, err
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }() //nolint:errcheck // load source consumed by StreamLoad.
 		var total int64
 		if info, statErr := file.Stat(); statErr == nil {
 			total = info.Size()
@@ -85,7 +85,7 @@ func (s PodmanImageTransferService) execute(ctx context.Context, request runtime
 		if err != nil {
 			return result, err
 		}
-		defer reader.Close()
+		defer func() { _ = reader.Close() }() //nolint:errcheck // load response body fully decoded.
 		refs, err := podman.DecodeLoadReport(reader)
 		result.References = refs
 		return result, err

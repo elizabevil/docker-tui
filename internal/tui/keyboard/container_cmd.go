@@ -83,7 +83,7 @@ func FetchLogBatch(client runtimeapi.Engine, containerID, since, tail string, ts
 		if err != nil {
 			return state.LogStreamError{ContainerID: containerID, Error: err}
 		}
-		defer reader.Close()
+		defer func() { _ = reader.Close() }() //nolint:errcheck // log reader fully scanned before close.
 
 		var lines []string
 		scanner := bufio.NewScanner(reader)

@@ -29,7 +29,7 @@ var version = "0.2.0"
 
 func main() {
 	read := buildinfo.Read("dtui", version)
-	marshal, _ := sonic.MarshalIndent(read, " ", " ")
+	marshal, _ := sonic.MarshalIndent(read, " ", " ") //nolint:errcheck // version info struct; marshal cannot fail in practice.
 	app := orpheus.New("dtui").
 		SetDescription("Docker & Podman TUI Manager").
 		SetVersion(string(marshal))

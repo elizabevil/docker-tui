@@ -49,7 +49,8 @@ func (s resourceActionService) execute(ctx context.Context, ref runtimeapi.Resou
 		}
 		return s.client.cli.NetworkRemove(ctx, ref.ID)
 	default:
-		return runtimeapi.NewError(runtimeapi.ErrorInvalid, "resource.action", ref.ID, fmt.Errorf("unknown resource type %q", ref.Type))
+		return runtimeapi.NewError(runtimeapi.ErrorInvalid, "resource.action", ref.ID,
+			fmt.Errorf("unknown resource type %q", ref.Type))
 	}
 }
 
@@ -70,7 +71,7 @@ func (s resourceActionService) executeContainer(ctx context.Context, id string, 
 		return s.client.cli.ContainerUnpause(ctx, id)
 	case runtimeapi.ActionRename:
 		if lc.Name == "" {
-			return runtimeapi.NewError(runtimeapi.ErrorInvalid, runtimeapi.Operation(runtimeapi.ResourceContainer, string(action)), id, fmt.Errorf("name is required"))
+			return invalidContainerAction(action, id, "name is required")
 		}
 		return s.client.cli.ContainerRename(ctx, id, lc.Name)
 	case runtimeapi.ActionRemove:
@@ -98,7 +99,7 @@ func (s resourceActionService) dispatchAdvanced(ctx context.Context, id string, 
 	switch action {
 	case runtimeapi.ActionUpdate:
 		if options.Update == nil {
-			return runtimeapi.NewError(runtimeapi.ErrorInvalid, runtimeapi.Operation(runtimeapi.ResourceContainer, string(action)), id, fmt.Errorf("update options required"))
+			return invalidContainerAction(action, id, "update options required")
 		}
 		_, err := svc.Update(ctx, id, runtimeapi.ContainerUpdateOptions{
 			Memory:            options.Update.Memory,
@@ -118,7 +119,7 @@ func (s resourceActionService) dispatchAdvanced(ctx context.Context, id string, 
 		return rc.Close()
 	case runtimeapi.ActionCommit:
 		if options.Commit == nil {
-			return runtimeapi.NewError(runtimeapi.ErrorInvalid, runtimeapi.Operation(runtimeapi.ResourceContainer, string(action)), id, fmt.Errorf("commit options required"))
+			return invalidContainerAction(action, id, "commit options required")
 		}
 		_, err := svc.Commit(ctx, id, runtimeapi.ContainerCommitOptions{
 			Repository: options.Commit.Repository,
@@ -137,7 +138,7 @@ func (s resourceActionService) dispatchAdvanced(ctx context.Context, id string, 
 		return err
 	case runtimeapi.ActionCopy:
 		if options.Copy == nil {
-			return runtimeapi.NewError(runtimeapi.ErrorInvalid, runtimeapi.Operation(runtimeapi.ResourceContainer, string(action)), id, fmt.Errorf("copy options required"))
+			return invalidContainerAction(action, id, "copy options required")
 		}
 		rc, err := svc.CopyFromContainer(ctx, id, options.Copy.SourcePath)
 		if err != nil {
@@ -146,6 +147,13 @@ func (s resourceActionService) dispatchAdvanced(ctx context.Context, id string, 
 		return rc.Close()
 	}
 	return runtimeapi.UnsupportedError(runtimeapi.Operation(runtimeapi.ResourceContainer, string(action)))
+}
+
+// invalidContainerAction produces the standard "missing option" error used
+// by advanced container actions that require typed sub-payloads.
+func invalidContainerAction(action runtimeapi.Action, id, message string) error {
+	return runtimeapi.NewError(runtimeapi.ErrorInvalid,
+		runtimeapi.Operation(runtimeapi.ResourceContainer, string(action)), id, fmt.Errorf("%s", message))
 }
 
 func (s resourceActionService) executeImage(ctx context.Context, id string, action runtimeapi.Action, options runtimeapi.ActionOptions, result *runtimeapi.ActionResult) error {
@@ -159,7 +167,7 @@ func (s resourceActionService) executeImage(ctx context.Context, id string, acti
 		if err != nil {
 			return err
 		}
-		defer reader.Close()
+		defer func() { _ = reader.Close() }() //nolint:errcheck // pull stream exhausted.
 		_, err = io.Copy(io.Discard, reader)
 		return err
 	case runtimeapi.ActionPrune:

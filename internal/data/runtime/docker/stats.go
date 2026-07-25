@@ -37,9 +37,9 @@ type StatsMemory struct {
 // TASK-022 Phase D: previously nested anonymous structs; renamed so each
 // sub-shape can be referenced and tested directly.
 type StatsResponse struct {
-	CPUStats    StatsCPU            `json:"cpu_stats"`
-	PreCPUStats StatsCPU            `json:"precpu_stats"`
-	MemoryStats StatsMemory         `json:"memory_stats"`
+	CPUStats    StatsCPU                `json:"cpu_stats"`
+	PreCPUStats StatsCPU                `json:"precpu_stats"`
+	MemoryStats StatsMemory             `json:"memory_stats"`
 	Networks    map[string]NetworkStats `json:"networks"`
 }
 
@@ -48,7 +48,7 @@ func (c *Client) containerStatsContext(ctx context.Context, id string) (runtimea
 	if err != nil {
 		return runtimeapi.ContainerStats{}, fmt.Errorf("stats container: %w", err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }() //nolint:errcheck // stats body fully decoded before return.
 	var raw StatsResponse
 	if err := json.NewDecoder(response.Body).Decode(&raw); err != nil {
 		return runtimeapi.ContainerStats{}, fmt.Errorf("decode container stats: %w", err)

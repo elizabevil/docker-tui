@@ -115,7 +115,7 @@ func (c *Client) containerLogsContext(ctx context.Context, id string, options ru
 	}
 	var buf bytes.Buffer
 	_, err = stdcopy.StdCopy(&buf, &buf, resp)
-	resp.Close()
+	_ = resp.Close() //nolint:errcheck // demux stream consumed; closing best-effort.
 	if err != nil {
 		return nil, fmt.Errorf("demux logs: %w", err)
 	}

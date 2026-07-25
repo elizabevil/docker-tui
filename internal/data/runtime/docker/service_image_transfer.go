@@ -34,17 +34,28 @@ func (s imageTransferService) Run(ctx context.Context, request runtimeapi.ImageT
 		defer close(output)
 		result, err := s.execute(ctx, request, output)
 		if err != nil {
-			err = runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceImage, string(request.Operation)), runtimeapi.ResourceRef{Type: runtimeapi.ResourceImage, ID: request.Source}, runtimeapi.Docker)
+			err = mapImageTransferErr(err, request)
 		}
 		output <- runtimeapi.ImageTransferEvent{Result: result, Error: err, Done: true}
 	}()
 	return output, nil
 }
 
+// mapImageTransferErr wraps a transfer error with the image resource ref.
+// Factored so the inline call in Run stays short.
+func mapImageTransferErr(err error, request runtimeapi.ImageTransferRequest) error {
+	return runtimeapi.MapRuntimeError(err,
+		runtimeapi.Operation(runtimeapi.ResourceImage, string(request.Operation)),
+		runtimeapi.ResourceRef{Type: runtimeapi.ResourceImage, ID: request.Source},
+		runtimeapi.Docker)
+}
+
 func validateImageTransferRequest(request runtimeapi.ImageTransferRequest) error {
 	required := func(value, field string) error {
 		if strings.TrimSpace(value) == "" {
-			return runtimeapi.NewError(runtimeapi.ErrorInvalid, "image."+string(request.Operation), request.Source, fmt.Errorf("%s is required", field))
+			return runtimeapi.NewError(runtimeapi.ErrorInvalid,
+				"image."+string(request.Operation), request.Source,
+				fmt.Errorf("%s is required", field))
 		}
 		return nil
 	}
@@ -62,12 +73,18 @@ func validateImageTransferRequest(request runtimeapi.ImageTransferRequest) error
 	case runtimeapi.ImageTransferLoad:
 		return required(request.Path, "path")
 	default:
-		return runtimeapi.NewError(runtimeapi.ErrorInvalid, "image.transfer", request.Source, fmt.Errorf("unknown operation %q", request.Operation))
+		return runtimeapi.NewError(runtimeapi.ErrorInvalid, "image.transfer", request.Source,
+			fmt.Errorf("unknown operation %q", request.Operation))
 	}
 }
 
 func (s imageTransferService) execute(ctx context.Context, request runtimeapi.ImageTransferRequest, output chan<- runtimeapi.ImageTransferEvent) (*runtimeapi.ImageTransferResult, error) {
-	result := &runtimeapi.ImageTransferResult{Operation: request.Operation, Source: request.Source, Destination: request.Destination, Path: request.Path}
+	result := &runtimeapi.ImageTransferResult{
+		Operation:   request.Operation,
+		Source:      request.Source,
+		Destination: request.Destination,
+		Path:        request.Path,
+	}
 	switch request.Operation {
 	case runtimeapi.ImageTransferTag:
 		return result, s.client.cli.ImageTag(ctx, request.Source, request.Destination)
@@ -94,7 +111,7 @@ func (s imageTransferService) push(ctx context.Context, request runtimeapi.Image
 	if err != nil {
 		return err
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }() //nolint:errcheck // push stream fully drained before return.
 	decoder := json.NewDecoder(reader)
 	for {
 		var message imageStreamMessage
@@ -125,7 +142,7 @@ func (s imageTransferService) save(ctx context.Context, request runtimeapi.Image
 	if err != nil {
 		return err
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }() //nolint:errcheck // save stream fully drained before return.
 	file, err := os.OpenFile(request.Path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
 		return err
@@ -137,7 +154,7 @@ func (s imageTransferService) save(ctx context.Context, request runtimeapi.Image
 			err = closeErr
 		}
 		if !completed {
-			_ = os.Remove(request.Path)
+			_ = os.Remove(request.Path) //nolint:errcheck // cleanup of partial save file; best-effort.
 		}
 	}()
 	writer := &progressWriter{ctx: ctx, output: output, status: "saving", writer: file}
@@ -153,7 +170,7 @@ func (s imageTransferService) load(ctx context.Context, request runtimeapi.Image
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }() //nolint:errcheck // load source exhausted before return.
 	var total int64
 	if info, statErr := file.Stat(); statErr == nil {
 		total = info.Size()
@@ -163,7 +180,7 @@ func (s imageTransferService) load(ctx context.Context, request runtimeapi.Image
 	if err != nil {
 		return nil, err
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }() //nolint:errcheck // response body drained before return.
 	var references []string
 	decoder := json.NewDecoder(response.Body)
 	for {

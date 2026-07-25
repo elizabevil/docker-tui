@@ -168,7 +168,7 @@ func (c *RESTClient) url(path string, query url.Values) *url.URL {
 		fullPath = path
 	}
 	u := *c.baseURL
-	parsed, _ := url.Parse(fullPath)
+	parsed, _ := url.Parse(fullPath) //nolint:errcheck // path comes from a configured versioned prefix; always parses.
 	u.Path = parsed.Path
 	if parsed.RawPath != "" {
 		u.RawPath = parsed.RawPath
@@ -234,12 +234,12 @@ func (c *RESTClient) UpgradePost(ctx context.Context, path string, body io.Reade
 		return nil, newPodmanError(kind, "", err)
 	}
 	if response.StatusCode != http.StatusSwitchingProtocols {
-		defer response.Body.Close()
+		defer func() { _ = response.Body.Close() }() //nolint:errcheck // error body drained by decodeResponseError.
 		return nil, c.decodeResponseError(response)
 	}
 	stream, ok := response.Body.(io.ReadWriteCloser)
 	if !ok {
-		response.Body.Close()
+		_ = response.Body.Close() //nolint:errcheck // upgrade fallback; body discarded.
 		return nil, newPodmanError(KindInternal, "", fmt.Errorf("upgrade response is not bidirectional"))
 	}
 	return stream, nil
@@ -264,7 +264,7 @@ func (c *RESTClient) stream(ctx context.Context, method string, u *url.URL, body
 		return nil, newPodmanError(kind, "", err)
 	}
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
-		defer response.Body.Close()
+		defer func() { _ = response.Body.Close() }() //nolint:errcheck // error body drained by decodeResponseError.
 		return nil, c.decodeResponseError(response)
 	}
 	return response.Body, nil
@@ -272,7 +272,7 @@ func (c *RESTClient) stream(ctx context.Context, method string, u *url.URL, body
 
 func (c *RESTClient) decodeResponseError(response *http.Response) error {
 	var payload dto.EngineErrorPayload
-	_ = json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&payload)
+	_ = json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&payload) //nolint:errcheck // best-effort error decode; fall back to status text.
 	message := strings.TrimSpace(payload.Message)
 	if message == "" {
 		message = strings.TrimSpace(payload.Cause)
@@ -338,7 +338,7 @@ func (c *RESTClient) do(ctx context.Context, method string, u *url.URL, body io.
 		}
 		return newPodmanError(kind, "", err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }() //nolint:errcheck // body fully consumed by Decode or error path.
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
 		return c.decodeResponseError(response)
 	}

@@ -21,35 +21,45 @@ type HostStats struct {
 }
 
 // ReadHostStats reads host system metrics using gopsutil.
+// All underlying probes are best-effort; individual failures are
+// tolerated so the UI degrades gracefully instead of crashing.
 func ReadHostStats() HostStats {
-	cores, _ := cpu.Counts(true)
+	cores, err := cpu.Counts(true)
+	if err != nil {
+		cores = 0
+	}
 
-	// CPU: 500ms sample interval for accurate reading
-	cpuPercents, _ := cpu.Percent(500*time.Millisecond, false)
+	cpuPercents, err := cpu.Percent(500*time.Millisecond, false) //nolint:errcheck // best-effort sample.
 	cpuPct := 0.0
-	if len(cpuPercents) > 0 {
+	if err == nil && len(cpuPercents) > 0 {
 		cpuPct = math.Round(cpuPercents[0]*100) / 100
 	}
 
-	// Memory
-	memInfo, _ := mem.VirtualMemory()
-	memPct := math.Round(memInfo.UsedPercent*100) / 100
+	memInfo, err := mem.VirtualMemory()
+	memPct := 0.0
+	if err == nil {
+		memPct = math.Round(memInfo.UsedPercent*100) / 100
+	}
 
-	// Disk
-	diskUsage, _ := disk.Usage("/")
+	diskUsage, err := disk.Usage("/")
 	diskStr := "—"
-	if diskUsage != nil {
+	if err == nil && diskUsage != nil {
 		avail := formatBytes(diskUsage.Free)
 		total := formatBytes(diskUsage.Total)
 		diskStr = avail + "/" + total
 	}
 
+	used, total64 := uint64(0), uint64(0)
+	if memInfo != nil {
+		used = memInfo.Used
+		total64 = memInfo.Total
+	}
 	return HostStats{
 		CPUPercent: cpuPct,
 		CPUCores:   cores,
 		MemPercent: memPct,
-		MemUsed:    memInfo.Used,
-		MemTotal:   memInfo.Total,
+		MemUsed:    used,
+		MemTotal:   total64,
 		DiskStr:    diskStr,
 	}
 }

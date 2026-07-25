@@ -45,7 +45,7 @@ func loadMessages(tag language.Tag) {
 			panic(err)
 		}
 		for key, value := range messages {
-			_ = cat.SetString(tag, key, value)
+			_ = cat.SetString(tag, key, value) //nolint:errcheck // catalog builder only returns internal logic errors.
 		}
 	}
 	printers[tag] = message.NewPrinter(tag, message.Catalog(cat))

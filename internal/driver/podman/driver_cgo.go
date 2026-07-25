@@ -59,10 +59,7 @@ func (d *cgoDriver) ListContainers(ctx context.Context, opts dto.ContainerListOp
 	for _, container := range list {
 		ports := make([]dto.ContainerPort, 0, len(container.Ports))
 		for _, port := range container.Ports {
-			ports = append(ports, dto.ContainerPort{
-				ContainerPort: port.ContainerPort, HostPort: port.HostPort, Range: port.Range,
-				Protocol: port.Protocol, HostIP: port.HostIP,
-			})
+			ports = append(ports, dto.ContainerPort(port))
 		}
 		raw = append(raw, dto.ContainerItem{
 			ID: container.ID, Names: container.Names, Image: container.Image,
@@ -113,8 +110,8 @@ func (d *cgoDriver) ListNetworks(ctx context.Context, opts dto.NetworkListOption
 	raw := make([]dto.Network, 0, len(list))
 	for _, n := range list {
 		var item dto.Network
-		b, _ := json.Marshal(n)
-		json.Unmarshal(b, &item)
+		b, _ := json.Marshal(n)      //nolint:errcheck // re-marshalled immediately below.
+		_ = json.Unmarshal(b, &item) //nolint:errcheck // best-effort round-trip; partial decode is acceptable here.
 		raw = append(raw, item)
 	}
 	return raw, nil
@@ -131,8 +128,8 @@ func (d *cgoDriver) InspectNetwork(ctx context.Context, id string) (*dto.Network
 		return nil, fmt.Errorf("podman inspect network %s: %w", id, err)
 	}
 	var net dto.NetworkInspect
-	b, _ := json.Marshal(report)
-	json.Unmarshal(b, &net)
+	b, _ := json.Marshal(report) //nolint:errcheck // re-marshalled immediately below.
+	_ = json.Unmarshal(b, &net)  //nolint:errcheck // best-effort round-trip; partial decode is acceptable here.
 	return &net, nil
 }
 
@@ -210,7 +207,7 @@ func (d *cgoDriver) PruneNetworks(ctx context.Context, filters map[string][]stri
 	}
 	result := make([]dto.NetworkPruneReportItem, 0, len(reports))
 	for _, report := range reports {
-		errBytes, _ := json.Marshal(report.Error)
+		errBytes, _ := json.Marshal(report.Error) //nolint:errcheck // errors are simple strings; marshal cannot fail.
 		result = append(result, dto.NetworkPruneReportItem{Name: report.Name, Error: string(errBytes)})
 	}
 	return result, nil

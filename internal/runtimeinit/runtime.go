@@ -42,7 +42,7 @@ func isSocketLive(path string) bool {
 	if err != nil {
 		return false
 	}
-	conn.Close()
+	_ = conn.Close() //nolint:errcheck // liveness probe; close error is non-fatal.
 	return true
 }
 

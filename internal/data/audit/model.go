@@ -111,6 +111,6 @@ func (t SessionTarget) TargetType() string { return "session" }
 func (t SessionTarget) TargetID() string   { return t.ID }
 func (t SessionTarget) TargetName() string { return t.Name }
 func (t SessionTarget) ToDTO() TargetDTO {
-	raw, _ := json.Marshal(t.Meta)
+	raw, _ := json.Marshal(t.Meta) //nolint:errcheck // Meta is a small map; marshal cannot fail in practice.
 	return TargetDTO{Type: "session", ID: t.ID, Name: t.Name, Meta: raw}
 }

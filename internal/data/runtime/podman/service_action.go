@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
-	podman "github.com/elizabevil/docker-tui/internal/driver/podman"
+	"github.com/elizabevil/docker-tui/internal/driver/podman"
 )
 
 // PodmanResourceActionService implements ResourceActionService for the Podman adapter.
@@ -17,7 +17,8 @@ func (s PodmanResourceActionService) Execute(ctx context.Context, ref runtimeapi
 	result := runtimeapi.ActionResult{Resource: ref, Action: action}
 	err := s.execute(ctx, ref, action, options, &result)
 	if err != nil {
-		return runtimeapi.ActionResult{}, runtimeapi.MapRuntimeError(err, string(ref.Type)+"."+string(action), ref, runtimeapi.Podman)
+		return runtimeapi.ActionResult{}, runtimeapi.MapRuntimeError(err,
+			string(ref.Type)+"."+string(action), ref, runtimeapi.Podman)
 	}
 	return result, nil
 }
@@ -33,7 +34,7 @@ func (s PodmanResourceActionService) execute(ctx context.Context, ref runtimeapi
 			return err
 		}
 		if stream != nil {
-			defer stream.Close()
+			defer func() { _ = stream.Close() }() //nolint:errcheck // progress stream drained via DecodeImageProgress.
 			return runtimeapi.DecodeImageProgress(ctx, stream, nil)
 		}
 		return nil
@@ -75,11 +76,11 @@ func (s PodmanResourceActionService) executeContainer(ctx context.Context, id st
 // funnels the advanced actions through PodmanContainerService so the
 // REST client stays the single integration point.
 func (s PodmanResourceActionService) dispatchAdvanced(ctx context.Context, id string, action runtimeapi.Action, options runtimeapi.ActionOptions) error {
-	svc := PodmanContainerService{Client: s.Client}
+	svc := PodmanContainerService(s)
 	switch action {
 	case runtimeapi.ActionUpdate:
 		if options.Update == nil {
-			return runtimeapi.NewError(runtimeapi.ErrorInvalid, runtimeapi.Operation(runtimeapi.ResourceContainer, string(action)), id, fmt.Errorf("update options required"))
+			return invalidContainerActionPodman(action, id, "update options required")
 		}
 		_, err := svc.Update(ctx, id, runtimeapi.ContainerUpdateOptions{
 			Memory:            options.Update.Memory,
@@ -99,7 +100,7 @@ func (s PodmanResourceActionService) dispatchAdvanced(ctx context.Context, id st
 		return rc.Close()
 	case runtimeapi.ActionCommit:
 		if options.Commit == nil {
-			return runtimeapi.NewError(runtimeapi.ErrorInvalid, runtimeapi.Operation(runtimeapi.ResourceContainer, string(action)), id, fmt.Errorf("commit options required"))
+			return invalidContainerActionPodman(action, id, "commit options required")
 		}
 		_, err := svc.Commit(ctx, id, runtimeapi.ContainerCommitOptions{
 			Repository: options.Commit.Repository,
@@ -118,7 +119,7 @@ func (s PodmanResourceActionService) dispatchAdvanced(ctx context.Context, id st
 		return err
 	case runtimeapi.ActionCopy:
 		if options.Copy == nil {
-			return runtimeapi.NewError(runtimeapi.ErrorInvalid, runtimeapi.Operation(runtimeapi.ResourceContainer, string(action)), id, fmt.Errorf("copy options required"))
+			return invalidContainerActionPodman(action, id, "copy options required")
 		}
 		rc, err := svc.CopyFromContainer(ctx, id, options.Copy.SourcePath)
 		if err != nil {
@@ -127,4 +128,11 @@ func (s PodmanResourceActionService) dispatchAdvanced(ctx context.Context, id st
 		return rc.Close()
 	}
 	return runtimeapi.UnsupportedError(runtimeapi.Operation(runtimeapi.ResourceContainer, string(action)))
+}
+
+// invalidContainerActionPodman produces the standard "missing option" error
+// used by advanced container actions that require typed sub-payloads.
+func invalidContainerActionPodman(action runtimeapi.Action, id, message string) error {
+	return runtimeapi.NewError(runtimeapi.ErrorInvalid,
+		runtimeapi.Operation(runtimeapi.ResourceContainer, string(action)), id, fmt.Errorf("%s", message))
 }

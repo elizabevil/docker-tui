@@ -32,7 +32,7 @@ func (s PodmanContainerService) List(ctx context.Context, options runtimeapi.Con
 		}
 	}
 	if err != nil {
-		return nil, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "list"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer}, runtimeapi.Podman)
+		return nil, mapPodmanContainerErr(err, "list", "")
 	}
 	return MapContainerSummaries(raw), nil
 }
@@ -40,7 +40,7 @@ func (s PodmanContainerService) List(ctx context.Context, options runtimeapi.Con
 func (s PodmanContainerService) Inspect(ctx context.Context, id string) (*runtimeapi.ContainerDetail, error) {
 	raw, err := s.Client.REST.InspectContainer(ctx, id)
 	if err != nil {
-		return nil, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "inspect"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Podman)
+		return nil, mapPodmanContainerErr(err, "inspect", id)
 	}
 	return MapContainerInspectResponse(*raw), nil
 }
@@ -48,7 +48,7 @@ func (s PodmanContainerService) Inspect(ctx context.Context, id string) (*runtim
 func (s PodmanContainerService) Top(ctx context.Context, id string) (runtimeapi.ContainerProcesses, error) {
 	raw, err := s.Client.REST.ContainerTop(ctx, id)
 	if err != nil {
-		return runtimeapi.ContainerProcesses{}, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "top"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Podman)
+		return runtimeapi.ContainerProcesses{}, mapPodmanContainerErr(err, "top", id)
 	}
 	return runtimeapi.ContainerProcesses{
 		Titles:    raw.Titles,
@@ -59,7 +59,7 @@ func (s PodmanContainerService) Top(ctx context.Context, id string) (runtimeapi.
 func (s PodmanContainerService) Stats(ctx context.Context, id string) (runtimeapi.ContainerStats, error) {
 	raw, err := s.Client.REST.ContainerStats(ctx, id)
 	if err != nil {
-		return runtimeapi.ContainerStats{}, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "stats"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Podman)
+		return runtimeapi.ContainerStats{}, mapPodmanContainerErr(err, "stats", id)
 	}
 	var networkRx, networkTx float64
 	for _, net := range raw.Networks {
@@ -77,6 +77,20 @@ func (s PodmanContainerService) Stats(ctx context.Context, id string) (runtimeap
 		NetworkRx:     networkRx,
 		NetworkTx:     networkTx,
 	}, nil
+}
+
+// mapPodmanContainerErr wraps a Podman REST error with the container
+// resource ref. An empty id builds an untyped ref (used for list operations).
+func mapPodmanContainerErr(err error, op, id string) error {
+	if err == nil {
+		return nil
+	}
+	ref := runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer}
+	if id != "" {
+		ref.ID = id
+	}
+	return runtimeapi.MapRuntimeError(err,
+		runtimeapi.Operation(runtimeapi.ResourceContainer, op), ref, runtimeapi.Podman)
 }
 
 func (s PodmanContainerService) Logs(ctx context.Context, id string, options runtimeapi.ContainerLogOptions) (io.ReadCloser, error) {
@@ -98,10 +112,10 @@ func (s PodmanContainerService) Logs(ctx context.Context, id string, options run
 	if err != nil {
 		return nil, err
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }() //nolint:errcheck // log stream consumed by StdCopy.
 	var output bytes.Buffer
 	if _, err := stdcopy.StdCopy(&output, &output, reader); err != nil {
-		return nil, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "logs"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Podman)
+		return nil, mapPodmanContainerErr(err, "logs", id)
 	}
 	return io.NopCloser(bytes.NewReader(output.Bytes())), nil
 }
@@ -111,7 +125,8 @@ func (s PodmanContainerService) Logs(ctx context.Context, id string, options run
 // Update applies resource-limit changes to a running container.
 func (s PodmanContainerService) Update(ctx context.Context, id string, options runtimeapi.ContainerUpdateOptions) (runtimeapi.ContainerUpdateResult, error) {
 	if s.Client.REST == nil {
-		return runtimeapi.ContainerUpdateResult{}, runtimeapi.NewError(runtimeapi.ErrorUnavailable, runtimeapi.Operation(runtimeapi.ResourceContainer, "update"), id, podman.ErrPodmanRESTNotReady)
+		return runtimeapi.ContainerUpdateResult{}, runtimeapi.NewError(runtimeapi.ErrorUnavailable,
+			runtimeapi.Operation(runtimeapi.ResourceContainer, "update"), id, podman.ErrPodmanRESTNotReady)
 	}
 	upd := dto.ContainerUpdateOptions{}
 	if options.Memory != nil {
@@ -128,7 +143,7 @@ func (s PodmanContainerService) Update(ctx context.Context, id string, options r
 	}
 	res, err := s.Client.REST.ContainerUpdate(ctx, id, upd)
 	if err != nil {
-		return runtimeapi.ContainerUpdateResult{}, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "update"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Podman)
+		return runtimeapi.ContainerUpdateResult{}, mapPodmanContainerErr(err, "update", id)
 	}
 	if res == nil {
 		return runtimeapi.ContainerUpdateResult{}, nil
@@ -139,11 +154,12 @@ func (s PodmanContainerService) Update(ctx context.Context, id string, options r
 // Diff returns filesystem changes between a container and its base image.
 func (s PodmanContainerService) Diff(ctx context.Context, id string) ([]runtimeapi.ContainerDiffChange, error) {
 	if s.Client.REST == nil {
-		return nil, runtimeapi.NewError(runtimeapi.ErrorUnavailable, runtimeapi.Operation(runtimeapi.ResourceContainer, "diff"), id, podman.ErrPodmanRESTNotReady)
+		return nil, runtimeapi.NewError(runtimeapi.ErrorUnavailable,
+			runtimeapi.Operation(runtimeapi.ResourceContainer, "diff"), id, podman.ErrPodmanRESTNotReady)
 	}
 	raw, err := s.Client.REST.ContainerDiff(ctx, id)
 	if err != nil {
-		return nil, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "diff"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Podman)
+		return nil, mapPodmanContainerErr(err, "diff", id)
 	}
 	out := make([]runtimeapi.ContainerDiffChange, 0, len(raw))
 	for _, ch := range raw {
@@ -158,11 +174,12 @@ func (s PodmanContainerService) Diff(ctx context.Context, id string) ([]runtimea
 // Export returns a tar stream of the container's filesystem. Caller must close.
 func (s PodmanContainerService) Export(ctx context.Context, id string) (io.ReadCloser, error) {
 	if s.Client.REST == nil {
-		return nil, runtimeapi.NewError(runtimeapi.ErrorUnavailable, runtimeapi.Operation(runtimeapi.ResourceContainer, "export"), id, podman.ErrPodmanRESTNotReady)
+		return nil, runtimeapi.NewError(runtimeapi.ErrorUnavailable,
+			runtimeapi.Operation(runtimeapi.ResourceContainer, "export"), id, podman.ErrPodmanRESTNotReady)
 	}
 	rc, err := s.Client.REST.ContainerExport(ctx, id)
 	if err != nil {
-		return nil, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "export"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Podman)
+		return nil, mapPodmanContainerErr(err, "export", id)
 	}
 	return rc, nil
 }
@@ -170,7 +187,8 @@ func (s PodmanContainerService) Export(ctx context.Context, id string) (io.ReadC
 // Commit snapshots a container's filesystem changes as a new image.
 func (s PodmanContainerService) Commit(ctx context.Context, id string, options runtimeapi.ContainerCommitOptions) (runtimeapi.ContainerCommitResult, error) {
 	if s.Client.REST == nil {
-		return runtimeapi.ContainerCommitResult{}, runtimeapi.NewError(runtimeapi.ErrorUnavailable, runtimeapi.Operation(runtimeapi.ResourceContainer, "commit"), id, podman.ErrPodmanRESTNotReady)
+		return runtimeapi.ContainerCommitResult{}, runtimeapi.NewError(runtimeapi.ErrorUnavailable,
+			runtimeapi.Operation(runtimeapi.ResourceContainer, "commit"), id, podman.ErrPodmanRESTNotReady)
 	}
 	cfg := dto.ContainerCommitOptions{
 		Repository: options.Repository,
@@ -181,7 +199,7 @@ func (s PodmanContainerService) Commit(ctx context.Context, id string, options r
 	}
 	res, err := s.Client.REST.ContainerCommit(ctx, id, cfg)
 	if err != nil {
-		return runtimeapi.ContainerCommitResult{}, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "commit"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Podman)
+		return runtimeapi.ContainerCommitResult{}, mapPodmanContainerErr(err, "commit", id)
 	}
 	if res == nil {
 		return runtimeapi.ContainerCommitResult{}, nil
@@ -192,11 +210,12 @@ func (s PodmanContainerService) Commit(ctx context.Context, id string, options r
 // Wait blocks until the container exits or the condition is met.
 func (s PodmanContainerService) Wait(ctx context.Context, id, condition string) (runtimeapi.ContainerWaitResult, error) {
 	if s.Client.REST == nil {
-		return runtimeapi.ContainerWaitResult{}, runtimeapi.NewError(runtimeapi.ErrorUnavailable, runtimeapi.Operation(runtimeapi.ResourceContainer, "wait"), id, podman.ErrPodmanRESTNotReady)
+		return runtimeapi.ContainerWaitResult{}, runtimeapi.NewError(runtimeapi.ErrorUnavailable,
+			runtimeapi.Operation(runtimeapi.ResourceContainer, "wait"), id, podman.ErrPodmanRESTNotReady)
 	}
 	res, err := s.Client.REST.ContainerWait(ctx, id, condition)
 	if err != nil {
-		return runtimeapi.ContainerWaitResult{}, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "wait"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Podman)
+		return runtimeapi.ContainerWaitResult{}, mapPodmanContainerErr(err, "wait", id)
 	}
 	if res == nil {
 		return runtimeapi.ContainerWaitResult{}, nil
@@ -211,11 +230,12 @@ func (s PodmanContainerService) Wait(ctx context.Context, id, condition string) 
 // CopyFromContainer streams a single file or directory out of a container.
 func (s PodmanContainerService) CopyFromContainer(ctx context.Context, id, srcPath string) (io.ReadCloser, error) {
 	if s.Client.REST == nil {
-		return nil, runtimeapi.NewError(runtimeapi.ErrorUnavailable, runtimeapi.Operation(runtimeapi.ResourceContainer, "copy"), id, podman.ErrPodmanRESTNotReady)
+		return nil, runtimeapi.NewError(runtimeapi.ErrorUnavailable,
+			runtimeapi.Operation(runtimeapi.ResourceContainer, "copy"), id, podman.ErrPodmanRESTNotReady)
 	}
 	rc, err := s.Client.REST.ContainerCopyFrom(ctx, id, srcPath)
 	if err != nil {
-		return nil, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceContainer, "copy"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceContainer, ID: id}, runtimeapi.Podman)
+		return nil, mapPodmanContainerErr(err, "copy", id)
 	}
 	return rc, nil
 }

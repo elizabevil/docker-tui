@@ -109,7 +109,7 @@ func (t ExecTarget) TargetName() string { return fallbackName(t.Name, t.TargetID
 func (t ExecTarget) ToDTO() TargetDTO   { return targetDTO(t, t.Meta) }
 
 func targetDTO(target Target, meta any) TargetDTO {
-	raw, _ := json.Marshal(meta)
+	raw, _ := json.Marshal(meta) //nolint:errcheck // Meta is opaque user data; marshal failures are not actionable here.
 	if string(raw) == "{}" {
 		raw = nil
 	}

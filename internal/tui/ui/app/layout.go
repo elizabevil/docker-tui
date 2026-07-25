@@ -127,7 +127,6 @@ func RenderApp(m *state.AppModel) string {
 	if usableH < 10 {
 		usableH = m.Viewport.Height
 		marginTop = 0
-		marginBot = 0
 	}
 
 	contentWidthPct := appCfg.ContentWidthPct
@@ -151,20 +150,18 @@ func RenderApp(m *state.AppModel) string {
 		case "image":
 			if bgCfg.Image.Src != "" {
 				globalColors = precomputeGlobalImageColors(m, totalH)
-				if globalColors != nil {
-					for i, c := range globalColors {
-						if bgCfg.Overlay.Color != "" && bgCfg.Overlay.Opacity > 0 {
-							c = blendColors(c, bgCfg.Overlay.Color, bgCfg.Overlay.Opacity)
-						}
-						op := bgCfg.Image.Opacity
-						if op <= 0 {
-							op = 100
-						}
-						if op < 100 {
-							c = blendColors("#0d1117", c, op)
-						}
-						globalColors[i] = c
+				for i, c := range globalColors {
+					if bgCfg.Overlay.Color != "" && bgCfg.Overlay.Opacity > 0 {
+						c = blendColors(c, bgCfg.Overlay.Color, bgCfg.Overlay.Opacity)
 					}
+					op := bgCfg.Image.Opacity
+					if op <= 0 {
+						op = 100
+					}
+					if op < 100 {
+						c = blendColors("#0d1117", c, op)
+					}
+					globalColors[i] = c
 				}
 			}
 		case "solid":
@@ -227,14 +224,20 @@ func RenderApp(m *state.AppModel) string {
 		overlayColor = "#0d1117cc"
 	}
 	if m.Navigation.Mode == state.ModeConfirm {
-		return component.PlaceOverlay(m.Viewport.Width, m.Viewport.Height, component.RenderConfirmMsg(m.Confirm.ConfirmMessage, m.Confirm.ConfirmTarget, m.Viewport.Width, m.Viewport.Height, overlayColor), overlayColor)
+		confirmOverlay := component.RenderConfirmMsg(m.Confirm.ConfirmMessage,
+			m.Confirm.ConfirmTarget, m.Viewport.Width, m.Viewport.Height, overlayColor)
+		return component.PlaceOverlay(m.Viewport.Width, m.Viewport.Height, confirmOverlay, overlayColor)
 	}
 	if m.Navigation.Mode == state.ModeExecShell {
-		return component.PlaceOverlay(m.Viewport.Width, m.Viewport.Height, component.RenderShellDialog(m.Dialog.Input.Text, m.Viewport.Width, m.Viewport.Height, overlayColor), overlayColor)
+		shellOverlay := component.RenderShellDialog(m.Dialog.Input.Text,
+			m.Viewport.Width, m.Viewport.Height, overlayColor)
+		return component.PlaceOverlay(m.Viewport.Width, m.Viewport.Height, shellOverlay, overlayColor)
 	}
-	if m.Navigation.Mode == state.ModeRename || m.Navigation.Mode == state.ModeResourceCreate || m.Navigation.Mode == state.ModeImageWorkflow {
-		return component.PlaceOverlay(m.Viewport.Width, m.Viewport.Height,
-			component.RenderTextInput(m.Dialog.Title, m.Dialog.Input.Text, m.Dialog.Input.Cursor, m.Viewport.Width, m.Viewport.Height, overlayColor), overlayColor)
+	if m.Navigation.Mode == state.ModeRename || m.Navigation.Mode == state.ModeResourceCreate ||
+		m.Navigation.Mode == state.ModeImageWorkflow {
+		inputOverlay := component.RenderTextInput(m.Dialog.Title, m.Dialog.Input.Text,
+			m.Dialog.Input.Cursor, m.Viewport.Width, m.Viewport.Height, overlayColor)
+		return component.PlaceOverlay(m.Viewport.Width, m.Viewport.Height, inputOverlay, overlayColor)
 	}
 	if m.Navigation.Mode == state.ModeImageTransfer {
 		return component.RenderProgressDialog(m.Dialog.Title, m.Dialog.Body, imageTransferStatus(m.ImageTransfer.Progress.Status),
@@ -362,7 +365,7 @@ func socketDisplay(e *dockerclient.PoolEntry) string {
 
 func renderMiddlePanel(m *state.AppModel, panelH int, panelW int) string {
 	borderLabel := ""
-	if m.Navigation.Mode != state.ModeFilter && m.Navigation.Mode != state.ModeSearch && m.Navigation.Mode != state.ModeImagePull && m.Navigation.Mode != state.ModeCommand {
+	if !filterMode(m.Navigation.Mode) {
 		if f := currentTableFilterLabel(m); f != "" {
 			borderLabel = "Filter: " + f
 		}
@@ -371,7 +374,26 @@ func renderMiddlePanel(m *state.AppModel, panelH int, panelW int) string {
 	bodyH := panelBodyHeight(panelH)
 	contentW := panelW - 4
 	page := projectPage(m, bodyH, contentW)
-	return panel.Panel{Title: page.title, Info: page.summary, Content: page.content, Breadcrumb: page.breadcrumb, BorderLabel: borderLabel, Width: panelW, Height: panelH}.Render()
+	return panel.Panel{
+		Title:       page.title,
+		Info:        page.summary,
+		Content:     page.content,
+		Breadcrumb:  page.breadcrumb,
+		BorderLabel: borderLabel,
+		Width:       panelW,
+		Height:      panelH,
+	}.Render()
+}
+
+// filterMode reports whether the user is typing into a filter/input field
+// that should hide the table border label.
+func filterMode(mode state.AppMode) bool {
+	switch mode {
+	case state.ModeFilter, state.ModeSearch, state.ModeImagePull, state.ModeCommand:
+		return true
+	default:
+		return false
+	}
 }
 
 func renderExecPassthroughPanel(m *state.AppModel, bodyH int) string {
@@ -464,21 +486,6 @@ func currentTableFilterLabel(m *state.AppModel) string {
 
 // ── Background rendering ────────────────────────────────────
 
-func hexToRGB(hex string) (int, int, int) { return utils.HexToRGB(hex) }
-func rgbToHex(r, g, b int) string         { return utils.RGBToHex(r, g, b) }
-func clamp(v int) int {
-	if v < 0 {
-		return 0
-	}
-	if v > 255 {
-		return 255
-	}
-	return v
-}
-func interpolateColor(start, end string, t float64) string {
-	return utils.InterpolateColor(start, end, t)
-}
-
 type imgCacheKey struct {
 	path string
 	rows int
@@ -491,13 +498,13 @@ type imgCacheKey struct {
 func loadImageRowColors(path string, targetRows int, sampleRate int, position string) ([]color.Color, error) {
 	key := imgCacheKey{path: path, rows: targetRows}
 	if cached, ok := imageColorCache.Load(key); ok {
-		return cached.([]color.Color), nil
+		return cached.([]color.Color), nil //nolint:errcheck // cache holds only []color.Color; assert cannot fail.
 	}
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("open image %s: %w", path, err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }() //nolint:errcheck // image file fully decoded before close.
 	img, _, err := image.Decode(f)
 	if err != nil {
 		return nil, fmt.Errorf("decode image %s: %w", path, err)
@@ -612,13 +619,6 @@ func renderContentLayer(text string, rowColors []string) string {
 		lines[i] = bgAnsi + line + "\033[0m"
 	}
 	return strings.Join(lines, "\n")
-}
-
-func resolveOverlay(color string, opacity int) string {
-	if color == "" || opacity <= 0 {
-		return ""
-	}
-	return color
 }
 
 func blendColors(base, top string, topPct int) string { return utils.BlendColors(base, top, topPct) }

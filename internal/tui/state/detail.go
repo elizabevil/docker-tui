@@ -60,19 +60,19 @@ func (s *DetailState) SetRaw(resourceType ResourceType, raw []byte) {
 func (s *DetailState) SetContainerDetail(detail *runtimeapi.ContainerDetail) {
 	s.ContainerDetail = detail
 	s.DetailResourceType = ResourceContainer
-	s.DetailRawJSON, _ = sonic.Marshal(detail)
+	s.DetailRawJSON, _ = sonic.Marshal(detail) //nolint:errcheck // marshalling typed structs; cannot fail in practice.
 }
 
 func (s *DetailState) SetVolumeDetail(detail *runtimeapi.VolumeDetail) {
 	s.VolumeDetail = detail
 	s.DetailResourceType = ResourceVolume
-	s.DetailRawJSON, _ = sonic.Marshal(detail)
+	s.DetailRawJSON, _ = sonic.Marshal(detail) //nolint:errcheck // marshalling typed structs; cannot fail in practice.
 }
 
 func (s *DetailState) SetNetworkDetail(detail *runtimeapi.NetworkDetail) {
 	s.NetworkDetail = detail
 	s.DetailResourceType = ResourceNetwork
-	s.DetailRawJSON, _ = sonic.Marshal(detail)
+	s.DetailRawJSON, _ = sonic.Marshal(detail) //nolint:errcheck // marshalling typed structs; cannot fail in practice.
 }
 
 func (s *DetailState) ApplyImage(id string, data *runtimeapi.ImageDetail) bool {

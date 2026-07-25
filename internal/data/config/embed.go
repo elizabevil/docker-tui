@@ -16,6 +16,6 @@ var defaultConfigJSON string
 func DefaultConfigJSON() string { return defaultConfigJSON }
 
 func ThemeFS() fs.FS {
-	sub, _ := fs.Sub(embeddedThemes, "themes")
+	sub, _ := fs.Sub(embeddedThemes, "themes") //nolint:errcheck // embedded FS path is always valid.
 	return sub
 }

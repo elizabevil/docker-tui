@@ -43,7 +43,7 @@ func (s *FileSink) WriteAudit(_ context.Context, record Record) error {
 	if err != nil {
 		return fmt.Errorf("open audit log: %w", err)
 	}
-	defer file.Close()
+	defer file.Close() //nolint:errcheck // append-only writer; close error is non-actionable.
 	encoded, err := json.Marshal(record)
 	if err != nil {
 		return fmt.Errorf("encode audit record: %w", err)
