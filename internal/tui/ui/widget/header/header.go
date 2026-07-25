@@ -158,28 +158,18 @@ func Render(app *state.AppModel, usableW int) string {
 	)
 
 	// ── Col 2: Connection + App config (25%) ──────────────────
-	runtimeName := ""
-	if app.Connection.Pool != nil {
-		runtimeName = app.Connection.Pool.ActiveName()
-	}
-	if runtimeName == "" {
-		runtimeName = app.Connection.ConnectionTarget
-	}
-	if runtimeName == "" {
-		runtimeName = "-"
-	}
+	// (resolved `eng` at col 1 carries the runtime name; TLS state is appended here.)
 	if app.Connection.Pool != nil {
 		if active := app.Connection.Pool.Active(); active != nil && active.TLS.Enabled {
 			securityKey := "connection.tls_verified"
 			if active.TLS.InsecureSkipVerify {
 				securityKey = "connection.tls_insecure"
 			}
-			runtimeName += " [" + i18n.T(securityKey) + "]"
+			eng += " [" + i18n.T(securityKey) + "]"
 		}
 	}
-	colConn := fmt.Sprintf("%s%s\n%s%s\n%s%s\n%s%s\n",
+	colConn := fmt.Sprintf("%s%s\n%s%s\n%s%s\n",
 		lbl("Engine"), eng+" "+app.Connection.EngineVersion,
-		lbl("Runtime"), runtimeName,
 		lbl("Socket"), hostStr,
 		lbl("Language"), lang,
 	)

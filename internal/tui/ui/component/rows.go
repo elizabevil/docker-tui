@@ -25,32 +25,33 @@ func (r *RowRenderer) RenderRow(cells []string, rowIdx int, marked, selected, al
 	if selected {
 		prefix = r.rowPrefixSel
 	}
-	// 选中/标记行统一使用内联方式（StripANSI + 列样式无 \033[0m）
-	useInline := selected || marked
-	line := r.joinRow(cells, useInline)
 
-	// 选中/标记行：填充至行宽并应用样式
-	if useInline {
-		mark := ""
-		// Marked rows: no prefix, just background color
-		content := prefix + mark + line
-		// 填充空格至行宽，确保背景铺满
-		visLen := utils.VisibleLen(content)
-		if r.rowWidth > visLen {
-			content += strings.Repeat(" ", r.rowWidth-visLen)
-		}
+	// 选中 / 标记行：用 lipgloss Width + Background 强制背景铺满整行，
+	// 不依赖手填空格 + 内嵌 ANSI 拼接，避免多列 SGR 互相截断背景。
+	if selected || marked {
+		// 列宽已在 joinRow 中按 colW + TruncateVisible 严格 padding，
+		// 走 noInline=false 让 lipgloss 给每个 cell 自带 SGR reset，
+		// 避免前一个 cell 的 background 跨格污染。
+		line := r.joinRow(cells, false)
 		ref := GetRowStyle("selected")
 		if marked {
 			ref = GetRowStyle("marked")
 		}
-		return buildStyle(ref).Render(content)
+		s := buildStyle(ref).Width(r.rowWidth)
+		if r.rowPrefix != "" {
+			// 选中行在 prefix 上保留高亮前缀（rowPrefixSel = "║ "）
+			s = s.PaddingLeft(0)
+		}
+		// 用 prefix + line 组合，lipgloss 会按 Width + Background 自动填满空格。
+		content := prefix + line
+		return s.Render(content)
 	}
 
 	switch {
 	case alt:
-		return buildStyle(GetRowStyle("alt")).Render(prefix + line)
+		return buildStyle(GetRowStyle("alt")).Render(prefix + r.joinRow(cells, false))
 	default:
-		return prefix + line
+		return prefix + r.joinRow(cells, false)
 	}
 }
 
