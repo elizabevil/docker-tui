@@ -1,6 +1,7 @@
 package keyboard
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
@@ -78,11 +79,35 @@ func doComposeStart(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		FinishAudit(m, trace, audit.ResultFailed, "Compose start failed: no containers", audit.Details{Error: "no containers"})
 		return m, nil
 	}
-	cmds := make([]tea.Cmd, 0, len(containers))
-	for _, c := range containers {
-		cmds = append(cmds, withContainerAudit(containerStartCmd(m.Connection.Engine, c.ID), trace))
+	engine := m.Connection.Engine
+	return m, func() tea.Msg {
+		result := state.BatchActioned{
+			Scope:    "compose.start",
+			Resource: "compose_project",
+			Total:    len(containers),
+			Audit:    trace,
+		}
+		var failures []error
+		for _, c := range containers {
+			msg := containerStartCmd(engine, c.ID)()
+			if v, ok := msg.(state.ContainerActioned); ok {
+				if v.Success {
+					result.Success++
+				} else {
+					result.Failed++
+					result.FailedIDs = append(result.FailedIDs, c.ID)
+					if v.Error != nil {
+						failures = append(failures, v.Error)
+					}
+				}
+			} else {
+				result.Failed++
+				result.FailedIDs = append(result.FailedIDs, c.ID)
+			}
+		}
+		result.Error = errors.Join(failures...)
+		return result
 	}
-	return m, tea.Batch(cmds...)
 }
 
 func doComposeStop(m *state.AppModel) (*state.AppModel, tea.Cmd) {
@@ -100,11 +125,35 @@ func doComposeStop(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		FinishAudit(m, trace, audit.ResultFailed, "Compose stop failed: no containers", audit.Details{Error: "no containers"})
 		return m, nil
 	}
-	cmds := make([]tea.Cmd, 0, len(containers))
-	for _, c := range containers {
-		cmds = append(cmds, withContainerAudit(containerStopCmd(m.Connection.Engine, c.ID), trace))
+	engine := m.Connection.Engine
+	return m, func() tea.Msg {
+		result := state.BatchActioned{
+			Scope:    "compose.stop",
+			Resource: "compose_project",
+			Total:    len(containers),
+			Audit:    trace,
+		}
+		var failures []error
+		for _, c := range containers {
+			msg := containerStopCmd(engine, c.ID)()
+			if v, ok := msg.(state.ContainerActioned); ok {
+				if v.Success {
+					result.Success++
+				} else {
+					result.Failed++
+					result.FailedIDs = append(result.FailedIDs, c.ID)
+					if v.Error != nil {
+						failures = append(failures, v.Error)
+					}
+				}
+			} else {
+				result.Failed++
+				result.FailedIDs = append(result.FailedIDs, c.ID)
+			}
+		}
+		result.Error = errors.Join(failures...)
+		return result
 	}
-	return m, tea.Batch(cmds...)
 }
 
 func doComposeDown(m *state.AppModel) (*state.AppModel, tea.Cmd) {
@@ -124,17 +173,69 @@ func doComposeDown(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		FinishAudit(m, trace, audit.ResultFailed, "Compose down failed: no resources", audit.Details{Error: "no compose resources"})
 		return m, nil
 	}
-	cmds := make([]tea.Cmd, 0, len(containers)+len(volumes)+len(networks))
-	for _, c := range containers {
-		cmds = append(cmds, withContainerAudit(containerRemoveCmd(m.Connection.Engine, c.ID, true), trace))
+	engine := m.Connection.Engine
+	return m, func() tea.Msg {
+		result := state.BatchActioned{
+			Scope:    "compose.down",
+			Resource: "compose_project",
+			Total:    len(containers) + len(volumes) + len(networks),
+			Audit:    trace,
+		}
+		var failures []error
+		for _, c := range containers {
+			msg := containerRemoveCmd(engine, c.ID, true)()
+			if v, ok := msg.(state.ContainerActioned); ok {
+				if v.Success {
+					result.Success++
+				} else {
+					result.Failed++
+					result.FailedIDs = append(result.FailedIDs, c.ID)
+					if v.Error != nil {
+						failures = append(failures, v.Error)
+					}
+				}
+			} else {
+				result.Failed++
+				result.FailedIDs = append(result.FailedIDs, c.ID)
+			}
+		}
+		for _, name := range volumes {
+			msg := volumeRemoveCmd(engine, name, true)()
+			if v, ok := msg.(state.GenericActioned); ok {
+				if v.Success {
+					result.Success++
+				} else {
+					result.Failed++
+					result.FailedIDs = append(result.FailedIDs, name)
+					if v.Error != nil {
+						failures = append(failures, v.Error)
+					}
+				}
+			} else {
+				result.Failed++
+				result.FailedIDs = append(result.FailedIDs, name)
+			}
+		}
+		for _, id := range networks {
+			msg := networkRemoveCmd(engine, id)()
+			if v, ok := msg.(state.GenericActioned); ok {
+				if v.Success {
+					result.Success++
+				} else {
+					result.Failed++
+					result.FailedIDs = append(result.FailedIDs, id)
+					if v.Error != nil {
+						failures = append(failures, v.Error)
+					}
+				}
+			} else {
+				result.Failed++
+				result.FailedIDs = append(result.FailedIDs, id)
+			}
+		}
+		result.Error = errors.Join(failures...)
+		return result
 	}
-	for _, name := range volumes {
-		cmds = append(cmds, withGenericAudit(volumeRemoveCmd(m.Connection.Engine, name, true), trace))
-	}
-	for _, id := range networks {
-		cmds = append(cmds, withGenericAudit(networkRemoveCmd(m.Connection.Engine, id), trace))
-	}
-	return m, tea.Batch(cmds...)
 }
 
 func doComposeLogs(m *state.AppModel) (*state.AppModel, tea.Cmd) {

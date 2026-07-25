@@ -1,6 +1,7 @@
 package keyboard
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -96,27 +97,63 @@ func executeBulkDelete(m *state.AppModel, trace audit.Trace) (*state.AppModel, t
 		ids = append(ids, id)
 	}
 	m.Selection.MarkedIDs = make(map[string]bool)
-
-	var cmds []tea.Cmd
-	switch m.Navigation.ActivePanel {
-	case state.PanelContainers:
-		for _, id := range ids {
-			cmds = append(cmds, withContainerAudit(containerRemoveCmd(m.Connection.Engine, id, true), trace))
-		}
-	case state.PanelImages:
-		for _, id := range ids {
-			cmds = append(cmds, withImageAudit(imageRemoveCmd(m.Connection.Engine, id, true), trace))
-		}
-	case state.PanelVolumes:
-		for _, id := range ids {
-			cmds = append(cmds, withGenericAudit(volumeRemoveCmd(m.Connection.Engine, id, true), trace))
-		}
-	case state.PanelNetworks:
-		for _, id := range ids {
-			cmds = append(cmds, withGenericAudit(networkRemoveCmd(m.Connection.Engine, id), trace))
-		}
+	if len(ids) == 0 {
+		return m, nil
 	}
 
-	ShowToastNow(m, fmt.Sprintf("✓ Deleted %d items", len(ids)))
-	return m, tea.Batch(cmds...)
+	engine := m.Connection.Engine
+	panel := m.Navigation.ActivePanel
+	return m, func() tea.Msg {
+		result := state.BatchActioned{
+			Scope:    "bulk-delete",
+			Resource: bulkResourceName(panel),
+			Total:    len(ids),
+			Audit:    trace,
+		}
+		var failures []error
+		for _, id := range ids {
+			var msg tea.Msg
+			switch panel {
+			case state.PanelContainers:
+				msg = containerRemoveCmd(engine, id, true)()
+			case state.PanelImages:
+				msg = imageRemoveCmd(engine, id, true)()
+			case state.PanelVolumes:
+				msg = volumeRemoveCmd(engine, id, true)()
+			case state.PanelNetworks:
+				msg = networkRemoveCmd(engine, id)()
+			default:
+				result.Failed++
+				result.FailedIDs = append(result.FailedIDs, id)
+				continue
+			}
+			switch v := msg.(type) {
+			case state.ContainerActioned, state.ImageActioned, state.GenericActioned:
+				var ok bool
+				var err error
+				switch x := v.(type) {
+				case state.ContainerActioned:
+					ok, err = x.Success, x.Error
+				case state.ImageActioned:
+					ok, err = x.Success, x.Error
+				case state.GenericActioned:
+					ok, err = x.Success, x.Error
+				}
+				if ok {
+					result.Success++
+				} else {
+					result.Failed++
+					result.FailedIDs = append(result.FailedIDs, id)
+					if err != nil {
+						failures = append(failures, err)
+					}
+				}
+			default:
+				result.Failed++
+				result.FailedIDs = append(result.FailedIDs, id)
+			}
+		}
+		result.Error = errors.Join(failures...)
+		return result
+	}
 }

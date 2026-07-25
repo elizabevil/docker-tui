@@ -57,6 +57,9 @@ func executeBatchAction(m *state.AppModel, action string, trace audit.Trace) (*s
 		ids = append(ids, id)
 	}
 	m.Selection.MarkedIDs = make(map[string]bool)
+	if len(ids) == 0 {
+		return m, nil
+	}
 
 	var cmdFn func(runtimeapi.Engine, string) tea.Cmd
 	switch action {
@@ -73,12 +76,37 @@ func executeBatchAction(m *state.AppModel, action string, trace audit.Trace) (*s
 		return m, nil
 	}
 
-	var cmds []tea.Cmd
-	for _, id := range ids {
-		cmds = append(cmds, withContainerAudit(cmdFn(m.Connection.Engine, id), trace))
+	engine := m.Connection.Engine
+	return m, func() tea.Msg {
+		result := state.BatchActioned{
+			Scope:    "container.batch." + action,
+			Resource: "container",
+			Total:    len(ids),
+			Audit:    trace,
+		}
+		var failures []error
+		for _, id := range ids {
+			msg := cmdFn(engine, id)()
+			switch v := msg.(type) {
+			case state.ContainerActioned:
+				if v.Success {
+					result.Success++
+				} else {
+					result.Failed++
+					result.FailedIDs = append(result.FailedIDs, id)
+					if v.Error != nil {
+						failures = append(failures, v.Error)
+					}
+				}
+			default:
+				// Unknown message — count as failure so the operator sees it.
+				result.Failed++
+				result.FailedIDs = append(result.FailedIDs, id)
+			}
+		}
+		result.Error = errors.Join(failures...)
+		return result
 	}
-	ShowToastNow(m, fmt.Sprintf("✓ batch %s %d containers", action, len(ids)))
-	return m, tea.Batch(cmds...)
 }
 
 func doContainerRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {

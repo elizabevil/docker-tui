@@ -65,6 +65,24 @@ type (
 		Audit   audit.Trace
 	}
 
+	// BatchActioned is the cross-panel batch summary emitted by
+	// container/image/volume/network batch and compose project operations.
+	// It supersedes the per-target single-action messages for actions that
+	// fan out across multiple resources so the UI can render one aggregate
+	// toast/audit instead of N independent notifications.
+	BatchActioned struct {
+		Scope      string // e.g. "container.batch.start", "bulk-delete", "compose.start"
+		Resource   string // e.g. "container", "image", "volume", "network", "compose_project"
+		Total      int    // total targets attempted
+		Success    int    // succeeded
+		Failed     int    // failed (engine error)
+		Skipped    int    // rejected pre-flight (state-incompatible, etc.)
+		FailedIDs  []string
+		SkippedIDs []string
+		Audit      audit.Trace
+		Error      error // joined errors from failed operations
+	}
+
 	ContainerProcessesLoaded struct {
 		ContainerID string
 		Processes   runtimeapi.ContainerProcesses

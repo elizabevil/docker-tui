@@ -28,6 +28,56 @@ func handleContainerBatchActioned(m *state.AppModel, msg state.ContainerBatchAct
 	return m, nil
 }
 
+// handleBatchActioned processes the aggregate batch summary emitted by
+// container / image / volume / network / compose batch and bulk operations.
+// TASK-010: collect per-target results into one summary so the user sees
+// "succeeded/skipped/failed" instead of N independent toasts.
+func handleBatchActioned(m *state.AppModel, msg state.BatchActioned) (*state.AppModel, tea.Cmd) {
+	display := fmt.Sprintf("%s %d, %s %d, %s %d",
+		i18n.T("batch.succeeded"), msg.Success,
+		i18n.T("batch.skipped"), msg.Skipped,
+		i18n.T("batch.failed"), msg.Failed,
+	)
+	result := audit.ResultSucceeded
+	switch {
+	case msg.Failed > 0 && msg.Success > 0:
+		result = audit.ResultPartial
+	case msg.Failed > 0:
+		result = audit.ResultFailed
+	case msg.Total > 0 && msg.Success == 0 && msg.Failed == 0 && msg.Skipped == 0:
+		result = audit.ResultSucceeded
+	}
+	if msg.Audit.Valid() {
+		keyboard.FinishAudit(m, msg.Audit, result, display, audit.Details{
+			Error: errorText(msg.Error),
+		})
+	} else {
+		keyboard.ShowToastNow(m, display)
+	}
+	if m.Connection.Engine == nil {
+		return m, nil
+	}
+	// Refresh whichever resource lists the affected scope implies.
+	switch msg.Resource {
+	case "container":
+		return m, keyboard.FetchContainers(m.Connection.Engine, true)
+	case "image":
+		return m, keyboard.FetchImages(m.Connection.Engine)
+	case "volume":
+		return m, keyboard.FetchVolumes(m.Connection.Engine)
+	case "network":
+		return m, keyboard.FetchNetworks(m.Connection.Engine)
+	case "compose_project":
+		// Compose down/up/stop also touches containers; refresh those.
+		return m, tea.Batch(
+			keyboard.FetchContainers(m.Connection.Engine, true),
+			keyboard.FetchVolumes(m.Connection.Engine),
+			keyboard.FetchNetworks(m.Connection.Engine),
+		)
+	}
+	return m, nil
+}
+
 func handleContainerActioned(m *state.AppModel, msg state.ContainerActioned) (*state.AppModel, tea.Cmd) {
 	display := "✕ failed: " + msg.Action
 	if msg.Error == nil {

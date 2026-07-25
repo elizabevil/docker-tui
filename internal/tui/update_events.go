@@ -74,22 +74,57 @@ func handleRuntimeEvent(m *state.AppModel, msg state.RuntimeEventReceived) (*sta
 	return m, tea.Batch(commands...)
 }
 
+// handleEventFlush processes the coalesced dirty-set from runtime events.
+//
+// TASK-011: events invalidate dependent views, not just the resource that
+// fired the event. The compose panel is derived from containers, the image
+// panel shows per-image container counts, and containers reference volumes
+// and networks — so volume/network/image events also invalidate containers.
 func handleEventFlush(m *state.AppModel, msg state.EventFlush) (*state.AppModel, tea.Cmd) {
 	if !m.Events.Current(msg.Generation) || m.Connection.Engine == nil {
 		return m, nil
 	}
 	dirty := m.Events.TakeDirty(msg.Token)
-	commands := make([]tea.Cmd, 0, len(dirty))
+	if len(dirty) == 0 {
+		return m, nil
+	}
+
+	// Build the set of lists to refresh. Each entry appears at most once.
+	refresh := map[string]bool{}
+	add := func(key string) { refresh[key] = true }
+
 	if dirty["container"] {
-		commands = append(commands, keyboard.FetchContainers(m.Connection.Engine, true))
+		add("container")
+		// Compose panel is derived from containers.
 	}
 	if dirty["image"] {
-		commands = append(commands, keyboard.FetchImages(m.Connection.Engine))
+		add("image")
+		// Image view shows per-image container counts; container list may
+		// be stale relative to the new image data.
+		add("container")
 	}
 	if dirty["volume"] {
-		commands = append(commands, keyboard.FetchVolumes(m.Connection.Engine))
+		add("volume")
+		// Containers reference volumes in their mounts; refresh so detail
+		// views show the latest state.
+		add("container")
 	}
 	if dirty["network"] {
+		add("network")
+		add("container")
+	}
+
+	commands := make([]tea.Cmd, 0, len(refresh))
+	if refresh["container"] {
+		commands = append(commands, keyboard.FetchContainers(m.Connection.Engine, true))
+	}
+	if refresh["image"] {
+		commands = append(commands, keyboard.FetchImages(m.Connection.Engine))
+	}
+	if refresh["volume"] {
+		commands = append(commands, keyboard.FetchVolumes(m.Connection.Engine))
+	}
+	if refresh["network"] {
 		commands = append(commands, keyboard.FetchNetworks(m.Connection.Engine))
 	}
 	return m, tea.Batch(commands...)
