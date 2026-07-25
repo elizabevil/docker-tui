@@ -1,6 +1,6 @@
 # run.just — Run recipes
 
-out := "./dist"
+out := "../dist"
 
 # Build and run (Docker)
 run: _build

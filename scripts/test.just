@@ -1,6 +1,6 @@
 # test.just — Test & benchmark recipes
 
-out := "./dist"
+out := "../dist"
 
 # Run the complete Go test suite (integration tests are opt-in)
 test:
