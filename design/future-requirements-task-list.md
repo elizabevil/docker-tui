@@ -99,7 +99,7 @@ G2 取消双签名 / G4 取消 docker/service 层 / G5 取消 docker/service 层
 | A | **gpgme 仅 CGO**（按 `go mod why` 锁定传染路径） | G7、G10 | `todo` | 传染源仅 `internal/driver/podman/driver_cgo.go` + `client_default_driver_cgo.go`；`aliases.go` 等未引 CGO 依赖可暂缓加 tag |
 | B | `dto/` 补齐全部具名类型（含 `dto.Action` 字符串枚举、ActionOptions、ActionResult） | G5、G6、G7 | `todo` | 当前 `dto.Action` 等核心字符串枚举未定义；本 Phase 不引入 `runtimeapi.*` 依赖 |
 | C | `internal/driver/podman.Client` **方法化 + 一次性破坏性签名迁移**（把 `string action` 替换为 `dto.Action`；调用方同步迁移到 `dto.Action`） | G2、G3 | `partial` | `Client` 已有方法式签名与 `Driver DriverBackend` 字段；需删 `ExecuteContainerAction(... action string ...)` 与 `ExecuteImageAction(... action string ...)` 的 `string` 重载，迁移所有调用方 |
-| D | 全仓匿名 struct 替换（**仅 public API 路径**；internal helper 标 TODO） | G6 | `todo` | 设计文档点名的 10 处 + 已识别 20+ 处内部匿名 struct |
+| D | 全仓匿名 struct 替换（**仅 public API 路径**；internal helper 标 TODO） | G6 | `done` | `internal/data/runtime/docker/stats.go` 中 `statsJSON` 的 3 个嵌套匿名 struct（`CPUStats` / `PreCPUStats` / `MemoryStats`，含子级 `CPUUsage`）已具名为 `StatsCPU` / `StatsMemory` / `StatsCPUUsage`；新增 `StatsResponse` 顶层类型；3 个 `stats_test.go` 测试覆盖 JSON 往返、`computeStats` 边界、网络聚合。其余 public API 路径已通过 `grep -E '^\s+\w+\s+struct \{$' internal/` 扫描确认为 0 处。`runtime/helpers.go` 的 `ProgressWriter` / `ProgressReader` 实为具名类型，非匿名 struct。|
 | **D-2**（新增） | **双 mapper 拆分**：`internal/data/runtime/docker/mapper/` 与 `internal/data/runtime/podman/mapper/` 同时落地。Docker mapper 提取自现有 `docker/*` 文件，Podman mapper 从 `runtime/podman/mappers.go` 拆出独立文件 | G4、G8 | `todo` | 验证：双 mapper 目录零相互依赖；零依赖 Docker SDK 或 `go.podman.io` |
 | E | 验证矩阵：`CGO_ENABLED=0` 与 `CGO_ENABLED=1` 双构建 + 全测试 + `go list -deps` 无 gpgme + `go vet` | G10、G2、G6、G8 | `todo` | 验证脚本集待编写 |
 
@@ -112,13 +112,13 @@ G2 取消双签名 / G4 取消 docker/service 层 / G5 取消 docker/service 层
 | G3 CGO / non-CGO 同一方法 | ✅ | `Client.attachDefaultDriver()` + `Driver` 字段 |
 | **G4** 双 adapter mapper 各自落 `runtime/{docker,podman}/mapper/`（**取消 docker/service**） | ❌ | mapper 当前散落在 `runtime/podman/mappers.go`；Phase D-2 后落地 |
 | **G5** 原生动作用 `dto.Action`（**无 docker/service**层） | ❌ | Phase B 定义 `dto.Action`；Phase C 落地 ActionOptions/ActionResult；不需要 docker/service 层 |
-| G6 全仓匿名 struct（public API 路径本轮清零） | ⚠️ |  |
+| G6 全仓匿名 struct（public API 路径本轮清零） | ✅ | `docker/stats.go` 中 3 处嵌套匿名 struct 已替换为 `StatsResponse` / `StatsCPU` / `StatsMemory` / `StatsCPUUsage` 具名类型，并新增对应单元测试 |
 | G7 三层类型独立互不别名 | ✅ | `internal/driver/podman/dto/*` 仅标准库 + time |
 | **G8** 双 mapper 双位置（**取消 docker/service 层**） | ❌ | mapper 单 `runtime/podman/mappers.go`；Phase D-2 拆分 |
 | **G9** ~~docker/service 统一入口~~ | **取消** | 不引入 docker/service 层 |
 | G10 非 CGO 零 `gpgme`（按 `go mod why` 锁定传染源） | ⚠️ |  |
 
-10 个目标中：✅ 2 (G3、G7) · ⚠️ 3 (G1、G2、G6、G10) · ❌ 3 (G4、G5、G8) · **取消 1 (G9)**。
+10 个目标中：✅ 3 (G3、G6、G7) · ⚠️ 3 (G1、G2、G10) · ❌ 3 (G4、G5、G8) · **取消 1 (G9)**。
 
 #### 架构评估最终决议（G4 取消 docker/service）
 
@@ -188,17 +188,16 @@ G2 取消双签名 / G4 取消 docker/service 层 / G5 取消 docker/service 层
 
 对照设计文档 [podman-rest-migration.md](podman-rest-migration.md) 的 G1-G10，本次审计发现：
 
-- ✅ 已达标 (2/10)：G3（双形态方法分发）、G7（三层类型独立）
-- ⚠️ 部分达标 (4/10)：
+- ✅ 已达标 (3/10)：G3（双形态方法分发）、G6（public API 路径匿名 struct 清零，`docker/stats.go` 已落地）、G7（三层类型独立）
+- ⚠️ 部分达标 (3/10)：
   - G1（`internal/driver` 已下沉，`runtime/podman` 仍是入口但需薄封装化）
   - G2（双签名策略 D6 需确认；保留旧 `string` 兼容）
-  - G6（设计文档目标范围调整为：仅清零 public API 路径上的匿名 struct）
   - G10（按 `go mod why` 锁定传染源，已基本满足）
-- ❌ 未达标 (4/10)：
+- ❌ 未达标 (3/10)：
   - G4（`runtime/podman` 仍引 `runtimeapi.*`；评审启动后由 Phase E 解决）
   - G5（`dto.Action` 字符串枚举待定义，决策项 D10 约束 `dto` 包零 `runtime/` 依赖）
   - G8（mapper 待下沉，按决策项 D8 双 mapper 设计）
-  - G9（`docker/service` 目录整体缺失；**待 G4 评审通过后启动 Phase E**，决策项 D9）
+  - **取消 1 (G9)**：`docker/service` 统一入口已随 G4/G5 同步取消（见 2026-07-24 用户决策）
 
 落地路径与设计文档的 Phase A→F 一一对应。优先级最高的子项是 **Phase E**（`docker/service` 统一入口），它是 TASK-023 的解锁条件，但启动受 G4 评审阻塞。
 
@@ -247,7 +246,7 @@ G2 取消双签名 / G4 取消 docker/service 层 / G5 取消 docker/service 层
        |     Phase A: gpgme 仅 CGO         [todo]
        |     Phase B: dto 具名类型补齐     [todo]
        |     Phase C: Client 方法化        [partial]
-       |     Phase D: 匿名 struct 清零     [todo]
+       |     Phase D: 匿名 struct 清零     [done]
        |     Phase E: docker/service 入口  [todo]
        `-----> Phase F: 验证矩阵           [todo]
         `---> TASK-023 清理兼容层          [todo]
