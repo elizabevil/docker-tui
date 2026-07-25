@@ -13,6 +13,8 @@ type PodmanImageService struct {
 	Client *podman.Client
 }
 
+// List returns image summaries, applying client-side post-filtering for
+// multi-value filter conditions that the Podman API does not support natively.
 func (s PodmanImageService) List(ctx context.Context, options runtimeapi.ImageListOptions) ([]runtimeapi.ImageSummary, error) {
 	filters := map[string][]string(options.Filters)
 	raw, err := s.Client.REST.ListImages(ctx, dto.ImageListOptions{All: options.All, Filters: filters})

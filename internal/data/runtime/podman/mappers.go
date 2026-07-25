@@ -9,6 +9,9 @@ import (
 	"github.com/elizabevil/docker-tui/internal/driver/podman/dto"
 )
 
+// MapContainerSummaries converts Podman container list items to the
+// unified runtime container summaries, expanding port ranges into
+// individual bindings.
 func MapContainerSummaries(raw []dto.ContainerItem) []runtimeapi.ContainerSummary {
 	result := make([]runtimeapi.ContainerSummary, 0, len(raw))
 	for _, c := range raw {
@@ -51,6 +54,8 @@ func MapContainerSummaries(raw []dto.ContainerItem) []runtimeapi.ContainerSummar
 	return result
 }
 
+// MapImageSummaries converts Podman image list items to the unified
+// runtime image summaries, resolving registry and architecture metadata.
 func MapImageSummaries(raw []dto.ImageItem) []runtimeapi.ImageSummary {
 	out := make([]runtimeapi.ImageSummary, 0, len(raw))
 	for _, image := range raw {
@@ -72,6 +77,8 @@ func MapImageSummaries(raw []dto.ImageItem) []runtimeapi.ImageSummary {
 	return out
 }
 
+// MapVolumes converts Podman volume list items to the unified runtime
+// volume representations, defaulting scope to "local" when empty.
 func MapVolumes(raw []dto.VolumeItem) []runtimeapi.Volume {
 	result := make([]runtimeapi.Volume, 0, len(raw))
 	for _, v := range raw {
@@ -91,6 +98,8 @@ func MapVolumes(raw []dto.VolumeItem) []runtimeapi.Volume {
 	return result
 }
 
+// MapVolumeInspect converts a single Podman volume item to a detailed
+// runtime volume representation.
 func MapVolumeInspect(raw dto.VolumeItem) *runtimeapi.VolumeDetail {
 	scope := raw.Scope
 	if scope == "" {
@@ -108,6 +117,8 @@ func MapVolumeInspect(raw dto.VolumeItem) *runtimeapi.VolumeDetail {
 	}
 }
 
+// MapNetworks converts Podman network list items to the unified runtime
+// network representations, extracting subnet CIDRs for IPAM info.
 func MapNetworks(raw []dto.Network) []runtimeapi.Network {
 	result := make([]runtimeapi.Network, 0, len(raw))
 	for _, n := range raw {
@@ -132,6 +143,9 @@ func MapNetworks(raw []dto.Network) []runtimeapi.Network {
 	return result
 }
 
+// MapNetworkInspect converts a Podman network inspect response to the
+// unified runtime network detail, including connected containers and
+// IPAM configuration.
 func MapNetworkInspect(raw dto.NetworkInspect) *runtimeapi.NetworkDetail {
 	detailContainers := make(map[string]runtimeapi.NetworkEndpoint, len(raw.Containers))
 	for id, c := range raw.Containers {
@@ -189,6 +203,9 @@ func netIPString(ip net.IP) string {
 	return ip.String()
 }
 
+// MapContainerInspectResponse converts a Podman container inspect JSON
+// response to the unified runtime container detail, mapping state,
+// config, networking, and mount information.
 func MapContainerInspectResponse(info dto.ContainerInspectJSON) *runtimeapi.ContainerDetail {
 	detail := &runtimeapi.ContainerDetail{
 		ID: info.ID, Name: info.Name, Created: info.Created, Platform: info.Platform,

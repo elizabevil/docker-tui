@@ -13,6 +13,8 @@ type PodmanResourceActionService struct {
 	Client *podman.Client
 }
 
+// Execute dispatches the given action to the appropriate Podman REST
+// endpoint based on the resource type and action kind.
 func (s PodmanResourceActionService) Execute(ctx context.Context, ref runtimeapi.ResourceRef, action runtimeapi.Action, options runtimeapi.ActionOptions) (runtimeapi.ActionResult, error) {
 	result := runtimeapi.ActionResult{Resource: ref, Action: action}
 	err := s.execute(ctx, ref, action, options, &result)

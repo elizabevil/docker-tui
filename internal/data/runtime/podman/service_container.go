@@ -18,6 +18,8 @@ type PodmanContainerService struct {
 	Client *podman.Client
 }
 
+// List returns container summaries, applying client-side post-filtering
+// when the Podman API does not support multi-value filter semantics.
 func (s PodmanContainerService) List(ctx context.Context, options runtimeapi.ContainerListOptions) ([]runtimeapi.ContainerSummary, error) {
 	queryOptions := options
 	if options.Filters.HasMultipleValues() {
@@ -37,6 +39,7 @@ func (s PodmanContainerService) List(ctx context.Context, options runtimeapi.Con
 	return MapContainerSummaries(raw), nil
 }
 
+// Inspect returns the full detail view of a container by its ID or name.
 func (s PodmanContainerService) Inspect(ctx context.Context, id string) (*runtimeapi.ContainerDetail, error) {
 	raw, err := s.Client.REST.InspectContainer(ctx, id)
 	if err != nil {
@@ -45,6 +48,7 @@ func (s PodmanContainerService) Inspect(ctx context.Context, id string) (*runtim
 	return MapContainerInspectResponse(*raw), nil
 }
 
+// Top returns running processes inside the container (ps-style output).
 func (s PodmanContainerService) Top(ctx context.Context, id string) (runtimeapi.ContainerProcesses, error) {
 	raw, err := s.Client.REST.ContainerTop(ctx, id)
 	if err != nil {
@@ -56,6 +60,7 @@ func (s PodmanContainerService) Top(ctx context.Context, id string) (runtimeapi.
 	}, nil
 }
 
+// Stats returns real-time resource usage statistics for a single container.
 func (s PodmanContainerService) Stats(ctx context.Context, id string) (runtimeapi.ContainerStats, error) {
 	raw, err := s.Client.REST.ContainerStats(ctx, id)
 	if err != nil {
@@ -93,6 +98,7 @@ func mapPodmanContainerErr(err error, op, id string) error {
 		runtimeapi.Operation(runtimeapi.ResourceContainer, op), ref, runtimeapi.Podman)
 }
 
+// Logs returns a stream of stdout/stderr log lines from the container.
 func (s PodmanContainerService) Logs(ctx context.Context, id string, options runtimeapi.ContainerLogOptions) (io.ReadCloser, error) {
 	if s.Client.REST == nil {
 		return nil, runtimeapi.NewError(runtimeapi.ErrorUnavailable, runtimeapi.Operation(runtimeapi.ResourceContainer, "logs"), id, podman.ErrPodmanRESTNotReady)

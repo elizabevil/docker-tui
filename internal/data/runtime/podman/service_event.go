@@ -17,6 +17,9 @@ type PodmanEventService struct {
 	Client *podman.Client
 }
 
+// Subscribe opens a streaming connection to the Podman event API and
+// returns a channel of decoded events. The channel is closed when the
+// context is cancelled or the stream ends.
 func (s PodmanEventService) Subscribe(ctx context.Context, options runtimeapi.EventOptions) (<-chan runtimeapi.EventItem, error) {
 	if s.Client.REST == nil {
 		return nil, runtimeapi.NewError(runtimeapi.ErrorUnavailable, runtimeapi.Operation(runtimeapi.ResourceEvent, "subscribe"), "", podman.ErrPodmanRESTNotReady)

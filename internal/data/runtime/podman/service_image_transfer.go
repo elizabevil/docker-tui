@@ -14,6 +14,8 @@ type PodmanImageTransferService struct {
 	Client *podman.Client
 }
 
+// Run executes the requested image transfer operation (tag, push, save,
+// or load) and streams progress events to the returned channel.
 func (s PodmanImageTransferService) Run(ctx context.Context, request runtimeapi.ImageTransferRequest) (<-chan runtimeapi.ImageTransferEvent, error) {
 	output := make(chan runtimeapi.ImageTransferEvent, 32)
 	go func() {

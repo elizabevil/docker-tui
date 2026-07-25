@@ -13,6 +13,8 @@ type PodmanNetworkService struct {
 	Client *podman.Client
 }
 
+// List returns network summaries, applying client-side post-filtering for
+// multi-value filter conditions that the Podman API does not support natively.
 func (s PodmanNetworkService) List(ctx context.Context, options runtimeapi.NetworkListOptions) ([]runtimeapi.Network, error) {
 	filters := map[string][]string(options.Filters)
 	raw, err := s.Client.REST.ListNetworks(ctx, dto.NetworkListOptions{Filters: filters})
@@ -25,6 +27,7 @@ func (s PodmanNetworkService) List(ctx context.Context, options runtimeapi.Netwo
 	return MapNetworks(raw), nil
 }
 
+// Inspect returns the full detail view of a network by its ID or name.
 func (s PodmanNetworkService) Inspect(ctx context.Context, id string) (*runtimeapi.NetworkDetail, error) {
 	raw, err := s.Client.REST.InspectNetwork(ctx, id)
 	if err != nil {
@@ -33,6 +36,7 @@ func (s PodmanNetworkService) Inspect(ctx context.Context, id string) (*runtimea
 	return MapNetworkInspect(*raw), nil
 }
 
+// Create provisions a new Podman network with the given options.
 func (s PodmanNetworkService) Create(ctx context.Context, options runtimeapi.NetworkCreateOptions) (*runtimeapi.Network, error) {
 	createOpts := dto.Network{
 		Name:        options.Name,
@@ -53,11 +57,13 @@ func (s PodmanNetworkService) Create(ctx context.Context, options runtimeapi.Net
 	return &networks[0], nil
 }
 
+// Remove deletes a Podman network by its ID or name.
 func (s PodmanNetworkService) Remove(ctx context.Context, id string) error {
 	err := s.Client.REST.RemoveNetwork(ctx, id)
 	return mapPodmanNetworkErr(err, "remove", id)
 }
 
+// Prune removes unused Podman networks, returning counts of removed items.
 func (s PodmanNetworkService) Prune(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
 	filters := map[string][]string(options.Filters)
 	reports, err := s.Client.REST.PruneNetworks(ctx, filters)

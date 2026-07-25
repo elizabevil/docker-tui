@@ -14,6 +14,8 @@ type PodmanVolumeService struct {
 	Client *podman.Client
 }
 
+// List returns volume summaries, applying client-side post-filtering for
+// multi-value filter conditions that the Podman API does not support natively.
 func (s PodmanVolumeService) List(ctx context.Context, options runtimeapi.VolumeListOptions) ([]runtimeapi.Volume, error) {
 	filters := map[string][]string(options.Filters)
 	raw, err := s.Client.REST.ListVolumes(ctx, dto.VolumeListOptions{Filters: filters})
@@ -26,6 +28,7 @@ func (s PodmanVolumeService) List(ctx context.Context, options runtimeapi.Volume
 	return MapVolumes(raw), nil
 }
 
+// Inspect returns the full detail view of a volume by its name.
 func (s PodmanVolumeService) Inspect(ctx context.Context, name string) (*runtimeapi.VolumeDetail, error) {
 	raw, err := s.Client.REST.InspectVolume(ctx, name)
 	if err != nil {
@@ -34,6 +37,7 @@ func (s PodmanVolumeService) Inspect(ctx context.Context, name string) (*runtime
 	return MapVolumeInspect(*raw), nil
 }
 
+// Create provisions a new Podman volume with the given options.
 func (s PodmanVolumeService) Create(ctx context.Context, options runtimeapi.VolumeCreateOptions) (*runtimeapi.Volume, error) {
 	createOpts := dto.VolumeItem{
 		Name:    options.Name,
@@ -52,11 +56,14 @@ func (s PodmanVolumeService) Create(ctx context.Context, options runtimeapi.Volu
 	return &volumes[0], nil
 }
 
+// Remove deletes a Podman volume by its name.
 func (s PodmanVolumeService) Remove(ctx context.Context, name string, force bool) error {
 	err := s.Client.REST.RemoveVolume(ctx, name, force)
 	return mapPodmanVolumeErr(err, "remove", name)
 }
 
+// Prune removes unused Podman volumes, returning counts of removed items
+// and reclaimed disk space.
 func (s PodmanVolumeService) Prune(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
 	filters := map[string][]string(options.Filters)
 	reports, err := s.Client.REST.PruneVolumes(ctx, filters)

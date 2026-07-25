@@ -14,10 +14,14 @@ import (
 	"github.com/elizabevil/docker-tui/internal/driver/podman/dto"
 )
 
+// PodmanExecService implements runtime.ExecService by creating exec
+// sessions through the Podman Libpod REST API.
 type PodmanExecService struct {
 	Client *podman.Client
 }
 
+// Open creates an exec session in the given container and returns a
+// bidirectional stream for stdin/stdout interaction.
 func (s PodmanExecService) Open(ctx context.Context, containerID string, options runtime.ExecOptions) (runtime.ExecSession, error) {
 	if s.Client.REST == nil {
 		return nil, runtime.NewError(runtime.ErrorUnavailable, "container.exec.create", containerID, podman.ErrPodmanRESTNotReady)
