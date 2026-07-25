@@ -1,0 +1,29 @@
+configVersion: 1
+runtime:
+  default: local-docker
+  discovery:
+    localDocker: true
+    localPodman: true
+  health:
+    intervalSec: 3
+    timeoutSec: 2
+    failureThreshold: 2
+  connections:
+    - name: fixture-docker
+      driver: docker
+      endpoint: unix:///var/run/docker.sock
+
+layout:
+  sectionWeights:
+    top: 2
+    content: 7
+    bottom: 1
+  background:
+    enable: false
+    type: image
+    image:
+      src: "test/fixtures/background.jpg"
+      sampleRate: 80
+    overlay:
+      opacity: 25
+    fallthrough: false

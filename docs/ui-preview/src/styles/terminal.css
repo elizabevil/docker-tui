@@ -1,0 +1,568 @@
+/* ============================================================
+   dtui UI Preview — Terminal Simulation Styles
+   ============================================================ */
+
+/* ── CSS Variables (default theme) ────────────────────────────── */
+:root {
+    --tui-bg: #0d1117;
+    --tui-font: 'Cascadia Code', 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    --tui-font-size: 14px;
+    --tui-line-height: 1.5;
+    --tui-char-width: 8.4px;
+
+    --tui-green: #2ecc71;
+    --tui-cyan: #00bcd4;
+    --tui-blue: #42a5f5;
+    --tui-red: #ef5350;
+    --tui-yellow: #ffca28;
+    --tui-orange: #ff9800;
+    --tui-purple: #ab47bc;
+    --tui-white: #ffffff;
+    --tui-gray: #546e7a;
+    --tui-surface: #16213e;
+    --tui-dark: #1a1a2e;
+
+    --tui-border: var(--tui-cyan);
+    --tui-title-fg: var(--tui-cyan);
+    --tui-header-fg: var(--tui-blue);
+    --tui-selected-bg: var(--tui-blue);
+    --tui-status-fg: var(--tui-green);
+    --tui-dim-fg: var(--tui-gray);
+    --tui-bar-bg: var(--tui-surface);
+}
+
+/* ── Reset & Base ────────────────────────────────────────────── */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: #0a0a14;
+    color: var(--tui-white);
+    font-family: var(--tui-font);
+    font-size: var(--tui-font-size);
+    line-height: var(--tui-line-height);
+    min-height: 100vh;
+}
+
+/* ── Layout ──────────────────────────────────────────────────── */
+.tui-app {
+    display: flex;
+    min-height: 100vh;
+}
+
+.tui-sidebar {
+    width: 200px;
+    background: var(--tui-dark);
+    border-right: 2px solid var(--tui-border);
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.tui-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.tui-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    background: var(--tui-dark);
+    border-bottom: 2px solid var(--tui-border);
+}
+
+.tui-preview-area {
+    flex: 1;
+    padding: 8px;
+    overflow-y: auto;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────── */
+.tui-sidebar-title {
+    padding: 16px;
+    color: var(--tui-cyan);
+    border-bottom: 1px solid var(--tui-border);
+    font-size: 16px;
+    text-align: center;
+}
+
+.tui-sidebar-nav a {
+    display: block;
+    padding: 8px 16px;
+    color: var(--tui-gray);
+    text-decoration: none;
+    border-bottom: 1px solid var(--tui-dark);
+    transition: all 0.15s;
+}
+
+.tui-sidebar-nav a:hover,
+.tui-sidebar-nav a.active {
+    color: var(--tui-white);
+    background: var(--tui-surface);
+}
+
+.tui-sidebar-section {
+    padding: 8px 16px 4px;
+    color: var(--tui-blue);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--tui-dark);
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────── */
+.tui-theme-select {
+    background: var(--tui-surface);
+    color: var(--tui-white);
+    border: 1px solid var(--tui-border);
+    padding: 4px 8px;
+    font-family: var(--tui-font);
+    font-size: 13px;
+    border-radius: 2px;
+}
+
+.tui-toolbar-label {
+    color: var(--tui-gray);
+    font-size: 13px;
+}
+
+.tui-toolbar-btn {
+    background: var(--tui-surface);
+    color: var(--tui-cyan);
+    border: 1px solid var(--tui-border);
+    padding: 4px 12px;
+    font-family: var(--tui-font);
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 2px;
+}
+
+.tui-toolbar-btn:hover {
+    background: var(--tui-blue);
+    color: var(--tui-white);
+}
+
+/* ── Terminal Frame ──────────────────────────────────────────── */
+.tui-frame {
+    background: var(--tui-bg);
+    border: 2px solid var(--tui-border);
+    border-radius: 6px 6px 0 0;
+    overflow: hidden;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.tui-frame-titlebar {
+    background: var(--tui-surface);
+    padding: 4px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--tui-border);
+}
+
+.tui-frame-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.tui-frame-dot.red {
+    background: var(--tui-red);
+}
+
+.tui-frame-dot.yellow {
+    background: var(--tui-yellow);
+}
+
+.tui-frame-dot.green {
+    background: var(--tui-green);
+}
+
+.tui-frame-title {
+    color: var(--tui-gray);
+    font-size: 12px;
+    margin-left: 8px;
+}
+
+.tui-frame-body {
+    padding: 0;
+    min-height: 400px;
+}
+
+/* ── Panel ───────────────────────────────────────────────────── */
+.tui-panel {
+    padding: 8px 12px;
+}
+
+.tui-panel-title {
+    color: var(--tui-title-fg);
+    font-weight: bold;
+    padding: 4px 0;
+    margin-bottom: 4px;
+}
+
+/* ── Table ───────────────────────────────────────────────────── */
+.tui-table {
+    width: 100%;
+    border-collapse: collapse;
+    white-space: pre;
+}
+
+.tui-table th {
+    color: var(--tui-header-fg);
+    font-weight: bold;
+    text-align: left;
+    padding: 2px 8px;
+    border-bottom: 2px solid var(--tui-border);
+}
+
+.tui-table td {
+    padding: 2px 8px;
+    color: var(--tui-white);
+}
+
+.tui-table tr.selected td {
+    background: var(--tui-selected-bg);
+    color: var(--tui-white);
+}
+
+.tui-table tr.selected td::before {
+    content: "▸ ";
+}
+
+/* ── State Colors ────────────────────────────────────────────── */
+.state-running {
+    color: var(--tui-green) !important;
+}
+
+.state-exited {
+    color: var(--tui-red) !important;
+}
+
+.state-paused {
+    color: var(--tui-yellow) !important;
+}
+
+.state-created {
+    color: var(--tui-blue) !important;
+}
+
+.state-restarting {
+    color: var(--tui-orange) !important;
+}
+
+.state-dead {
+    color: var(--tui-red) !important;
+}
+
+/* ── Toast ───────────────────────────────────────────────────── */
+.tui-toast {
+    padding: 6px 16px;
+    margin: 4px 8px;
+    border-radius: 3px;
+    font-size: 13px;
+}
+
+.tui-toast.success {
+    color: var(--tui-green);
+    border-left: 3px solid var(--tui-green);
+    background: rgba(46, 204, 113, 0.08);
+}
+
+.tui-toast.error {
+    color: var(--tui-red);
+    border-left: 3px solid var(--tui-red);
+    background: rgba(239, 83, 80, 0.08);
+}
+
+/* ── Status Bar ──────────────────────────────────────────────── */
+.tui-statusbar {
+    background: var(--tui-bar-bg);
+    color: var(--tui-white);
+    padding: 4px 16px;
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.tui-statusbar .dot {
+    color: var(--tui-green);
+}
+
+/* ── Shortcuts Bar ───────────────────────────────────────────── */
+.tui-shortcuts {
+    background: var(--tui-dark);
+    color: var(--tui-gray);
+    padding: 4px 16px;
+    font-size: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 0;
+}
+
+.tui-shortcuts .key {
+    color: var(--tui-white);
+}
+
+.tui-shortcuts .sep {
+    color: var(--tui-surface);
+    margin: 0 6px;
+}
+
+/* ── Detail Sections ─────────────────────────────────────────── */
+.tui-detail {
+    padding: 8px 12px;
+}
+
+.tui-detail-title {
+    color: var(--tui-title-fg);
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.tui-detail-section {
+    margin-bottom: 12px;
+}
+
+.tui-detail-section-header {
+    color: var(--tui-header-fg);
+    font-weight: bold;
+    border-bottom: 1px solid var(--tui-border);
+    padding: 4px 0;
+    margin-bottom: 6px;
+    cursor: pointer;
+}
+
+.tui-detail-section-body {
+    padding-left: 8px;
+}
+
+.tui-detail-row {
+    display: flex;
+    gap: 8px;
+    padding: 1px 0;
+}
+
+.tui-detail-label {
+    color: var(--tui-gray);
+    min-width: 120px;
+}
+
+.tui-detail-value {
+    color: var(--tui-white);
+}
+
+/* ── Log Lines ───────────────────────────────────────────────── */
+.tui-log-line {
+    white-space: pre;
+}
+
+.tui-log-num {
+    color: var(--tui-dim-fg);
+    margin-right: 8px;
+}
+
+.tui-log-ts {
+    color: var(--tui-cyan);
+    margin-right: 8px;
+}
+
+.tui-log-text {
+    color: var(--tui-white);
+}
+
+.tui-log-text.stderr {
+    color: var(--tui-red);
+}
+
+/* ── Confirm Dialog ──────────────────────────────────────────── */
+.tui-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.tui-dialog {
+    background: var(--tui-bg);
+    border: 2px solid var(--tui-red);
+    border-radius: 4px;
+    padding: 24px 32px;
+    max-width: 400px;
+}
+
+.tui-dialog-title {
+    color: var(--tui-red);
+    font-size: 16px;
+    margin-bottom: 12px;
+}
+
+.tui-dialog-body {
+    color: var(--tui-white);
+    margin-bottom: 16px;
+}
+
+.tui-dialog-options {
+    margin-bottom: 16px;
+}
+
+.tui-dialog-option {
+    color: var(--tui-cyan);
+    padding: 2px 0;
+}
+
+.tui-dialog-option.unchecked {
+    color: var(--tui-gray);
+}
+
+.tui-dialog-actions {
+    color: var(--tui-gray);
+    font-size: 13px;
+}
+
+/* ── Footer ──────────────────────────────────────────────────── */
+.tui-footer {
+    color: var(--tui-dim-fg);
+    padding: 4px 16px;
+    font-size: 12px;
+    border-top: 1px solid var(--tui-border);
+    display: flex;
+    justify-content: space-between;
+}
+
+/* ── Helpers ─────────────────────────────────────────────────── */
+.tui-dim {
+    color: var(--tui-dim-fg);
+}
+
+.tui-bold {
+    font-weight: bold;
+}
+
+.tui-mono {
+    font-family: var(--tui-font);
+}
+
+/* ── Multi-line Header Bar ──────────────────────────────────── */
+.tui-header {
+    display: none;
+}
+
+.tui-header.visible {
+    display: flex;
+}
+
+.tui-header-panel {
+    background: var(--tui-dark);
+    border-bottom: 2px solid var(--tui-border);
+    padding: 6px 12px;
+    display: flex;
+    gap: 0;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.tui-header-left {
+    flex: 0 0 35%;
+    border-right: 2px solid var(--tui-border);
+    padding-right: 12px;
+}
+
+.tui-header-left-inner {
+    display: flex;
+    gap: 16px;
+}
+
+.tui-header-static {
+    flex: 0 0 auto;
+}
+
+.tui-header-dynamic {
+    flex: 1;
+    border-left: 1px solid var(--tui-surface);
+    padding-left: 16px;
+}
+
+.tui-header-center {
+    flex: 0 0 38%;
+    border-right: 2px solid var(--tui-border);
+    padding: 0 12px;
+}
+
+.tui-header-right {
+    flex: 1;
+    padding-left: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.tui-header-row {
+    display: flex;
+    gap: 16px;
+    white-space: nowrap;
+}
+
+.tui-header-label {
+    color: var(--tui-gray);
+}
+
+.tui-header-val {
+    color: var(--tui-white);
+}
+
+.tui-header-val.green {
+    color: var(--tui-green);
+}
+
+.tui-header-val.yellow {
+    color: var(--tui-yellow);
+}
+
+.tui-header-val.red {
+    color: var(--tui-red);
+}
+
+.tui-header-cpu-bar, .tui-header-mem-bar {
+    height: 3px;
+    border-radius: 1px;
+    margin-top: 1px;
+}
+
+.tui-header-logo {
+    color: var(--tui-cyan);
+    font-size: 11px;
+    line-height: 1.2;
+    text-align: center;
+}
+
+.tui-header-version {
+    color: var(--tui-blue);
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 4px;
+}
+
+.tui-header-shortcut {
+    display: inline-block;
+    margin-right: 12px;
+    margin-bottom: 2px;
+}
+
+.tui-header-shortcut .key {
+    color: var(--tui-white);
+}
+
+.tui-header-shortcut .desc {
+    color: var(--tui-gray);
+}

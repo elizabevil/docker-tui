@@ -1,0 +1,166 @@
+{
+  "ID": "9145366d-fa40-4606-aef6-5c3c5a411ad4",
+  "Containers": 3,
+  "ContainersRunning": 1,
+  "ContainersPaused": 0,
+  "ContainersStopped": 2,
+  "Images": 4,
+  "Driver": "overlay",
+  "DriverStatus": [
+    [
+      "Supports volatile",
+      "true"
+    ],
+    [
+      "Backing Filesystem",
+      "extfs"
+    ],
+    [
+      "Supports d_type",
+      "true"
+    ],
+    [
+      "Native Overlay Diff",
+      "true"
+    ],
+    [
+      "Using metacopy",
+      "false"
+    ],
+    [
+      "Supports shifting",
+      "false"
+    ]
+  ],
+  "Plugins": {
+    "Volume": [
+      "local"
+    ],
+    "Network": [
+      "bridge",
+      "macvlan",
+      "ipvlan"
+    ],
+    "Authorization": null,
+    "Log": [
+      "k8s-file",
+      "none",
+      "passthrough",
+      "journald"
+    ]
+  },
+  "MemoryLimit": true,
+  "SwapLimit": false,
+  "CpuCfsPeriod": false,
+  "CpuCfsQuota": false,
+  "CPUShares": false,
+  "CPUSet": false,
+  "PidsLimit": true,
+  "IPv4Forwarding": false,
+  "BridgeNfIptables": false,
+  "BridgeNfIp6tables": false,
+  "Debug": false,
+  "NFd": 11,
+  "OomKillDisable": false,
+  "NGoroutines": 14,
+  "SystemTime": "2026-07-24T01:27:02.840307711+08:00",
+  "LoggingDriver": "",
+  "CgroupDriver": "systemd",
+  "NEventsListener": 0,
+  "KernelVersion": "6.12.96+deb13-amd64",
+  "OperatingSystem": "debian",
+  "OSVersion": "13",
+  "OSType": "linux",
+  "Architecture": "amd64",
+  "IndexServerAddress": "",
+  "RegistryConfig": {
+    "AllowNondistributableArtifactsCIDRs": [],
+    "AllowNondistributableArtifactsHostnames": [],
+    "InsecureRegistryCIDRs": [],
+    "IndexConfigs": {},
+    "Mirrors": []
+  },
+  "NCPU": 16,
+  "MemTotal": 30375690240,
+  "GenericResources": null,
+  "DockerRootDir": "/home/debi/.local/share/containers/storage",
+  "HttpProxy": "",
+  "HttpsProxy": "",
+  "NoProxy": "",
+  "Name": "debi",
+  "Labels": null,
+  "ExperimentalBuild": true,
+  "ServerVersion": "5.4.2",
+  "Runtimes": {
+    "crun": {
+      "path": "/usr/bin/crun"
+    },
+    "crun-vm": {
+      "path": "/usr/bin/crun-vm"
+    },
+    "crun-wasm": {
+      "path": "/usr/bin/crun-wasm"
+    },
+    "kata": {
+      "path": "/usr/bin/kata-runtime"
+    },
+    "krun": {
+      "path": "/usr/bin/krun"
+    },
+    "ocijail": {
+      "path": "/usr/local/bin/ocijail"
+    },
+    "runc": {
+      "path": "/usr/bin/runc"
+    },
+    "runj": {
+      "path": "/usr/local/bin/runj"
+    },
+    "runsc": {
+      "path": "/usr/bin/runsc"
+    },
+    "youki": {
+      "path": "/usr/local/bin/youki"
+    }
+  },
+  "DefaultRuntime": "crun",
+  "Swarm": {
+    "NodeID": "",
+    "NodeAddr": "",
+    "LocalNodeState": "inactive",
+    "ControlAvailable": false,
+    "Error": "",
+    "RemoteManagers": null
+  },
+  "LiveRestoreEnabled": false,
+  "Isolation": "",
+  "InitBinary": "",
+  "ContainerdCommit": {
+    "ID": "",
+    "Expected": ""
+  },
+  "RuncCommit": {
+    "ID": "",
+    "Expected": ""
+  },
+  "InitCommit": {
+    "ID": "",
+    "Expected": ""
+  },
+  "SecurityOptions": [
+    "name=apparmor",
+    "name=seccomp,profile=default",
+    "name=rootless"
+  ],
+  "ProductLicense": "Apache-2.0",
+  "CDISpecDirs": null,
+  "Warnings": [],
+  "BuildahVersion": "1.39.3",
+  "CPURealtimePeriod": false,
+  "CPURealtimeRuntime": false,
+  "CgroupVersion": "2",
+  "Rootless": true,
+  "SwapFree": 25786576896,
+  "SwapTotal": 25786576896,
+  "Uptime": "3h 38m 0.00s (Approximately 0.12 days)"
+}

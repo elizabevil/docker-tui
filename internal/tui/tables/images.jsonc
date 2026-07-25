@@ -1,0 +1,187 @@
+{
+  "columns": {
+    "default": [
+      {
+        "key": "name",
+        "flex": 1,
+        "max": 30,
+        "header": "table.name"
+      },
+      {
+        "key": "tag",
+        "fixed": 20,
+        "header": "table.tag"
+      },
+      {
+        "key": "id",
+        "fixed": 12,
+        "header": "table.id"
+      },
+      {
+        "key": "size",
+        "fixed": 10,
+        "header": "table.size"
+      }
+    ],
+    "compact": [
+      {
+        "key": "registry",
+        "fixed": 18,
+        "header": "table.registry"
+      },
+      {
+        "key": "name",
+        "flex": 1,
+        "max": 28,
+        "header": "table.name"
+      },
+      {
+        "key": "tag",
+        "fixed": 20,
+        "header": "table.tag"
+      },
+      {
+        "key": "id",
+        "fixed": 12,
+        "header": "table.id"
+      },
+      {
+        "key": "created",
+        "fixed": 19,
+        "header": "table.created"
+      },
+      {
+        "key": "size",
+        "fixed": 10,
+        "header": "table.size"
+      }
+    ],
+    "more": [
+      {
+        "key": "registry",
+        "fixed": 18,
+        "header": "table.registry"
+      },
+      {
+        "key": "name",
+        "flex": 1,
+        "max": 26,
+        "header": "table.name"
+      },
+      {
+        "key": "tag",
+        "fixed": 20,
+        "header": "table.tag"
+      },
+      {
+        "key": "id",
+        "fixed": 12,
+        "header": "table.id"
+      },
+      {
+        "key": "arch",
+        "fixed": 6,
+        "header": "table.arch"
+      },
+      {
+        "key": "created",
+        "fixed": 19,
+        "header": "table.created"
+      },
+      {
+        "key": "size",
+        "fixed": 10,
+        "header": "table.size"
+      }
+    ],
+    "wide": [
+      {
+        "key": "registry",
+        "flex": 1,
+        "max": 24,
+        "header": "table.registry"
+      },
+      {
+        "key": "name",
+        "flex": 2,
+        "max": 30,
+        "header": "table.name"
+      },
+      {
+        "key": "tag",
+        "fixed": 20,
+        "header": "table.tag"
+      },
+      {
+        "key": "id",
+        "fixed": 12,
+        "header": "table.id"
+      },
+      {
+        "key": "arch",
+        "fixed": 6,
+        "header": "table.arch"
+      },
+      {
+        "key": "created",
+        "fixed": 19,
+        "header": "table.created"
+      },
+      {
+        "key": "size",
+        "fixed": 10,
+        "header": "table.size"
+      }
+    ],
+    "containers_sub": [
+      {
+        "key": "id",
+        "fixed": 10,
+        "header": "table.id"
+      },
+      {
+        "key": "name",
+        "flex": 2,
+        "max": 22,
+        "header": "table.name"
+      },
+      {
+        "key": "image",
+        "flex": 1,
+        "max": 22,
+        "header": "table.image"
+      },
+      {
+        "key": "state",
+        "fixed": 12,
+        "header": "table.state"
+      },
+      {
+        "key": "ip",
+        "fixed": 15,
+        "header": "table.ip"
+      },
+      {
+        "key": "ports",
+        "fixed": 12,
+        "header": "table.ports"
+      },
+      {
+        "key": "created",
+        "fixed": 19,
+        "header": "table.created"
+      },
+      {
+        "key": "stats",
+        "flex": 1,
+        "max": 0,
+        "header": "table.stats"
+      }
+    ]
+  },
+  "show": {
+    "more": 104,
+    "compact": 94,
+    "wide": 130
+  }
+}

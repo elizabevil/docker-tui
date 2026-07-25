@@ -1,0 +1,9 @@
+{
+  // Global table style defaults — used when a page does not provide its own tableStyle.
+  "tableStyle": {
+    "rowPrefix": "  ",
+    "rowPrefixSelected": "\u203a ",
+    "minColumnWidth": 8,
+    "columnSpacing": 1
+  }
+}

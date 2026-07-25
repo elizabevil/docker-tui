@@ -1,0 +1,80 @@
+{
+  "layout": {
+    "ratio": {
+      "left": 3,
+      "right": 7
+    },
+    "focus": {
+      "activeColor": "63",
+      "inactiveColor": "240",
+      "sepHeight": 80
+    }
+  },
+  "columns": {
+    "default": [
+      {
+        "key": "project",
+        "flex": 1,
+        "max": 28,
+        "header": "table.project"
+      },
+      {
+        "key": "status",
+        "fixed": 8,
+        "header": "table.status"
+      },
+      {
+        "key": "services",
+        "fixed": 8,
+        "header": "table.services"
+      },
+      {
+        "key": "pods",
+        "fixed": 8,
+        "header": "table.containers"
+      }
+    ],
+    "services_sub": [
+      {
+        "key": "service",
+        "flex": 1,
+        "max": 24,
+        "header": "table.service"
+      },
+      {
+        "key": "image",
+        "flex": 2,
+        "max": 30,
+        "header": "table.image"
+      },
+      {
+        "key": "pods",
+        "fixed": 8,
+        "header": "table.pods"
+      }
+    ],
+    "pods_sub": [
+      {
+        "key": "id",
+        "fixed": 12,
+        "header": "table.id"
+      },
+      {
+        "key": "name",
+        "flex": 1,
+        "max": 24,
+        "header": "table.name"
+      },
+      {
+        "key": "state",
+        "fixed": 10,
+        "header": "table.state"
+      },
+      {
+        "key": "ip",
+        "fixed": 15,
+        "header": "table.ip"
+      }
+    ]
+  }
+}

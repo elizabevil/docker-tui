@@ -1,0 +1,108 @@
+run:
+  timeout: 5m
+  tests: true
+  issues-exit-code: 1
+
+linters:
+  disable-all: true
+  enable:
+    - govet
+    - staticcheck
+    - errcheck
+    - ineffassign
+    - unused
+    - gocritic
+    - revive
+    - gosimple
+    - gofmt
+    # Enterprise-grade additions
+    - lll              # line-length
+    - funlen           # function/method length
+    - cyclop           # cyclomatic complexity
+    - gocognit         # cognitive complexity
+    - dupl             # duplicated code blocks
+    - goconst          # repeated strings as constants
+    - misspell         # common typos in English
+    - unparam          # unused function parameters
+
+linters-settings:
+  # 130-character line limit, matching golangci enterprise convention.
+  lll:
+    line-length: 130
+    tab-width: 4
+
+  # 120-line limit per function/method; longer bodies are split.
+  funlen:
+    lines: 120
+    statements: 80
+    ignore-comments: true
+    # Test functions and tiny one-liner helpers are exempt from length.
+    skip-tests: true
+
+  # Cyclomatic complexity ceiling.
+  cyclop:
+    max-complexity: 15
+    package-average: 10.0
+    skip-tests: true
+
+  # Cognitive complexity (more humane than cyclomatic) ceiling.
+  gocognit:
+    min-complexity: 20
+    skip-tests: true
+
+  # gocritic opinions on style, naming, and parameter count.
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+    disabled-checks:
+      - dupImport
+      - ifElseChain
+      - whyNoLint
+      - hugeParam
+
+  # No function may declare more than 5 parameters (matches the
+  # gocritic/hugeParam-style rule but enforced separately so it is
+  # visible on its own line in CI output).
+  revive:
+    confidence: 0.8
+    rules:
+      - name: exported
+        disabled: true
+      - name: var-naming
+      - name: indent-error-flow
+      - name: blank-imports
+      - name: unexported-return
+      - name: function-result-limit
+        arguments: [3]
+      - name: max-public-structs
+        arguments: [10]
+      - name: cognitive-complexity
+      - name: cyclomatic
+        arguments: [15]
+      - name: line-length-limit
+        arguments: [130]
+      - name: max-control-nesting
+        arguments: [5]
+
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-use-default: false
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+    - # Generated mocks and embed bindings are exempt.
+      path: mockengine\.go|_embed\.go
+      linters:
+        - gochecknoglobals
+        - gochecknoinits
+
+output:
+  sort-results: true

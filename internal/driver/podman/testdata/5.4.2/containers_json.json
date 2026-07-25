@@ -1,0 +1,48 @@
+[
+  {
+    "AutoRemove": false,
+    "Command": [
+      "sleep",
+      "infinity"
+    ],
+    "Created": "2026-07-19T21:08:35.162735579+08:00",
+    "CreatedAt": "",
+    "CIDFile": "",
+    "Exited": false,
+    "ExitedAt": 1784466651,
+    "ExitCode": 0,
+    "ExposedPorts": null,
+    "Id": "9bf46a5d77f4e255bf720af272ce2ee4046bdcb72dd30337a9a71d1bdd7ad4ac",
+    "Image": "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/alpine:3.19",
+    "ImageID": "07c39c7bc641353f51904d624f9227ac4a562703481aa73fac6f0385ce3cbd2b",
+    "IsInfra": false,
+    "Labels": {
+      "PODMAN_SYSTEMD_UNIT": "podman-compose@integration.service",
+      "com.docker.compose.container-number": "1",
+      "com.docker.compose.project": "integration",
+      "com.docker.compose.project.config_files": "/home/debi/IdeaProjects/docker-tui/test/integration/docker-compose.test2.yml",
+      "com.docker.compose.project.working_dir": "/home/debi/IdeaProjects/docker-tui/test/integration",
+      "com.docker.compose.service": "alpine-sleep",
+      "io.podman.compose.config-hash": "4822ac4d5b89b3fc7a7b928538b2ece1346edecdced2ea1bdc53c278956726ba",
+      "io.podman.compose.project": "integration",
+      "io.podman.compose.version": "1.3.0"
+    },
+    "Mounts": [],
+    "Names": [
+      "dtui-test-alpine"
+    ],
+    "Namespaces": {},
+    "Networks": [
+      "integration_default"
+    ],
+    "Pid": 42743,
+    "Pod": "8f66b41571af9bccceadc2db6f9654d975afb82e97a6c073e460d7c8aace6f33",
+    "PodName": "pod_integration",
+    "Ports": null,
+    "Restarts": 0,
+    "Size": null,
+    "StartedAt": 1784821005,
+    "State": "running",
+    "Status": ""
+  }
+]

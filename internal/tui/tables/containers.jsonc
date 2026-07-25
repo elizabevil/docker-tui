@@ -1,0 +1,208 @@
+{
+  "columns": {
+    "default": [
+      {
+        "key": "id",
+        "fixed": 12,
+        "header": "table.id",
+        "sortable": true
+      },
+      {
+        "key": "name",
+        "flex": 3,
+        "max": 28,
+        "header": "table.name",
+        "sortable": true
+      },
+      {
+        "key": "image",
+        "flex": 3,
+        "max": 26,
+        "header": "table.image",
+        "sortable": false
+      },
+      {
+        "key": "state",
+        "flex": 1,
+        "max": 16,
+        "header": "table.state",
+        "sortable": true
+      },
+      {
+        "key": "ports",
+        "fixed": 10,
+        "header": "table.ports"
+      },
+      {
+        "key": "created",
+        "fixed": 19,
+        "header": "table.created",
+        "sortable": true
+      }
+    ],
+    "more": [
+      {
+        "key": "id",
+        "fixed": 12,
+        "header": "table.id",
+        "sortable": true
+      },
+      {
+        "key": "name",
+        "flex": 3,
+        "max": 28,
+        "header": "table.name",
+        "sortable": true
+      },
+      {
+        "key": "image",
+        "flex": 3,
+        "max": 26,
+        "header": "table.image"
+      },
+      {
+        "key": "state",
+        "flex": 1,
+        "max": 16,
+        "header": "table.state",
+        "sortable": true
+      },
+      {
+        "key": "ports",
+        "fixed": 10,
+        "header": "table.ports"
+      },
+      {
+        "key": "mounts",
+        "fixed": 3,
+        "header": "table.mounts"
+      },
+      {
+        "key": "ip",
+        "fixed": 15,
+        "header": "table.ip"
+      },
+      {
+        "key": "created",
+        "fixed": 19,
+        "header": "table.created",
+        "sortable": true
+      }
+    ],
+    "default_stats": [
+      {
+        "key": "id",
+        "fixed": 12,
+        "header": "table.id",
+        "sortable": true
+      },
+      {
+        "key": "name",
+        "flex": 3,
+        "max": 22,
+        "header": "table.name",
+        "sortable": true
+      },
+      {
+        "key": "image",
+        "flex": 2,
+        "max": 20,
+        "header": "table.image"
+      },
+      {
+        "key": "state",
+        "flex": 1,
+        "max": 14,
+        "header": "table.state",
+        "sortable": true
+      },
+      {
+        "key": "ports",
+        "fixed": 10,
+        "header": "table.ports"
+      },
+      {
+        "key": "created",
+        "fixed": 19,
+        "header": "table.created",
+        "sortable": true
+      },
+      {
+        "key": "stats",
+        "flex": 4,
+        "max": 0,
+        "header": "table.stats",
+        "sortable": true
+      }
+    ],
+    "more_stats": [
+      {
+        "key": "id",
+        "fixed": 12,
+        "header": "table.id",
+        "sortable": true
+      },
+      {
+        "key": "name",
+        "flex": 2,
+        "max": 22,
+        "header": "table.name",
+        "sortable": true
+      },
+      {
+        "key": "image",
+        "flex": 2,
+        "max": 22,
+        "header": "table.image"
+      },
+      {
+        "key": "state",
+        "flex": 1,
+        "max": 14,
+        "header": "table.state",
+        "sortable": true
+      },
+      {
+        "key": "ports",
+        "fixed": 10,
+        "header": "table.ports"
+      },
+      {
+        "key": "mounts",
+        "fixed": 3,
+        "header": "table.mounts"
+      },
+      {
+        "key": "ip",
+        "fixed": 15,
+        "header": "table.ip"
+      },
+      {
+        "key": "created",
+        "fixed": 19,
+        "header": "table.created",
+        "sortable": true
+      },
+      {
+        "key": "stats",
+        "flex": 4,
+        "max": 0,
+        "header": "table.stats",
+        "sortable": true
+      }
+    ]
+  },
+  "stats": {
+    "enabled": true,
+    "interval": 1,
+    "fields": [
+      "cpu",
+      "mem",
+      "net_rx",
+      "net_tx"
+    ]
+  },
+  "show": {
+    "more": 81
+  }
+}
