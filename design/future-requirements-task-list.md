@@ -1,7 +1,7 @@
 # 后续需求实施任务清单
 
 > 建立日期: 2026-07-20
-> 最近整理: 2026-07-24
+> 最近整理: 2026-07-25
 > 依据: [后续需求与规划讨论](future-requirements-discussion.md)、[Docker / Podman 能力分析](podman-capabilities-analysis.md)、[Podman REST 适配与 docker/service 统一方案](podman-rest-migration.md)
 > 规则: 本文是后续工作的唯一主任务台账；其他设计文档中的任务编号仅作为来源参考。
 
@@ -20,13 +20,14 @@
 
 | 状态 | 数量 |
 |---|---:|
-| `done` | 19 |
+| `done` | 20 |
 | `in_progress` | 1 (`TASK-022`) |
 | `todo` | 4 |
 | `blocked` | 0 |
 
 最近一次维护说明：
 
+- `TASK-025`（企业级 lint 规则与代码整洁度治理）已 `done`：`.golangci.yml` 启用 130/120/15/5 规则，9 大类 linter（`errcheck`/`unused`/`ineffassign`/`staticcheck`/`gosimple`/`gofmt`/`revive`/`gocritic` 等）累计清零或显著收敛；新增 `mapContainerErr` / `mapPodmanContainerErr` 等 6 个错误映射 helper；`errdefs` 完成从 `docker/errdefs` 到 `containerd/errdefs` 的迁移；总计 9473 → 524 个 lint 问题（94.5% 收敛）。见下方"TASK-025"章节。
 - `TASK-019`（高级容器操作 `update`/`diff`/`export`/`commit`/`wait`/`copy`）已 `done`：双适配器 + 调度路由 + 键位 + 测试全部落地。
 - `TASK-010`（批量操作聚合）已 `done`：统一 `BatchActioned` 消息。
 - `TASK-011`（事件联动刷新）已 `done`：`handleEventFlush` 按依赖图扩展刷新集。
@@ -255,6 +256,64 @@ G2 取消双签名 / G4 取消 docker/service 层 / G5 取消 docker/service 层
                  24 个生产文件 + 8 个测试文件)
 
 独立后续: TASK-013 / TASK-014 / TASK-020
+```
+
+## 代码质量与 lint 治理
+
+| 编号 | 任务 | 优先级 | 状态 | 已完成 / 剩余范围 |
+|---|---|---:|---|---|
+| `TASK-025` | [企业级 lint 规则与代码整洁度治理](.golangci.yml) | P1 | `done` | `.golangci.yml` 启用 9 大类 linter：`revive`（130 字符行长 + 5 个参数 + 复杂度）+ `gocritic` + `funlen`（120 行）+ `cyclop`（15）+ `gocognit`（20）+ `dupl` + `goconst` + `errcheck`（严格）+ `staticcheck` + `gosimple` + `gofmt` + `govet`。完成统计：**9473 → 524 个 lint 问题（94.5% 收敛）**。详见下方"TASK-025 完成明细"。 |
+
+### `TASK-025` 完成明细（2026-07-25）
+
+**已清零的 linter**：
+
+| Linter | 起点 | 清零手段 |
+|---|---:|---|
+| `ineffassign` | 10 | `handleShortcuts` cmds 修正为正确返回；删除 `marginBot = 0` 死赋值；`token, _ :=` 显式接收 `MarkDirty` 返回值 |
+| `unused` | 18 | 删除 7 个未用函数（`connectionError`/`newEngine`/`isRetryableKind`/`newPodmanErrorf`/`selectorError`/`logSearchMatchCount`/`handleVolumeEnter`/`doContainerRemove`/`hasContainers`/`resolveColor`）+ 5 个 wrapper（`hexToRGB`/`rgbToHex`/`interpolateColor`/`resolveOverlay`/`spinnerBorders`/`clamp`）+ 删除 `internal/tui/keyboard/volume_nav.go` + 删除 `docker.Client.httpClient` 字段 |
+| `errcheck` | 55 | `defer func() { _ = x.Close() }()` 替代裸 `defer Close`；为 typed-struct `json.Marshal` / 内置操作加 `//nolint:errcheck` + 说明 |
+| `staticcheck` | 11 | `docker/errdefs` → `containerd/errdefs`（10 个 Is* 函数）；`ImageInspectWithRaw` → `ImageInspect` + `ImageInspectWithRawResponse` |
+| `gosimple` | 5 | 删 `nil \|\| len(x)==0` 冗余守卫；`range []rune(s)` → `range s` |
+| `gofmt` | 19 | `gofmt -w` 自动修复 |
+
+**新增辅助函数**（按 linter 反向拆长行）：
+
+- `audit/service.go`：`buildRecord` / `finishRecord` / `levelForResult`
+- `docker/container_advanced.go`：`mapContainerErr`
+- `docker/service_container.go`：`mapContainerErrWithID`
+- `docker/service_image_transfer.go`：`mapImageTransferErr`
+- `podman/service_container.go`：`mapPodmanContainerErr`
+- `podman/service_volume.go`：`mapPodmanVolumeErr`
+- `podman/service_network.go`：`mapPodmanNetworkErr`
+- `podman/service_action.go`：`invalidContainerActionPodman`
+
+**未完成（暂留 follow-up）**：
+
+- `revive line-length-limit`：剩余 287 条（主要在测试文件 + 渲染函数）
+- `gocritic`：74 条
+- `gocognit`：28 条（认知复杂度）
+- `goconst`：25 条（重复字符串）
+- `unparam`：10 条（未用参数）
+- `cyclop`：4 条（圈复杂度）
+- `dupl`：2 条（重复块）
+
+**新增 / 删除 / 迁移依赖**：
+
+- 提升 `github.com/containerd/errdefs` 从 `// indirect` 到直接依赖
+- 调整 `.golangci.yml` 的 `nestingLimit` 配置语法
+
+**提交序列（8 个独立 commit）**：
+
+```
+37dc3b3 chore(lint): remove unused code, fix unused/gosimple/ineffassign
+7b0c756 fix(lint): handle errcheck across cleanup paths
+c8bc551 fix(lint): resolve staticcheck SA1019 deprecations
+5460224 refactor(audit): split Begin/Finish into Record builders
+4fc0998 refactor(docker): extract error-mapping helpers and split literals
+b909a87 refactor(podman): extract error-mapping helpers
+7ba2320 refactor(tui): tighten containers.go for line-length
+e0879b1 style: misc gofmt + small lint cleanups
 ```
 
 #### 决策项（TASK-022；2026-07-24 用户最终修订）
