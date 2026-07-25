@@ -23,13 +23,18 @@ func (s PodmanExecService) Open(ctx context.Context, containerID string, options
 		return nil, runtime.NewError(runtime.ErrorUnavailable, "container.exec.create", containerID, podman.ErrPodmanRESTNotReady)
 	}
 	request := dto.ExecCreateRequest{
-		AttachStdin: options.AttachStdin, AttachStdout: options.AttachStdout,
-		AttachStderr: options.AttachStderr, TTY: options.TTY, Command: options.Command,
-		Environment: options.Environment, WorkingDir: options.WorkingDir, User: options.User,
+		AttachStdin:  options.AttachStdin,
+		AttachStdout: options.AttachStdout,
+		AttachStderr: options.AttachStderr,
+		TTY:          options.TTY,
+		Command:      options.Command,
+		Environment:  options.Environment,
+		WorkingDir:   options.WorkingDir,
+		User:         options.User,
 	}
 	var created dto.ExecCreateResponse
 	if err := s.Client.REST.Post(ctx, podman.ContainerExecPath(containerID), nil, request, &created); err != nil {
-		return nil, runtime.MapRuntimeError(err, runtime.Operation(runtime.ResourceContainer, "exec.create"), runtime.ResourceRef{Type: runtime.ResourceContainer, ID: containerID}, runtime.Podman)
+		return nil, mapPodmanContainerErr(err, "exec.create", containerID)
 	}
 	if created.ID == "" {
 		return nil, runtime.NewError(runtime.ErrorInvalid, "container.exec.create", containerID, fmt.Errorf("Podman response omitted exec ID"))
@@ -40,7 +45,7 @@ func (s PodmanExecService) Open(ctx context.Context, containerID string, options
 	}
 	stream, err := s.Client.REST.UpgradePost(ctx, podman.ExecStartPath(created.ID), bytes.NewReader(startBody), "application/json")
 	if err != nil {
-		return nil, runtime.MapRuntimeError(err, runtime.Operation(runtime.ResourceContainer, "exec.start"), runtime.ResourceRef{Type: runtime.ResourceContainer, ID: containerID}, runtime.Podman)
+		return nil, mapPodmanContainerErr(err, "exec.start", containerID)
 	}
 	return &podmanExecSession{client: s.Client, id: created.ID, containerID: containerID, stream: stream}, nil
 }
@@ -63,5 +68,5 @@ func (s *podmanExecSession) Resize(ctx context.Context, size runtime.TerminalSiz
 		"w": {strconv.FormatUint(uint64(size.Width), 10)},
 	}
 	err := s.client.REST.Post(ctx, podman.ExecResizePath(s.id), query, nil, nil)
-	return runtime.MapRuntimeError(err, runtime.Operation(runtime.ResourceContainer, "exec.resize"), runtime.ResourceRef{Type: runtime.ResourceContainer, ID: s.containerID}, runtime.Podman)
+	return mapPodmanContainerErr(err, "exec.resize", s.containerID)
 }

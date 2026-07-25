@@ -21,7 +21,7 @@ func (s PodmanVolumeService) List(ctx context.Context, options runtimeapi.Volume
 		raw, err = PostFilterVolumes(raw, options.Filters)
 	}
 	if err != nil {
-		return nil, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceVolume, "list"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume}, runtimeapi.Podman)
+		return nil, mapPodmanVolumeErr(err, "list", "")
 	}
 	return MapVolumes(raw), nil
 }
@@ -29,15 +29,21 @@ func (s PodmanVolumeService) List(ctx context.Context, options runtimeapi.Volume
 func (s PodmanVolumeService) Inspect(ctx context.Context, name string) (*runtimeapi.VolumeDetail, error) {
 	raw, err := s.Client.REST.InspectVolume(ctx, name)
 	if err != nil {
-		return nil, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceVolume, "inspect"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume, ID: name}, runtimeapi.Podman)
+		return nil, mapPodmanVolumeErr(err, "inspect", name)
 	}
 	return MapVolumeInspect(*raw), nil
 }
 
 func (s PodmanVolumeService) Create(ctx context.Context, options runtimeapi.VolumeCreateOptions) (*runtimeapi.Volume, error) {
-	raw, err := s.Client.REST.CreateVolume(ctx, dto.VolumeItem{Name: options.Name, Driver: options.Driver, Labels: options.Labels, Options: options.Options})
+	createOpts := dto.VolumeItem{
+		Name:    options.Name,
+		Driver:  options.Driver,
+		Labels:  options.Labels,
+		Options: options.Options,
+	}
+	raw, err := s.Client.REST.CreateVolume(ctx, createOpts)
 	if err != nil {
-		return nil, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceVolume, "create"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume, ID: options.Name}, runtimeapi.Podman)
+		return nil, mapPodmanVolumeErr(err, "create", options.Name)
 	}
 	volumes := MapVolumes([]podman.VolumeItem{*raw})
 	if len(volumes) == 0 {
@@ -48,16 +54,30 @@ func (s PodmanVolumeService) Create(ctx context.Context, options runtimeapi.Volu
 
 func (s PodmanVolumeService) Remove(ctx context.Context, name string, force bool) error {
 	err := s.Client.REST.RemoveVolume(ctx, name, force)
-	return runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceVolume, "remove"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume, ID: name}, runtimeapi.Podman)
+	return mapPodmanVolumeErr(err, "remove", name)
 }
 
 func (s PodmanVolumeService) Prune(ctx context.Context, options runtimeapi.PruneOptions) (runtimeapi.PruneResult, error) {
 	filters := map[string][]string(options.Filters)
 	reports, err := s.Client.REST.PruneVolumes(ctx, filters)
 	if err != nil {
-		return runtimeapi.PruneResult{}, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceVolume, "prune"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume}, runtimeapi.Podman)
+		return runtimeapi.PruneResult{}, mapPodmanVolumeErr(err, "prune", "")
 	}
 	return assembleVolumePruneResult(reports), nil
+}
+
+// mapPodmanVolumeErr wraps a Podman REST error with the volume resource ref.
+// An empty id builds an untyped ref (used for list/prune operations).
+func mapPodmanVolumeErr(err error, op, id string) error {
+	if err == nil {
+		return nil
+	}
+	ref := runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume}
+	if id != "" {
+		ref.ID = id
+	}
+	return runtimeapi.MapRuntimeError(err,
+		runtimeapi.Operation(runtimeapi.ResourceVolume, op), ref, runtimeapi.Podman)
 }
 
 // assembleVolumePruneResult converts raw Podman volume prune reports into a PruneResult.
