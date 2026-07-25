@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/bytedance/sonic"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 // ── Palette: raw color values ──────────────────────────────────
@@ -172,7 +172,7 @@ func ListThemes() []string {
 
 func parseTheme(data []byte) (*Theme, error) {
 	var theme Theme
-	if err := sonic.Unmarshal(data, &theme); err != nil {
+	if err := utils.UnmarshalJSONCSonic(data, &theme); err != nil {
 		return nil, fmt.Errorf("parse theme: %w", err)
 	}
 	if theme.Name == "" {

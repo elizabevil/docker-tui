@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bytedance/sonic"
-	"github.com/tidwall/jsonc"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 	"golang.org/x/text/message/catalog"
+
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 //go:embed lang
@@ -41,7 +41,7 @@ func loadMessages(tag language.Tag) {
 			continue
 		}
 		var messages map[string]string
-		if err := sonic.Unmarshal(jsonc.ToJSON(data), &messages); err != nil {
+		if err := utils.UnmarshalJSONCSonic(data, &messages); err != nil {
 			panic(err)
 		}
 		for key, value := range messages {

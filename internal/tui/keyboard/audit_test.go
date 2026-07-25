@@ -12,7 +12,7 @@ import (
 )
 
 func TestBeginAuditUsesStableViewAndConnectionName(t *testing.T) {
-	i18n.Init("zh")
+	i18n.SetLang("zh")
 	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
 	app.Dependencies.Audit = audit.NewService(nil)
 	app.Navigation.ActivePanel = state.PanelContainers

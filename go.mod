@@ -11,7 +11,6 @@ require (
 	github.com/mattn/go-runewidth v0.0.24
 	github.com/pelletier/go-toml/v2 v2.4.3
 	github.com/shirou/gopsutil/v3 v3.24.5
-	github.com/tidwall/jsonc v0.3.3
 	go.podman.io/common v0.68.1
 	go.podman.io/podman/v6 v6.0.1
 	golang.org/x/text v0.38.0

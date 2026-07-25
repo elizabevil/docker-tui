@@ -4,7 +4,7 @@ import (
 	"embed"
 	"fmt"
 
-	"github.com/bytedance/sonic"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 // ColumnDef defines one column in a table profile.
@@ -70,7 +70,7 @@ func loadGlobalStyle() TableStyle {
 		return TableStyle{RowPrefix: "  ", RowPrefixSelected: "\u203a ", MinColumnWidth: 8, ColumnSpacing: 1}
 	}
 	var wrapper tableStyleJSON
-	if err := sonic.Unmarshal(data, &wrapper); err != nil {
+	if err := utils.UnmarshalJSONCSonic(data, &wrapper); err != nil {
 		return TableStyle{RowPrefix: "  ", RowPrefixSelected: "\u203a ", MinColumnWidth: 8, ColumnSpacing: 1}
 	}
 	s := wrapper.TableStyle
@@ -115,7 +115,7 @@ func Load(name string) (*TableConfig, error) {
 		return nil, fmt.Errorf("table config %q not found: %w", name, err)
 	}
 	var tc TableConfig
-	if err := sonic.Unmarshal(data, &tc); err != nil {
+	if err := utils.UnmarshalJSONCSonic(data, &tc); err != nil {
 		return nil, fmt.Errorf("parse table config %q: %w", name, err)
 	}
 	if tc.Stats.Interval <= 0 {

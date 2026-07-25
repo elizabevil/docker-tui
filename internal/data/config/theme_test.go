@@ -3,7 +3,7 @@ package config
 import (
 	"testing"
 
-	"github.com/bytedance/sonic"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 func TestDefaultTheme(t *testing.T) {
@@ -64,11 +64,11 @@ func TestJSONCComments(t *testing.T) {
 		}
 	}`)
 
-	cleaned, _ := sonic.Marshal(input)
+	cleaned := utils.StripJSONCComments(input)
 
 	// sonic should be able to parse the cleaned JSON
 	parsed := make(map[string]interface{})
-	if err := sonic.Unmarshal(cleaned, &parsed); err != nil {
+	if err := utils.UnmarshalJSONCSonic(cleaned, &parsed); err != nil {
 		t.Fatalf("failed to parse JSONC: %v\ncleaned:\n%s", err, string(cleaned))
 	}
 
@@ -88,9 +88,9 @@ func TestJSONCBlockCommentMidLine(t *testing.T) {
 		"colors": {/* nested */ "green": "#2ecc71"}
 	}`)
 
-	cleaned, _ := sonic.Marshal(input)
+	cleaned := utils.StripJSONCComments(input)
 	parsed := make(map[string]interface{})
-	if err := sonic.Unmarshal(cleaned, &parsed); err != nil {
+	if err := utils.UnmarshalJSONCSonic(cleaned, &parsed); err != nil {
 		t.Fatalf("failed to parse: %v\ncleaned:\n%s", err, string(cleaned))
 	}
 
@@ -101,7 +101,7 @@ func TestJSONCBlockCommentMidLine(t *testing.T) {
 
 func TestStripJSONCommentsNoComments(t *testing.T) {
 	input := []byte(`{"a": 1, "b": [2, 3]}`)
-	cleaned, _ := sonic.Marshal(input)
+	cleaned := utils.StripJSONCComments(input)
 	if string(cleaned) != string(input) {
 		t.Errorf("expected no change:\n  got:  %s\n  want: %s", string(cleaned), string(input))
 	}
@@ -110,9 +110,9 @@ func TestStripJSONCommentsNoComments(t *testing.T) {
 func TestStripJSONCommentsStringWithSlashes(t *testing.T) {
 	// Slashes inside strings should not be treated as comments
 	input := []byte(`{"url": "http://example.com/foo"}`)
-	cleaned, _ := sonic.Marshal(input)
+	cleaned := utils.StripJSONCComments(input)
 	parsed := make(map[string]interface{})
-	if err := sonic.Unmarshal(cleaned, &parsed); err != nil {
+	if err := utils.UnmarshalJSONCSonic(cleaned, &parsed); err != nil {
 		t.Fatalf("failed to parse: %v", err)
 	}
 	if parsed["url"] != "http://example.com/foo" {
@@ -123,9 +123,9 @@ func TestStripJSONCommentsStringWithSlashes(t *testing.T) {
 func TestStripJSONCommentsEscapedQuotes(t *testing.T) {
 	// Escaped quotes inside strings
 	input := []byte(`{"msg": "he said \"hello\" // not a comment"}`)
-	cleaned, _ := sonic.Marshal(input)
+	cleaned := utils.StripJSONCComments(input)
 	parsed := make(map[string]interface{})
-	if err := sonic.Unmarshal(cleaned, &parsed); err != nil {
+	if err := utils.UnmarshalJSONCSonic(cleaned, &parsed); err != nil {
 		t.Fatalf("failed to parse: %v", err)
 	}
 	if parsed["msg"] != "he said \"hello\" // not a comment" {

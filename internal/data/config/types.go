@@ -3,7 +3,7 @@ package config
 import (
 	"time"
 
-	"github.com/bytedance/sonic"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 const CurrentConfigVersion = 1
@@ -273,7 +273,7 @@ type LogsConfig struct {
 // loaded from the embedded default.jsonc and merged with Go-level defaults.
 func DefaultConfig() *Config {
 	var cfg Config
-	if err := sonic.Unmarshal([]byte(defaultConfigJSON), &cfg); err != nil {
+	if err := utils.UnmarshalJSONCSonic([]byte(defaultConfigJSON), &cfg); err != nil {
 		// Embedded JSONC should always parse; fallback if something goes wrong.
 		return fallbackConfig()
 	}

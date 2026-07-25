@@ -12,7 +12,7 @@ import (
 )
 
 func TestRuntimeSelectorShowsSafeTLSStateAndFailure(t *testing.T) {
-	i18n.Init(i18n.LanguageEnglish)
+	i18n.SetLang(i18n.LanguageEnglish)
 	pool := dockerclient.NewPool(nil)
 	pool.AddHost(dockerclient.HostEntry{
 		Name: "remote",
