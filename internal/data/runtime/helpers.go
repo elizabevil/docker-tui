@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/docker/docker/errdefs"
+	"github.com/containerd/errdefs"
 )
 
 type statusCoder interface{ Code() int }
@@ -44,19 +44,19 @@ func MapRuntimeError(err error, operation string, ref ResourceRef, driver Type) 
 			kind = ErrorNotFound
 		case errdefs.IsConflict(err):
 			kind = ErrorConflict
-		case errdefs.IsInvalidParameter(err):
+		case errdefs.IsInvalidArgument(err):
 			kind = ErrorInvalid
 		case errdefs.IsUnauthorized(err):
 			kind = ErrorAuthentication
-		case errdefs.IsForbidden(err):
+		case errdefs.IsPermissionDenied(err):
 			kind = ErrorPermission
 		case errdefs.IsNotImplemented(err):
 			kind = ErrorUnsupported
 		case errdefs.IsUnavailable(err):
 			kind = ErrorUnavailable
-		case errdefs.IsDeadline(err):
+		case errdefs.IsDeadlineExceeded(err):
 			kind = ErrorTimeout
-		case errdefs.IsCancelled(err):
+		case errdefs.IsCanceled(err):
 			kind = ErrorCanceled
 		default:
 			var coded statusCoder

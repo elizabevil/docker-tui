@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"sort"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/client"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
@@ -96,7 +98,8 @@ func splitImageRef(tags []string) (registry, name, tag string) {
 // InspectImageDetailContext returns full image detail with a caller-provided context.
 func (c *Client) InspectImageDetailContext(ctx context.Context, summary runtimeapi.ImageSummary) (*runtimeapi.ImageDetail, error) {
 	detail := NewImageDetailData(summary)
-	info, _, err := c.cli.ImageInspectWithRaw(ctx, summary.ID)
+	var rawBuf bytes.Buffer
+	info, err := c.cli.ImageInspect(ctx, summary.ID, client.ImageInspectWithRawResponse(&rawBuf))
 	if err != nil {
 		if detail.IsManifest && len(detail.ManifestVariants) > 0 {
 			detail.HistoryError = err.Error()
@@ -152,6 +155,7 @@ func (c *Client) InspectImageDetailContext(ctx context.Context, summary runtimea
 		detail.Labels = cloneStringMap(info.Config.Labels)
 	}
 	if len(detail.Labels) == 0 {
+		//nolint:staticcheck // ContainerConfig remains in API <1.45; fallback until the daemon negotiates a newer version.
 		detail.Labels = cloneStringMap(info.ContainerConfig.Labels)
 	}
 
