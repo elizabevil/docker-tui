@@ -1,471 +1,139 @@
 # 后续需求实施任务清单
 
-> 建立日期: 2026-07-20
-> 最近整理: 2026-07-25
-> 依据: [后续需求与规划讨论](future-requirements-discussion.md)、[Docker / Podman 能力分析](podman-capabilities-analysis.md)、[Podman REST 适配与 docker/service 统一方案](podman-rest-migration.md)
-> 规则: 本文是后续工作的唯一主任务台账；其他设计文档中的任务编号仅作为来源参考。
+> 建立日期：2026-07-20
+> 最近整理：2026-07-25
+> 依据：[后续需求与规划讨论](future-requirements-discussion.md)、[Docker / Podman 能力分析](podman-capabilities-analysis.md)、[Podman REST 迁移设计](podman-rest-migration.md)
+> 规则：本文是任务状态的唯一台账；设计文档用于说明方案，不单独决定任务状态。
 
 ## 状态定义
 
 | 状态 | 含义 |
-|-----|---|
-| `todo` | 范围已明确，尚未开始 |
-| `in_progress` | 已存在未完成的代码或文档改动 |
-| `done` | 已实现、通过回归并提交 |
-| `blocked` | 缺少外部条件或尚未完成产品决策 |
-
-任务只有满足文末"完成定义"后才能标记为 `done`。分析文档完成不等于代码能力完成。任务完成前必须补全"完成证据 / Phase 进度"列。
+|---|---|
+| `todo` | 范围明确，尚未开始 |
+| `in_progress` | 已开始，但尚未满足完成定义 |
+| `done` | 已实现、验证并提交 |
+| `blocked` | 缺少外部条件或产品决策 |
+| `cancelled` | 经决策不再实施，不计入待办 |
 
 ## 当前概况
 
-| 状态 | 数量 |
-|-----|:---:|
-| `done` | 22 |
-| `in_progress` | 1 (`TASK-023`) |
-| `todo` | 2 |
-| `blocked` | 0 |
+| 状态 | 数量 | 任务 |
+|---|---:|---|
+| `done` | 22 | TASK-001～013、TASK-015～019、TASK-021、TASK-022、TASK-024、TASK-025 |
+| `in_progress` | 1 | TASK-023 |
+| `todo` | 2 | TASK-014、TASK-020 |
+| `blocked` | 0 | — |
 
-最近一次维护说明：
+当前执行顺序：
 
-- `TASK-022`（Podman REST 适配收紧）已 `done`：Phase A/D/F 已落地，Phase B/C/D-2/E 已取消。
-- `TASK-023`（runtime/podman 代码规范与文档优化）已 `in_progress`：已完成 37 个导出符号的 Go doc 注释添加，package 级别文档补充，所有现有注释符合 Go 规范。
-- `TASK-013`（鼠标与小终端降级布局）已 `done`：新增 `internal/tui/ui/app/compact.go` 提供 `TerminalClass` 分级（`Unsupported` / `Compact` / `Standard`）+ `renderCompactApp` 单行 header/footer 紧凑布局；`internal/tui/ui/app/mouse.go` 提供 `HitTest`/`ApplyMouseClick` 命中测试与指针路由，仅左键生效、不破坏键盘路径；新增 `UIConfig.EnableMouse` 配置项（默认开启）。
-- `TASK-025`（企业级 lint 规则与代码整洁度治理）已 `done`：`.golangci.yml` 启用 130/120/15/5 规则，9 大类 linter（`errcheck`/`unused`/`ineffassign`/`staticcheck`/`gosimple`/`gofmt`/`revive`/`gocritic` 等）累计清零或显著收敛；新增 `mapContainerErr` / `mapPodmanContainerErr` 等 6 个错误映射 helper；`errdefs` 完成从 `docker/errdefs` 到 `containerd/errdefs` 的迁移；总计 9473 → 524 个 lint 问题（94.5% 收敛）。见下方"TASK-025\"章节。\n- `TASK-019`（高级容器操作 `update`/`diff`/`export`/`commit`/`wait`/`copy`）已 `done`：双适配器 + 调度路由 + 键位 + 测试全部落地。\n- `TASK-010`（批量操作聚合）已 `done`：统一 `BatchActioned` 消息。\n- `TASK-011`（事件联动刷新）已 `done`：`handleEventFlush` 按依赖图扩展刷新集。
+1. 完成 `TASK-023` 的运行时适配层文档与接口契约整理。
+2. 推进 `TASK-014` 的发布、命名和跨平台分发。
+3. 推进 `TASK-020` 的 Docker / Podman 专有能力评估。
 
-- TASK-021 仅完成"运行时适配解耦 + Podman/Docker 各自独立 Engine"，但**仍有两套 service 入口**（Docker 走 SDK，Podman 走 REST + CGO）。上层调用方仍分散在 `internal/data/runtime/docker/` 与 `internal/data/runtime/podman/` 两个包。
-- 当前没有 `docker/service` 统一入口，业务方仍需知道"当前是 Docker 还是 Podman"。
-- `runtime/podman` 没有干净隔离 `runtimeapi.*` 域模型，原生 Action 仍用 raw `string`，全仓匿名 struct 也没清零。
+## 任务总览
 
-TASK-022 已完成，解锁 TASK-023（运行时适配层注释优化、Go doc 规范化、API 文档补充）。
-
-当前执行队列：
-
-1. **推进 `TASK-022`（in_progress）** — Phase A/D/F 已完成，B/C/D-2/E 已取消。
-2. `TASK-023` — 等 TASK-022 收尾后启动。
-3. `TASK-013` / `TASK-014` / `TASK-020` — P3 后续。
-
-### 温和大规模（WARMIER大）任务更新 - 当前交付周期下的交付框架
-
-为适应当前交付周期，为最终交付制定新的框架，旨在：
-
-- 推进 P3 目标后置（发布、命名、发布、内容/专有能力评估等）
-- 保持运行时优先（推动 TASK-022 落地，以此优化运行时生态，为 TASK-023 提供支持）
-- 推进 P3 持续抓手（确保 P3 温和实践持续进行）
-
-#### 当前状态下的任务调整建议：
-
-** 当前 TASK-022 的前置依赖：** TASK-021 & TASK-024 已达标
-
-** 执行前提：** 1. TASK-021、TASK-024 已达成
-
-** P3 后续任务实施范围：**
-
-| 任务编号 | 标签 | 核心关注点 | 当前状态 | P3 温和重要性 |
-|---|---|:---|:---|:---|
-| TASK-001 .. TASK-011 | ✅ | 核心体验，运行时稳定 | `done` | 稳定基线 |
-| TASK-012 .. TASK-024 | ✅ | UI/TUI 核心，鼠标、小终端 | `done` | 生产经验 |
-| TASK-025 | ✅ | 代码质量 + 94.5% lint 减政 | `done` | 持续质量 |
-
-** P3 温和目标：**
-
-| 任务编号 | 主题 | P3 温和重点 | 依赖 | 注意事项 |
-|---|---|:---|:---|:---|
-| TASK-022 | 运行时适配收紧 | 清理残余匿名 struct + DTO 隔离 + 统一 service 入口 | TASK-021 | 达到 "Task End" 后标记 `done` |
-| TASK-023 | 废弃 podman_*.go 等实现 | 清除 docker 目录中专用的 podman_* 实现 | TASK-022 | 支持转向 8 个 docker 产物处理新 service |
-| TASK-014 | 发布与跨平台 | 统一命名、制品、版本信息、发布文档 | 稳定配置 | 发布说明、CI 验证主线 |
-| TASK-020 | Podman 专有能力评估 | Podman 的 pod/secret/kube 与 Docker 的 buildx/context 等能力区分 | TASK-021 | 版本级特有功能方案 |
-
-** P3 温和主要执行队列：**
-
-1. **首先：** 完成 TASK-022 → 启动 TASK-023 → 巩固运行时生态
-2. **并行推进：** P3 任务同时进行 - TUI 核心 + 发布 + 命名 + 专有能力评估
-3. **全力加速：** 持续清理 lint、测试、代码风格、性能保障
-
-** P3 技术债收尾清单（温和核心）：**
-
-| 领域 | 目标 | 注意事项 |
-|---|---|:---|
-| runtime/ | 去共享字段及 runtimeapi.* 依赖 | runtimeapi.Action 等零 go.podman.io 依赖 |
-| internal/data/config/ | 删除冗余状态 | 清理 typed-nil 接口 |
-| docker/ | 保留基本适配层 | 社区已搜索，偷得浮生半日闲 |
-| podmanContainerService | 完全清零 | 保留 8 个旧组件索引 |
-| ui/ | 保持淡入淡出 | 稳定性优于重排 UI |
-| 测试 | 保持契约测试 | 新覆盖率 + lint 整合 |
-
-** P3 温和指导原则：**
-
-- **保持小步更新：** 每代 UI/TUI 新增 Feature + 维护前沿标准
-- **稳定优先：** 避免重大 ref 生命周期，避免大规模新 UI 流动
-- **运行时稳定：** 保持 Active/Pending 状态路由正确，保持默认状态可靠，保持基于能力；
-- **TUI 优化：** 保持小终端支持，避免重排清零导航保持 debug/\n- **清理技术债：** 清理所有废弃实现，保持代码社区标准，防止 lint 回归，保持 CI 快速通过，保持低风险
-
-TUI 保持稳定性，优化运行时-运行时运行正常，实现四个坚持目标。
-
-** P3 状态：**
-
-- **`done`**: 已实现、通过回归并提交，通过 lint + 测试
-- **`in_progress`**: 已存在未完成的代码/文档更新，暂时中止了
-- **`blocked`**: 没有配置依赖，不完全任务状态，未配置不做更新
-- **`todo`**: 范围明确，已准备开始
-
-** 运行时-运行时运行正常：**
-
-| 阶段 | 任务编号 | 进展 | 状态 | 证据 |
-|---|---|:---|:---|:---|\n| **核心能力交付** | TASK-001（配置错误投影） | 完成 | `done` | ✅ |
-| | TASK-002（连接选择框） | 完成 | `done` | ✅ |
-| | TASK-003（健康检测） | 完成 | `done` | ✅ |
-| **运行时适配** | TASK-004（Docker/Podman 识别） | 完成 | `done` | ✅ |
-| | TASK-005（TLS 配置） | 完成 | `done` | ✅ |
-| | TASK-006（连接去重） | 完成 | `done` | ✅ |
-| **运行时协议解析** | TASK-007（配置强校验） | 完成 | `done` | ✅ |
-| **运行时适配收紧** | TASK-021（Docker/Podman 统一 driver） | 完成 | `done` | ✅ |
-| | TASK-008（事件接入） | 完成 | `done` | ✅ |
-| | TASK-009（Volume/Network） | 完成 | `done` | ✅ |
-| | TASK-024（Podman 镜像详情） | 完成 | `done` | ✅ |
-\n### TUI - UI/TUI 核心\n\n| 阶段 | 任务编号 | 进展 | 状态 | 证据 |\n|---|---|:---|:---|:---|\n| **应用核心架构** | TASK-015（状态域拆分） | 完成 | `done` | ✅ |\n| **运行时-错误体验** | TASK-016（安全状态展示） | 完成 | `done` | ✅ |\n| **资源-实时同步** | TASK-017（高频容器操作） | 完成 | `done` | ✅ |\n| | TASK-018（镜像传输） | 完成 | `done` | ✅ |\n| | TASK-019（高级容器操作） | 完成 | `done` | ✅ |\n| **UI-TUI 核心** | TASK-012（审计历史面板） | 完成 | `done` | ✅ |\n| | TASK-013（鼠标+小终端） | 完成 | `done` | ✅ |\n| | TASK-025（代码质量） | 完成 | `done` | ✅ |\n\n### P3 后续（温和规划）\n
-| 任务编号 | 主题 | 目标 | 注意事项 |
-|---|---|:---|:---|\n| TASK-022 | Podman REST 适配收紧 | 完成 Schema / DTO / 类型隔离 | 达到 Overall Test 后标记 done |
-| TASK-023 | runtime/podman 代码规范与文档优化 | 运行时适配层注释优化 + Go doc 规范化 + API 文档补充 | TASK-022 已完成，进行中 |
-| TASK-014 | 发布与跨平台 | 统一命名、版本、发布文档 | 保持稳定版本 |
-| TASK-020 | Podman 专有能力评估 | Podman 的 pod/secret/kube 与 Docker 的 buildx/context 等能力区分 | 版本级特有功能 |
-
-### P3 状态更新\n
-#### 2026-07-24 P3 任务前缓存状态：\n
-| 任务编号 | 任务 | 状态 | 阶段 | 目标 | 依赖 | 注意事项 |\n|---|---|:---|---|---|:---|:---|\n| TASK-022 | 运行时适配收紧 | `in_progress` | Phase A/D/F 已完成，Phase B/C/E 已取消 | 运行时适配槽 + 运行时适配收紧 | TASK-021 | 禁止重新设计运行时 / 运行时操作 while (运行时适配收紧) |\n\n#### 2026-07-24 P3 实现状态 - 前缓存的情况：\n
-| 任务编号 | 任务 | 状态 | 需要尽快完成 | 证据 | 验收点 |\n|---|---|:---|:---|:---|:---|\n| TASK-022 | 运行时适配收紧 | `in_progress` | 运行时适配收紧 | 正在完成 | dto/类型隔离 + 共享字段去重 |\n\n进行中任务：\n
-| 任务编号 | 任务 | 状态 | 当前依赖 | 成功公理 | 欠缺 | 需要改进 |\n|---|---|:---|:---|:---|:---|\n| TASK-022 | 运行时适配收紧 | `in_progress` | TASK-021 | Phase A/D/F 已完成，Phase E 已取消 | 需要清理有限的 runtimeapi.* 运行时依赖，需要去重运行时共享字段\n\n### 当前任务状态生效之外\n
-#### 2026-07-24 阈值规划执行状态 - 当前待缓存：\n
-| 任务编号 | 任务 | 状态 | 已完成 / 目标 | 计划 | 依存关系 | 需要尽快完成 | 成功认证 | 待改进 |\n|---|---|:---|:---|:---|:---|:---|:---|:---|\n| TASK-023 | runtime/podman 代码规范与文档优化 | `in_progress` | 运行时适配层注释优化 + Go doc 规范化 + API 文档补充 | TASK-022 已完成 | TASK-022 | 进行中 | - |\n\n### 运行时 - 运行时运行正常\n
-| 阶段 | 任务编号 | 状态 | 已完成 / 计划 | 进展 | 依存关系 | 证据 | 验收点 |\n|---|---|:---|:---|:---|:---|:---|:---|\n| **核心能力交付** | TASK-001（配置错误投影） | `done` | ✅ | 达成目标 | TASK-005 | ✅ | ✅ |\n\n### 根据"概述"中提供的"迄今的重点状态"栏提交的新状态变化
-
-** 概述 **\n
-
-| 状态 | 数量 |
-|---|---:|:---:|
-| `done` | 21 |
-| `in_progress` | 1 (`TASK-022`) |
-| `todo` | 3 |
-| `blocked` | 0 |
-
-最近一次维护说明：\n\n- TASK-013（鼠标与小终端降级布局）已 `done`：新增 `internal/tui/ui/app/compact.go` 提供 `TerminalClass` 分级（`Unsupported` / `Compact` / `Standard`）+ `renderCompactApp` 单行 header/footer 紧凑布局；`internal/tui/ui/app/mouse.go` 提供 `HitTest`/`ApplyMouseClick` 命中测试与指针路由，仅左键生效、不破坏键盘路径；新增 `UIConfig.EnableMouse` 配置项（默认开启）。\n- TASK-025（企业级 lint 规则与代码整洁度治理）已 `done`：`.golangci.yml` 启用 130/120/15/5 规则，9 大类 linter（`errcheck`/`unused`/`ineffassign`/`staticcheck`/`gosimple`/`gofmt`/`revive`/`gocritic` 等）累计清零或显著收敛；新增 `mapContainerErr` / `mapPodmanContainerErr` 等 6 个错误映射 helper；`errdefs` 完成从 `docker/errdefs` 到 `containerd/errdefs` 的迁移；总计 9473 → 524 个 lint 问题（94.5% 收敛）。见下方"TASK-025\"章节。\n- TASK-019（高级容器操作 `update`/`diff`/`export`/`commit`/`wait`/`copy`）已 `done`：双适配器 + 调度路由 + 键位 + 测试全部落地。\n- TASK-010（批量操作聚合）已 `done`：统一 `BatchActioned` 消息。\n- TASK-011（事件联动刷新）已 `done`：`handleEventFlush` 按依赖图扩展刷新集。\n- TASK-022（Podman REST + docker/service 统一）仍 `in_progress`：Phase A/D/F 已落地，B/C/D-2/E 已取消。\n\n### P3 任务最终更新（2026-07-25）\n\n** P3 任务最终更新 **到当前设计。P3 任务即当前项目中正在专注的"温和大规模"的任务：清理技术债，保持运行时-运行时-运行时运行正常，保持TUI稳定性，优化运行时-运行时运行情况，实现P3温和目标。\n\n** P3 温和目标：**
-
-1.** 首先：**完成 TASK-022 → 清理 TASK-023 → 巩固运行时生态
-2.** P3 任务同时进行 - TUI 核心 + 发布 + 命名 + 专有能力评估
-3.** 全力加速 - 持续清理 lint、测试、代码风格、性能保障。\n\n** P3 任务列表(温和)：**
-
-| 任务编号 | 任务 | 状态 | 当前已完成/计划 | 任务范围 | 温和目标 | 需要改进 | 证据 | 需要尽快完成 | 验收点 |\n|---|---|:---|:---|:---|:---|:---|:---|:---|:---|\n| `TASK-022` | 运行时适配收紧 | `in_progress` | Phase A/D/F已完成，Phase B/C/E已取消 | 需要去共享字段及runtimeapi.*运行时依赖，需要去重运行时共享字段 | 运行时适配收紧 | - | - |\n| `TASK-023` | Podman_*.go废弃与迁移 | `todo` | 需要完成 → 清理 | 清理docker目录中podman_*实现 | ✅ | ✅ | ✅ | ✓ | ✓ |\n| `TASK-014` | 发布与跨平台 | `todo` | 需要完成 → 发布、命名、制品、版本和说明 | 统一命名、构建、发布文档、CI验证主线 | - | - | - | - |\n| `TASK-020` | Podman专有能力评估 | `todo` | 需要完成 → 分离Podman的pod/secret/kube与Docker的buildx/context等能力 | 版本级特有功能决策方案 | - | - | - | - |\n\n** P3 状态定义：**
-
-- **`done`**: 已实现、通过回归并提交，通过 lint + 测试
-- **`in_progress`**: 已存在未完成的代码/文档更新，暂时中止
-- **`blocked`**: 缺少外部条件或产品决策未完成
-- **`todo`**: 范围明确，已准备开始
-
-### 概述
-
-| 状态 | 数量 |
-|---|---:|:---:|
-| `done` | 21 |
-| `in_progress` | 1 (`TASK-022`) |
-| `todo` | 3 |
-| `blocked` | 0 |
-
-最近一次维护说明：\n\n- TASK-013（鼠标与小终端降级布局）已 `done`：新增 `internal/tui/ui/app/compact.go` 提供 `TerminalClass` 分级（`Unsupported` / `Compact` / `Standard`）+ `renderCompactApp` 单行 header/footer 紧凑布局；`internal/tui/ui/app/mouse.go` 提供 `HitTest`/`ApplyMouseClick` 命中测试与指针路由，仅左键生效、不破坏键盘路径；新增 `UIConfig.EnableMouse` 配置项（默认开启）。\n- TASK-025（企业级 lint 规则与代码整洁度治理）已 `done`：`.golangci.yml` 启用 130/120/15/5 规则，9 大类 linter（`errcheck`/`unused`/`ineffassign`/`staticcheck`/`gosimple`/`gofmt`/`revive`/`gocritic` 等）累计清零或显著收敛；新增 `mapContainerErr` / `mapPodmanContainerErr` 等 6 个错误映射 helper；`errdefs` 完成从 `docker/errdefs` 到 `containerd/errdefs` 的迁移；总计 9473 → 524 个 lint 问题（94.5% 收敛）。见下方"TASK-025\"章节。\n- TASK-019（高级容器操作 `update`/`diff`/`export`/`commit`/`wait`/`copy`）已 `done`：双适配器 + 调度路由 + 键位 + 测试全部落地。\n- TASK-010（批量操作聚合）已 `done`：统一 `BatchActioned` 消息。\n- TASK-011（事件联动刷新）已 `done`：`handleEventFlush` 按依赖图扩展刷新集。\n- TASK-022（Podman REST + docker/service 统一）仍 `in_progress`：Phase A/D/F 已落地，B/C/D-2/E 已取消。\n\n### P3 任务最终更新（2026-07-25）\n\n** P3 任务最终更新 **到当前设计。P3 任务即当前项目中正在专注的"温和大规模"的任务：清理技术债，保持运行时-运行时-运行时运行正常，保持TUI稳定性，优化运行时-运行时运行情况，实现P3温和目标。\n\n** P3 温和目标：**
-
-1.** 首先：**完成 TASK-022 → 清理 TASK-023 → 巩固运行时生态
-2.** P3 任务同时进行 - TUI 核心 + 发布 + 命名 + 专有能力评估
-3.** 全力加速 - 持续清理 lint、测试、代码风格、性能保障。\n\n** P3 任务列表(温和)：**
-
-| 任务编号 | 任务 | 状态 | 当前已完成/计划 | 任务范围 | 温和目标 | 需要改进 | 证据 | 需要尽快完成 | 验收点 |\n|---|---|:---|:---|:---|:---|:---|:---|:---|:---|\n| `TASK-022` | 运行时适配收紧 | `in_progress` | Phase A/D/F已完成，Phase B/C/E已取消 | 需要去共享字段及runtimeapi.*运行时依赖，需要去重运行时共享字段 | 运行时适配收紧 | - | - |\n| `TASK-023` | Podman_*.go废弃与迁移 | `todo` | 需要完成 → 清理 | 清理docker目录中podman_*实现 | ✅ | ✅ | ✅ | ✓ | ✓ |\n| `TASK-014` | 发布与跨平台 | `todo` | 需要完成 → 发布、命名、制品、版本和说明 | 统一命名、构建、发布文档、CI验证主线 | - | - | - | - |\n| `TASK-020` | Podman专有能力评估 | `todo` | 需要完成 → 分离Podman的pod/secret/kube与Docker的buildx/context等能力 | 版本级特有功能决策方案 | - | - | - | - |\n\n** P3 状态定义：**
-
-- **`done`**: 已实现、通过回归并提交，通过 lint + 测试
-- **`in_progress`**: 已存在未完成的代码/文档更新，暂时中止
-- **`blocked`**: 缺少外部条件或产品决策未完成
-- **`todo`**: 范围明确，已准备开始
-
-### 任务结束
-
-每个任务完成前必须满足以下几个标准：
-
-1. 代码行为与讨论文档中的已确认决策一致。
-2. Docker 与 Podman 共用能力不得通过散落的 runtime 字符串分支实现；差异应收敛到 runtime/data 层。
-3. 至少覆盖主路径、失败路径；双运行时能力应包含 Docker / Podman 测试或明确的环境验证记录。
-4. 配置参数必须在读取后校验，运行期不得重复修正非法配置。
-5. 状态结构应通过方法维护自身不变量，避免将相关字段作为散装参数传递。
-6. `git diff --check` 和 `just check` 通过。
-7. README、架构、需求状态及本任务台账同步。
-8. 独立提交，提交信息包含任务或需求语义。
-
-### 提交更新
-
-```bash
-git add -A
-git commit -m "温和P3更新 - 当前交付周期下的交付框架更新"
-git log --oneline -10
-```
-
-为此更新的提交已经完成，日志显示 "温和P3更新 - 当前交付周期下的交付框架更新" 的提交已在历史记录中。设计文档中的任务编号仅作为来源参考，本文是后续工作的唯一主任务台账。
-
-## 已完成基础
-
-| 编号 | 任务 | 优先级 | 状态 | 完成证据 |
-|---|---|---:|---|---|
-| `TASK-001` | 连接失败错误投影与断开状态展示 | P0 | `done` | 启动失败不再显示虚假 Docker，目标与错误可见 |
-| `TASK-002` | F2 连接选择框 | P0 | `done` | 支持上下选择、Enter 连接、Esc 取消和失败项错误保留 |
-| `TASK-003` | 可配置连接健康检测 | P0 | `done` | 默认 3 秒、失败阈值、恢复通知且不自动切换 |
-| `TASK-004` | Docker / Podman 运行时识别与统一基线 | P1 | `done` | `RuntimeType`、连接池和客户端使用统一类型；能力差距已有分析 |
-| `TASK-005` | TLS 配置与客户端接线 | P0 | `done` | `RuntimeConn.TLS`、CA、客户端证书和 ServerName 已接入客户端 |
-| `TASK-006` | endpoint / runtime identity 去重 | P1 | `done` | 本地候选与配置连接按规范化 key 去重并保持顺序 |
-| `TASK-007` | 新配置 schema 强制校验 | P1 | `done` | 解码后按配置子结构校验，运行期直接使用已验证的健康参数 |
-
-相关提交：`7cf479a`、`948d9d2`、`aa7567d`、`4fe226d`、`801eb76`、`f71d405`。
-
-## 当前架构任务
-
-| 编号 | 任务 | 优先级 | 状态 | 已完成 / 剩余范围 |
-|---|---|---:|---|---|
-| `TASK-015` | [拆分 `AppModel` 状态域并封装状态方法](app-model-refactoring.md) | P1 | `done` | `AppModel` 仅组合 14 个命名状态域；状态生命周期、独立输入和只读渲染边界均已落地 |
-
-`TASK-015` 已按领域逐步迁移完成。顶层 `AppModel` 负责 Bubble Tea 协调，子状态维护自身不变量。
-
-## Runtime 与错误体验
-
-| 编号 | 任务 | 优先级 | 状态 | 依赖 | 验收重点 |
+| 编号 | 任务 | 优先级 | 状态 | 依赖 | 完成证据 / 剩余范围 |
 |---|---|---:|---|---|---|
-| `TASK-016` | TLS / 证书错误分类与安全状态展示 | P0 | `done` | TASK-005 | 已结构化区分 CA、客户端证书、主机名、握手和网络错误；选择框、Toast 与状态栏使用本地化安全文案，并区分 TLS 已配置/已验证/不安全 |
+| `TASK-001` | 连接失败错误投影与断开状态展示 | P0 | `done` | — | 启动失败不再显示虚假运行时，目标连接与错误可见 |
+| `TASK-002` | F2 连接选择框 | P0 | `done` | TASK-001 | 支持上下选择、Enter 连接、Esc 取消及失败项错误保留 |
+| `TASK-003` | 可配置连接健康检测 | P0 | `done` | TASK-001 | 支持检测间隔、超时、失败阈值与恢复通知，不静默切换 |
+| `TASK-004` | Docker / Podman 运行时识别与统一基线 | P1 | `done` | — | 连接池、客户端和 UI 使用统一 `RuntimeType` |
+| `TASK-005` | TLS 配置与客户端接线 | P0 | `done` | TASK-001 | CA、客户端证书、私钥和 ServerName 已接入 |
+| `TASK-006` | endpoint / runtime identity 去重 | P1 | `done` | TASK-004 | 本地候选与配置连接按规范化标识去重并保持顺序 |
+| `TASK-007` | 新配置 schema 强校验 | P1 | `done` | TASK-003、TASK-005 | 配置读取后统一校验，运行期直接使用已验证参数 |
+| `TASK-008` | Docker / Podman Events 接入主循环 | P1 | `done` | TASK-003、TASK-021 | 活动连接订阅、取消、退避重连、事件合并与轮询降级已完成 |
+| `TASK-009` | Volume / Network 创建与清理 | P1 | `done` | TASK-021 | create、prune、确认、部分失败反馈及双运行时契约测试已完成 |
+| `TASK-010` | 批量操作扩展与部分成功反馈 | P2 | `done` | TASK-017 | 统一 `BatchActioned` 汇总、审计与资源刷新 |
+| `TASK-011` | Compose / 容器 / 镜像联动刷新 | P2 | `done` | TASK-008 | `handleEventFlush` 按资源依赖图扩展刷新集 |
+| `TASK-012` | 审计操作历史面板 | P2 | `done` | TASK-001 | 审计列表、筛选、详情、导航和实时同步已完成 |
+| `TASK-013` | 鼠标与小终端降级布局 | P3 | `done` | 页面固定轨道 | 三档终端布局、鼠标命中路由、配置开关和测试已完成；提交 `9d14ae5` |
+| `TASK-014` | 发布、命名和跨平台分发 | P3 | `todo` | 配置稳定 | 统一名称、版本、构建产物、Linux / macOS 发布说明和 CI 验证 |
+| `TASK-015` | 拆分 `AppModel` 状态域 | P1 | `done` | — | 顶层模型仅负责协调，命名状态域维护自身不变量 |
+| `TASK-016` | TLS / 证书错误分类与安全状态展示 | P0 | `done` | TASK-005 | CA、客户端证书、主机名、握手和网络错误已结构化展示 |
+| `TASK-017` | 高频容器操作 | P0 | `done` | TASK-004 | pause、unpause、rename、top、port 与批量约束已完成 |
+| `TASK-018` | 镜像标签与传输工作流 | P1 | `done` | TASK-021 | tag、push、save、load、进度、取消、错误和审计终态已完成 |
+| `TASK-019` | 高级容器操作 | P2 | `done` | TASK-017、TASK-021 | update、diff、export、commit、wait、copy 的双适配器实现和测试已完成 |
+| `TASK-020` | Docker / Podman 专有能力评估 | P3 | `todo` | TASK-004 | 决策 Podman pod/secret/kube 与 Docker buildx/context 的产品边界 |
+| `TASK-021` | Docker / Podman 统一 runtime driver | P0 | `done` | TASK-004 | 独立 Engine、统一服务契约、错误、能力与连接池工厂已完成 |
+| `TASK-022` | Podman REST 适配收紧 | P1 | `done` | TASK-021、TASK-024 | Phase A/D/F 已完成；Phase B/C/D-2/E 经范围决策取消 |
+| `TASK-023` | runtime/podman 代码规范与文档优化 | P2 | `in_progress` | TASK-022 | 已补充导出符号 Go doc 和 package 文档；剩余 API 文档、接口契约说明及最终验证 |
+| `TASK-024` | Podman 镜像详情与连接池工厂化 | P1 | `done` | TASK-021 | Podman Image Inspect、History 降级、工厂注入和 typed-nil 防御已完成 |
+| `TASK-025` | lint 规则与代码整洁度治理 | P1 | `done` | — | 核心 lint 类清零或收敛，问题数 9473 → 524；提交序列已落地 |
 
-TLS 配置与客户端链路由 `TASK-005` 完成，错误分类、安全提示与连接标识由 `TASK-016` 完成。
+## 当前任务
 
-## 实时同步与资源操作
+### TASK-023：runtime/podman 代码规范与文档优化
 
-| 编号 | 任务 | 优先级 | 状态 | 依赖 | 验收重点 |
-|---|---|---:|---|---|---|
-| `TASK-021` | [Docker / Podman 统一 runtime driver](unified-runtime-driver.md) | P0 | `done` | TASK-004 | 独立 Docker/Podman Engine；统一 Container/Image/Volume/Network service；Podman native actions、Logs、Events、Exec、镜像 Inspect（runtime.ImageDetail 对齐）；同字段 AND 筛选；统一 errors/capabilities；TUI/state 仅依赖 `runtime.Engine`；CGO/non-CGO 矩阵通过；连接池通过 `EngineFactory` 注入，typed-nil 接口经反射清理 |
-| `TASK-008` | Docker / Podman Events 接入主循环 | P1 | `done` | TASK-003、TASK-021 | 订阅绑定活动连接；切换时取消；1-30 秒退避重连；100ms 事件合并；按资源局部刷新；15 秒轮询降级 |
-| `TASK-009` | Volume / Network 创建与清理 | P1 | `done` | TASK-021 | 已完成 create、prune、确认交互、逐资源部分失败反馈、Docker/Podman contract tests 和双构建矩阵 |
-| `TASK-010` | 批量操作扩展与部分成功反馈 | P2 | `done` | 审计模型、TASK-017 | 统一 `state.BatchActioned` 消息聚合 Total/Success/Failed/Skipped + FailedIDs；`executeBatchAction`、`executeBulkDelete`、`doComposeStart/Stop/Down` 全部发出一条汇总；`handleBatchActioned` 完成审计（succeeded/partial/failed）并按 `ResourceType` fetch 对应列表 |
-| `TASK-011` | Compose / 容器 / 镜像联动刷新 | P2 | `done` | TASK-008 | `handleEventFlush` 现在按依赖关系扩展刷新集：image 事件触发 images + containers；volume / network 事件触发 volumes/networks + containers；容器列表更新即重新渲染 Compose / 镜像容器数面板 |
-| `TASK-017` | 高频容器操作 | P0 | `done` | TASK-004 | 已实现状态约束的 `pause` / `unpause`、批量跳过汇总、`rename` 输入校验、独立 `top` 页面和结构化 `port` 展示，并通过 Docker / Podman 兼容 API 契约测试 |
-| `TASK-018` | 镜像标签与传输工作流 | P1 | `done` | TASK-021 | runtime-neutral transfer service；`tag`、`push`、`save`、`load`；字节/daemon 进度、context 取消、错误展示和审计终态 |
-| `TASK-024` | [Podman 镜像详情 + 连接池工厂化重构](unified-runtime-driver.md) | P1 | `done` | TASK-021 | 补齐 TASK-021 Phase 2 中 Podman `ImageService.Inspect` 的 TODO；移除 `global engineFactory` 与 `SetEngineFactory`；`runtimeinit.NewEngineFactory()` 与 `runtime.EngineFactory` 注入到 `runtimeapi.NewPool`；`sanitizeEngine` / `engineIsUsable` 反射防御 typed-nil 接口；APIVersion 回退覆盖所有错误而非仅 404；`RefreshAll` 替换 `Probe`/`pingAll`；`refreshOne` 对 transient 引擎真实 ping。本条目是 TASK-021 收尾增量 |
-| `TASK-019` | 高级容器操作 | P2 | `done` | TASK-017、TASK-021 | 6 个新 Action 常量（`update`/`diff`/`export`/`commit`/`wait`/`copy`）；`ContainerService` 接口新增 6 个方法 + 对应类型（`ContainerUpdateOptions`/`ContainerUpdateResult`、`ContainerDiffChange`/`ChangeKind`、`ContainerCommitOptions`/`ContainerCommitResult`、`ContainerWaitResult`/`ContainerWaitError`）；Docker SDK + Podman Libpod REST 双适配器实现；`ResourceActionService` 调度路由更新；`default.jsonc` 添加 6 个键位（ctrl+w/f2/ctrl+x/ctrl+k/ctrl+y/ctrl+o）；`KeymapConfig` + 6 个新 `KeyAction`；`ActionOptions` 扩展 11 个新字段；测试 4 个用例 + 7 个 URL 测试。 |
-| `TASK-022` | [Podman REST 适配收紧](podman-rest-migration.md) | P1 | `done` | TASK-021 | `runtime/podman.Client` 方法式 + `dto.*` 签名 + 驱动/REST 双形态；`gpgme` 仅 CGO；`dto/` 具名类型零 `go.podman.io` 依赖；全仓匿名 struct 清零。**Phase A/D/F 已落地（gpgme 隔离 + 匿名 struct 清零 + 验证矩阵），Phase B/C/D-2/E 已取消。** |
-| `TASK-023` | runtime/podman 代码规范与文档优化 | P2 | `in_progress` | TASK-022 | 运行时适配层注释优化；Go doc 规范化；API 文档补充；接口契约说明完善 |
+状态：`in_progress`
 
-#### `TASK-022` 进度分解（2026-07-24 用户最终修订）
+已完成：
 
-G2 取消双签名 / G4 取消 docker/service 层 / G5 取消 docker/service 层 / G9 取消 docker/service 评审之后，Phase 重排如下：
+- 为运行时适配层导出符号补充符合 Go doc 规范的注释。
+- 补充 package 级说明。
+- 清理不符合导出符号命名规则的既有注释。
 
-| Phase | 内容 | G 覆盖 | 状态 | 证据 / 缺口 |
-|---|---|---|---|---|
-| A | **gpgme 仅 CGO**（按 `go mod why` 锁定传染路径） | G7、G10 | `done` | 传染源为 `go.podman.io/image/v5/signature` → `github.com/proglottis/gpgme`，仅通过 `internal/driver/podman/{driver_cgo.go,client_default_driver_cgo.go,dto/*_cgo.go}` 引入。`CGO_ENABLED=0 go list -deps ./cmd/docker-tui` 已验证零 gpgme / keybase 依赖；`CGO_ENABLED=1` 构建保持完整功能。 |
-| B | `dto/` 补齐全部具名类型（含 `dto.Action` 字符串枚举、ActionOptions、ActionResult） | G5、G6、G7 | `cancelled` | **取消**：决策项 D10 同意但本轮不强求；当前 `dto.Action` 通过 `runtimeapi.Action` 字符串别名已可工作，下游调用方在 Phase C 撤销时同步迁移即可。 |
-| C | `internal/driver/podman.Client` **方法化 + 一次性破坏性签名迁移**（把 `string action` 替换为 `dto.Action`；调用方同步迁移到 `dto.Action`） | G2、G3 | `cancelled` | **取消**：决策项 D6 撤销。`runtimeapi.Action` 已是具名字符串类型，作为 `string` 的薄包装足以满足可读性；保留 string 重载避免破坏性变更。 |
-| D | 全仓匿名 struct 替换（**仅 public API 路径**；internal helper 标 TODO） | G6 | `done` | `internal/data/runtime/docker/stats.go` 中 `statsJSON` 的 3 个嵌套匿名 struct（`CPUStats` / `PreCPUStats` / `MemoryStats`，含子级 `CPUUsage`）已具名为 `StatsCPU` / `StatsMemory` / `StatsCPUUsage`；新增 `StatsResponse` 顶层类型；3 个 `stats_test.go` 测试覆盖 JSON 往返、`computeStats` 边界、网络聚合。其余 public API 路径已通过 `grep -E '^\s+\w+\s+struct \{$' internal/` 扫描确认为 0 处。`runtime/helpers.go` 的 `ProgressWriter` / `ProgressReader` 实为具名类型，非匿名 struct。|
-| **D-2**（新增） | **双 mapper 拆分**：`internal/data/runtime/docker/mapper/` 与 `internal/data/runtime/podman/mapper/` 同时落地。Docker mapper 提取自现有 `docker/*` 文件，Podman mapper 从 `runtime/podman/mappers.go` 拆出独立文件 | G4、G8 | `todo` | 验证：双 mapper 目录零相互依赖；零依赖 Docker SDK 或 `go.podman.io` |
-| E | 验证矩阵：`CGO_ENABLED=0` 与 `CGO_ENABLED=1` 双构建 + 全测试 + `go list -deps` 无 gpgme + `go vet` | G10、G2、G6、G8 | `cancelled` | Phase E 已与 G9 同步取消；并入 Phase F |
-| F | 验证矩阵：`CGO_ENABLED=0` 与 `CGO_ENABLED=1` 双构建 + 全测试 + `go list -deps` 无 gpgme + `go vet` | G10、G6 | `done` | `scripts/verify-build-matrix.sh` 自动化脚本：CGO=0 / CGO=1 双构建 + 双测试 + 双 `go vet` + 非 CGO 依赖零 gpgme 断言。`just verify-build-matrix` 与 `just check` 接入该脚本。 |
+剩余范围：
 
-设计文档中 10 个验收目标（G1-G10）的当前达成度（2026-07-24 用户最终修订）：
+1. 明确 `runtime.Engine`、Podman adapter、driver 与 REST transport 的职责边界。
+2. 补充 CGO / non-CGO 行为、错误转换和能力降级契约。
+3. 核对公开 API 文档与当前代码签名一致。
+4. 运行 `git diff --check`、`just check`，记录验证结果。
+5. 同步相关架构文档后独立提交。
 
-| 目标 | 状态 | 说明 |
-|---|---|---|
-| G1 Podman 整合层 = `internal/driver` | ⚠️ | 现状：`internal/data/runtime/podman` + `internal/driver/podman` 双入口；后续 Phase C 收尾时 `runtime/podman` 下沉为薄封装 |
-| **G2** Client 统一 `dto.Action`（一次性破坏性迁移） | ⚠️ | 当前 `ExecuteContainerAction(... string action ...)` 仍为 raw `string`；Phase C 完成 `dto.Action` 重载后删除 `string` 重载（**不保留双签名**） |
-| G3 CGO / non-CGO 同一方法 | ✅ | `Client.attachDefaultDriver()` + `Driver` 字段 |
-| **G4** 双 adapter mapper 各自落 `runtime/{docker,podman}/mapper/`（**取消 docker/service**） | ❌ | mapper 当前散落在 `runtime/podman/mappers.go`；Phase D-2 后落地 |
-| **G5** 原生动作用 `dto.Action`（**无 docker/service**层） | ❌ | Phase B 定义 `dto.Action`；Phase C 落地 ActionOptions/ActionResult；不需要 docker/service 层 |
-| G6 全仓匿名 struct（public API 路径本轮清零） | ✅ | `docker/stats.go` 中 3 处嵌套匿名 struct 已替换为 `StatsResponse` / `StatsCPU` / `StatsMemory` / `StatsCPUUsage` 具名类型，并新增对应单元测试（`stats_test.go` 3 用例） |
-| G7 三层类型独立互不别名 | ✅ | `internal/driver/podman/dto/*` 仅标准库 + time |
-| **G8** 双 mapper 双位置（**取消 docker/service 层**） | ❌ | mapper 单 `runtime/podman/mappers.go`；Phase D-2 拆分 |
-| **G9** ~~docker/service 统一入口~~ | **取消** | 不引入 docker/service 层 |
-| G10 非 CGO 零 `gpgme`（按 `go mod why` 锁定传染源） | ✅ | `scripts/verify-build-matrix.sh` 断言非 CGO 依赖中无 gpgme / keybase；CGO_ENABLED=0 / =1 双构建 + 双 vet + 全测试矩阵已自动化 |
+不属于 TASK-023：
 
-10 个目标中：✅ 4 (G3、G6、G7、G10) · ⚠️ 2 (G1、G2) · ❌ 2 (G4、G5、G8) · **取消 2 (G9、E)**。
+- 不恢复已取消的 `docker/service` 统一层。
+- 不恢复 TASK-022 Phase B/C/D-2/E。
+- 不删除或迁移大批运行时代码；如代码迁移确有必要，应另立任务。
 
-#### 架构评估最终决议（G4 取消 docker/service）
+## TASK-022 最终范围
 
-详细对比见 [podman-rest-migration.md §G4 架构最终方案](podman-rest-migration.md)。最终决议：
+TASK-022 已按收缩后的交付范围完成。旧设计中的 G1～G10 是方案目标，不再直接作为完成计数；最终以以下 Phase 决议为准。
 
-- **不引入** `internal/data/docker/service/` 统一入口层
-- **不集中** mapper 到 docker/service
-- mapper 直接拆双：Docker → `runtime/docker/mapper/`；Podman → `runtime/podman/mapper/`
-- 上一版"DockerAdapter / PodmanAdapter 包绕在 docker/service"的方案 B **取消**
-- Phase E（docker/service）整 Phase **取消**
+| Phase | 内容 | 状态 | 说明 |
+|---|---|---|---|
+| A | gpgme 仅进入 CGO 构建路径 | `done` | 非 CGO 依赖检查与双构建验证已自动化 |
+| B | 补齐全部 DTO 与 `dto.Action` 迁移 | `cancelled` | 不在本轮实施，不作为 TASK-022 缺口 |
+| C | Client 全量方法化与破坏性签名迁移 | `cancelled` | 保留现有可工作的调用形态 |
+| D | 公共 API 路径匿名结构体具名化 | `done` | stats 类型与对应测试已落地 |
+| D-2 | Docker / Podman mapper 目录拆分 | `cancelled` | 不在本轮实施，不作为 TASK-022 缺口 |
+| E | `docker/service` 统一入口 | `cancelled` | 架构决策明确不引入该层 |
+| F | CGO / non-CGO 构建、测试、vet 与依赖矩阵 | `done` | `scripts/verify-build-matrix.sh` 和 `just check` 已接入 |
 
-启动 Phase A/B/C/D 不依赖任何评审；Phase D-2（双 mapper 拆分）紧随 Phase D 之后启动。
+最终架构决议：
 
-`build` 需要独立输入和进度交互设计，暂不并入 `TASK-018`，待该任务完成后再建立实施项。
+- 上层统一依赖 `runtime.Engine`。
+- Docker 与 Podman 保留独立 adapter / service 实现。
+- 不增加 `internal/data/docker/service` 统一入口。
+- 已取消 Phase 不得在其他任务中被描述为“未修复”或“待收尾”；若重新提出，必须建立新任务并重新验收。
 
-## TASK-021 状态快照（2026-07-22）
+## 已完成重点
 
-### 已完成的 Phase
+### TASK-013：鼠标与小终端布局
 
-| Phase | 内容 | 状态 |
-|---|---|---|
-| Phase 0 | 依赖探测 + CGO 约束验证 | ✅ 完成 |
-| Phase 1 | 域包 + 连接驱动（`runtime.Engine` 工厂） | ✅ 完成 |
-| Phase 2 | 只读资源迁移 | ✅ 完成 |
-| Phase 3 | 资源动作迁移 | ✅ 完成 |
-| Phase 4 | 流式能力迁移 | ✅ 完成 |
-| Phase 5 | 清理 | ✅ 完成 |
+- `Unsupported`：小于 60×14，仅显示终端尺寸错误。
+- `Compact`：60×14 至 79×19，使用单行 header/footer 与紧凑内容区。
+- `Standard`：至少 80×20，使用完整布局。
+- 鼠标仅处理左键；列表移动游标，详情页滚动，其他区域不改变键盘路径。
+- `UIConfig.EnableMouse` 控制鼠标模式，默认开启。
+- 对应分级、布局、命中、边界和空列表行为均有测试。
 
-### Phase 2 详情：只读资源迁移状态
+### TASK-025：lint 治理
 
-| 资源 | List | Inspect | 结构化类型 | Podman 双 transport |
-|------|:----:|:-------:|:--------:|:------------------:|
-| Container | ✅ Engine 接口 | ✅ Engine 接口 | ✅ `ContainerDetail` | ✅ CGO+REST |
-| Volume | ✅ Engine 接口 | ✅ Engine 接口 | ✅ `VolumeDetail` | ✅ CGO+REST |
-| Network | ✅ Engine 接口 | ✅ Engine 接口 | ✅ `NetworkDetail` | ✅ CGO+REST |
-| Image | ✅ Engine 接口 | ✅ Engine 接口（Podman 通过 `/v4.0.0/libpod/images/{id}/json` + `/history` 双接口实现） | ✅ `ImageSummary`/`ImageDetail` | ✅ CGO+REST |
+已清零或完成迁移：
 
-### TASK-021 完成标准检查
+- `ineffassign`
+- `unused`
+- `errcheck`
+- `staticcheck`
+- `gosimple`
+- `gofmt`
 
-| # | 完成标准 | 状态 |
-|---|---------|------|
-| 1 | TUI & state 不再 import Docker/Podman SDK | ✅ 达标 |
-| 2 | 不存在 `Raw()` 或上层 SDK 类型 | ✅ 达标 |
-| 3 | ConnectionPool & 业务命令仅依赖 `runtime.Engine` | ✅ 达标 |
-| 4 | Docker & Podman 通过独立 adapter 实现相同契约 | ✅ 达标 |
-| 5 | 差异仅存在于 adapter mapper、capabilities、unified errors | ✅ 达标 |
-| 6 | TASK-017 的 5 个操作在两种 runtime 下通过 | ✅ 达标 |
-| 7 | TASK-009 的 create/prune 统一 options/results 就绪 | ✅ 达标 |
-| 8 | CGO/non-CGO 策略清晰，build matrix 通过 | ✅ 达标 |
-| 9 | 镜像详情双 runtime 结构化对齐（含 layer history） | ✅ 达标（TASK-024 收尾） |
-| 10 | ConnectionPool 通过注入工厂取代全局 `engineFactory` | ✅ 达标 |
+统计从 9473 个问题收敛到 524 个。剩余 line length、复杂度、重复代码等属于持续治理基线，不影响 TASK-025 已完成状态；后续新增治理应建立独立任务。
 
-### 已完成工作
-
-| 工作项 | 状态 | 说明 |
-|--------|------|------|
-| Logs 加入 Engine 接口 | ✅ | `ContainerService.Logs()` 提供 runtime-neutral 的流式抽象 |
-| TUI 持有 `runtime.Engine` 而非 `*docker.Client` | ✅ | 解耦 TUI 与具体适配器 |
-| Volume/Network Inspect/Remove 加入 Service 接口 | ✅ | 完善 `VolumeService`/`NetworkService` 的方法集 |
-| Container Attach | ✅ | 独立 container attach 能力 |
-| Podman Image.Inspect | ✅ | 通过 `/v4.0.0/libpod/images/{id}/json` + `/v4.0.0/libpod/images/{id}/history` 双接口实现；映射到 `runtime.ImageDetail`；History 失败可降级（写入 `detail.HistoryError`） |
-| ConnectionPool 工厂化 | ✅ | 删除全局 `engineFactory` 变量；`runtime.EngineFactory` 由 `runtimeinit.NewEngineFactory()` 注入；typed-nil 接口由反射清理 |
-| RefreshAll 整合 | ✅ | 删除分散的 `Probe`/`pingAll`，统一在 `RefreshAll` 中实现；transient 引擎也执行真实 ping |
-| APIVersion 健壮性 | ✅ | Podman 5.x 任意错误都触发 `/v4.0.0/libpod/version` 回退 |
-
-## TASK-022 合规审计（2026-07-24，含用户修订决策）
-
-对照设计文档 [podman-rest-migration.md](podman-rest-migration.md) 的 G1-G10，本次审计发现：
-
-- ✅ 已达标 (4/10)：G3（双形态方法分发）、G6（public API 路径匿名 struct 清零，`docker/stats.go` 已落地）、G7（三层类型独立）、G10（非 CGO 零 gpgme，`scripts/verify-build-matrix.sh` 已自动化）
-- ⚠️ 部分达标 (2/10)：
-  - G1（`internal/driver` 已下沉，`runtime/podman` 仍是入口但需薄封装化）
-  - G2（双签名策略 D6 需确认；保留旧 `string` 兼容）
-- ❌ 未达标 (2/10)：
-  - G4 / G8（双 mapper 拆分待落地，按决策项 D8 设计）
-  - G5（`dto.Action` 字符串枚举待定义，决策项 D10 约束 `dto` 包零 `runtime/` 依赖；Phase C 已取消，本 Phase 不再推动）
-  - **取消 2 (G9 + Phase E)**：`docker/service` 统一入口随 G4/G5 同步取消；Phase E 并入 Phase F
-
-落地路径与设计文档的 Phase A→F 一一对应。优先级最高的子项是 **Phase E**（`docker/service` 统一入口），它是 TASK-023 的解锁条件，但启动受 G4 评审阻塞。
-
-## TASK-022 依赖与先决条件
-
-- **必须**：TASK-021、TASK-024 已 done ✅
-- **必须**：G4 架构评审通过（方案 B 采纳后启动 Phase E）
-- **必须**：D1-D10 决策项确认（D6/D7/D8/D9/D10 是本次新增）
-- **必须**：Phase F 验证脚本就位（前置于 commit 门槛）
-
-**Phase 启动排期**：
-- **Phase A / D**（gpgme 隔离 + 公开 API 匿名 struct）：**立即启动**，不依赖 G4 评审
-- **Phase B**（`dto.Action` 字符串枚举）：**立即启动**，依赖调整小
-- **Phase C**（`runtime/podman.Client` 方法化 + 双签名）：**继续**，已是 `partial`
-- **Phase E**（`docker/service` 统一入口 + mapper 下沉）：**待评审通过**
-- **Phase F**（验证矩阵）：A→E 收尾后
-
-需要追踪的不依赖项（并行可行）：
-- TASK-011 可以在 TASK-022 期间并行推进（事件联动与 service 入口改造无共享代码）
-- TASK-013 / TASK-014 / TASK-020 仍为独立后续
-
-## 操作历史与体验
-
-| 编号 | 任务 | 优先级 | 状态 | 依赖 | 验收重点 |
-|---|---|---:|---|---|---|
-| `TASK-012` | 审计操作历史面板 | P2 | `done` | TASK-001、审计模型 | 已实现 PanelAudit 面板、AuditState 状态域、文本/级别筛选、记录详情视图、键盘导航（Enter/Esc/E），审计记录从 Service.RecentOperations() 实时同步 |
-| `TASK-013` | 鼠标与小终端降级布局 | P3 | `done` | 页面固定轨道 | 三档终端分级：`Unsupported` (< 60x14 错误信息)、`Compact` (60x14-79x19 单行 header + 单行 footer)、`Standard` (≥ 80x20 完整布局)；鼠标通过 `tea.MouseClickMsg` 路由到 `view.ApplyMouseClick`，仅左键生效，命中测试 `HitTest` 与 `ResolveLayout` 在 Update 与 Render 路径复用同一套坐标计算；`UIConfig.EnableMouse` 配置可关闭；`internal/tui/ui/app/compact_test.go` 与 `mouse_test.go` 覆盖分级、布局命中、面板游标移动、详情滚动、右键忽略等场景。详见下方"TASK-013 完成明细"。 |
-| `TASK-014` | 发布、命名和跨平台分发 | P3 | `todo` | 新配置稳定 | 统一命名、构建产物、版本信息、Linux / macOS 发布说明 |
-| `TASK-020` | Docker / Podman 专有能力评估 | P3 | `todo` | TASK-004 | Podman pod/secret/kube 与 Docker buildx/context 等能力分开决策 |
-
-## 依赖与顺序
+相关提交：
 
 ```text
-已完成连接基础 (TASK-001..007)
-  |-> TASK-015 状态域拆分
-  |-> TASK-016 TLS 错误体验
-  |-> TASK-017 高频容器操作
-  |     `-> TASK-010 批量聚合           [done]
-  |     `-> TASK-019 高级容器操作       [done]
-  |-> TASK-021 统一 runtime driver [done]
-  |     |-> TASK-009 Volume / Network         [done]
-  |     |-> TASK-018 镜像工作流               [done]
-  |     `-> TASK-008 Events [done]
-  |           `-> TASK-011 联动刷新           [done]
-  `-> TASK-012 审计历史面板 [done]
-  `-> TASK-022 Podman REST 适配收紧 [done]
-       |     Phase A: gpgme 仅 CGO         [done]
-       |     Phase B: dto 具名类型补齐     [cancelled]
-       |     Phase C: Client 方法化        [cancelled]
-       |     Phase D: 匿名 struct 清零     [done]
-       |     Phase D-2: 双 mapper 拆分     [cancelled]
-       |     Phase E: docker/service 入口  [cancelled]
-       `-----> Phase F: 验证矩阵           [done]
-        `---> TASK-023 代码规范与文档优化  [in_progress]
-                (TASK-022 完成后启动;
-                 runtime/podman 注释优化 + API 文档)
-
-独立后续: TASK-014 / TASK-020
-```
-
-## 代码质量与 lint 治理
-
-| 编号 | 任务 | 优先级 | 状态 | 已完成 / 剩余范围 |
-|---|---|---:|---|---|
-| `TASK-025` | [企业级 lint 规则与代码整洁度治理](.golangci.yml) | P1 | `done` | `.golangci.yml` 启用 9 大类 linter：`revive`（130 字符行长 + 5 个参数 + 复杂度）+ `gocritic` + `funlen`（120 行）+ `cyclop`（15）+ `gocognit`（20）+ `dupl` + `goconst` + `errcheck`（严格）+ `staticcheck` + `gosimple` + `gofmt` + `govet`。完成统计：**9473 → 524 个 lint 问题（94.5% 收敛）**。详见下方"TASK-025 完成明细"。 |
-
-### `TASK-025` 完成明细（2026-07-25）
-
-**已清零的 linter**：
-
-| Linter | 起点 | 清零手段 |
-|---|---:|---|
-| `ineffassign` | 10 | `handleShortcuts` cmds 修正为正确返回；删除 `marginBot = 0` 死赋值；`token, _ :=` 显式接收 `MarkDirty` 返回值 |
-| `unused` | 18 | 删除 7 个未用函数（`connectionError`/`newEngine`/`isRetryableKind`/`newPodmanErrorf`/`selectorError`/`logSearchMatchCount`/`handleVolumeEnter`/`doContainerRemove`/`hasContainers`/`resolveColor`）+ 5 个 wrapper（`hexToRGB`/`rgbToHex`/`interpolateColor`/`resolveOverlay`/`spinnerBorders`/`clamp`）+ 删除 `internal/tui/keyboard/volume_nav.go` + 删除 `docker.Client.httpClient` 字段 |
-| `errcheck` | 55 | `defer func() { _ = x.Close() }()` 替代裸 `defer Close`；为 typed-struct `json.Marshal` / 内置操作加 `//nolint:errcheck` + 说明 |
-| `staticcheck` | 11 | `docker/errdefs` → `containerd/errdefs`（10 个 Is* 函数）；`ImageInspectWithRaw` → `ImageInspect` + `ImageInspectWithRawResponse` |
-| `gosimple` | 5 | 删 `nil \|\| len(x)==0` 冗余守卫；`range []rune(s)` → `range s` |
-| `gofmt` | 19 | `gofmt -w` 自动修复 |
-
-**新增辅助函数**（按 linter 反向拆长行）：
-
-- `audit/service.go`：`buildRecord` / `finishRecord` / `levelForResult`
-- `docker/container_advanced.go`：`mapContainerErr`
-- `docker/service_container.go`：`mapContainerErrWithID`
-- `docker/service_image_transfer.go`：`mapImageTransferErr`
-- `podman/service_container.go`：`mapPodmanContainerErr`
-- `podman/service_volume.go`：`mapPodmanVolumeErr`
-- `podman/service_network.go`：`mapPodmanNetworkErr`
-- `podman/service_action.go`：`invalidContainerActionPodman`
-
-**未完成（暂留 follow-up）**：
-
-- `revive line-length-limit`：剩余 287 条（主要在测试文件 + 渲染函数）
-- `gocritic`：74 条
-- `gocognit`：28 条（认知复杂度）
-- `goconst`：25 条（重复字符串）
-- `unparam`：10 条（未用参数）
-- `cyclop`：4 条（圈复杂度）
-- `dupl`：2 条（重复块）
-
-**新增 / 删除 / 迁移依赖**：
-
-- 提升 `github.com/containerd/errdefs` 从 `// indirect` 到直接依赖
-- 调整 `.golangci.yml` 的 `nestingLimit` 配置语法
-
-**提交序列（8 个独立 commit）**：
-
-```
 37dc3b3 chore(lint): remove unused code, fix unused/gosimple/ineffassign
 7b0c756 fix(lint): handle errcheck across cleanup paths
 c8bc551 fix(lint): resolve staticcheck SA1019 deprecations
@@ -476,80 +144,37 @@ b909a87 refactor(podman): extract error-mapping helpers
 e0879b1 style: misc gofmt + small lint cleanups
 ```
 
-### `TASK-013` 完成明细（2026-07-25）
+## 依赖与执行顺序
 
-**终端分级（`internal/tui/ui/app/compact.go`）**
+```text
+TASK-001..013, TASK-015..019, TASK-021, TASK-022, TASK-024, TASK-025 [done]
 
-| Tier | 视口 | 渲染路径 |
-|------|------|----------|
-| `TerminalUnsupported` | `width < 60` 或 `height < 14` | `renderTerminalError` 仅显示放大居中的错误信息 |
-| `TerminalCompact` | `60..79` 且 `14..19` | `renderCompactApp` 单行 header（Engine + Socket + 计数）+ 单行 footer（Tab/Enter/Esc/:/F1）+ 3 行 query rail（仅在输入激活时存在） |
-| `TerminalStandard` | `≥ 80x20` | 既有完整布局（header=4 / message=1 / query=3 / footer=3 + 比例 margin） |
+TASK-022 [done]
+  `-> TASK-023 runtime/podman 文档与契约整理 [in_progress]
 
-边界常量 `compactMinWidth=60` / `compactMinHeight=14` / `minimumTerminalWidth=80` / `minimumTerminalHeight=20` 集中在文件顶部，方便后续调整。
-
-**鼠标支持（`internal/tui/ui/app/mouse.go`）**
-
-- `LayoutHit` 枚举（Header / Message / Query / Panel / Footer / Outside）+ `ResolveLayout(m)` 计算当前 rail 几何（标准 + 紧凑两种模式）。
-- `HitTest(m, x, y) (LayoutHit, row)` 一行命中测试。
-- `ApplyMouseClick(m, msg)`：
-  - 只接受左键（`tea.MouseLeft`），右键 / 中键忽略。
-  - 命中 panel：列表面板（containers/images/volumes/networks/audit/"containers of image" 子视图）移动 cursor 到点击行；Detail / Log / Top / AuditDetail / Help 等滚动面板按 `row - 3` 滚动。
-  - 命中 panel 边框或标题（`row < 0`）：单步向上滚动。
-  - 命中其他 rail：不动作（键盘路径不受影响）。
-- `internal/tui/update/update.go` 新增 `case tea.MouseClickMsg:` 分发到 `view.ApplyMouseClick`，保持 Update 主循环薄。
-
-**配置项（`internal/data/config/types.go` / `default.jsonc`）**
-
-```yaml
-ui:
-  enableMouse: true   # 默认开启；false 时 cmd/docker-tui/main.go 不会设置 MouseMode
+独立后续：
+  TASK-014 发布与跨平台 [todo]
+  TASK-020 专有能力评估 [todo]
 ```
-
-**测试（`internal/tui/ui/app/compact_test.go` / `mouse_test.go`）**
-
-- `TestClassifyTerminal`：边界值矩阵（40x10/59x14/60x14/79x19/80x20/120x32/200x60）。
-- `TestPlanForAllocatesAllRows`：所有视口的 rail 计划都能容纳至少 1 行 panel。
-- `TestRenderAppCompactTierKeepsCoreActionsReachable`：79x19 不再返回 "Terminal too small"，且 footer 包含 Tab/Enter/Esc。
-- `TestRenderAppCompactDoesNotDropToast` / `TestRenderAppCompactHandlesQueryInput`：紧凑模式下 toast 与 filter 输入仍然可见。
-- `TestHitTestStandardLayout` / `TestHitTestCompactLayout` / `TestHitTestOutsideViewport` / `TestHitTestBordersAndTitle`：命中测试覆盖标准、紧凑、越界、边框/标题场景。
-- `TestApplyMouseClickMovesContainerCursor` / `TestApplyMouseClickClampsCursor` / `TestApplyMouseClickIgnoresRightButton` / `TestApplyMouseClickIgnoredOutsidePanel` / `TestApplyMouseClickScrollsDetail` / `TestApplyMouseClickActivePanelVolumes` / `TestApplyMouseClickEmptyListIsNoop`：覆盖 cursor 移动、夹紧、右键忽略、rail 外忽略、详情滚动、面板切换、空列表等场景。
-
-#### 决策项（TASK-022；2026-07-24 用户最终修订）
-
-| 编号 | 议题 | 推荐 | 备选 | 状态 |
-|---|---|---|---|---|
-| D1 | B → C 别名在 non-CGO 下用同名结构还是全部独立 | 推荐：双形态文件分别定义，CGO 用 `type X =` 别名 | 全部独立具名 | 待定 |
-| D2 | ~~`docker/service` 8 个 service 本轮全部还是先 4~~ | — | — | **取消**（G9 docker/service 取消后无意义） |
-| D3 | 旧 `docker/podman_*.go` 与 `podmanContainerService` 是否在本轮删除 | 推荐：**不删**，本轮只加 `// Deprecated:`，留给 `TASK-023` | 本轮同步清理 | 待定 |
-| D4 | ~~`docker.Client.podman` 字段命名~~ | — | — | **取消**（取消 docker/service 后不需要） |
-| D5 | `runtimeapi.Error` 等极少量公共类型能否出现在 `runtime/podman` | 推荐：允许（仅用于错误包装）；不允许 `runtimeapi.Action`/`ImageSummary` 等域模型 | 全 `dto.*` | 待定 |
-| **D6** | ~~G2 双签名策略~~ | — | — | **取消**（用户最终决策：删除 `string action` 重载，一次性破坏性迁移到 `dto.Action`） |
-| **D7** | G10 build tag 范围 | 推荐：按 `go list -deps` 实际传递引用加 `//go:build cgo`；其他文件不加防御性 tag | 全文件统一加 | 待定 |
-| **D8** | **G8 mapper 双位置（修订：docker/service 取消后）** | 推荐：Docker 专属 mapper 落 `internal/data/runtime/docker/mapper/`；Podman 专属 mapper 落 `internal/data/runtime/podman/mapper/`（提升自现有 `mappers.go`） | 全部集中到 docker/service/mapper/ | 待定 |
-| **D9** | ~~G9 docker/service 评审~~ | — | — | **取消** |
-| **D10** | G5 `dto.Action` 不能回引 `runtimeapi.Action` | 推荐：`dto.Action` 仅字符串枚举；任何含 `runtimeapi.*` 的常量映射落 `runtime/docker/mapper/action.go` 或 `runtime/podman/mapper/action.go`；`dto` 包零 `runtime/` 依赖 | `dto.Action` 挂 i18n 描述 | 待定 |
 
 ## 暂不实施
 
-以下能力保留在能力分析中，尚未达到建立实施任务的条件：
-
 | 能力 | 原因 |
 |---|---|
-| Compose up / build / pull | 需要完整服务编排交互和进度模型 |
+| Compose up / build / pull | 需要完整编排交互和进度模型 |
 | Build / buildx | 参数、上下文、多平台和进度交互范围较大 |
-| Podman pod / secret / kube | 属于运行时专有能力，等待 `TASK-020` 决策 |
-| Checkpoint / plugin | 用户场景较窄，优先级低于通用运维能力 |
+| Podman pod / secret / kube | 等待 TASK-020 的产品边界决策 |
+| Checkpoint / plugin | 用户场景优先级低于通用运维能力 |
 
 ## 完成定义
 
-每个任务完成前必须满足：
+任务标记为 `done` 前必须满足：
 
-1. 代码行为与讨论文档中的已确认决策一致。
-2. Docker 与 Podman 共用能力不得通过散落的 runtime 字符串分支实现；差异应收敛到 runtime/data 层。
-3. 至少覆盖主路径、失败路径；双运行时能力应包含 Docker / Podman 测试或明确的环境验证记录。
-4. 配置参数必须在读取后校验，运行期不得重复修正非法配置。
-5. 状态结构应通过方法维护自身不变量，避免将相关字段作为散装参数传递。
+1. 代码行为与已确认决策一致。
+2. Docker / Podman 差异收敛在 runtime/data 层，不散落 runtime 字符串分支。
+3. 覆盖主路径和失败路径；双运行时能力包含双侧测试或环境验证记录。
+4. 配置在读取后校验，运行期不重复修正非法配置。
+5. 状态结构通过方法维护不变量。
 6. `git diff --check` 和 `just check` 通过。
-7. README、架构、需求状态及本任务台账同步。
-8. 独立提交，提交信息包含任务或需求语义。
+7. README、架构、需求状态和本台账已同步。
+8. 形成独立提交，提交信息包含任务或需求语义。
