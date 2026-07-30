@@ -29,14 +29,21 @@ func doVolumeInspect(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if vol == nil {
 		return m, nil
 	}
-	detail, err := m.Connection.Engine.Volumes().Inspect(context.Background(), vol.Name)
-	if err != nil {
-		m.Feedback.RecordError(err.Error())
-		return m, nil
+	title := i18n.T("detail.title.volume", vol.Name)
+	ToDetail(m, title, "")
+	return m, volumeInspectCmd(m.Connection.Engine, vol.Name, title)
+}
+
+func volumeInspectCmd(client runtimeapi.Engine, name, title string) tea.Cmd {
+	return func() tea.Msg {
+		detail, err := client.Volumes().Inspect(context.Background(), name)
+		return state.VolumeDetailLoaded{
+			VolumeID: name,
+			Title:    title,
+			Detail:   detail,
+			Error:    err,
+		}
 	}
-	m.Detail.SetVolumeDetail(detail)
-	ToDetail(m, i18n.T("detail.title.volume", vol.Name), "")
-	return m, nil
 }
 
 // doVolumeRemove prompts for confirmation and removes the selected volume.

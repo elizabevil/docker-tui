@@ -13,14 +13,14 @@ import (
 
 // Terminal-size breakpoints used by RenderApp.
 //
-//   minimumTerminalWidth / minimumTerminalHeight
-//       hard floor: below this we cannot keep panel + footer readable
-//       and RenderApp returns the "Terminal too small" message.
+//	minimumTerminalWidth / minimumTerminalHeight
+//	    hard floor: below this we cannot keep panel + footer readable
+//	    and RenderApp returns the "Terminal too small" message.
 //
-//   compactMinWidth / compactMinHeight
-//       soft floor: between compactMin and minimum, RenderApp falls back
-//       to renderCompactApp which drops the multi-column header and the
-//       rich footer in favour of a single-line status + keymap strip.
+//	compactMinWidth / compactMinHeight
+//	    soft floor: between compactMin and minimum, RenderApp falls back
+//	    to renderCompactApp which drops the multi-column header and the
+//	    rich footer in favour of a single-line status + keymap strip.
 //
 // compactMin* must be < minimum* and both must be > 0. They are exported
 // through the layout_test.go matrix; tune them together.
@@ -31,10 +31,10 @@ const (
 	compactMinWidth  = 60
 	compactMinHeight = 14
 
-	compactHeaderLines  = 1
-	compactFooterLines  = 1
-	compactQueryLines   = 3
-	compactMessageLines = 1
+	compactHeaderLines   = 1
+	compactFooterLines   = 1
+	compactQueryLines    = 3
+	compactMessageLines  = 2
 	compactPanelOverhead = 3
 )
 
@@ -45,8 +45,8 @@ type TerminalClass int
 
 const (
 	TerminalUnsupported TerminalClass = iota // below compactMin*: only error message
-	TerminalCompact                         // compact layout, single-line header + footer
-	TerminalStandard                        // full header + footer + 3-line query rail
+	TerminalCompact                          // compact layout, single-line header + footer
+	TerminalStandard                         // full header + footer + 3-line query rail
 )
 
 // ClassifyTerminal returns the layout tier for the given viewport size.
@@ -134,10 +134,10 @@ func renderCompactApp(m *state.AppModel) string {
 	if query != "" {
 		plan.query = compactQueryLines
 	}
-	// Always reserve the message rail (a single dim "ready" line when no
+	// Always reserve the two-line message rail (a dim "ready" line when no
 	// toast is active) so the rendered height stays stable across the
 	// app's lifetime, matching the standard tier invariant.
-	plan.message = 1
+	plan.message = compactMessageLines
 	// Reserve at least one footer row (the navigation strip) so core
 	// actions stay discoverable even when shortcut bar is empty.
 	plan.footer = max(1, plan.footer)

@@ -366,14 +366,21 @@ func doInspectAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if ctr == nil {
 		return m, nil
 	}
-	detail, err := m.Connection.Engine.Containers().Inspect(context.Background(), ctr.ID)
-	if err != nil {
-		m.Feedback.RecordError(err.Error())
-		return m, nil
+	title := i18n.T("detail.title.container", ctr.Name, ctr.ID)
+	ToDetail(m, title, "")
+	return m, containerInspectCmd(m.Connection.Engine, ctr.ID, title)
+}
+
+func containerInspectCmd(client runtimeapi.Engine, id, title string) tea.Cmd {
+	return func() tea.Msg {
+		detail, err := client.Containers().Inspect(context.Background(), id)
+		return state.ContainerDetailLoaded{
+			ContainerID: id,
+			Title:       title,
+			Detail:      detail,
+			Error:       err,
+		}
 	}
-	m.Detail.SetContainerDetail(detail)
-	ToDetail(m, i18n.T("detail.title.container", ctr.Name, ctr.ID), "")
-	return m, nil
 }
 
 func doSwitchRuntime(m *state.AppModel) (*state.AppModel, tea.Cmd) {

@@ -27,9 +27,7 @@ func (s PodmanImageService) List(ctx context.Context, options runtimeapi.ImageLi
 	return MapImageSummaries(raw), nil
 }
 
-// Inspect fetches full image detail via /libpod/images/{id}/json and the
-// per-layer history endpoint. The history fetch is best-effort: any error is
-// captured into detail.HistoryError so the rest of the detail still renders.
+// Inspect fetches full image detail via /libpod/images/{id}/json.
 // Podman 5.x rejects the unversioned inspect path with 404, so the REST
 // client transparently retries /v4.0.0/libpod/images/{id}/json on miss.
 func (s PodmanImageService) Inspect(ctx context.Context, summary runtimeapi.ImageSummary) (*runtimeapi.ImageDetail, error) {
@@ -37,17 +35,7 @@ func (s PodmanImageService) Inspect(ctx context.Context, summary runtimeapi.Imag
 	if err != nil {
 		return nil, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceImage, "inspect"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceImage, ID: summary.ID}, runtimeapi.Podman)
 	}
-	detail := MapImageInspect(*inspect, nil)
-	if history, historyErr := s.Client.REST.ImageHistory(ctx, summary.ID); historyErr != nil {
-		detail.HistoryError = historyErr.Error()
-	} else if len(history) > 0 {
-		// Re-map with the layered history. MapImageInspect handled the bulk
-		// of the response; rebuilding preserves order without a second decode
-		// pass over the inspect JSON.
-		withHistory := MapImageInspect(*inspect, history)
-		withHistory.HistoryError = detail.HistoryError
-		withHistory.Labels = detail.Labels
-		detail = withHistory
-	}
-	return detail, nil
+	// History is intentionally excluded from detail loading. Restore it as a
+	// separate, on-demand request when the dedicated history view is added.
+	return MapImageInspect(*inspect, nil), nil
 }

@@ -33,6 +33,17 @@
 - **`runtime/podman` 仍引用 `runtimeapi.*` 域模型**：当前 `internal/data/runtime/podman/service_*.go` 直接返回 `[]runtimeapi.ContainerSummary` 等。TASK-022 Phase E（`docker/service` 统一入口）需要先把 service 层从 `runtimeapi` 域模型切到 `dto.*` 具名类型，再让 mapper 下沉到 `docker/service/mapper/`。
 - **全仓匿名 struct 仍有 20+ 处**：设计 [podman-rest-migration.md](../design/podman-rest-migration.md) 点名 10 处需替换；TASK-022 Phase D 执行。
 
+## 当前待修 bug
+
+下面这些问题已经在 [docs/bugfix-requirements.md](bugfix-requirements.md) 里单独登记，需要按 bug 台账推进，不再放进路线图正文：
+
+- [BR-007](bugfix-requirements.md#br-007-镜像详情页不显示-yaml--json-原始数据)：镜像详情页切换原始数据视图时为空白。
+- [BR-008](bugfix-requirements.md#br-008-h-键应进-helpf1-行为复用h-键同时承担镜像-history-入口)：全局 Help 与镜像 History 的按键语义仍待收敛。
+- [BR-009](bugfix-requirements.md#br-009-卷详情页面无法加载数据按-enter-进入容器子视图后无法上下选择)：卷详情已改成异步加载，但子视图选择联动仍待修。
+- [BR-011](bugfix-requirements.md#br-011-镜像页面超一页时光标下划页面不滚动)：镜像列表跨页滚动未同步回写。
+- [BR-012](bugfix-requirements.md#br-012-所有表格鼠标点击选中的行位置不对)：鼠标点击命中行与视觉行有偏差。
+- [BR-015](bugfix-requirements.md#br-015-表格选中行背景色未覆盖整行)：选中行背景未完整覆盖。
+
 ## 竞品参考
 
 | 项目 | TUI | 优势 | 借鉴点 |

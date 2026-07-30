@@ -6,6 +6,7 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
+	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 )
 
 func TestCalculateRailHeights(t *testing.T) {
@@ -67,6 +68,41 @@ func TestFitRailHeight(t *testing.T) {
 	}
 	if got := fitRailHeight("one\ntwo\nthree", 2); got != "one\ntwo" {
 		t.Fatalf("fitRailHeight truncation = %q", got)
+	}
+}
+
+func TestRenderMessageRailWrapsLongErrorAcrossTwoRows(t *testing.T) {
+	app := &state.AppModel{}
+	app.Feedback.RecordError(strings.Repeat("x", 70))
+
+	got := renderMessageRail(app, 40)
+	lines := strings.Split(got, "\n")
+	if len(lines) != 2 {
+		t.Fatalf("message rows = %d, want 2: %q", len(lines), got)
+	}
+	plainLines := strings.Split(component.StripANSI(got), "\n")
+	plain := strings.TrimRight(plainLines[0], " ") + strings.TrimRight(plainLines[1], " ")
+	if plain != strings.Repeat("x", 70) {
+		t.Fatalf("wrapped message changed: %q", plain)
+	}
+}
+
+func TestRenderMessageRailCapsErrorAtTwoRows(t *testing.T) {
+	app := &state.AppModel{}
+	app.Feedback.RecordError(strings.Repeat("错误", 60))
+
+	got := renderMessageRail(app, 40)
+	lines := strings.Split(got, "\n")
+	if len(lines) != 2 {
+		t.Fatalf("message rows = %d, want 2: %q", len(lines), got)
+	}
+	for _, line := range lines {
+		if width := component.VisibleLen(line); width > 40 {
+			t.Fatalf("message width = %d, want <= 40: %q", width, line)
+		}
+	}
+	if !strings.Contains(component.StripANSI(lines[1]), "...") {
+		t.Fatalf("truncated second row has no ellipsis: %q", got)
 	}
 }
 

@@ -51,14 +51,21 @@ func doNetworkInspect(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if net == nil {
 		return m, nil
 	}
-	detail, err := m.Connection.Engine.Networks().Inspect(context.Background(), net.ID)
-	if err != nil {
-		m.Feedback.RecordError(err.Error())
-		return m, nil
+	title := i18n.T("detail.title.network", net.Name)
+	ToDetail(m, title, "")
+	return m, networkInspectCmd(m.Connection.Engine, net.ID, title)
+}
+
+func networkInspectCmd(client runtimeapi.Engine, id, title string) tea.Cmd {
+	return func() tea.Msg {
+		detail, err := client.Networks().Inspect(context.Background(), id)
+		return state.NetworkDetailLoaded{
+			NetworkID: id,
+			Title:     title,
+			Detail:    detail,
+			Error:     err,
+		}
 	}
-	m.Detail.SetNetworkDetail(detail)
-	ToDetail(m, i18n.T("detail.title.network", net.Name), "")
-	return m, nil
 }
 
 func doNetworkRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {

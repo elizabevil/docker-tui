@@ -134,6 +134,66 @@ func handleImageDetailLoaded(m *state.AppModel, msg state.ImageDetailLoaded) (*s
 	return m, nil
 }
 
+func handleContainerDetailLoaded(m *state.AppModel, msg state.ContainerDetailLoaded) (*state.AppModel, tea.Cmd) {
+	if msg.Error != nil || msg.Detail == nil {
+		if m.Navigation.Mode != state.ModeDetail || m.Detail.DetailTitle != msg.Title {
+			return m, nil
+		}
+		err := msg.Error
+		if err == nil {
+			err = fmt.Errorf("container inspect returned no data")
+		}
+		m.Feedback.RecordError(err.Error())
+		m.Detail.Open(msg.Title, "Inspect failed: "+err.Error())
+		return m, nil
+	}
+	if m.Navigation.Mode != state.ModeDetail || m.Detail.DetailTitle != msg.Title {
+		return m, nil
+	}
+	m.Detail.SetContainerDetail(msg.Detail)
+	return m, nil
+}
+
+func handleVolumeDetailLoaded(m *state.AppModel, msg state.VolumeDetailLoaded) (*state.AppModel, tea.Cmd) {
+	if msg.Error != nil || msg.Detail == nil {
+		if m.Navigation.Mode != state.ModeDetail || m.Detail.DetailTitle != msg.Title {
+			return m, nil
+		}
+		err := msg.Error
+		if err == nil {
+			err = fmt.Errorf("volume inspect returned no data")
+		}
+		m.Feedback.RecordError(err.Error())
+		m.Detail.Open(msg.Title, "Inspect failed: "+err.Error())
+		return m, nil
+	}
+	if m.Navigation.Mode != state.ModeDetail || m.Detail.DetailTitle != msg.Title {
+		return m, nil
+	}
+	m.Detail.SetVolumeDetail(msg.Detail)
+	return m, nil
+}
+
+func handleNetworkDetailLoaded(m *state.AppModel, msg state.NetworkDetailLoaded) (*state.AppModel, tea.Cmd) {
+	if msg.Error != nil || msg.Detail == nil {
+		if m.Navigation.Mode != state.ModeDetail || m.Detail.DetailTitle != msg.Title {
+			return m, nil
+		}
+		err := msg.Error
+		if err == nil {
+			err = fmt.Errorf("network inspect returned no data")
+		}
+		m.Feedback.RecordError(err.Error())
+		m.Detail.Open(msg.Title, "Inspect failed: "+err.Error())
+		return m, nil
+	}
+	if m.Navigation.Mode != state.ModeDetail || m.Detail.DetailTitle != msg.Title {
+		return m, nil
+	}
+	m.Detail.SetNetworkDetail(msg.Detail)
+	return m, nil
+}
+
 func handleGenericActioned(m *state.AppModel, msg state.GenericActioned) (*state.AppModel, tea.Cmd) {
 	display := "✕ failed: " + msg.Action
 	if msg.Error == nil {

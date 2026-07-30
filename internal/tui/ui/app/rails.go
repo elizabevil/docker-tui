@@ -3,17 +3,19 @@ package view
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"charm.land/lipgloss/v2"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
+	"github.com/mattn/go-runewidth"
 )
 
 const (
 	headerRailHeight   = 4
-	messageRailHeight  = 1
+	messageRailHeight  = 2
 	queryRailHeight    = 3
-	footerRailHeight   = 3
+	footerRailHeight   = 2
 	minimumPanelHeight = 4
 )
 
@@ -46,22 +48,89 @@ func panelBodyHeight(panelHeight int) int {
 }
 
 func renderMessageRail(m *state.AppModel, width int) string {
-	if m == nil || m.Feedback.ToastMessage == "" {
+	if m == nil {
 		return ""
 	}
 
+	text := ""
 	var style lipgloss.Style
-	switch m.Feedback.ToastLevel {
-	case state.NotificationSuccess:
-		style = component.GetStyle("toastSuccess")
-	case state.NotificationError:
+	switch {
+	case m.Feedback.ErrorMessage != "":
 		style = component.GetStyle("toastError")
-	case state.NotificationWarning:
-		style = component.GetStyle("toastWarning")
-	default:
+		text = m.Feedback.ErrorMessage
+		if m.Feedback.ErrorCount > 1 {
+			text += fmt.Sprintf(" [%d]", m.Feedback.ErrorCount)
+		}
+	case m.Feedback.ToastMessage != "":
+		style = component.GetStyle(levelStyle(m.Feedback.ToastLevel))
+		text = m.Feedback.ToastMessage
+	case m.Feedback.AuditOperationMessage != "":
 		style = component.GetStyle("toastInfo")
+		text = m.Feedback.AuditOperationMessage
+	case m.Feedback.InfoMessage != "":
+		style = component.GetStyle("toastInfo")
+		text = m.Feedback.InfoMessage
+	default:
+		return ""
 	}
-	return style.Render(component.TruncateVisible(m.Feedback.ToastMessage, max(1, width)))
+	return style.Render(wrapMessageRail(text, max(1, width), messageRailHeight))
+}
+
+func levelStyle(level state.NotificationLevel) string {
+	switch level {
+	case state.NotificationSuccess:
+		return "toastSuccess"
+	case state.NotificationError:
+		return "toastError"
+	case state.NotificationWarning:
+		return "toastWarning"
+	default:
+		return "toastInfo"
+	}
+}
+
+func wrapMessageRail(text string, width, maxLines int) string {
+	if text == "" || maxLines <= 0 {
+		return ""
+	}
+	width = max(1, width)
+
+	wrapped := make([]string, 0, maxLines+1)
+	for _, logicalLine := range strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n") {
+		if logicalLine == "" {
+			wrapped = append(wrapped, "")
+			continue
+		}
+		for logicalLine != "" {
+			prefix, rest := splitVisiblePrefix(logicalLine, width)
+			wrapped = append(wrapped, prefix)
+			logicalLine = rest
+		}
+	}
+
+	if len(wrapped) <= maxLines {
+		return strings.Join(wrapped, "\n")
+	}
+	overflow := strings.Join(wrapped[maxLines-1:], " ")
+	wrapped = wrapped[:maxLines]
+	wrapped[maxLines-1] = component.TruncateVisible(overflow, width)
+	return strings.Join(wrapped, "\n")
+}
+
+func splitVisiblePrefix(text string, width int) (string, string) {
+	used := 0
+	for index, r := range text {
+		cellWidth := runewidth.RuneWidth(r)
+		if used+cellWidth > width {
+			if index == 0 {
+				_, size := utf8.DecodeRuneInString(text)
+				return text[:size], text[size:]
+			}
+			return text[:index], text[index:]
+		}
+		used += cellWidth
+	}
+	return text, ""
 }
 
 func renderQueryRail(m *state.AppModel, width int) string {

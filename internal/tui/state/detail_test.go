@@ -32,3 +32,18 @@ func TestDetailStateRejectsStaleImageResult(t *testing.T) {
 		t.Fatalf("current image result = %#v", detail)
 	}
 }
+
+func TestClampVisibleOffsetRemovesOverscroll(t *testing.T) {
+	detail := DetailState{DetailOffset: 100}
+	if got := detail.ClampVisibleOffset(30, 10); got != 20 {
+		t.Fatalf("ClampVisibleOffset() = %d, want 20", got)
+	}
+	if detail.DetailOffset != 20 {
+		t.Fatalf("DetailOffset = %d, want 20", detail.DetailOffset)
+	}
+
+	detail.Scroll(-1)
+	if detail.DetailOffset != 19 {
+		t.Fatalf("up scroll after clamp = %d, want 19", detail.DetailOffset)
+	}
+}

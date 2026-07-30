@@ -28,6 +28,29 @@ type DetailState struct {
 	ContainerDetail    *runtimeapi.ContainerDetail
 }
 
+type (
+	ContainerDetailLoaded struct {
+		ContainerID string
+		Title       string
+		Detail      *runtimeapi.ContainerDetail
+		Error       error
+	}
+
+	VolumeDetailLoaded struct {
+		VolumeID string
+		Title    string
+		Detail   *runtimeapi.VolumeDetail
+		Error    error
+	}
+
+	NetworkDetailLoaded struct {
+		NetworkID string
+		Title     string
+		Detail    *runtimeapi.NetworkDetail
+		Error     error
+	}
+)
+
 func (s *DetailState) Open(title, content string) {
 	*s = DetailState{DetailTitle: title, ImageDetailContent: content}
 }
@@ -86,4 +109,12 @@ func (s *DetailState) ApplyImage(id string, data *runtimeapi.ImageDetail) bool {
 
 func (s *DetailState) VisibleOffset(total, visible int) int {
 	return min(max(0, s.DetailOffset), max(0, total-visible))
+}
+
+// ClampVisibleOffset keeps scroll state inside the currently rendered document.
+// Without the write-back, repeated scrolling at the bottom accumulates an
+// invisible overscroll that must be unwound before upward movement is visible.
+func (s *DetailState) ClampVisibleOffset(total, visible int) int {
+	s.DetailOffset = s.VisibleOffset(total, visible)
+	return s.DetailOffset
 }

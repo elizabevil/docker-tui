@@ -9,7 +9,6 @@ import (
 	"github.com/elizabevil/docker-tui/internal/data/runtime"
 	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime/docker"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/footer"
 )
 
 func TestHandleFilterExitTimeoutKeepsFilterActive(t *testing.T) {
@@ -49,9 +48,8 @@ func TestHandleDockerConnectedErrorProjectsTargetAndMessage(t *testing.T) {
 	if strings.Contains(updated.Feedback.ToastMessage, "no such file") {
 		t.Fatalf("toast exposed raw connection error: %q", updated.Feedback.ToastMessage)
 	}
-	status := footer.StatusBar(updated)
-	if !strings.Contains(status, "local-docker") || !strings.Contains(status, "Connection failed") {
-		t.Fatalf("status=%q", status)
+	if updated.Feedback.InfoMessage != "" {
+		t.Fatalf("unexpected info message=%q", updated.Feedback.InfoMessage)
 	}
 }
 

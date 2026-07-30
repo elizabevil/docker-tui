@@ -49,6 +49,21 @@ type detailSection struct {
 	Lines    []string
 }
 
+type detailLineKind uint8
+
+const (
+	detailLineSection detailLineKind = iota
+	detailLineSubtitle
+	detailLineValue
+	detailLinePlain
+)
+
+type detailLine struct {
+	kind  detailLineKind
+	left  string
+	right string
+}
+
 // RenderView renders the detail panel content based on the current resource type.
 func RenderView(m *state.AppModel, panelHeight int) string {
 	// Handle source view modes (YAML/JSON)
@@ -89,11 +104,11 @@ func renderSections(m *state.AppModel, sections []detailSection, panelHeight int
 	valueStyle := component.GetStyle("detailValue")
 	dimStyle := component.GetStyle("detailDim")
 
-	bodyLines := make([]string, 0, len(sections)*3)
+	bodyLines := make([]detailLine, 0, len(sections)*3)
 	for _, sec := range sections {
-		bodyLines = append(bodyLines, sectionStyle.Render(fmt.Sprintf("  \u2500\u2500 %s ", sec.Title)))
+		bodyLines = append(bodyLines, detailLine{kind: detailLineSection, left: sec.Title})
 		if sec.Subtitle != "" {
-			bodyLines = append(bodyLines, "    "+dimStyle.Render(sec.Subtitle))
+			bodyLines = append(bodyLines, detailLine{kind: detailLineSubtitle, left: sec.Subtitle})
 		}
 
 		for _, ln := range sec.Lines {
@@ -104,10 +119,9 @@ func renderSections(m *state.AppModel, sections []detailSection, panelHeight int
 			if idx := strings.Index(trimmed, ":"); idx > 0 {
 				label := strings.TrimSpace(trimmed[:idx])
 				val := strings.TrimSpace(trimmed[idx+1:])
-				bodyLines = append(bodyLines, fmt.Sprintf("    %s: %s",
-					labelStyle.Render(label), valueStyle.Render(val)))
+				bodyLines = append(bodyLines, detailLine{kind: detailLineValue, left: label, right: val})
 			} else {
-				bodyLines = append(bodyLines, "    "+dimStyle.Render(ln))
+				bodyLines = append(bodyLines, detailLine{kind: detailLinePlain, left: ln})
 			}
 		}
 	}
@@ -116,18 +130,33 @@ func renderSections(m *state.AppModel, sections []detailSection, panelHeight int
 	if bodyHeight < 3 {
 		bodyHeight = 3
 	}
-	offset := m.Detail.VisibleOffset(len(bodyLines), bodyHeight)
+	offset := m.Detail.ClampVisibleOffset(len(bodyLines), bodyHeight)
 
 	visible := bodyLines[offset:]
 	if len(visible) > bodyHeight {
 		visible = visible[:bodyHeight]
 	}
-	for len(visible) < bodyHeight {
-		visible = append(visible, "")
+	visibleEnd := offset + len(visible)
+	rendered := make([]string, 0, bodyHeight)
+	for _, line := range visible {
+		switch line.kind {
+		case detailLineSection:
+			rendered = append(rendered, sectionStyle.Render(fmt.Sprintf("  \u2500\u2500 %s ", line.left)))
+		case detailLineSubtitle:
+			rendered = append(rendered, "    "+dimStyle.Render(line.left))
+		case detailLineValue:
+			rendered = append(rendered, fmt.Sprintf("    %s: %s",
+				labelStyle.Render(line.left), valueStyle.Render(line.right)))
+		default:
+			rendered = append(rendered, "    "+dimStyle.Render(line.left))
+		}
 	}
-	body := lipgloss.NewStyle().Height(bodyHeight).MaxHeight(bodyHeight).Render(strings.Join(visible, "\n"))
+	for len(rendered) < bodyHeight {
+		rendered = append(rendered, "")
+	}
+	body := lipgloss.NewStyle().Height(bodyHeight).MaxHeight(bodyHeight).Render(strings.Join(rendered, "\n"))
 
-	footer := fmt.Sprintf(" %d-%d/%d", offset+1, offset+len(visible), len(bodyLines))
+	footer := fmt.Sprintf(" %d-%d/%d", offset+1, visibleEnd, len(bodyLines))
 	if m.Detail.DetailHint != "" {
 		footer += " \u2502 " + m.Detail.DetailHint
 	}
@@ -167,12 +196,13 @@ func renderSourceView(m *state.AppModel, panelHeight int) string {
 	if bodyHeight < 3 {
 		bodyHeight = 3
 	}
-	offset := m.Detail.VisibleOffset(len(lines), bodyHeight)
+	offset := m.Detail.ClampVisibleOffset(len(lines), bodyHeight)
 
 	visible := lines[offset:]
 	if len(visible) > bodyHeight {
 		visible = visible[:bodyHeight]
 	}
+	visibleEnd := offset + len(visible)
 	for len(visible) < bodyHeight {
 		visible = append(visible, "")
 	}
@@ -183,7 +213,7 @@ func renderSourceView(m *state.AppModel, panelHeight int) string {
 	}
 	body := lipgloss.NewStyle().Height(bodyHeight).MaxHeight(bodyHeight).Render(strings.Join(rendered, "\n"))
 
-	footer := fmt.Sprintf(" %d-%d/%d", offset+1, offset+len(visible), len(lines))
+	footer := fmt.Sprintf(" %d-%d/%d", offset+1, visibleEnd, len(lines))
 	if m.Detail.DetailHint != "" {
 		footer += " \u2502 " + m.Detail.DetailHint
 	}

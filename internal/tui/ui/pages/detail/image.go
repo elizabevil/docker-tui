@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
@@ -15,7 +14,7 @@ func buildImageDetailDataSections(data *runtimeapi.ImageDetail) []detailSection 
 	if data == nil {
 		return nil
 	}
-	sections := make([]detailSection, 0, 7)
+	sections := make([]detailSection, 0, 6)
 	appendValue := func(lines *[]string, label, value string) {
 		if value != "" {
 			*lines = append(*lines, label+": "+value)
@@ -89,54 +88,6 @@ func buildImageDetailDataSections(data *runtimeapi.ImageDetail) []detailSection 
 		sections = append(sections, labels)
 	}
 
-	history := detailSection{Title: i18n.T("inspect.section_history")}
-	if data.IsManifest {
-		history.Subtitle = i18n.T("inspect.history_variants")
-		for _, variant := range data.ManifestVariants {
-			platform := variant.Platform.OS + "/" + variant.Platform.Architecture
-			if variant.Platform.Variant != "" {
-				platform += "/" + variant.Platform.Variant
-			}
-			availability := "remote"
-			if variant.Available {
-				availability = "available"
-			}
-			history.Lines = append(history.Lines, fmt.Sprintf("%s: %s, %s, %s", platform, variant.Digest, utils.FormatBytes(float64(variant.Size)), availability))
-		}
-		if len(data.ManifestVariants) == 0 && data.HistoryError == "" {
-			history.Lines = append(history.Lines, i18n.T("inspect.history_no_variants"))
-		}
-	} else {
-		history.Subtitle = i18n.T("inspect.history_layers")
-		for index, layer := range data.History {
-			created := ""
-			if layer.Created > 0 {
-				created = time.Unix(layer.Created, 0).Format(time.RFC3339)
-			}
-			parts := []string{utils.FormatBytes(float64(layer.Size))}
-			if created != "" {
-				parts = append(parts, created)
-			}
-			if layer.CreatedBy != "" {
-				parts = append(parts, layer.CreatedBy)
-			}
-			if layer.Comment != "" {
-				parts = append(parts, i18n.T("inspect.comment")+": "+layer.Comment)
-			}
-			history.Lines = append(history.Lines, fmt.Sprintf("%d: %s", index+1, strings.Join(parts, " | ")))
-		}
-		if len(data.History) == 0 && data.HistoryError == "" {
-			if data.HistorySource == runtimeapi.ImageHistoryPending {
-				history.Lines = append(history.Lines, i18n.T("inspect.history_loading"))
-			} else {
-				history.Lines = append(history.Lines, i18n.T("inspect.history_empty"))
-			}
-		}
-	}
-	if data.HistoryError != "" {
-		history.Lines = append(history.Lines, i18n.T("inspect.history_unavailable")+": "+data.HistoryError)
-	}
-	sections = append(sections, history)
 	return sections
 }
 
@@ -152,7 +103,6 @@ func buildImageDetailSections(content string) []detailSection {
 		{Title: i18n.T("inspect.section_storage"), Lines: []string{}},
 		{Title: i18n.T("inspect.section_tags"), Lines: []string{}},
 		{Title: i18n.T("inspect.section_metadata"), Lines: []string{}},
-		{Title: i18n.T("inspect.section_history"), Lines: []string{}},
 	}
 
 	lines := strings.Split(content, "\n")
@@ -301,9 +251,6 @@ func buildImageDetailSections(content string) []detailSection {
 
 	if len(sections[5].Lines) == 0 {
 		sections[5].Lines = []string{i18n.T("inspect.no_metadata")}
-	}
-	if len(sections[6].Lines) == 0 {
-		sections[6].Lines = []string{i18n.T("inspect.no_history")}
 	}
 
 	for i := range sections {

@@ -136,7 +136,7 @@
 
 ### BR-006 容器详情页 D 键后只显示“加载中”
 
-- 状态: `open`
+- 状态: `done`
 - 优先级: `high`
 - 症状: 本地 podman (no-cgo 模式) 容器页面按 D 进入详情页后,长时间停留在"加载中"占位文案;按 s 切换到 YAML / JSON 也不显示原始数据。
 - 当前行为:
@@ -154,6 +154,10 @@
   1. podman no-cgo 启动后,D 键在事件循环无明显阻塞,加载占位 <= 2s 后被替换为真实数据或显式错误。
   2. inspect 失败时,详情页出现可读错误而非 “加载中”。
   3. 按 s 切换 yaml / json 时能显示完整原始数据(前提是 inspect 已成功)。
+- 修复记录:
+  - `doInspectAction` 已改为先切入详情页再异步发起 `tea.Cmd` inspect,避免 `Update` 阶段阻塞 socket I/O。
+  - 详情结果回调会把成功 inspect 写回 `DetailState`,失败则直接在详情页显示 `Inspect failed: ...` 错误占位。
+  - `SetContainerDetail` 继续负责写入结构化 raw JSON,源视图可以正常切换。
 
 ### BR-007 镜像详情页不显示 yaml / json 原始数据
 
@@ -181,9 +185,9 @@
 - 优先级: `medium`
 - 症状:
   1. 在任何页面按 H 当前是 `Viewport.ToggleHeader()`(隐藏/显示 header),用户期望 H 直接进入 Help(与 F1 / `?` 一致)。
-  2. 镜像详情页里 `History` 是一个分区,用户希望 History 提到镜像页顶层,**详情页不再显示 History**。
+  2. 镜像详情页里 `History` 曾是一个分区,用户希望 History 提到镜像页顶层,**详情页不再显示 History**。
 - 当前行为:
-  `keys.KeyH` 在 `keyboard.go:215` 直接执行 `m.Viewport.ToggleHeader()`,没有走 `ActionHelp`;镜像详情中的 `buildImageDetailDataSections` 把 History 作为最后一段分区渲染。
+  `keys.KeyH` 在 `keyboard.go:215` 直接执行 `m.Viewport.ToggleHeader()`,没有走 `ActionHelp`;镜像详情中的 `buildImageDetailDataSections` 和文本回退路径已不再渲染 History 段,Docker / Podman 的详情 inspect 也暂时不再请求 History endpoint。详情滚动会回写合法偏移且只渲染当前可见行,避免底部越界偏移累积和全量样式重绘。
 - 代码锚点:
   [internal/tui/keyboard/keyboard.go:215](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/keyboard.go:215) `case keys.KeyH: m.Viewport.ToggleHeader()`
   [internal/tui/keyboard/actions.go:21](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/actions.go:21) `case keys.ActionHelp: ToHelp(m)`
@@ -191,7 +195,7 @@
 - 期望行为:
   1. H 键在所有模式下都映射到 `ActionHelp`,与 F1 / `?` 等价;`ToggleHeader` 行为改由其他键(或显式 `Ctrl+H`)承担(可选,若决定取消 Toggle 入口则记录)。
   2. 新增 `ModeHistory / PanelHistory`,以及 `ActionImageHistory`。在镜像页按下 H(或绑定到具体单字母键)进入 History 页,展示该镜像的 layer history(数据来源复用 `InspectImageDetail()` 的 history 输出)。
-  3. 镜像详情页 `buildImageDetailDataSections` 移除 History 段,保留其它字段。
+  3. 镜像详情页已移除 History 段,仅保留其它字段。
   4. Help 页 / Footer / 默认键位示例同步说明 H = Help、H 在镜像页 = History(单一键位根据上下文路由)。
 - 验收标准:
   1. 全局按 H 进入 Help,与 F1 行为一致。
@@ -200,13 +204,13 @@
 
 ### BR-009 卷详情页面无法加载数据;按 enter 进入容器子视图后无法上下选择
 
-- 状态: `open`
+- 状态: `implementing`
 - 优先级: `high`
 - 症状:
   1. 卷页面按 D 进入详情页后,长时间卡在加载占位或空白,看不到卷的 inspect 数据。
   2. 按 enter 进入卷的容器子视图(由 `Volumes.DetailName` 触发)后,显示容器列表但**无法用上下键选中行**。
 - 当前行为:
-  1. `doVolumeInspect` 同样是同步 inspect + `SetVolumeDetail` + `ToDetail`,在 podman no-cgo 模式下 socket I/O 阻塞事件循环;错误被 `RecordError` 静默,详情页停占位。
+  1. `doVolumeInspect` 已改为异步 inspect + `SetVolumeDetail` + `ToDetail`,podman no-cgo 下不再在 `Update` 阶段阻塞；失败时会在详情页给出显式错误占位。
   2. `volumes.RenderList → renderContainers` 渲染容器子表时,**只用了 `cm.Items` 与 `rowLimit`,忽略了 `cm.Cursor` 与 `cm.ViewOffset`**,`RenderTable` 的 `Selected` / `Offset` 字段未传入;此外 `Volumes.DetailName` 进入子视图时 `m.Resources.Volumes.Cursor` 重置为 0,但渲染走的却是 `cm.Cursor`,从未联动,选中态无法显示也无法被上下键驱动。
 - 代码锚点:
   [internal/tui/keyboard/volume_action.go:24](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/volume_action.go:24) `doVolumeInspect` (同步 inspect, 无 cmd)
@@ -224,11 +228,11 @@
 
 ### BR-010 网络详情页无法加载数据,无法获取 yaml / json 原始数据
 
-- 状态: `open`
+- 状态: `done`
 - 优先级: `high`
 - 症状: 网络页面按 D 进入详情页后,长时间卡在加载占位或空白,看不到 inspect 数据;按 s 切换 yaml / json 也得不到原始数据。
 - 当前行为:
-  `doNetworkInspect` 同样在 `Update` 路径上**同步**调 `Engine.Networks().Inspect(ctx, id)`,与 BR-006 / BR-009 容器/卷详情同一根因 —— podman no-cgo 模式下 socket I/O 阻塞事件循环;错误被 `RecordError` 静默,详情页停占位。`SetNetworkDetail` 本身**确实**写入 `DetailRawJSON`,因此只要 inspect 成功,YAML/JSON 视图能拿到 raw,问题主要在同步阻塞而非 raw 缺失。
+  `doNetworkInspect` 已切换为异步 `tea.Cmd`，不再在 `Update` 路径上直接阻塞 `Engine.Networks().Inspect(ctx, id)`；`SetNetworkDetail` 仍负责写入 `DetailRawJSON`，因此只要 inspect 成功，YAML/JSON 视图就能拿到 raw 数据。
 - 代码锚点:
   [internal/tui/keyboard/network_action.go:46](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/network_action.go:46) `doNetworkInspect` (同步 inspect, 无 cmd)
   [internal/tui/state/detail.go:72](/home/debi/IdeaProjects/docker-tui/internal/tui/state/detail.go:72) `SetNetworkDetail`
@@ -241,6 +245,9 @@
   1. podman no-cgo 启动后,网络 D 键加载可见,失败时显式错误。
   2. yaml / json 视图对网络详情可显示完整原始 inspect 数据。
   3. inspect 错误时详情页给出明确错误占位,不再静默吞掉。
+- 修复记录:
+  - 网络详情加载已和容器 / 卷一致改成异步详情消息流。
+  - 失败态会在详情页直接显示错误内容,不再依赖后台 toast。
 
 ### BR-011 镜像页面超一页时光标下划页面不滚动
 
@@ -322,28 +329,28 @@
 
 ### BR-014 应用底部状态栏 / 操作日志在窄终端下中间部分被截断
 
-- 状态: `open`
+- 状态: `done`
 - 优先级: `medium`
 - 症状: 终端宽度有限时,应用最下方的 status bar(包括连接状态、host、operation log)在一行内拼接,中间或尾部操作日志内容被裁掉,看上去"信息显示不全,到中间就截断"。
 - 当前行为:
-  footer `Render` (footer.go:56-67) 把 `Shortcuts`(2 行)+ `StatusBar`(1 行)合并为固定 3 行;第 64 行 `TruncateVisible(rows[i], width)` 把每行按**终端宽度**整体截断。`StatusBar` (footer.go:14-46) 把
-  - `engineLabel`(`RuntimeType` 或 `ConnectionTarget`)
-  - `hostStr`(`Engine.Identity().Endpoint`)
-  - `operationLogStatus`(`ErrorMessage` / `AuditOperationMessage` / `InfoMessage`,oplog.go:29-53)
-  用 `│` 连接,**全部挤在同一行**。当 `engineLabel + "│" + hostStr` 已经接近终端宽度时,`│ op` 后面的 op log 就会被尾部截断;若 `ErrorMessage` 很长,前面也可能溢出。`operationLogStatus` 自身又把 `ErrorMessage` 截到 40 字符,但仍然可能与其他部分叠加超出。整行只有一个 `│` 分隔,无法分行展示。
+  footer 现在只保留两行快捷键提示;统一提示信息上移到 header 下方的两行 message rail,错误 / 操作 / 提示不再挤在底部一行中。
 - 代码锚点:
   [internal/tui/ui/widget/footer/footer.go:14](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/widget/footer/footer.go:14) `StatusBar`
   [internal/tui/ui/widget/footer/footer.go:56](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/widget/footer/footer.go:56) `Render`
   [internal/tui/ui/widget/footer/oplog.go:29](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/widget/footer/oplog.go:29) `operationLogStatus`
-  [internal/tui/ui/app/rails.go:13](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/app/rails.go:13) `footerRailHeight = 3` (硬编码 3 行)
+  [internal/tui/ui/app/rails.go:13](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/app/rails.go:13) `footerRailHeight = 2` (硬编码 2 行)
 - 期望行为:
   1. `StatusBar` 应按信息优先级与可见宽度分段布局:连接状态(`● local-podman`)放固定左侧,`hostStr` 紧跟其后,op log / error 占右侧并按剩余宽度截断。
-  2. 当操作日志过长时,要么展开成两行(突破 `footerRailHeight = 3` 限制),要么使用滚动 / 折叠;不能因为宽度问题直接砍掉关键错误信息。
+  2. 当操作日志过长时,要么展开成两行(突破 `footerRailHeight = 2` 限制),要么使用滚动 / 折叠;不能因为宽度问题直接砍掉关键错误信息。
   3. 终端宽度变窄时,优先级:连接状态 > host > op log;op log 应能完整显示至少尾部 `…` 提示截断,而非无声消失。
 - 验收标准:
-  1. 80-120 宽终端下,StatusBar 三段信息均可见或带截断提示。
-  2. op log 出现新错误时,最近一条至少能完整看到(或带省略号)。
-  3. `footerRailHeight` 应与内容解耦,不再硬编码 3。
+  1. 80-120 宽终端下,统一提示在 header 下方可见且不会被 footer 截断。
+  2. 错误信息不再依赖底部状态栏展示。
+  3. `footerRailHeight` 已不再承载状态栏内容。
+- 修复记录:
+  - 底部 footer 已缩减为两行快捷键提示。
+  - `ErrorMessage` / `AuditOperationMessage` / `InfoMessage` 统一上移到 header 与 panel 之间的两行消息 rail。
+  - 长错误按终端可见宽度换行;超过两行时在第二行显示省略标记。
 
 ### BR-015 表格选中行背景色未覆盖整行
 

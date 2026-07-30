@@ -159,23 +159,8 @@ func (c *Client) InspectImageDetailContext(ctx context.Context, summary runtimea
 		detail.Labels = cloneStringMap(info.ContainerConfig.Labels)
 	}
 
-	if detail.IsManifest {
-		detail.HistorySource = runtimeapi.ImageHistoryManifest
-		return detail, nil
-	}
-
-	detail.HistorySource = runtimeapi.ImageHistoryLayerAPI
-	history, historyErr := c.cli.ImageHistory(ctx, summary.ID)
-	if historyErr != nil {
-		detail.HistoryError = historyErr.Error()
-	} else {
-		for _, layer := range history {
-			detail.History = append(detail.History, runtimeapi.ImageHistoryLayer{
-				ID: layer.ID, Created: layer.Created, CreatedBy: layer.CreatedBy,
-				Size: layer.Size, Comment: layer.Comment,
-			})
-		}
-	}
+	// History is intentionally excluded from detail loading. Restore it as a
+	// separate, on-demand request when the dedicated history view is added.
 	return detail, nil
 }
 

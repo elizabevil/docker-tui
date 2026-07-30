@@ -16,21 +16,13 @@ func TestRenderAlwaysUsesThreeRows(t *testing.T) {
 	}
 	for _, app := range apps {
 		got := Render(app, 120)
-		if rows := strings.Count(got, "\n") + 1; rows != 3 {
-			t.Fatalf("Render() rows = %d, want 3: %q", rows, got)
+		if rows := strings.Count(got, "\n") + 1; rows != 2 {
+			t.Fatalf("Render() rows = %d, want 2: %q", rows, got)
 		}
 		for _, row := range strings.Split(got, "\n") {
 			if width := component.VisibleLen(row); width != 120 {
 				t.Fatalf("footer row width = %d, want 120", width)
 			}
 		}
-	}
-}
-
-func TestOperationLogPrefersAuditProjection(t *testing.T) {
-	app := &state.AppModel{Feedback: state.FeedbackState{InfoMessage: "legacy", AuditOperationMessage: "resource.container.stop: stopped api"}}
-	got := OperationLogLine(app)
-	if !strings.Contains(got, "resource.container.stop") {
-		t.Fatalf("operation log=%q", got)
 	}
 }

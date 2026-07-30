@@ -99,6 +99,12 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 	case state.ImageDetailLoaded:
 		return handleImageDetailLoaded(m, msg)
+	case state.ContainerDetailLoaded:
+		return handleContainerDetailLoaded(m, msg)
+	case state.VolumeDetailLoaded:
+		return handleVolumeDetailLoaded(m, msg)
+	case state.NetworkDetailLoaded:
+		return handleNetworkDetailLoaded(m, msg)
 	case state.ImageTransferReceived:
 		return handleImageTransferReceived(m, msg)
 
