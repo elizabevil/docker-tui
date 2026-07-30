@@ -5,17 +5,23 @@
 ## 最小运行
 
 ```bash
-go build -o ./dist/docker-tui ./cmd/docker-tui
-./dist/docker-tui
+go build -o ./dist/dtui ./cmd/docker-tui
+./dist/dtui
+```
+
+如果需要覆盖嵌入版本号，可以设置 `DTUI_VERSION`，例如：
+
+```bash
+DTUI_VERSION=v0.2.0 go build -o ./dist/dtui ./cmd/docker-tui
 ```
 
 指定配置或主机：
 
 ```bash
-./dist/docker-tui --config ~/.config/docker-tui/config.yml --host unix:///var/run/docker.sock
+./dist/dtui --config ~/.config/docker-tui/config.yml --host unix:///var/run/docker.sock
 ```
 
-如果使用仓库内置任务，`just build` 和 `just run` 也都基于 `./dist/docker-tui`。程序内部 `cobra.Use` 名称仍是 `dtui`。
+如果使用仓库内置任务，`just build` 和 `just run` 也都基于 `./dist/dtui`。发布 workflow 在 tag `v*` 上会生成 Linux / macOS / Windows 产物。程序内部 `cobra.Use` 名称仍是 `dtui`。
 
 ## 先看哪里
 

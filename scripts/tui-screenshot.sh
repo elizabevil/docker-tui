@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# tui-screenshot.sh — Capture docker-tui TUI screenshot via tmux.
+# tui-screenshot.sh — Capture dtui TUI screenshot via tmux.
 #
-# Launches docker-tui inside a tmux session, waits for the TUI to render,
+# Launches dtui inside a tmux session, waits for the TUI to render,
 # then dumps the visible pane contents to a plain-text file. ANSI color
 # escapes are preserved by default; pass --strip-ansi to remove them.
 #
 # Requirements:
 #   - tmux (>= 2.5)            — sudo apt install tmux
-#   - ./dist/docker-tui binary  — run `just build` first
+#   - ./dist/dtui binary  — run `just build` first
 #
 # Usage:
 #   scripts/tui-screenshot.sh [OPTIONS] [OUTPUT_FILE]
@@ -15,7 +15,7 @@
 # Options:
 #   -w, --width   N    Pane width  (default: 140)
 #   -h, --height  N    Pane height (default: 40)
-#   -b, --binary  PATH Path to docker-tui binary (default: ./dist/docker-tui)
+#   -b, --binary  PATH Path to dtui binary (default: ./dist/dtui)
 #       --strip-ansi     Strip ANSI color escapes from output
 #       --wait    SEC    Seconds to wait before capture (default: 2)
 #       --help           Show this help and exit
@@ -33,7 +33,7 @@ cd "$(dirname "$0")/.."
 OUTPUT="/tmp/dtui-screenshot.txt"
 WIDTH=140
 HEIGHT=40
-BINARY="./dist/docker-tui"
+BINARY="./dist/dtui"
 STRIP_ANSI=0
 WAIT_SEC=2
 

@@ -1,7 +1,7 @@
 # 后续需求实施任务清单
 
 > 建立日期：2026-07-20
-> 最近整理：2026-07-25
+> 最近整理：2026-07-30
 > 依据：[后续需求与规划讨论](future-requirements-discussion.md)、[Docker / Podman 能力分析](podman-capabilities-analysis.md)、[Podman REST 迁移设计](podman-rest-migration.md)
 > 规则：本文是任务状态的唯一台账；设计文档用于说明方案，不单独决定任务状态。
 
@@ -19,16 +19,14 @@
 
 | 状态 | 数量 | 任务 |
 |---|---:|---|
-| `done` | 22 | TASK-001～013、TASK-015～019、TASK-021、TASK-022、TASK-024、TASK-025 |
-| `in_progress` | 1 | TASK-023 |
-| `todo` | 2 | TASK-014、TASK-020 |
+| `done` | 24 | TASK-001～013、TASK-014、TASK-015～019、TASK-021～025 |
+| `in_progress` | 0 | — |
+| `todo` | 1 | TASK-020 |
 | `blocked` | 0 | — |
 
 当前执行顺序：
 
-1. 完成 `TASK-023` 的运行时适配层文档与接口契约整理。
-2. 推进 `TASK-014` 的发布、命名和跨平台分发。
-3. 推进 `TASK-020` 的 Docker / Podman 专有能力评估。
+1. 推进 `TASK-020` 的 Docker / Podman 专有能力评估。
 
 ## 任务总览
 
@@ -47,7 +45,7 @@
 | `TASK-011` | Compose / 容器 / 镜像联动刷新 | P2 | `done` | TASK-008 | `handleEventFlush` 按资源依赖图扩展刷新集 |
 | `TASK-012` | 审计操作历史面板 | P2 | `done` | TASK-001 | 审计列表、筛选、详情、导航和实时同步已完成 |
 | `TASK-013` | 鼠标与小终端降级布局 | P3 | `done` | 页面固定轨道 | 三档终端布局、鼠标命中路由、配置开关和测试已完成；提交 `9d14ae5` |
-| `TASK-014` | 发布、命名和跨平台分发 | P3 | `todo` | 配置稳定 | 统一名称、版本、构建产物、Linux / macOS 发布说明和 CI 验证 |
+| `TASK-014` | 发布、命名和跨平台分发 | P3 | `done` | 配置稳定 | 对外二进制名统一为 `dtui`；`DTUI_VERSION` 支持版本注入，默认值为 `0.2.0`；已补充 Linux / macOS / Windows 构建、CI 与 tag release workflow；README / docs 已同步发布与下载说明 |
 | `TASK-015` | 拆分 `AppModel` 状态域 | P1 | `done` | — | 顶层模型仅负责协调，命名状态域维护自身不变量 |
 | `TASK-016` | TLS / 证书错误分类与安全状态展示 | P0 | `done` | TASK-005 | CA、客户端证书、主机名、握手和网络错误已结构化展示 |
 | `TASK-017` | 高频容器操作 | P0 | `done` | TASK-004 | pause、unpause、rename、top、port 与批量约束已完成 |
@@ -56,35 +54,33 @@
 | `TASK-020` | Docker / Podman 专有能力评估 | P3 | `todo` | TASK-004 | 决策 Podman pod/secret/kube 与 Docker buildx/context 的产品边界 |
 | `TASK-021` | Docker / Podman 统一 runtime driver | P0 | `done` | TASK-004 | 独立 Engine、统一服务契约、错误、能力与连接池工厂已完成 |
 | `TASK-022` | Podman REST 适配收紧 | P1 | `done` | TASK-021、TASK-024 | Phase A/D/F 已完成；Phase B/C/D-2/E 经范围决策取消 |
-| `TASK-023` | runtime/podman 代码规范与文档优化 | P2 | `in_progress` | TASK-022 | 已补充导出符号 Go doc 和 package 文档；剩余 API 文档、接口契约说明及最终验证 |
+| `TASK-023` | runtime/podman 代码规范与文档优化 | P2 | `done` | TASK-022 | package 级文档、职责边界、CGO / non-CGO 契约已同步到架构文档；`git diff --check` 通过，`just verify::check` 的非 CGO 子矩阵通过，CGO 子矩阵受沙箱缺失 `pkg-config` / `btrfs` 头文件限制 |
 | `TASK-024` | Podman 镜像详情与连接池工厂化 | P1 | `done` | TASK-021 | Podman Image Inspect、History 降级、工厂注入和 typed-nil 防御已完成 |
 | `TASK-025` | lint 规则与代码整洁度治理 | P1 | `done` | — | 核心 lint 类清零或收敛，问题数 9473 → 524；提交序列已落地 |
 
 ## 当前任务
 
-### TASK-023：runtime/podman 代码规范与文档优化
+### TASK-014：发布、命名和跨平台分发
 
-状态：`in_progress`
+状态：`done`
 
 已完成：
 
-- 为运行时适配层导出符号补充符合 Go doc 规范的注释。
-- 补充 package 级说明。
-- 清理不符合导出符号命名规则的既有注释。
+- 对外二进制名统一为 `dtui`。
+- `DTUI_VERSION` 已接入构建链路；默认版本为 `0.2.0`，tag 发布可以覆盖嵌入版本号。
+- `README.md`、`docs/README.md`、构建脚本、截图脚本、CI 和 release workflow 已统一使用 `dtui` 产物命名。
+- 已补充 Linux / macOS / Windows 的构建、发布和下载说明。
 
-剩余范围：
+验证：
 
-1. 明确 `runtime.Engine`、Podman adapter、driver 与 REST transport 的职责边界。
-2. 补充 CGO / non-CGO 行为、错误转换和能力降级契约。
-3. 核对公开 API 文档与当前代码签名一致。
-4. 运行 `git diff --check`、`just check`，记录验证结果。
-5. 同步相关架构文档后独立提交。
+- `git diff --check` 通过。
+- `just build` 通过。
 
-不属于 TASK-023：
+不属于 TASK-014：
 
-- 不恢复已取消的 `docker/service` 统一层。
-- 不恢复 TASK-022 Phase B/C/D-2/E。
-- 不删除或迁移大批运行时代码；如代码迁移确有必要，应另立任务。
+- 不改源码目录名 `cmd/docker-tui`。
+- 不迁移 Go module path。
+- 不把当前仓库内所有历史文档一次性重写成 `dtui`，只更新对外交付和当前维护文档。
 
 ## TASK-022 最终范围
 
@@ -150,10 +146,9 @@ e0879b1 style: misc gofmt + small lint cleanups
 TASK-001..013, TASK-015..019, TASK-021, TASK-022, TASK-024, TASK-025 [done]
 
 TASK-022 [done]
-  `-> TASK-023 runtime/podman 文档与契约整理 [in_progress]
+  `-> TASK-023 runtime/podman 文档与契约整理 [done]
 
 独立后续：
-  TASK-014 发布与跨平台 [todo]
   TASK-020 专有能力评估 [todo]
 ```
 

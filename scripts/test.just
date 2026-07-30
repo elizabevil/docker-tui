@@ -40,4 +40,4 @@ test-all: test test-integration
 
 # Internal: build binary for test-integration
 _build:
-    CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o {{out}}/docker-tui ./cmd/docker-tui
+    CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o {{out}}/dtui ./cmd/docker-tui

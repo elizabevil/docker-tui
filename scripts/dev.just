@@ -147,9 +147,9 @@ ping-services:
 
 size-analysis:
     GOEXPERIMENT=jsonv2 go install github.com/Zxilly/go-size-analyzer/cmd/gsa@latest
-    gsa --web ./dist/docker-tui
+    gsa --web ./dist/dtui
     go install github.com/imjasonh/gobinsize@latest
-    gobinsize -svg out.svg ./dist/docker-tui
+    gobinsize -svg out.svg ./dist/dtui
 
 # === TUI screenshot helper ====================================================
 

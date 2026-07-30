@@ -9,12 +9,12 @@ import (
 )
 
 func TestReadFillsStaticFields(t *testing.T) {
-	info := Read("dtui", "0.2.0")
+	info := Read("dtui")
 	if info.Name != "dtui" {
 		t.Errorf("Name = %q, want %q", info.Name, "dtui")
 	}
-	if info.Version != "0.2.0" {
-		t.Errorf("Version = %q, want %q", info.Version, "0.2.0")
+	if info.Version != version {
+		t.Errorf("Version = %q, want %q", info.Version, version)
 	}
 	if info.GoVersion == "" {
 		t.Error("GoVersion empty")

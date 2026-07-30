@@ -54,10 +54,10 @@ cmd/docker-tui/
 - `config`：配置默认值、加载、保存、主题加载
 - `runtime`：SDK 无关的 Engine、Container/Volume/Network service、领域 DTO、错误、capability、筛选 options；`ConnectionPool` 持有注入的 `EngineFactory`，统一负责连接接入、ping 探测、健康刷新和反射层 typed-nil 接口清理
 - `runtime/docker`：Docker 适配器（实现 `runtime.Engine`），通过 Docker SDK 与 docker-compatible REST API 提供容器/镜像/卷/网络等资源
-- `runtime/podman`：Podman 适配器，实现 `runtime.Engine`，含 Container/Image/Volume/Network 全套服务（List/Inspect/Action/Prune/Logs/Events/Exec）；依赖同包的 DTO 与 driver 包提供的共享 REST transport
+- `runtime/podman`：Podman 运行时适配器，实现 `runtime.Engine`，负责把 `runtimeapi.*` 域对象映射到 Podman DTO、做后过滤、错误归一化和能力声明；具体 HTTP / CGO 传输由 `internal/driver/podman` 承担
 - `i18n`：`zh` / `en` 文案
 - `internal/runtimeinit`：连接池工厂注册点，导出 `NewEngineFactory()`，内部依赖 `runtime/docker` 与 `runtime/podman` 实现 Docker/Podman 派发，并通过反射处理 typed-nil 接口
-- `internal/driver/podman`：TASK-024 后下沉的纯 transport 层；`gpgme` 仅 CGO 路径通过 `aliases_*.go` 与 `driver_cgo.go` build tag 隔离
+- `internal/driver/podman`：Podman 传输与可选 CGO driver 边界，包含 `RESTClient`、`DriverBackend`、`dto` wire types 和错误封装；`gpgme` 仅 CGO 路径通过 `aliases_*.go` 与 `driver_cgo.go` build tag 隔离
 
 ### TASK-022 进度（2026-07-24 用户最终修订：取消 docker/service 统一入口层）
 
@@ -200,7 +200,8 @@ runtimeapi.NewPool(factory)  ─► ConnectionPool.Connect / RefreshAll
 
 这些内容在旧文档里容易被写错，这里按当前代码记录：
 
-- `internal/driver/podman` 只保留 REST transport 实现，所有 mapper / service / error mapping 都在 `internal/data/runtime/podman` 中，依赖方向是 `runtime → driver`。
+- `internal/driver/podman` 负责 REST transport、CGO driver、wire DTO 和 transport 级错误分类；`internal/data/runtime/podman` 负责 runtime.Engine 适配、资源 service、post-filter、domain mapping 和运行时能力声明，依赖方向是 `runtime → driver`。
+- `runtime/podman` 的公开边界是 `runtime.Engine`：上层只看到 service 接口与 domain DTO，不直接接触 Podman REST 细节，也不依赖 CGO 类型。
 - `runtime/init` 包负责把 docker / podman adapter 装配成可注入的 `EngineFactory`，并通过反射处理 typed-nil 接口。
 - 连接池 `Connect` 只负责单连接的创建与 ping；`RefreshAll` 遍历所有 host，更新 latency/probedAt/state；`PingLoop` 仅定期 ping 已存在引擎的连接。
 - `Client.Raw()` 仍被 Stats 和 Exec 路径使用；TUI 尚未完全解除 Docker SDK 依赖。

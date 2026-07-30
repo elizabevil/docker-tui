@@ -8,7 +8,7 @@ and audit every action — all without leaving the keyboard.
 Built with Go, [Bubble Tea v2](https://charm.land/bubbletea/v2), and
 [Lip Gloss](https://github.com/charmbracelet/lipgloss).
 
-> The CLI binary is `dtui` (built to `dist/docker-tui` by default).
+> The CLI binary is `dtui` (built to `dist/dtui` by default).
 
 ---
 
@@ -82,10 +82,10 @@ git clone https://github.com/elizabevil/docker-tui.git
 cd docker-tui
 
 # Build (CGO disabled for a static binary)
-CGO_ENABLED=0 go build -o ./dist/docker-tui ./cmd/docker-tui
+CGO_ENABLED=0 go build -o ./dist/dtui ./cmd/docker-tui
 
 # Run
-./dist/docker-tui
+./dist/dtui
 ```
 
 If you prefer the recipe runner:
@@ -95,7 +95,9 @@ just build
 just run
 ```
 
-Pre-built binaries are not published; build from source.
+The build recipes embed a product version from `DTUI_VERSION` and default to
+`0.2.0`. Tagged releases publish Linux / macOS / Windows artifacts named
+`dtui-*`.
 
 ---
 
@@ -104,10 +106,11 @@ Pre-built binaries are not published; build from source.
 | Task | Command |
 |------|---------|
 | Build binary | `just build` |
+| Override embedded version | `DTUI_VERSION=v0.2.0 just build` |
 | Run (Docker) | `just run` |
 | Run (Podman) | `just run-podman` |
-| List built-in themes | `./dist/docker-tui --list-themes` |
-| Show version | `./dist/docker-tui --version` |
+| List built-in themes | `./dist/dtui --list-themes` |
+| Show version | `./dist/dtui --version` |
 
 CLI flags:
 
