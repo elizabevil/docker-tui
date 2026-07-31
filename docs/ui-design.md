@@ -76,16 +76,19 @@ usableW ← all sub-sections render width base
   │  ├─ title line:      lineW = panelW - 6
   │  └─ content area:    contentW = panelW - 4
   │     ├─ Table:        containerW = contentW
-  │     │  ├─ prefix:    rowPrefix (2) + gap
-  │     │  ├─ col width: colW[i] = max(header, content), bounded by Widths[i]
-  │     │  ├─ gap:       (containerW - ΣcolW) / (n-1)
-  │     │  └─ footer:    1 line, bodyH = panelHeight - overhead
+  │     │  ├─ prefix:    rowPrefix (2), deducted once
+  │     │  ├─ col width: stable profile basis/min/max tracks inside contentW - prefix
+  │     │  ├─ fitting:   satisfy visible content first, then share surplus across flexible columns
+  │     │  ├─ gap:       fixed 2 cells between columns
+  │     │  └─ summary:   top-right, bodyH = panelHeight - overhead
   │     ├─ Log:          bodyH x contentW
   │     └─ Detail:       bodyH x contentW
   │
   ├─ Compose (dual column):
-  │  totalW = panelWidth - 4
+  │  totalW = panel contentWidth
   │  ratioL : ratioR = 4 : 6 (compose.jsonc configurable)
+  │  service title = Compose > project > Services
+  │  project detail = read-only Service/Image/Status/Containers table
   │
   └─ Footer:  usableW (direct render)
 ```
@@ -99,8 +102,8 @@ usableW ← all sub-sections render width base
 | panelW | `layout.go` | 391 | `panel.Panel{Width: usableW, ...}` |
 | border deduction | `panel.go` | 43 | `p.Width - 2` |
 | contentW | `layout.go` | 363 | `panelW - 4` |
-| col widths | `table.go` | 78 | `computeContentWidths(d, headers)` |
-| col gap | `table.go` | 259 | `(containerWidth - total) / (n-1)` |
+| col widths | `tables/config.go` | `ResolveLayout` | shared Excel-like stable grid allocation |
+| col gap | `component/table.jsonc` | `table.columnSpacing` | fixed two-cell gap |
 
 ---
 
@@ -124,8 +127,8 @@ All configs use: component.ConfigLoader[T]{
 | Header | `widget/header/header.jsonc` | `header.go:21-88` | `columns[].weight`, `keystroke.contentRatio` |
 | Footer | `widget/footer/footer.jsonc` | `footer.go:16-40` | `markSymbol` |
 | Panel Border | `component/borders.jsonc` | `border.go` | `borders.*` (rounded/double/thick/single/hidden) |
-| Table | `component/table.jsonc` | `table_config.go` | `rowStyles`, `stateStyles`, `pages.*.columns` |
-| Table Cols | `component/config.jsonc` | `config.go` | `cols.*.pct/more/wide/compact/show` |
+| Shared Table | `component/table.jsonc` | `table_config.go` | `table`, `rowStyles`, `stateStyles`, `columnStyles` |
+| Table Data | `tables/*.jsonc` | `tables/config.go` | `columns.*.basis/min/max/shrink`, `show`, resource options |
 | Component Styles | `component/styles.jsonc` | `styles_load.go` | `styles.*` (search/breadcrumb/toast/hints/dialog) |
 | Dialog | `component/dialog.jsonc` | `dialog.go` | Dialog layout params |
 | Filter | `component/filter.jsonc` | `filter.go` | Search filter params |
@@ -143,18 +146,30 @@ GetStyle("stateRunning")
 
 ### Responsive Column Width Profiles
 
-Each page defines multiple column width sets, selected automatically by `ContainerProfileSelector` / `BreakpointProfileSelector`:
+Each page defines semantic column sizing profiles, selected automatically by `ContainerProfileSelector` / `BreakpointProfileSelector`:
 
 ```jsonc
-"container": {
-  "wide":  [8, 14, 12, 16, 10, 5, 8, 12, 0],  // ≥130 cols
-  "more":  [8, 14, 12, 16, 0,  5, 8, 12],       // ≥85 cols
-  "pct":   [8, 16, 14, 18, 0,  14],              // default (percentage)
-  "show":  { "wide": 130, "more": 85, "stats": 110 }
+{
+  "key": "name",
+  "basis": 40,
+  "min": 12,
+  "shrink": 1,
+  "header": "table.name"
 }
 ```
 
 Selection logic (`profile_selector.go:21-31`): match from wide to narrow, first profile where `width >= MinWidth` wins.
+
+The layout contract is:
+
+1. `contentWidth` is calculated by the panel layout and passed unchanged to the page and `RenderTable`.
+2. The row prefix is deducted exactly once by `RenderTable`.
+3. Adjacent columns always use the configured fixed two-cell gap; free width never changes the gap.
+4. `basis` is the preferred track width shared by the header and every row. Columns shrink, weighted by `shrink`, without crossing `min`.
+5. On wider viewports, columns with truncated visible content expand toward their measured content width first. Remaining width is then shared evenly by flexible columns, respecting positive `max` values.
+6. The final column reaches the viewport's right edge whenever at least one flexible column can still grow. Fixed columns never absorb surplus width.
+7. Selected and marked row backgrounds span the same full-width grid.
+8. When minimum widths no longer fit, the page must select a narrower profile instead of violating column constraints.
 
 ---
 
@@ -200,21 +215,25 @@ midH  (sectionHeights allocation)
   ├─ title line:    1 line  ← panel name │ breadcrumb
   ├─ content body: bodyH   ← table/log/detail
   ├─ border bottom: 1 line  ← ╰──────────╯
-  └─ (panel footer handled by RenderTable inside content)
+  └─ table pagination / peer summary stays inside the content top-right
 ```
 
 ### Table Internal Layout
 
 ```
 [SelectionInfo]        ← selected item preview (optional, centered)
+[page / summary]       ← right aligned, e.g. "1-6/20 │ 4 running"
+[empty line]           ← 1 line gap between summary and header
 [header row]           ← column names + sort arrows (↑/↓)
-[empty line]           ← 1 line gap between header and data
 [data row 0]           ← RowRenderer.RenderRow()
 [data row 1]
   ...
 [empty fill]           ← fill when bodyLines < bodyHeight
-[footer]               ← "1-6/6 │ 4 running"
 ```
+
+Pagination and peer-level statistics have one location: the table's upper-right
+summary line. Tables must not duplicate this information at the lower-left.
+Application shortcuts remain in the global two-row footer, not in table content.
 
 Row renderer (`rows.go`):
 - `buildStyle(ref).Render(content)` wraps entire row
@@ -234,10 +253,8 @@ internal/tui/ui/
 ├── component/                Reusable component library
 │   ├── table.go              RenderTable + SelectionInfoProvider interface
 │   ├── table_config.go       table.jsonc loading
-│   ├── table.jsonc           Column styles/row spacing/selection config
-│   ├── config.go             Global Config loading + ColProfile
-│   ├── config.jsonc          Column width percentages/search/breadcrumb params
-│   ├── column_widths.go      Column width calculation + responsive breakpoints
+│   ├── table.jsonc           Shared table layout, row/state/column styles
+│   ├── config.go             Global component style bootstrap
 │   ├── profile_selector.go   Container/breakpoint Profile selectors
 │   ├── rows.go               Row rendering + per-column styles + selection/marked bg
 │   ├── border.go             Border style selection + ActiveBorderStyle
@@ -290,15 +307,22 @@ internal/tui/ui/
 
 ```go
 type TableData struct {
-    Cols, Widths, Rows, Selected int
+    Cols, Rows, Selected         // column definitions + visible data
     Total, Offset, Limit         int
-    BannerW    int                // width reference
-    FooterHint string
+    BannerW    int                // authoritative viewport width
+    FooterHint string                 // legacy name; rendered in top-right summary
     MarkedRows map[int]bool
     ColStyles []ColumnStyle       // per-column styles
     SelectionProvider SelectionInfoProvider
 }
 ```
+
+`TableData` does not accept caller-computed column widths. `RenderTable` subtracts
+the active row prefix from `BannerW` and calls `tables.ResolveLayout` exactly
+once. Row content never changes layout allocation; it is truncated or padded
+inside the resolved basis/min/max/shrink column. Visible content requirements
+receive free width first, then flexible tracks share the remainder so the table
+fills the viewport.
 
 ### SelectionInfoProvider Interface
 
@@ -432,8 +456,8 @@ Line 3: operation log (short, always)     ← OperationLogLine
 |------|-------------|
 | `app.jsonc` | `marginTopPct: 5`, `marginBottomPct: 5`, `contentWidthPct: 90` |
 | `config.yml` | `layout.sectionWeights`, `layout.background`, `keymap.*` |
-| `config.jsonc` | `cols.*.pct/more/wide/compact/show` |
-| `table.jsonc` | `rowStyles`, `stateStyles`, `pages.*.columns`, `selectionInfo`, `rowSpacing` |
+| `tables/*.jsonc` | Data schema: `columns.*.basis/min/max/shrink`, `show`, resource options |
+| `table.jsonc` | Shared visuals: `table`, `rowStyles`, `stateStyles`, `columnStyles` |
 | `header.jsonc` | `columns[].weight`, `keystroke.displayDuration: 30`, `keystroke.animDuration: 5` |
 | `footer.jsonc` | `markSymbol: ☑` |
 | `borders.jsonc` | `borders.rounded/double/thick/single/hidden` |

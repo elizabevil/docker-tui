@@ -11,6 +11,29 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
 
+func TestToastTickStopsWhenIdleAndIgnoresStaleGeneration(t *testing.T) {
+	app := &state.AppModel{}
+	app.Feedback.ShowToast("current", state.NotificationInfo, 2)
+
+	if _, cmd := handleToastTick(app, state.ToastTick{Generation: app.Feedback.ToastGeneration - 1}); cmd != nil {
+		t.Fatal("stale toast tick scheduled another tick")
+	}
+	if app.Feedback.ToastTimer != 2 {
+		t.Fatalf("stale toast tick changed timer: %d", app.Feedback.ToastTimer)
+	}
+
+	generation := app.Feedback.ToastGeneration
+	if _, cmd := handleToastTick(app, state.ToastTick{Generation: generation}); cmd == nil {
+		t.Fatal("active toast did not schedule its remaining tick")
+	}
+	if _, cmd := handleToastTick(app, state.ToastTick{Generation: generation}); cmd != nil {
+		t.Fatal("expired toast kept the timer alive")
+	}
+	if app.Feedback.ToastTimer != 0 || app.Feedback.ToastMessage != "" {
+		t.Fatalf("expired toast state = %#v", app.Feedback)
+	}
+}
+
 func TestHandleFilterExitTimeoutKeepsFilterActive(t *testing.T) {
 	app := &state.AppModel{Navigation: state.NavigationState{Mode: state.ModeFilter, FilterExitPending: true, FilterExitToken: 2, FilterInput: state.QueryInputState{Text: "api", Cursor: 3}}}
 	updated, _ := handleFilterExitTimeout(app, state.FilterExitTimeout{Token: 2})

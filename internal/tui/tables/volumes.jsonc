@@ -3,8 +3,9 @@
     "default": [
       {
         "key": "name",
-        "flex": 1,
-        "max": 26,
+        "basis": 30,
+        "min": 12,
+        "shrink": 1,
         "header": "table.name"
       },
       {
@@ -14,16 +15,18 @@
       },
       {
         "key": "mountpoint",
-        "flex": 2,
-        "max": 0,
+        "basis": 64,
+        "min": 16,
+        "shrink": 1,
         "header": "table.mountpoint"
       }
     ],
     "more": [
       {
         "key": "name",
-        "flex": 1,
-        "max": 26,
+        "basis": 28,
+        "min": 12,
+        "shrink": 1,
         "header": "table.name"
       },
       {
@@ -38,8 +41,9 @@
       },
       {
         "key": "mountpoint",
-        "flex": 2,
-        "max": 0,
+        "basis": 56,
+        "min": 16,
+        "shrink": 1,
         "header": "table.mountpoint"
       },
       {
@@ -56,14 +60,16 @@
       },
       {
         "key": "name",
-        "flex": 2,
-        "max": 22,
+        "basis": 24,
+        "min": 10,
+        "shrink": 1,
         "header": "table.name"
       },
       {
         "key": "image",
-        "flex": 1,
-        "max": 22,
+        "basis": 32,
+        "min": 10,
+        "shrink": 1,
         "header": "table.image"
       },
       {

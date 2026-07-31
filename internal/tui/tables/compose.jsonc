@@ -14,8 +14,9 @@
     "default": [
       {
         "key": "project",
-        "flex": 1,
-        "max": 28,
+        "basis": 30,
+        "min": 10,
+        "shrink": 1,
         "header": "table.project"
       },
       {
@@ -37,20 +38,48 @@
     "services_sub": [
       {
         "key": "service",
-        "flex": 1,
-        "max": 24,
+        "basis": 26,
+        "min": 10,
+        "shrink": 1,
         "header": "table.service"
       },
       {
         "key": "image",
-        "flex": 2,
-        "max": 30,
+        "basis": 44,
+        "min": 12,
+        "shrink": 1,
         "header": "table.image"
       },
       {
         "key": "pods",
         "fixed": 8,
         "header": "table.pods"
+      }
+    ],
+    "detail": [
+      {
+        "key": "service",
+        "basis": 26,
+        "min": 10,
+        "shrink": 1,
+        "header": "table.service"
+      },
+      {
+        "key": "image",
+        "basis": 52,
+        "min": 14,
+        "shrink": 1,
+        "header": "table.image"
+      },
+      {
+        "key": "status",
+        "fixed": 12,
+        "header": "table.status"
+      },
+      {
+        "key": "pods",
+        "fixed": 10,
+        "header": "table.containers"
       }
     ],
     "pods_sub": [
@@ -61,8 +90,9 @@
       },
       {
         "key": "name",
-        "flex": 1,
-        "max": 24,
+        "basis": 30,
+        "min": 10,
+        "shrink": 1,
         "header": "table.name"
       },
       {

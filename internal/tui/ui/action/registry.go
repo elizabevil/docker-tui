@@ -66,7 +66,11 @@ func ForMode(app *state.AppModel) []Shortcut {
 	case state.ModeLogView:
 		return shortcuts(bindingLabel(app, keys.ActionBack, keys.KEsc), "Back", navigationLabel(app), "Scroll", "PgUp/Dn", "Page", "g/Ctrl+G", "Top/Bot", "n/Ctrl+N", "Match", "w", "Wrap")
 	case state.ModeDetail:
-		return shortcuts(bindingLabel(app, keys.ActionBack, keys.KEsc)+"/"+bindingLabel(app, keys.ActionEnter, keys.KEnter), "Back", navigationLabel(app), "Scroll", "Space/PgDn", "Page", "PgUp", "Page up", "g", "Top")
+		result := shortcuts(bindingLabel(app, keys.ActionBack, keys.KEsc)+"/"+bindingLabel(app, keys.ActionEnter, keys.KEnter), "Back", navigationLabel(app), "Scroll", "Space/PgDn", "Page", "PgUp", "Page up", "g", "Top")
+		if app.Detail.HasRawSource() {
+			result = append(result, Shortcut{Key: keys.KeyS, Description: i18n.T("key.source")})
+		}
+		return result
 	case state.ModeTop:
 		return shortcuts("Esc", "Back", "j/k", "Move", "r", "Refresh")
 	case state.ModeAuditDetail:

@@ -28,16 +28,15 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 	if cm == nil {
 		return i18n.T("msg.loading")
 	}
-	w := width - 8
+	w := width
 	if w < 52 {
 		w = 52
 	}
 
 	profile := profileSelector.Select(w)
 
-	widths := tc.ColumnWidths(profile, w)
 	colsDef := tc.Columns[profile]
-	if widths == nil {
+	if len(colsDef) == 0 {
 		return i18n.T("msg.loading")
 	}
 
@@ -47,7 +46,7 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 		return component.GetStyle("dim").Render(i18n.T("msg.no_containers"))
 	}
 
-	rowHeight := component.CalcRowHeight(panelHeight)
+	rowHeight := component.CalcTableRowHeight(panelHeight, !selectionDisabled)
 	viewOffset := cm.ViewOffset
 	component.EnsureVisible(&viewOffset, cm.Cursor, rowHeight, total)
 
@@ -78,17 +77,6 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 		c := items[i]
 		created := utils.FormatCreated(c.Created)
 		status := c.Status
-		stateColW := 0
-		for j, cd := range colsDef {
-			if cd.Key == "state" {
-				stateColW = widths[j]
-				break
-			}
-		}
-		if stateColW > 6 && len(status) > stateColW-3 {
-			status = status[:stateColW-6] + "..."
-		}
-
 		portList := FormatPorts(c.PortBindings, w < 80)
 		for pi, p := range portList {
 			if len(rows) >= rowHeight {
@@ -115,9 +103,7 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 
 	hint := fmt.Sprintf("%d %s, %d %s, %d %s", running, i18n.T("container.state.running"), exited, i18n.T("container.state.exited"), createdSt, i18n.T("container.state.created"))
 
-	ts := tc.EffectiveTableStyle()
-	// 从 table.jsonc 获取列样式
-	colStyles := component.GetPageColumnStyles("container", colsDef)
+	colStyles := component.GetColumnStyles(colsDef)
 
 	// 选中项详情预览
 	var selProv component.SelectionInfoProvider
@@ -138,7 +124,6 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 
 	return component.RenderTable(component.TableData{
 		Cols:              colsDef,
-		Widths:            widths,
 		Rows:              rows,
 		Selected:          selected,
 		Total:             total,
@@ -149,8 +134,6 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 		FooterHint:        hint,
 		BodyHeight:        panelHeight,
 		MarkedRows:        buildMarkedRows(rows, items, viewOffset, markedIDs),
-		RowPrefix:         ts.RowPrefix,
-		RowPrefixSelected: ts.RowPrefixSelected,
 		ColStyles:         colStyles,
 		SelectionProvider: selProv,
 		SortColKey:        containerSortColKey(cm.SortBy),

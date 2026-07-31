@@ -151,7 +151,6 @@ type mainModel struct {
 func (m *mainModel) Init() tea.Cmd {
 	return tea.Batch(
 		func() tea.Msg { return state.HostStatsTick{} },
-		func() tea.Msg { return state.ToastTick{} },
 		func() tea.Msg { return state.RuntimeHealthTick{} },
 		connectDocker(m.model.Connection.Pool, m.initialConnection),
 		probeAllOnStart(m.model.Connection.Pool, m.initialConnection),
@@ -217,8 +216,19 @@ func connectDocker(pool *runtimeapi.ConnectionPool, name string) tea.Cmd {
 }
 
 func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	toastGeneration := m.model.Feedback.ToastGeneration
 	updatedModel, cmd := update.Update(msg, m.model)
 	m.model = updatedModel
+	if updatedModel.Feedback.ToastTimer > 0 && updatedModel.Feedback.ToastGeneration != toastGeneration {
+		generation := updatedModel.Feedback.ToastGeneration
+		toastCmd := tea.Tick(100*time.Millisecond, func(time.Time) tea.Msg {
+			return state.ToastTick{Generation: generation}
+		})
+		if cmd == nil {
+			return m, toastCmd
+		}
+		return m, tea.Batch(cmd, toastCmd)
+	}
 	return m, cmd
 }
 

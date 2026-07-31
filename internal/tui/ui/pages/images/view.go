@@ -30,12 +30,11 @@ func RenderList(im *state.ImageListModel, cm *state.ContainerListModel, width in
 	if im.ContainersViewID != "" {
 		return renderContainers(im, cm, width, im.ContainersViewID, panelHeight)
 	}
-	w := width - 8
+	w := width
 
 	profile := profileSelector.Select(w)
-	widths := tc.ColumnWidths(profile, w)
 	colsDef := tc.Columns[profile]
-	if widths == nil {
+	if len(colsDef) == 0 {
 		return i18n.T("msg.loading")
 	}
 
@@ -45,9 +44,9 @@ func RenderList(im *state.ImageListModel, cm *state.ContainerListModel, width in
 		return component.GetStyle("dim").Render(i18n.T("msg.no_images"))
 	}
 
-	rowHeight := component.CalcRowHeight(panelHeight)
+	rowHeight := component.CalcTableRowHeight(panelHeight, !selectionDisabled)
+	component.EnsureVisible(&im.ViewOffset, im.Cursor, rowHeight, total)
 	viewOffset := im.ViewOffset
-	component.EnsureVisible(&viewOffset, im.Cursor, rowHeight, total)
 
 	// Header overrides with sort arrows
 	arrow := sortArrow(im.SortAsc)
@@ -152,11 +151,9 @@ func RenderList(im *state.ImageListModel, cm *state.ContainerListModel, width in
 	if !selectionDisabled {
 		selected = im.Cursor - viewOffset
 	}
-	colStyles := component.GetPageColumnStyles("image", colsDef)
-	ts := tc.EffectiveTableStyle()
+	colStyles := component.GetColumnStyles(colsDef)
 	return component.RenderTable(component.TableData{
 		Cols:              colsDef,
-		Widths:            widths,
 		Rows:              rows,
 		Selected:          selected,
 		Total:             total,
@@ -167,8 +164,6 @@ func RenderList(im *state.ImageListModel, cm *state.ContainerListModel, width in
 		HeaderOverrides:   overrides,
 		BodyHeight:        panelHeight,
 		MarkedRows:        component.BuildMarkedRows(rows, items, viewOffset, markedIDs, func(img dockerclient.ImageSummary) string { return img.ID }),
-		RowPrefix:         ts.RowPrefix,
-		RowPrefixSelected: ts.RowPrefixSelected,
 		ColStyles:         colStyles,
 		SelectionProvider: selProv,
 	})
@@ -178,11 +173,10 @@ func renderContainers(im *state.ImageListModel, cm *state.ContainerListModel, wi
 	if cm == nil {
 		return i18n.T("msg.loading")
 	}
-	w := width - 8
+	w := width
 
-	widths := tc.ColumnWidths("containers_sub", w)
 	colsDef := tc.Columns["containers_sub"]
-	if widths == nil {
+	if len(colsDef) == 0 {
 		return i18n.T("msg.loading")
 	}
 
@@ -283,12 +277,10 @@ func renderContainers(im *state.ImageListModel, cm *state.ContainerListModel, wi
 		}
 		return reg + "/" + name + ":" + tag
 	})
-	colStyles := component.GetPageColumnStyles("image", colsDef)
-	ts := tc.EffectiveTableStyle()
+	colStyles := component.GetColumnStyles(colsDef)
 	return component.RenderSelectionBanner(imgRef, w) + "\n" +
 		component.RenderTable(component.TableData{
 			Cols:              colsDef,
-			Widths:            widths,
 			Rows:              rows,
 			Selected:          selRow,
 			Total:             total,
@@ -297,8 +289,7 @@ func renderContainers(im *state.ImageListModel, cm *state.ContainerListModel, wi
 			HeaderOverrides:   overrides,
 			FooterHint:        "l:logs Enter:logs Esc:back",
 			BodyHeight:        panelHeight,
-			RowPrefix:         ts.RowPrefix,
-			RowPrefixSelected: ts.RowPrefixSelected,
+			BannerW:           w,
 			ColStyles:         colStyles,
 			SelectionProvider: selProv,
 		})

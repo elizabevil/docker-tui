@@ -9,21 +9,25 @@
       },
       {
         "key": "name",
-        "flex": 3,
-        "max": 28,
+        "basis": 24,
+        "min": 12,
+        "shrink": 1,
         "header": "table.name",
         "sortable": true
       },
       {
         "key": "image",
-        "flex": 3,
-        "max": 26,
+        "basis": 28,
+        "min": 12,
+        "shrink": 1,
         "header": "table.image",
         "sortable": false
       },
       {
         "key": "state",
-        "flex": 1,
+        "basis": 12,
+        "min": 8,
+        "shrink": 1,
         "max": 16,
         "header": "table.state",
         "sortable": true
@@ -49,20 +53,24 @@
       },
       {
         "key": "name",
-        "flex": 3,
-        "max": 28,
+        "basis": 22,
+        "min": 12,
+        "shrink": 1,
         "header": "table.name",
         "sortable": true
       },
       {
         "key": "image",
-        "flex": 3,
-        "max": 26,
+        "basis": 26,
+        "min": 12,
+        "shrink": 1,
         "header": "table.image"
       },
       {
         "key": "state",
-        "flex": 1,
+        "basis": 12,
+        "min": 8,
+        "shrink": 1,
         "max": 16,
         "header": "table.state",
         "sortable": true
@@ -98,20 +106,24 @@
       },
       {
         "key": "name",
-        "flex": 3,
-        "max": 22,
+        "basis": 22,
+        "min": 12,
+        "shrink": 1,
         "header": "table.name",
         "sortable": true
       },
       {
         "key": "image",
-        "flex": 2,
-        "max": 20,
+        "basis": 24,
+        "min": 12,
+        "shrink": 1,
         "header": "table.image"
       },
       {
         "key": "state",
-        "flex": 1,
+        "basis": 11,
+        "min": 8,
+        "shrink": 1,
         "max": 14,
         "header": "table.state",
         "sortable": true
@@ -129,8 +141,9 @@
       },
       {
         "key": "stats",
-        "flex": 4,
-        "max": 0,
+        "basis": 30,
+        "min": 18,
+        "shrink": 1,
         "header": "table.stats",
         "sortable": true
       }
@@ -144,20 +157,24 @@
       },
       {
         "key": "name",
-        "flex": 2,
-        "max": 22,
+        "basis": 20,
+        "min": 12,
+        "shrink": 1,
         "header": "table.name",
         "sortable": true
       },
       {
         "key": "image",
-        "flex": 2,
-        "max": 22,
+        "basis": 24,
+        "min": 12,
+        "shrink": 1,
         "header": "table.image"
       },
       {
         "key": "state",
-        "flex": 1,
+        "basis": 11,
+        "min": 8,
+        "shrink": 1,
         "max": 14,
         "header": "table.state",
         "sortable": true
@@ -185,8 +202,9 @@
       },
       {
         "key": "stats",
-        "flex": 4,
-        "max": 0,
+        "basis": 30,
+        "min": 18,
+        "shrink": 1,
         "header": "table.stats",
         "sortable": true
       }

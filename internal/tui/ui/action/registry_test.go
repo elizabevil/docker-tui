@@ -16,6 +16,25 @@ func TestContextPrefersModeActions(t *testing.T) {
 	}
 }
 
+func TestDetailContextOnlyShowsAvailableSourceAction(t *testing.T) {
+	app := &state.AppModel{Navigation: state.NavigationState{Mode: state.ModeDetail}}
+	withoutSource := Context(app)
+	for _, shortcut := range withoutSource {
+		if shortcut.Description == i18n.T("key.source") {
+			t.Fatalf("source shortcut shown without raw data: %#v", withoutSource)
+		}
+	}
+
+	app.Detail.SetRaw(state.ResourceImage, []byte(`{"id":"image"}`))
+	withSource := Context(app)
+	for _, shortcut := range withSource {
+		if shortcut.Description == i18n.T("key.source") {
+			return
+		}
+	}
+	t.Fatalf("source shortcut missing with raw data: %#v", withSource)
+}
+
 func TestSectionsUseRegistryActions(t *testing.T) {
 	sections := Sections()
 	if len(sections) < 5 {

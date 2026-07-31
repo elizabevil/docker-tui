@@ -92,6 +92,8 @@ func projectPage(m *state.AppModel, bodyHeight, bodyWidth int) pageView {
 		} else if m.Navigation.Mode == state.ModeAuditDetail {
 			view.title = "Audit Detail"
 			view.content = audit.RenderDetail(m.Audit.DetailRecord, bodyWidth, bodyHeight)
+		} else if m.Detail.DetailResourceType == state.ResourceComposeProject {
+			view.content = compose.RenderProjectDetailTable(m, bodyWidth, bodyHeight)
 		} else {
 			view.content = detail.RenderView(m, bodyHeight)
 		}

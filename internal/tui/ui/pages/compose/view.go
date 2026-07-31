@@ -90,7 +90,7 @@ func RenderPanel(m *state.AppModel, panelWidth int, panelHeight int) string {
 	}
 	projectCursor := m.Compose.ProjectCursor(len(ordered))
 
-	totalW := panelWidth - 4
+	totalW := panelWidth
 
 	ratioL, ratioR := 4, 6
 	if tc.Layout != nil && tc.Layout.Ratio.Left > 0 && tc.Layout.Ratio.Right > 0 {
@@ -152,9 +152,8 @@ func RenderPanel(m *state.AppModel, panelWidth int, panelHeight int) string {
 }
 
 func renderProjectList(m *state.AppModel, ordered []composeProj, w, panelHeight int) string {
-	widths := tc.ColumnWidths("default", w)
 	colsDef := tc.Columns["default"]
-	if widths == nil {
+	if len(colsDef) == 0 {
 		return ""
 	}
 
@@ -189,23 +188,19 @@ func renderProjectList(m *state.AppModel, ordered []composeProj, w, panelHeight 
 	projectCursor := m.Compose.ProjectCursor(total)
 	banner := ordered[projectCursor].name
 
-	colStyles := component.GetPageColumnStyles("container", colsDef)
-	ts := tc.EffectiveTableStyle()
-	bannerW := tableBannerWidth(w, ts)
+	colStyles := component.GetColumnStyles(colsDef)
+	bannerW := tableBannerWidth(w)
 	return component.RenderTable(component.TableData{
-		Cols:              colsDef,
-		Widths:            widths,
-		Rows:              rows,
-		Selected:          projectCursor,
-		Total:             total,
-		Limit:             rowHeight,
-		BodyHeight:        panelHeight,
-		Banner:            banner,
-		BannerW:           bannerW,
-		FooterHint:        fmt.Sprintf("%d projects", total),
-		RowPrefix:         ts.RowPrefix,
-		RowPrefixSelected: ts.RowPrefixSelected,
-		ColStyles:         colStyles,
+		Cols:       colsDef,
+		Rows:       rows,
+		Selected:   projectCursor,
+		Total:      total,
+		Limit:      rowHeight,
+		BodyHeight: panelHeight,
+		Banner:     banner,
+		BannerW:    bannerW,
+		FooterHint: fmt.Sprintf("%d projects", total),
+		ColStyles:  colStyles,
 	})
 }
 
@@ -217,7 +212,7 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 	if proj.running == 0 {
 		sts = state.ContainerStateStopped
 	}
-	rawTitle := "Services: " + proj.name
+	rawTitle := state.PanelLabel(state.PanelCompose) + " > " + proj.name + " > " + i18n.T("key.services")
 	rawSummary := fmt.Sprintf("Status: %s  Services: %d  Pods: %d", sts, len(proj.svcs), proj.total)
 	title := component.GetStyle("panelTitle").Render(component.TruncateVisible(rawTitle, w))
 	summary := component.GetStyle("dim").Render(component.TruncateVisible(rawSummary, w))
@@ -244,7 +239,6 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 	}
 	serviceCursor := m.Compose.ServiceCursor(len(svcNames))
 
-	widths := tc.ColumnWidths("services_sub", w)
 	colsDef := tc.Columns["services_sub"]
 	total := len(svcNames)
 	rowHeight := component.CalcRowHeight(panelHeight - 3)
@@ -266,22 +260,18 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 		rows = append(rows, cells)
 	}
 
-	colStyles := component.GetPageColumnStyles("container", colsDef)
-	ts := tc.EffectiveTableStyle()
-	bannerW := tableBannerWidth(w, ts)
+	colStyles := component.GetColumnStyles(colsDef)
+	bannerW := tableBannerWidth(w)
 	table := component.RenderTable(component.TableData{
-		Cols:              colsDef,
-		Widths:            widths,
-		Rows:              rows,
-		Selected:          serviceCursor,
-		Total:             total,
-		Limit:             rowHeight,
-		BodyHeight:        panelHeight - 3,
-		BannerW:           bannerW,
-		FooterHint:        "s:start S:stop l:logs",
-		RowPrefix:         ts.RowPrefix,
-		RowPrefixSelected: ts.RowPrefixSelected,
-		ColStyles:         colStyles,
+		Cols:       colsDef,
+		Rows:       rows,
+		Selected:   serviceCursor,
+		Total:      total,
+		Limit:      rowHeight,
+		BodyHeight: panelHeight - 3,
+		BannerW:    bannerW,
+		FooterHint: "s:start S:stop l:logs",
+		ColStyles:  colStyles,
 	})
 
 	return lipgloss.JoinVertical(lipgloss.Top,
@@ -292,47 +282,72 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 	)
 }
 
-// RenderProjectDetail 从模型获取当前项目数据，生成概览文本供 ModeDetail 使用。
-func RenderProjectDetail(m *state.AppModel) string {
+// RenderProjectDetailTable renders a Compose project as a read-only detail table.
+func RenderProjectDetailTable(m *state.AppModel, width, panelHeight int) string {
 	ordered, _ := gatherComposeProjects(m)
+	ordered = filterProjects(ordered, m.Compose.ComposeProjectFilter)
 	if len(ordered) == 0 {
-		return ""
+		return component.GetStyle("dim").Render("(no compose project data)")
 	}
-	return BuildProjectDetail(ordered[m.Compose.ProjectCursor(len(ordered))])
-}
-
-// BuildProjectDetail 生成 compose 项目概览文本，供给 ModeDetail 渲染。
-// 格式使用 ── 标题 ── 分隔，被 detail/buildDetailSections 自动解析为多节。
-func BuildProjectDetail(proj composeProj) string {
-	var b strings.Builder
-
-	b.WriteString("\u2500\u2500 \u9879\u76ee\u6982\u51b5 \u2500\u2500\n")
-	b.WriteString(fmt.Sprintf("Project: %s\n", proj.name))
-	b.WriteString(fmt.Sprintf("Containers: %d/%d running\n", proj.running, proj.total))
-
-	b.WriteString("\n\u2500\u2500 \u670d\u52a1\u5217\u8868 \u2500\u2500\n")
+	proj := ordered[m.Compose.ProjectCursor(len(ordered))]
 	svcNames := make([]string, 0, len(proj.svcs))
 	for name := range proj.svcs {
 		svcNames = append(svcNames, name)
 	}
 	sort.Strings(svcNames)
-	for _, name := range svcNames {
-		info := proj.svcs[name]
-		ico := "\u25cf"
-		if info.running == 0 {
-			ico = "\u25cb"
-		}
-		b.WriteString(fmt.Sprintf("  %s %s  %d/%d  image: %s\n", ico, name, info.running, info.total, info.image))
+	if len(svcNames) == 0 {
+		return component.GetStyle("dim").Render("(no services found)")
 	}
 
-	return b.String()
+	w := max(40, width-4)
+	colsDef := tc.Columns["detail"]
+	if len(colsDef) == 0 {
+		return component.GetStyle("dim").Render("(compose detail columns unavailable)")
+	}
+	rowHeight := component.CalcTableRowHeight(panelHeight, false)
+	offset := m.Detail.ClampVisibleOffset(len(svcNames), rowHeight)
+	rows := make([][]string, 0, rowHeight)
+	for i := offset; i < len(svcNames) && len(rows) < rowHeight; i++ {
+		name := svcNames[i]
+		info := proj.svcs[name]
+		status := state.ContainerStateStopped
+		if info.running == info.total {
+			status = state.ContainerStateRunning
+		} else if info.running > 0 {
+			status = "partial"
+		}
+		cells := make([]string, len(colsDef))
+		for j, column := range colsDef {
+			switch column.Key {
+			case "service":
+				cells[j] = name
+			case "image":
+				cells[j] = info.image
+			case "status":
+				cells[j] = status
+			case "pods":
+				cells[j] = fmt.Sprintf("%d/%d", info.running, info.total)
+			}
+		}
+		rows = append(rows, cells)
+	}
+	return component.RenderTable(component.TableData{
+		Cols:       colsDef,
+		Rows:       rows,
+		Selected:   -1,
+		Total:      len(svcNames),
+		Offset:     offset,
+		Limit:      rowHeight,
+		BannerW:    w,
+		FooterHint: fmt.Sprintf("%d/%d running \u2502 %d services", proj.running, proj.total, len(proj.svcs)),
+		ColStyles:  component.GetColumnStyles(colsDef),
+	})
 }
 
 // renderComposeContainers 渲染 compose 服务下的容器子视图。
 func renderComposeContainers(m *state.AppModel, panelWidth int, panelHeight int) string {
-	widths := tc.ColumnWidths("pods_sub", panelWidth-4)
 	colsDef := tc.Columns["pods_sub"]
-	if widths == nil {
+	if len(colsDef) == 0 {
 		return component.GetStyle("dim").Render("(no container data)")
 	}
 
@@ -375,42 +390,29 @@ func renderComposeContainers(m *state.AppModel, panelWidth int, panelHeight int)
 			}
 		})
 
-	rawTitle := component.TruncateVisible(project+"/"+service, panelWidth-4)
+	rawTitle := component.TruncateVisible(project+"/"+service, panelWidth)
 	title := component.GetStyle("panelTitle").Render(rawTitle)
 	bc := component.GetStyle("dim").Render("Esc " + i18n.T("key.back"))
-	ts := tc.EffectiveTableStyle()
-
 	return lipgloss.JoinVertical(lipgloss.Top,
 		title,
 		component.RenderTable(component.TableData{
-			Cols:              colsDef,
-			Widths:            widths,
-			Rows:              rows,
-			Selected:          containerCursor - viewOffset,
-			Total:             total,
-			Limit:             rowHeight,
-			BodyHeight:        panelHeight - 2,
-			BannerW:           tableBannerWidth(panelWidth-4, ts),
-			RowPrefix:         ts.RowPrefix,
-			RowPrefixSelected: ts.RowPrefixSelected,
-			FooterHint:        "Esc back  |  l:logs  d:detail",
+			Cols:       colsDef,
+			Rows:       rows,
+			Selected:   containerCursor - viewOffset,
+			Total:      total,
+			Limit:      rowHeight,
+			BodyHeight: panelHeight - 2,
+			BannerW:    tableBannerWidth(panelWidth),
+			ColStyles:  component.GetColumnStyles(colsDef),
+			FooterHint: "Esc back  |  l:logs  d:detail",
 		}),
 		"",
 		bc,
 	)
 }
 
-func tableBannerWidth(totalW int, ts tables.TableStyle) int {
-	prefixW := component.VisibleLen(ts.RowPrefix)
-	selPrefixW := component.VisibleLen(ts.RowPrefixSelected)
-	if selPrefixW > prefixW {
-		prefixW = selPrefixW
-	}
-	bw := totalW - prefixW
-	if bw < 10 {
-		bw = 10
-	}
-	return bw
+func tableBannerWidth(totalW int) int {
+	return max(10, totalW)
 }
 
 // currentProjectName 返回当前 Compose 光标所在的项目名。

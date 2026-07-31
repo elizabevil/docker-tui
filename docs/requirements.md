@@ -37,10 +37,12 @@
 
 下面这些问题已经在 [docs/bugfix-requirements.md](bugfix-requirements.md) 里单独登记，需要按 bug 台账推进，不再放进路线图正文：
 
-- [BR-007](bugfix-requirements.md#br-007-镜像详情页不显示-yaml--json-原始数据)：镜像详情页切换原始数据视图时为空白。
+- [BR-007](bugfix-requirements.md#br-007-镜像详情页不显示-yaml--json-原始数据)：已实现镜像规范化 YAML / JSON 源码与详情文档缓存，等待运行时回归确认。
 - [BR-008](bugfix-requirements.md#br-008-h-键应进-helpf1-行为复用h-键同时承担镜像-history-入口)：全局 Help 与镜像 History 的按键语义仍待收敛。
 - [BR-009](bugfix-requirements.md#br-009-卷详情页面无法加载数据按-enter-进入容器子视图后无法上下选择)：卷详情已改成异步加载，但子视图选择联动仍待修。
-- [BR-011](bugfix-requirements.md#br-011-镜像页面超一页时光标下划页面不滚动)：镜像列表跨页滚动未同步回写。
+- [BR-016](bugfix-requirements.md#br-016-容器详情页上下滚动卡顿)：已移除空闲高频重绘并缓存详情文档，等待真实容器详情滚动回归。
+- [BR-017](bugfix-requirements.md#br-017-compose-详情页不应把快捷键写进正文)：Compose 正文、源码能力与双栏 footer 已分离，等待交互回归。
+- [BR-011](bugfix-requirements.md#br-011-镜像页面超一页时光标下划页面不滚动)：镜像列表已按真实表格行数同步回写 viewport，等待大列表交互回归。
 - [BR-012](bugfix-requirements.md#br-012-所有表格鼠标点击选中的行位置不对)：鼠标点击命中行与视觉行有偏差。
 - [BR-015](bugfix-requirements.md#br-015-表格选中行背景色未覆盖整行)：选中行背景未完整覆盖。
 

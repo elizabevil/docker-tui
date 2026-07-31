@@ -3,7 +3,6 @@ package keyboard
 import (
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/compose"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -54,9 +53,10 @@ func handleComposePanelKeys(key string, m *state.AppModel) (*state.AppModel, tea
 	case keys.KeyD:
 		// 左栏按 d → 项目概览
 		if m.Compose.ComposeFocus == 0 {
-			content := compose.RenderProjectDetail(m)
-			if content != "" {
-				ToDetail(m, "Project: "+currentComposeProject(m), content)
+			project := currentComposeProject(m)
+			if project != "" {
+				ToDetail(m, "Compose Detail: "+project, "")
+				m.Detail.DetailResourceType = state.ResourceComposeProject
 			}
 			return m, RecordKeyStroke(m, key, keys.ActionLabelDetail)
 		}

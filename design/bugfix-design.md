@@ -1036,6 +1036,120 @@
   2. 若把 `UI Message Event` 与 `Audit Event` 混写入审计日志，会削弱审计价值并污染追溯链路。
   3. 若过早把所有内部运行事件并入审计模型，范围会膨胀并模糊“用户操作日志”的定位。
 
+### BR-007 / BR-016 / BR-017 详情文档、源码能力与滚动性能
+
+- 目标:
+  1. 镜像、容器、卷、网络详情共用同一份可滚动文档模型。
+  2. 数据变化时构建文档，滚动时只更新 offset 并渲染可见行。
+  3. 只有存在源码数据的详情才允许在 section / YAML / JSON 间切换。
+  4. Compose 项目详情只展示项目数据，快捷键留在 footer，不能因按 `s` 进入空白源码页。
+- 已确认根因:
+  1. `renderSections` 每次重绘都会重新构造全部 section 和 `detailLine`；容器环境变量、标签、挂载较多时会产生大量短期分配。
+  2. `renderSourceView` 每次重绘都会重新执行 JSON unmarshal、YAML marshal 或 JSON indent，然后才截取可见行。
+  3. `ToastTick` 从程序启动后每 100ms 永久调度一次，即使当前没有 toast，也会让 Bubble Tea 重绘整屏。详情页的全量投影成本因此被持续放大。
+  4. `CycleSource` 不检查 `DetailRawJSON`。Compose 项目详情通过 `Open(title, content)` 打开，没有 raw JSON，但仍可切到 YAML / JSON，最终只剩空白正文和行号 footer。
+  5. 现有 `ClampVisibleOffset` 已解决底部 overscroll “欠账”，但它只修正滚动正确性，不解决文档重复构建和空闲重绘。
+- 影响层:
+  1. `internal/tui/state/detail.go`: 详情 revision、源码能力、文档缓存和合法 offset。
+  2. `internal/tui/ui/pages/detail`: 结构化详情与源码文本投影、可见窗口渲染。
+  3. `internal/tui/keyboard/detail.go`: 按资源能力处理 `s`。
+  4. `internal/tui/update/update_tick.go` 与主 model: toast timer 改为按需调度。
+  5. `internal/tui/ui/action/registry.go`: footer 只展示当前详情真正可用的动作。
+- 不做什么:
+  1. 本阶段不恢复镜像 History 请求或详情 History 分区。
+  2. 不把 Docker / Podman 原生 inspect DTO 暴露给 TUI；YAML / JSON 先定义为 runtime-neutral `ImageDetail` / `ContainerDetail` 等规范化数据。
+  3. 不引入新的 viewport 或缓存依赖，不做全应用渲染框架重写。
+  4. 不在 Compose 详情正文中放任何快捷键说明。
+- 文档模型:
+  1. `DetailState` 增加单调递增的 `Revision`。`Open*`、`Set*Detail`、`ApplyImage`、错误结果和 `Close` 都必须使旧文档失效。
+  2. 增加明确能力判断 `HasRawSource()`；不能用 `DetailResourceType != ""` 代替，因为 Compose 等合成详情可能有资源类型但没有 raw 数据。
+  3. 详情投影输出稳定的逻辑行:
+     ```go
+     type DetailDocument struct {
+         Revision uint64
+         Source   DetailSource
+         Lines    []DetailDocumentLine
+     }
+
+     type DetailDocumentLine struct {
+         Kind  DetailLineKind
+         Left  string
+         Right string
+     }
+     ```
+  4. section、YAML、JSON 各自按 `Revision + Source` 缓存。滚动不增加 revision，也不重新解析或格式化原始数据。
+  5. 样式只应用于当前可见窗口，缓存中不保存 ANSI 字符串，避免主题变化或背景覆盖失效。
+  6. 文档总行数和可见高度确定后，在更新路径回写合法 offset；`View` 不再承担持久状态修正。
+- 源码切换:
+  1. `CycleSource` 只在 `HasRawSource()` 为真时执行；否则保持 section 模式并设置短提示，不进入空文档。
+  2. raw JSON 为空、marshal 失败或内容非法时，YAML / JSON 视图显示明确占位，不能回退为空字符串。
+  3. 镜像 `OpenImage` 和 `ApplyImage` 继续写入规范化 `ImageDetail` JSON。若后续要求展示引擎原始 inspect，单独扩展 runtime API 返回值，不能从格式化文本反解析。
+  4. detail footer 在 `HasRawSource()` 为真时显示 `s Source`；Compose 合成详情不显示该动作。
+- Toast 调度:
+  1. 删除 `Init` 中永久运行的 `ToastTick` 链。
+  2. `FeedbackState` 增加 toast generation。每次发布 toast 时递增 generation，并只为当前 generation 启动 timer。
+  3. `ToastTick` 携带 generation；过期 tick 直接丢弃，当前 toast 消失后不再调度下一次 tick。
+  4. toast 的显示时长保持现有语义，但空闲页面不再以 10 FPS 重绘。
+- Compose:
+  1. `BuildProjectDetail` 只生成项目概况与服务列表。
+  2. 普通双栏模式由 `ComposeFocus` 决定 footer 动作；项目详情进入 `ModeDetail` 后使用详情模式 footer。
+  3. Compose 项目详情没有 raw source 时，`s` 不改变视图；未来若加入 compose 配置原文，必须通过显式 raw source 接入后才开放切换。
+- 实施顺序:
+  1. 先补渲染计数基准，记录大容器详情、镜像详情和 YAML / JSON 的单帧耗时与分配。
+  2. 将 Toast tick 改为按需调度，确认空闲详情页不再每 100ms 重绘。
+  3. 引入 revision 和逻辑文档缓存，确保滚动路径只做 offset、切片和可见行样式渲染。
+  4. 增加 source capability，修复 Compose 空白页并补齐详情 footer。
+  5. 在 Docker 与 Podman 上分别回归镜像和容器详情。
+- 风险:
+  1. 缓存失效点遗漏会显示上一资源的数据，因此所有详情写入口必须通过统一方法更新 revision。
+  2. timer generation 若未校验，连续 toast 会被旧 tick 提前清除。
+  3. 将 ANSI 结果直接缓存会和主题、宽度变化耦合；只能缓存无样式逻辑行。
+  4. YAML / JSON 是规范化领域模型，不保证包含引擎原生 inspect 的全部私有字段，界面文案和文档不得称为“原始引擎响应”。
+- 验证:
+  1. 容器和镜像详情连续上下滚动 20 次，反向滚动立即生效，offset 始终位于可见边界内。
+  2. 同一 revision 下连续滚动不重新执行 section 构建、JSON unmarshal、YAML marshal 或 JSON indent。
+  3. 无 toast 时不再产生 `ToastTick`；连续 toast 只由最新 generation 控制生命周期。
+  4. 镜像详情按 `s` 依次显示非空 YAML、JSON、section；空数据时显示明确占位。
+  5. Compose 项目详情正文无快捷键段，按 `s` 不变为空白，footer 不展示不可用的 Source 动作。
+  6. 增加 benchmark，分别覆盖 500 个环境变量、500 个标签和大 raw JSON；优化后滚动帧只与可见行数近似相关。
+
+### BR-015 表格选中行背景连续性
+
+- 目标:
+  选中和 marked 行从视觉行首到表格右边界使用连续背景，所有列仍保留各自前景样式。
+- 方案:
+  1. 行背景只由最外层 row style 设置一次，单元格不得输出 background 或 reset-all SGR。
+  2. 单元格先去除输入中的 ANSI，再写入只包含前景、bold、faint 的内联 SGR；整行末尾由外层统一 reset。
+  3. `rowWidth` 使用与截断、padding 相同的可见宽度函数，并显式包含实际选中前缀宽度。
+  4. marked 与 selected 同时为真时保留当前 marked 优先规则，并通过测试固定该语义。
+- 风险:
+  1. 去除输入 ANSI 会丢弃状态文本自行携带的颜色，因此列样式必须覆盖所有需要着色的表格列。
+  2. `Width` 不包含外部 prefix 时可能多填或少填，测试必须覆盖普通前缀与选中前缀宽度不同的配置。
+- 验证:
+  1. 增加 ANSI 序列级测试，确保背景开始后到行末不存在 `0m` reset。
+  2. 覆盖 ASCII、中文、box drawing、超长截断和空 cell。
+  3. 在 80、120、200 列终端人工检查 selected、marked、selected+marked 三种状态。
+
+### BR-009 / BR-011 / BR-012 列表视口与鼠标几何
+
+- 目标:
+  统一键盘光标、列表 viewport、渲染区域和鼠标命中使用的几何数据，避免分别计算后漂移。
+- 方案:
+  1. 为每个可见 panel 生成独立 `PanelViewport{Rect, BodyTop, BodyRows, Offset}`，standard 双栏和 compact 单栏使用同一结构。
+  2. cursor 移动在 update 阶段调用统一 `EnsureCursorVisible` 并回写资源自身 `ViewOffset`；View 只消费结果，不再修改局部 offset。
+  3. 表格渲染、页码、PgUp/PgDn 和 mouse hit-test 全部读取同一 `PanelViewport`。
+  4. 卷容器子视图使用独立 cursor / offset，不能借用全局容器列表的 cursor；进入和退出子视图时显式初始化、清理。
+  5. 鼠标先按 x/y 定位 panel，再将 y 转换为该 panel 的逻辑行；标题、page info、header、row spacing 都必须进入同一坐标公式。
+- 实施顺序:
+  1. 先建立 panel viewport 几何和纯函数测试。
+  2. 修复 BR-011 的键盘 cursor / offset 回写。
+  3. 迁移 BR-012 mouse hit-test。
+  4. 最后迁移 BR-009 卷容器子视图，避免继续复用错误的全局 cursor。
+- 验证:
+  1. standard 与 compact 布局分别覆盖首行、中间行、末行点击。
+  2. 列表超过一页后键盘选中行始终可见，返回父视图后 offset 不跳变。
+  3. `RowSpacing > 0`、选中信息预览启用和窄终端下，鼠标命中仍与视觉行一致。
+
 ## 单条设计记录模板
 
 ```md

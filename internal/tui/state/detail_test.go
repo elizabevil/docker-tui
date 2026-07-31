@@ -10,6 +10,10 @@ func TestDetailStateLifecycleAndSources(t *testing.T) {
 	var detail DetailState
 	detail.Open("Container", "content")
 	detail.Scroll(4)
+	if detail.CycleSource() {
+		t.Fatal("detail without raw data entered source mode")
+	}
+	detail.SetRaw(ResourceContainer, []byte(`{"id":"container"}`))
 	detail.CycleSource()
 	if detail.DetailSourceType != DetailSourceYAML || detail.DetailOffset != 0 {
 		t.Fatalf("yaml detail = %#v", detail)
@@ -22,6 +26,24 @@ func TestDetailStateLifecycleAndSources(t *testing.T) {
 	detail.Close()
 	if detail.DetailTitle != "" || detail.ImageDetailContent != "" {
 		t.Fatalf("closed detail = %#v", detail)
+	}
+}
+
+func TestDetailDocumentInvalidatesWhenDataChanges(t *testing.T) {
+	var detail DetailState
+	detail.OpenImage("img", "Image", &runtimeapi.ImageDetail{ID: "img"})
+	detail.Documents = map[DetailSource]DetailDocument{DetailSourceSection: {
+		Revision: detail.Revision,
+		Source:   DetailSourceSection,
+		Lines:    []DetailDocumentLine{{Kind: DetailLinePlain, Left: "cached"}},
+	}}
+	revision := detail.Revision
+
+	if !detail.ApplyImage("img", &runtimeapi.ImageDetail{ID: "img", Name: "updated"}) {
+		t.Fatal("current image result was rejected")
+	}
+	if detail.Revision <= revision || detail.Documents != nil {
+		t.Fatalf("detail document was not invalidated: %#v", detail)
 	}
 }
 

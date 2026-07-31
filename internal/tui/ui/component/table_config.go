@@ -14,11 +14,10 @@ var tableDefaultData []byte
 
 // TableStyleConfig 对应 table.jsonc 顶层结构
 type TableStyleConfig struct {
-	Table       TableLayoutConfig          `json:"table"`
-	RowStyles   map[string]styleRef        `json:"rowStyles"`
-	StateStyles map[string]styleRef        `json:"stateStyles"`
-	Footer      styleRef                   `json:"footer"`
-	Pages       map[string]PageTableConfig `json:"pages"`
+	Table        TableLayoutConfig   `json:"table"`
+	RowStyles    map[string]styleRef `json:"rowStyles"`
+	StateStyles  map[string]styleRef `json:"stateStyles"`
+	ColumnStyles map[string]styleRef `json:"columnStyles"`
 }
 
 // TableLayoutConfig 表格布局参数
@@ -26,7 +25,6 @@ type TableLayoutConfig struct {
 	ColumnSpacing     int              `json:"columnSpacing"`
 	RowPrefix         string           `json:"rowPrefix"`
 	RowPrefixSelected string           `json:"rowPrefixSelected"`
-	MinColumnWidth    int              `json:"minColumnWidth"`
 	SelectionInfo     SelectionInfoCfg `json:"selectionInfo"`
 	RowSpacing        int              `json:"rowSpacing"` // 行间距（额外空行数）
 }
@@ -39,22 +37,14 @@ type SelectionInfoCfg struct {
 	Background string `json:"background"` // 背景颜色 palette 名，可选
 }
 
-// PageTableConfig 单页的列定义与断点
-type PageTableConfig struct {
-	Columns     []ColumnStyle  `json:"columns"`
-	Breakpoints map[string]int `json:"breakpoints"`
-}
-
-// ColumnStyle 表头、列宽、列内联样式（类似 Compose TextStyle）
+// ColumnStyle is the resolved visual style for one rendered column.
 type ColumnStyle struct {
-	Key   string   `json:"key"`
-	Width int      `json:"width"`
 	Style styleRef `json:"style"`
 }
 
 func (c *TableStyleConfig) normalize() {
 	if c.Table.ColumnSpacing <= 0 {
-		c.Table.ColumnSpacing = 1
+		c.Table.ColumnSpacing = 2
 	}
 	if c.Table.RowPrefix == "" {
 		c.Table.RowPrefix = "  "
@@ -62,18 +52,13 @@ func (c *TableStyleConfig) normalize() {
 	if c.Table.RowPrefixSelected == "" {
 		c.Table.RowPrefixSelected = "▸ "
 	}
-	if c.Table.MinColumnWidth <= 0 {
-		c.Table.MinColumnWidth = 8
-	}
 }
 
 // validateColors 启动时校验所有列颜色名（仅一次，不刷屏）。
 func (c *TableStyleConfig) validateColors() {
-	for pageName, page := range c.Pages {
-		for _, col := range page.Columns {
-			if col.Style.Color != "" && !isValidPaletteColor(col.Style.Color) {
-				fmt.Fprintf(os.Stderr, "[dtui] table.jsonc: %s.%s: unknown color %q\n", pageName, col.Key, col.Style.Color)
-			}
+	for key, columnStyle := range c.ColumnStyles {
+		if columnStyle.Color != "" && !isValidPaletteColor(columnStyle.Color) {
+			fmt.Fprintf(os.Stderr, "[dtui] table.jsonc: columnStyles.%s: unknown color %q\n", key, columnStyle.Color)
 		}
 	}
 }
@@ -87,11 +72,6 @@ var validPaletteColors = map[string]struct{}{
 func isValidPaletteColor(name string) bool {
 	_, ok := validPaletteColors[name]
 	return ok
-}
-
-func (c *TableStyleConfig) pageConfig(page string) (PageTableConfig, bool) {
-	p, ok := c.Pages[page]
-	return p, ok
 }
 
 var tableCfg TableStyleConfig
@@ -111,10 +91,9 @@ func init() {
 func defaultTableConfig() TableStyleConfig {
 	return TableStyleConfig{
 		Table: TableLayoutConfig{
-			ColumnSpacing:     1,
+			ColumnSpacing:     2,
 			RowPrefix:         "  ",
 			RowPrefixSelected: "\u25b8 ",
-			MinColumnWidth:    8,
 		},
 	}
 }
@@ -124,7 +103,7 @@ func GetTableLayout() TableLayoutConfig {
 	return tableCfg.Table
 }
 
-// SelectionInfoEnabled 返回是否显示选中项详细信息。
+// SelectionInfoEnabled reports whether resource selection previews are shown.
 func SelectionInfoEnabled() bool {
 	return tableCfg.Table.SelectionInfo.Enabled
 }
@@ -176,40 +155,14 @@ func GetStateStyle(containerState string) styleRef {
 	return styleRef{}
 }
 
-// GetTableFooterStyle 返回表格页脚样式
-func GetTableFooterStyle() styleRef {
-	return tableCfg.Footer
-}
-
-// GetPageColumns 返回某页的列定义
-func GetPageColumns(page string) []ColumnStyle {
-	if p, ok := tableCfg.pageConfig(page); ok {
-		return p.Columns
-	}
-	return nil
-}
-
-// GetPageBreakpoints 返回某页的响应式断点
-func GetPageBreakpoints(page string) map[string]int {
-	if p, ok := tableCfg.pageConfig(page); ok {
-		return p.Breakpoints
-	}
-	return nil
-}
-
-// GetPageColumnStyles 从 table.jsonc 读取页面列样式，按 colsDef 顺序返回。
-func GetPageColumnStyles(page string, colsDef []tables.ColumnDef) []ColumnStyle {
-	pageCols := GetPageColumns(page)
-	if len(pageCols) == 0 {
+// GetColumnStyles resolves semantic column styles by column key.
+func GetColumnStyles(colsDef []tables.ColumnDef) []ColumnStyle {
+	if len(tableCfg.ColumnStyles) == 0 {
 		return nil
-	}
-	byKey := make(map[string]ColumnStyle, len(pageCols))
-	for _, pc := range pageCols {
-		byKey[pc.Key] = pc
 	}
 	styles := make([]ColumnStyle, len(colsDef))
 	for i, cd := range colsDef {
-		styles[i] = byKey[cd.Key]
+		styles[i] = ColumnStyle{Style: tableCfg.ColumnStyles[cd.Key]}
 	}
 	return styles
 }

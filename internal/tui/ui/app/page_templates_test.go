@@ -1,6 +1,7 @@
 package view
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/elizabevil/docker-tui/internal/tui/state"
@@ -25,5 +26,22 @@ func TestTemplateFor(t *testing.T) {
 				t.Fatalf("templateFor() = %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestComposeDetailUsesStandardBreadcrumb(t *testing.T) {
+	app := &state.AppModel{
+		Navigation: state.NavigationState{
+			ActivePanel: state.PanelCompose,
+			Mode:        state.ModeDetail,
+		},
+		Viewport: state.ViewportState{Width: 120},
+	}
+	items := buildBreadcrumbItems(app)
+	if len(items) != 2 || items[0].Label != state.PanelLabel(state.PanelCompose) || items[1].Label != "detail" {
+		t.Fatalf("compose detail breadcrumb items = %#v", items)
+	}
+	if got := breadcrumb(app); !strings.Contains(got, state.PanelLabel(state.PanelCompose)) || !strings.Contains(got, "detail") {
+		t.Fatalf("compose detail breadcrumb = %q", got)
 	}
 }

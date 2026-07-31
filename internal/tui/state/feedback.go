@@ -28,6 +28,7 @@ type FeedbackState struct {
 	ToastMessage          string
 	ToastLevel            NotificationLevel
 	ToastTimer            int
+	ToastGeneration       uint64
 }
 
 func NewFeedbackState() FeedbackState {
@@ -38,6 +39,7 @@ func (s *FeedbackState) ShowToast(message string, level NotificationLevel, ticks
 	s.ToastMessage = message
 	s.ToastLevel = level
 	s.ToastTimer = max(0, ticks)
+	s.ToastGeneration++
 }
 
 func (s *FeedbackState) TickToast() bool {

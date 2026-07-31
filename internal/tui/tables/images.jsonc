@@ -3,18 +3,23 @@
     "default": [
       {
         "key": "name",
-        "flex": 1,
-        "max": 30,
+        "basis": 40,
+        "min": 12,
+        "shrink": 1,
         "header": "table.name"
       },
       {
         "key": "tag",
-        "fixed": 20,
+        "basis": 18,
+        "min": 10,
+        "shrink": 1,
         "header": "table.tag"
       },
       {
         "key": "id",
-        "fixed": 12,
+        "basis": 20,
+        "min": 12,
+        "shrink": 1,
         "header": "table.id"
       },
       {
@@ -26,23 +31,30 @@
     "compact": [
       {
         "key": "registry",
-        "fixed": 18,
+        "basis": 18,
+        "min": 12,
+        "shrink": 1,
         "header": "table.registry"
       },
       {
         "key": "name",
-        "flex": 1,
-        "max": 28,
+        "basis": 42,
+        "min": 12,
+        "shrink": 1,
         "header": "table.name"
       },
       {
         "key": "tag",
-        "fixed": 20,
+        "basis": 18,
+        "min": 10,
+        "shrink": 1,
         "header": "table.tag"
       },
       {
         "key": "id",
-        "fixed": 12,
+        "basis": 20,
+        "min": 12,
+        "shrink": 1,
         "header": "table.id"
       },
       {
@@ -59,23 +71,30 @@
     "more": [
       {
         "key": "registry",
-        "fixed": 18,
+        "basis": 18,
+        "min": 12,
+        "shrink": 1,
         "header": "table.registry"
       },
       {
         "key": "name",
-        "flex": 1,
-        "max": 26,
+        "basis": 44,
+        "min": 12,
+        "shrink": 1,
         "header": "table.name"
       },
       {
         "key": "tag",
-        "fixed": 20,
+        "basis": 18,
+        "min": 10,
+        "shrink": 1,
         "header": "table.tag"
       },
       {
         "key": "id",
-        "fixed": 12,
+        "basis": 20,
+        "min": 12,
+        "shrink": 1,
         "header": "table.id"
       },
       {
@@ -97,24 +116,30 @@
     "wide": [
       {
         "key": "registry",
-        "flex": 1,
-        "max": 24,
+        "basis": 20,
+        "min": 12,
+        "shrink": 1,
         "header": "table.registry"
       },
       {
         "key": "name",
-        "flex": 2,
-        "max": 30,
+        "basis": 48,
+        "min": 12,
+        "shrink": 1,
         "header": "table.name"
       },
       {
         "key": "tag",
-        "fixed": 20,
+        "basis": 20,
+        "min": 10,
+        "shrink": 1,
         "header": "table.tag"
       },
       {
         "key": "id",
-        "fixed": 12,
+        "basis": 20,
+        "min": 12,
+        "shrink": 1,
         "header": "table.id"
       },
       {
@@ -141,14 +166,17 @@
       },
       {
         "key": "name",
-        "flex": 2,
+        "basis": 16,
+        "min": 10,
+        "shrink": 1,
         "max": 22,
         "header": "table.name"
       },
       {
         "key": "image",
-        "flex": 1,
-        "max": 22,
+        "basis": 30,
+        "min": 10,
+        "shrink": 1,
         "header": "table.image"
       },
       {
@@ -173,8 +201,9 @@
       },
       {
         "key": "stats",
-        "flex": 1,
-        "max": 0,
+        "basis": 28,
+        "min": 14,
+        "shrink": 1,
         "header": "table.stats"
       }
     ]

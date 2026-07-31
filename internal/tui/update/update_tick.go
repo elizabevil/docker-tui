@@ -91,10 +91,16 @@ func handleDockerConnected(m *state.AppModel, msg state.DockerConnected) (*state
 	return m, tea.Batch(commands...)
 }
 
-func handleToastTick(m *state.AppModel, _ state.ToastTick) (*state.AppModel, tea.Cmd) {
+func handleToastTick(m *state.AppModel, msg state.ToastTick) (*state.AppModel, tea.Cmd) {
+	if msg.Generation != m.Feedback.ToastGeneration || m.Feedback.ToastTimer <= 0 {
+		return m, nil
+	}
 	m.Feedback.TickToast()
+	if m.Feedback.ToastTimer <= 0 {
+		return m, nil
+	}
 	return m, tea.Tick(100*time.Millisecond, func(t time.Time) tea.Msg {
-		return state.ToastTick{}
+		return state.ToastTick{Generation: msg.Generation}
 	})
 }
 

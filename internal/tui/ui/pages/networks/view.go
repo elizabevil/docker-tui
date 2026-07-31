@@ -51,15 +51,14 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 	if nm == nil {
 		return component.StrLoading
 	}
-	w := width - 8
+	w := width
 	if w < 42 {
 		w = 42
 	}
 
 	profile := profileSelector.Select(w)
-	widths := tc.ColumnWidths(profile, w)
 	colsDef := tc.Columns[profile]
-	if widths == nil {
+	if len(colsDef) == 0 {
 		return component.StrLoading
 	}
 
@@ -69,9 +68,9 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 		return component.GetStyle("dim").Render(i18n.T("msg.no_networks"))
 	}
 
-	rowHeight := component.CalcRowHeight(panelHeight)
+	rowHeight := component.CalcTableRowHeight(panelHeight, !selectionDisabled)
+	component.EnsureVisible(&nm.ViewOffset, nm.Cursor, rowHeight, total)
 	viewOffset := nm.ViewOffset
-	component.EnsureVisible(&viewOffset, nm.Cursor, rowHeight, total)
 
 	// Header overrides with sort arrows
 	arrow := sortArrow(nm.SortAsc)
@@ -147,11 +146,9 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 	if !selectionDisabled {
 		selected = nm.Cursor - viewOffset
 	}
-	colStyles := component.GetPageColumnStyles("network", colsDef)
-	ts := tc.EffectiveTableStyle()
+	colStyles := component.GetColumnStyles(colsDef)
 	return component.RenderTable(component.TableData{
 		Cols:              colsDef,
-		Widths:            widths,
 		Rows:              rows,
 		Selected:          selected,
 		Total:             total,
@@ -162,8 +159,6 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 		HeaderOverrides:   overrides,
 		BodyHeight:        panelHeight,
 		MarkedRows:        component.BuildMarkedRows(rows, items, viewOffset, markedIDs, func(n runtimeapi.Network) string { return n.ID }),
-		RowPrefix:         ts.RowPrefix,
-		RowPrefixSelected: ts.RowPrefixSelected,
 		ColStyles:         colStyles,
 		SelectionProvider: selProv,
 	})

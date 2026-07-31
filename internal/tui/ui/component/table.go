@@ -35,7 +35,6 @@ func (p *FuncInfoProvider) SelectionInfo() string {
 // TableData defines a complete resource table for rendering.
 type TableData struct {
 	Cols     []tables.ColumnDef
-	Widths   []int
 	Rows     [][]string
 	Selected int
 	TopLabel string // 表格上框标签（如：搜索内容）
@@ -57,20 +56,16 @@ type TableData struct {
 	SortColKey string
 	SortAsc    bool
 
-	RowPrefix         string
-	RowPrefixSelected string
-
 	ColStyles []ColumnStyle
 
 	// SelectionProvider 选中项详情接口（若 nil 则不显示）。
 	SelectionProvider SelectionProjector
 }
 
-// RenderTable renders a complete resource table with 两端对齐 (justified) layout.
-// Output: banner + header line + data rows + empty padding + footer line.
+// RenderTable renders a complete resource table using shared stable grid tracks.
 func RenderTable(d TableData) string {
 	n := len(d.Cols)
-	if n == 0 || len(d.Widths) != n {
+	if n == 0 {
 		return ""
 	}
 
@@ -80,44 +75,31 @@ func RenderTable(d TableData) string {
 	// Container width for column layout
 	containerW := d.BannerW
 	if containerW <= 0 {
-		// Fallback recompute from old Widths
-		for _, w := range d.Widths {
-			containerW += w
-		}
-		containerW += len(d.Cols) - 1
+		return ""
 	}
 
-	layout := defaultTableLayoutCache.resolve(d, headers, containerW)
+	tableLayout := GetTableLayout()
+	prefix := tableLayout.RowPrefix
+	prefixSel := tableLayout.RowPrefixSelected
+	prefixWidth := utils.DisplayWidth(prefix)
+	if selectedWidth := utils.DisplayWidth(prefixSel); selectedWidth > prefixWidth {
+		prefixWidth = selectedWidth
+	}
+	columnGap := tableLayout.ColumnSpacing
+	layout := defaultTableLayoutCache.resolve(d, headers, max(1, containerW-prefixWidth), columnGap)
 	headers = layout.headers
 	colW := layout.widths
 	gap := layout.gap
 	gapStr := strings.Repeat(" ", gap)
 
 	// Row renderer — column layout computed once, reused for all rows
-	prefix := d.RowPrefix
-	if prefix == "" {
-		prefix = GetFlexConfig().RowPrefix
-	}
-	prefixSel := d.RowPrefixSelected
-	if prefixSel == "" {
-		prefixSel = GetFlexConfig().RowPrefixSelected
-	}
-	// 计算行总宽度（含前缀和间隙）
-	rowW := utils.DisplayWidth(prefix)
-	for _, w := range colW {
-		rowW += w
-	}
-	if len(colW) > 1 {
-		rowW += len(gapStr) * (len(colW) - 1)
-	}
-
 	rr := &RowRenderer{
 		colW:         colW,
 		gapStr:       gapStr,
 		rowPrefix:    prefix,
 		rowPrefixSel: prefixSel,
 		colStyles:    d.ColStyles,
-		rowWidth:     rowW,
+		rowWidth:     containerW,
 	}
 
 	var sb strings.Builder
@@ -147,6 +129,9 @@ func RenderTable(d TableData) string {
 			end = d.Total
 		}
 		pageInfo := fmt.Sprintf("%d-%d/%d", d.Offset+1, end, d.Total)
+		if d.FooterHint != "" {
+			pageInfo += " \u2502 " + d.FooterHint
+		}
 		rightAligned := lipgloss.NewStyle().Width(containerW).Align(lipgloss.Right).Render(GetStyle("dim").Render(pageInfo))
 		sb.WriteString(rightAligned)
 		sb.WriteString("\n")
@@ -179,24 +164,7 @@ func RenderTable(d TableData) string {
 		sb.WriteString("\n")
 	}
 
-	// Footer
-	if d.Total > 0 {
-		end := d.Offset + len(d.Rows)
-		if end > d.Total {
-			end = d.Total
-		}
-		left := fmt.Sprintf(" %d-%d/%d", d.Offset+1, end, d.Total)
-		right := ""
-		if d.FooterHint != "" {
-			right = d.FooterHint
-		}
-		ft := left
-		if right != "" {
-			ft = left + " │ " + right
-		}
-		sb.WriteString(GetStyle("footer").Render(ft))
-	}
-	return sb.String()
+	return strings.TrimSuffix(sb.String(), "\n")
 }
 
 func renderTopFrameLabel(label string, width int) string {
@@ -237,48 +205,6 @@ func resolveHeaders(d TableData) []string {
 		headers[i] = h
 	}
 	return headers
-}
-
-// computeContentWidths computes natural column widths based on content.
-// For each column: width = max(visible header length, max visible cell length).
-// If d.Widths[i] > 0 and width exceeds it, clamp to d.Widths[i].
-func computeContentWidths(d TableData, headers []string) []int {
-	n := len(headers)
-	colW := make([]int, n)
-	for i := 0; i < n; i++ {
-		maxW := utils.VisibleLen(headers[i])
-		for _, row := range d.Rows {
-			if i < len(row) {
-				if w := utils.VisibleLen(row[i]); w > maxW {
-					maxW = w
-				}
-			}
-		}
-		if i < len(d.Widths) && d.Widths[i] > 0 && maxW > d.Widths[i] {
-			maxW = d.Widths[i]
-		}
-		colW[i] = maxW
-	}
-	return colW
-}
-
-// computeGap computes the flexible gap between columns to fill the container width.
-// gap = (containerWidth - sum(contentWidths)) / (n-1)
-// If gap < 1, it's set to 1. If n <= 1, returns 0.
-func computeGap(contentWidths []int, containerWidth int) int {
-	n := len(contentWidths)
-	if n <= 1 {
-		return 0
-	}
-	total := 0
-	for _, w := range contentWidths {
-		total += w
-	}
-	gap := (containerWidth - total) / (n - 1)
-	if gap < 1 {
-		gap = 1
-	}
-	return gap
 }
 
 // BuildMarkedRows maps visible row indices to true for items whose IDs are in markedIDs.

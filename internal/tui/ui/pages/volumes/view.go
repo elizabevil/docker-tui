@@ -54,15 +54,14 @@ func RenderList(vm *state.VolumeListModel, cm *state.ContainerListModel, width i
 	if vm.DetailName != "" {
 		return renderContainers(cm, width, vm.DetailName, panelHeight)
 	}
-	w := width - 8
+	w := width
 	if w < 42 {
 		w = 42
 	}
 
 	profile := profileSelector.Select(w)
-	widths := tc.ColumnWidths(profile, w)
 	colsDef := tc.Columns[profile]
-	if widths == nil {
+	if len(colsDef) == 0 {
 		return i18n.T("msg.loading")
 	}
 
@@ -72,7 +71,7 @@ func RenderList(vm *state.VolumeListModel, cm *state.ContainerListModel, width i
 		return component.GetStyle("dim").Render(i18n.T("msg.no_volumes"))
 	}
 
-	rowHeight := component.CalcRowHeight(panelHeight)
+	rowHeight := component.CalcTableRowHeight(panelHeight, !selectionDisabled)
 	viewOffset := vm.ViewOffset
 	component.EnsureVisible(&viewOffset, vm.Cursor, rowHeight, total)
 
@@ -115,11 +114,9 @@ func RenderList(vm *state.VolumeListModel, cm *state.ContainerListModel, width i
 	if !selectionDisabled {
 		selected = vm.Cursor - viewOffset
 	}
-	colStyles := component.GetPageColumnStyles("volume", colsDef)
-	ts := tc.EffectiveTableStyle()
+	colStyles := component.GetColumnStyles(colsDef)
 	return component.RenderTable(component.TableData{
 		Cols:              colsDef,
-		Widths:            widths,
 		Rows:              rows,
 		Selected:          selected,
 		Total:             total,
@@ -129,18 +126,15 @@ func RenderList(vm *state.VolumeListModel, cm *state.ContainerListModel, width i
 		Banner:            banner,
 		BannerW:           w,
 		MarkedRows:        component.BuildMarkedRows(rows, items, viewOffset, markedIDs, func(v runtimeapi.Volume) string { return v.Name }),
-		RowPrefix:         ts.RowPrefix,
-		RowPrefixSelected: ts.RowPrefixSelected,
 		ColStyles:         colStyles,
 		SelectionProvider: selProv,
 	})
 }
 
 func renderContainers(cm *state.ContainerListModel, width int, volName string, panelHeight int) string {
-	w := width - 8
-	widths := tc.ColumnWidths("containers_sub", w)
+	w := width
 	colsDef := tc.Columns["containers_sub"]
-	if widths == nil {
+	if len(colsDef) == 0 {
 		return i18n.T("msg.loading")
 	}
 
@@ -174,19 +168,16 @@ func renderContainers(cm *state.ContainerListModel, width int, volName string, p
 		more = fmt.Sprintf(" +%d more", total-rowLimit)
 	}
 
-	colStyles := component.GetPageColumnStyles("volume", colsDef)
-	ts := tc.EffectiveTableStyle()
+	colStyles := component.GetColumnStyles(colsDef)
 	return component.RenderSelectionBanner(volName, w) + "\n" +
 		component.RenderTable(component.TableData{
-			Cols:              colsDef,
-			Widths:            widths,
-			Rows:              rows,
-			Total:             total,
-			Limit:             rowLimit,
-			BodyHeight:        panelHeight,
-			FooterHint:        fmt.Sprintf("%d containers%s │ Esc back", total, more),
-			RowPrefix:         ts.RowPrefix,
-			RowPrefixSelected: ts.RowPrefixSelected,
-			ColStyles:         colStyles,
+			Cols:       colsDef,
+			Rows:       rows,
+			Total:      total,
+			Limit:      rowLimit,
+			BodyHeight: panelHeight,
+			BannerW:    w,
+			FooterHint: fmt.Sprintf("%d containers%s │ Esc back", total, more),
+			ColStyles:  colStyles,
 		})
 }

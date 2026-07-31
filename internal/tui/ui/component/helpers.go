@@ -24,6 +24,24 @@ func CalcRowHeight(panelHeight int) int {
 	return h
 }
 
+// CalcTableRowHeight returns the number of data rows left after the table's
+// page indicator, blank separator, header, footer, and optional selection
+// preview have consumed their fixed lines.
+func CalcTableRowHeight(panelHeight int, selectionPreview bool) int {
+	overhead := 3
+	if selectionPreview {
+		overhead += SelectionPreviewPadding()
+	}
+	h := panelHeight - overhead
+	if h < 1 {
+		return 1
+	}
+	if spacing := RowSpacing(); spacing > 0 {
+		h /= 1 + spacing
+	}
+	return max(1, h)
+}
+
 // ShortID is a delegate to utils.ShortID.
 func ShortID(id string) string { return utils.ShortID(id) }
 

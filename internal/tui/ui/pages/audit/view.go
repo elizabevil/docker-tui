@@ -10,8 +10,11 @@ import (
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
+	"github.com/elizabevil/docker-tui/internal/tui/tables"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 )
+
+var tc = tables.MustLoad("audit")
 
 // RenderList renders the audit history table view.
 func RenderList(auditState *state.AuditState, width int, panelHeight int) string {
@@ -36,49 +39,17 @@ func RenderList(auditState *state.AuditState, width int, panelHeight int) string
 		auditState.Cursor = 0
 	}
 
-	// Column definitions
-	timeW := 19
-	actionW := 14
-	targetW := 12
-	resultW := 12
-	levelW := 8
-	availW := width - 8
-	if availW < 50 {
-		availW = 50
-	}
-
-	// Distribute remaining width to message column
-	usedW := timeW + actionW + targetW + resultW + levelW
-	msgW := availW - usedW
-	if msgW < 10 {
-		msgW = 10
-	}
-
-	cols := []auditColumn{
-		{key: "time", width: timeW},
-		{key: "action", width: actionW},
-		{key: "target", width: targetW},
-		{key: "result", width: resultW},
-		{key: "level", width: levelW},
-		{key: "message", width: msgW},
-	}
-
-	// Header
-	header := auditHeader(cols)
-
-	// Rows
-	rowHeight := component.CalcRowHeight(panelHeight)
+	availW := max(50, width)
+	colsDef := tc.Columns["default"]
+	rowHeight := component.CalcTableRowHeight(panelHeight, false)
+	component.EnsureVisible(&auditState.ViewOffset, auditState.Cursor, rowHeight, total)
 	viewOffset := auditState.ViewOffset
-	component.EnsureVisible(&viewOffset, auditState.Cursor, rowHeight, total)
 
-	var rows []string
-	for i := viewOffset; i < total && len(rows) < rowHeight; i++ {
-		r := records[i]
-		row := auditRow(cols, &r, i == auditState.Cursor)
-		rows = append(rows, row)
-	}
+	rows := component.BuildRows(records, colsDef, viewOffset, rowHeight,
+		func(record audit.Record, cd tables.ColumnDef, _ int) string {
+			return auditCellValue(cd.Key, &record)
+		})
 
-	// Build hint
 	levelHint := ""
 	switch auditState.FilterLevel {
 	case state.AuditFilterErrors:
@@ -87,28 +58,22 @@ func RenderList(auditState *state.AuditState, width int, panelHeight int) string
 		levelHint = " [Warnings]"
 	}
 	hint := fmt.Sprintf("%d records%s", total, levelHint)
+	if filter := auditState.FilterText(); filter != "" {
+		hint += " \u2502 Filter: " + filter
+	}
 
-	// Assemble
-	var sb strings.Builder
-	if auditState.FilterText() != "" {
-		sb.WriteString(component.GetStyle("dim").Render("Filter: " + auditState.FilterText()))
-		sb.WriteString("\n")
-	}
-	sb.WriteString(header)
-	sb.WriteString("\n")
-	for _, row := range rows {
-		sb.WriteString(row)
-		sb.WriteString("\n")
-	}
-	// Pad remaining rows
-	for len(rows) < rowHeight {
-		sb.WriteString(strings.Repeat(" ", availW))
-		sb.WriteString("\n")
-		rows = append(rows, "")
-	}
-	sb.WriteString(component.GetStyle("dim").Render(hint))
-
-	return sb.String()
+	return component.RenderTable(component.TableData{
+		Cols:       colsDef,
+		Rows:       rows,
+		Selected:   auditState.Cursor - viewOffset,
+		Total:      total,
+		Offset:     viewOffset,
+		Limit:      rowHeight,
+		BannerW:    availW,
+		BodyHeight: panelHeight,
+		FooterHint: hint,
+		ColStyles:  component.GetColumnStyles(colsDef),
+	})
 }
 
 // RenderDetail renders a single audit record in detail view.
@@ -229,39 +194,6 @@ func detailRowStyled(label, value string, valueStyle lipgloss.Style, width int) 
 	labelStr := component.GetStyle("detailLabel").Render(fmt.Sprintf("%-14s", label))
 	valStr := valueStyle.Render(value)
 	return "  " + labelStr + "  " + valStr
-}
-
-type auditColumn struct {
-	key   string
-	width int
-}
-
-func auditHeader(cols []auditColumn) string {
-	var parts []string
-	for _, c := range cols {
-		title := strings.ToUpper(c.key)
-		if len(title) > c.width {
-			title = title[:c.width]
-		}
-		parts = append(parts, component.GetStyle("header").Render(fmt.Sprintf("%-*s", c.width, title)))
-	}
-	return strings.Join(parts, " ")
-}
-
-func auditRow(cols []auditColumn, r *audit.Record, selected bool) string {
-	var parts []string
-	for _, c := range cols {
-		val := auditCellValue(c.key, r)
-		if len(val) > c.width {
-			val = val[:c.width-1] + "\u2026"
-		}
-		if selected {
-			parts = append(parts, component.GetStyle("rowSelected").Render(fmt.Sprintf("%-*s", c.width, val)))
-		} else {
-			parts = append(parts, fmt.Sprintf("%-*s", c.width, val))
-		}
-	}
-	return strings.Join(parts, " ")
 }
 
 func auditCellValue(key string, r *audit.Record) string {

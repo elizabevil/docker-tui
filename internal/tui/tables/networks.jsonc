@@ -3,8 +3,9 @@
     "default": [
       {
         "key": "name",
-        "flex": 1,
-        "max": 20,
+        "basis": 40,
+        "min": 12,
+        "shrink": 1,
         "header": "table.name"
       },
       {
@@ -26,8 +27,9 @@
     "more": [
       {
         "key": "name",
-        "flex": 1,
-        "max": 20,
+        "basis": 30,
+        "min": 12,
+        "shrink": 1,
         "header": "table.name"
       },
       {
@@ -42,8 +44,9 @@
       },
       {
         "key": "subnet",
-        "flex": 2,
-        "max": 0,
+        "basis": 30,
+        "min": 14,
+        "shrink": 1,
         "header": "table.subnet"
       },
       {

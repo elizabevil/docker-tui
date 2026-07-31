@@ -4,14 +4,19 @@ import (
 	"encoding/binary"
 	"hash/fnv"
 	"sync"
+
+	"github.com/elizabevil/docker-tui/internal/tui/tables"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 const defaultTableLayoutCacheSize = 256
 
 type tableLayout struct {
-	headers []string
-	widths  []int
-	gap     int
+	headers       []string
+	widths        []int
+	gap           int
+	contentWidth  int
+	trailingWidth int
 }
 
 // TableLayoutCache caches viewport-level header and column width calculations.
@@ -32,8 +37,9 @@ func NewTableLayoutCache(maxSize int) *TableLayoutCache {
 	return &TableLayoutCache{entries: make(map[uint64]tableLayout), maxSize: maxSize}
 }
 
-func (c *TableLayoutCache) resolve(data TableData, headers []string, containerWidth int) tableLayout {
-	key := tableLayoutKey(data, headers, containerWidth)
+func (c *TableLayoutCache) resolve(data TableData, headers []string, containerWidth, gap int) tableLayout {
+	desiredWidths := tableContentWidths(data, headers)
+	key := tableLayoutKey(data, headers, desiredWidths, containerWidth, gap)
 	c.mu.RLock()
 	entry, ok := c.entries[key]
 	c.mu.RUnlock()
@@ -44,8 +50,12 @@ func (c *TableLayoutCache) resolve(data TableData, headers []string, containerWi
 		return cloneTableLayout(entry)
 	}
 
-	widths := computeContentWidths(data, headers)
-	entry = tableLayout{headers: append([]string(nil), headers...), widths: widths, gap: computeGap(widths, containerWidth)}
+	resolved := tables.ResolveContentLayout(data.Cols, desiredWidths, containerWidth, gap)
+	entry = tableLayout{
+		headers: append([]string(nil), headers...),
+		widths:  resolved.Widths, gap: resolved.Gap,
+		contentWidth: resolved.ContentWidth, trailingWidth: resolved.TrailingWidth,
+	}
 	c.mu.Lock()
 	if len(c.entries) >= c.maxSize {
 		clear(c.entries)
@@ -59,12 +69,12 @@ func (c *TableLayoutCache) resolve(data TableData, headers []string, containerWi
 func cloneTableLayout(layout tableLayout) tableLayout {
 	return tableLayout{
 		headers: append([]string(nil), layout.headers...),
-		widths:  append([]int(nil), layout.widths...),
-		gap:     layout.gap,
+		widths:  append([]int(nil), layout.widths...), gap: layout.gap,
+		contentWidth: layout.contentWidth, trailingWidth: layout.trailingWidth,
 	}
 }
 
-func tableLayoutKey(data TableData, headers []string, containerWidth int) uint64 {
+func tableLayoutKey(data TableData, headers []string, desiredWidths []int, containerWidth, gap int) uint64 {
 	hash := fnv.New64a()
 	writeString := func(value string) {
 		_, _ = hash.Write([]byte(value))
@@ -77,30 +87,44 @@ func tableLayoutKey(data TableData, headers []string, containerWidth int) uint64
 	}
 
 	writeInt(containerWidth)
+	writeInt(gap)
 	writeString(data.SortColKey)
 	if data.SortAsc {
 		writeInt(1)
 	}
-	for index, column := range data.Cols {
+	for _, column := range data.Cols {
 		writeString(column.Key)
 		writeString(column.Header)
 		writeInt(column.Fixed)
-		writeInt(column.Flex)
+		writeInt(column.Basis)
+		writeInt(column.Min)
 		writeInt(column.Max)
-		if index < len(data.Widths) {
-			writeInt(data.Widths[index])
-		}
+		writeInt(column.Shrink)
 	}
 	for _, header := range headers {
 		writeString(header)
 	}
-	for _, row := range data.Rows {
-		writeInt(len(row))
-		for _, cell := range row {
-			writeString(cell)
-		}
+	for _, width := range desiredWidths {
+		writeInt(width)
 	}
 	return hash.Sum64()
+}
+
+func tableContentWidths(data TableData, headers []string) []int {
+	widths := make([]int, len(data.Cols))
+	for i := range widths {
+		if i < len(headers) {
+			widths[i] = utils.VisibleLen(headers[i])
+		}
+	}
+	for _, row := range data.Rows {
+		for i, cell := range row {
+			if i < len(widths) {
+				widths[i] = max(widths[i], utils.VisibleLen(cell))
+			}
+		}
+	}
+	return widths
 }
 
 var defaultTableLayoutCache = NewTableLayoutCache(defaultTableLayoutCacheSize)

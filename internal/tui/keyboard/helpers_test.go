@@ -5,6 +5,7 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
 	dockermodel "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
 
@@ -30,5 +31,26 @@ func TestComposeProjectAndServiceHelpers(t *testing.T) {
 	m.Compose.ComposeCursor = 1
 	if got := currentComposeProject(m); got != "proj-b" {
 		t.Fatalf("expected proj-b, got %q", got)
+	}
+}
+
+func TestComposeProjectDetailUsesStandardTitle(t *testing.T) {
+	m := state.NewAppModel(config.DefaultConfig(), nil, "")
+	m.Navigation.ActivePanel = state.PanelCompose
+	m.Resources.Containers.Items = []dockermodel.ContainerSummary{{
+		ID:             "c1",
+		ComposeProject: "integration",
+		ComposeService: "api",
+	}}
+
+	updated, _ := handleComposePanelKeys(keys.KeyD, m)
+	if updated.Navigation.Mode != state.ModeDetail {
+		t.Fatalf("compose detail mode = %v", updated.Navigation.Mode)
+	}
+	if updated.Detail.DetailTitle != "Compose Detail: integration" {
+		t.Fatalf("compose detail title = %q", updated.Detail.DetailTitle)
+	}
+	if updated.Detail.DetailResourceType != state.ResourceComposeProject {
+		t.Fatalf("compose detail resource type = %q", updated.Detail.DetailResourceType)
 	}
 }

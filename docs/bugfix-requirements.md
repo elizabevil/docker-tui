@@ -161,15 +161,16 @@
 
 ### BR-007 镜像详情页不显示 yaml / json 原始数据
 
-- 状态: `open`
+- 状态: `verifying`
 - 优先级: `high`
-- 症状: 镜像页面按 D 进入详情页后,只能看到 `image.go` 渲染的分区内容;按 s 切到 yaml / json 视图,输出空白,看不到原始 inspect 数据。
+- 症状: 镜像页面按 D 进入详情页后,只能看到 `image.go` 渲染的分区内容;页面上下滚动时仍有轻微卡顿,按 s 切到 yaml / json 视图时输出空白,看不到原始 inspect 数据。
 - 当前行为:
-  `doImageDetail` 调用 `m.Detail.OpenImage(id, title, data)`。`OpenImage` 只设置了 `ImageDetailID / DetailTitle / ImageDetailData`,**没有把 inspect 原始字节写入 `DetailRawJSON`**。`renderSourceView` 直接对 `DetailRawJSON` 做 `sonic.Unmarshal`,空字节切片 unmarshal 失败,`text` 落到空字符串兜底,只渲染出滚动 footer。这是与容器/卷/网络的 `SetContainerDetail / SetVolumeDetail` 行为不一致造成的缺失。
+  `doImageDetail` 调用 `m.Detail.OpenImage(id, title, data)`。`OpenImage` 只设置了 `ImageDetailID / DetailTitle / ImageDetailData`,**没有把 inspect 原始字节写入 `DetailRawJSON`**。`renderSourceView` 直接对 `DetailRawJSON` 做 `sonic.Unmarshal`,空字节切片 unmarshal 失败,`text` 落到空字符串兜底,只渲染出滚动 footer。这是与容器/卷/网络的 `SetContainerDetail / SetVolumeDetail` 行为不一致造成的缺失。detail 渲染还会在可见区变化时重建整段 section,滚动时体感会比列表更重。
 - 代码锚点:
-  [internal/tui/state/detail.go:35](/home/debi/IdeaProjects/docker-tui/internal/tui/state/detail.go:35) `OpenImage` (未写 `DetailRawJSON / DetailResourceType`)
+  [internal/tui/state/detail.go:58](/home/debi/IdeaProjects/docker-tui/internal/tui/state/detail.go:58) `OpenImage` (未写 `DetailRawJSON / DetailResourceType`)
   [internal/tui/keyboard/image_action.go:99](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/image_action.go:99) `doImageDetail`
-  [internal/tui/ui/pages/detail/view.go:138](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/pages/detail/view.go:138) `renderSourceView`
+  [internal/tui/ui/pages/detail/view.go:133](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/pages/detail/view.go:133) `renderSections`
+  [internal/tui/ui/pages/detail/view.go:167](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/pages/detail/view.go:167) `renderSourceView`
 - 期望行为:
   1. 镜像详情在成功 inspect 后必须把原始字节(最好是 inspect API 返回的 JSON 或等价结构体 marshal)写入 `DetailRawJSON`,并设置 `DetailResourceType = ResourceImage`。
   2. 提供与容器/卷一致的 `SetImageDetail` 辅助函数。
@@ -178,6 +179,66 @@
   1. 镜像详情页按 s 后能看到完整 yaml 文本。
   2. yaml / json 视图在镜像为空数据时给出与卷/网络一致的错误占位,不再静默空白。
   3. `DetailRawJSON` / `DetailResourceType` 在镜像路径下与其他资源保持一致写入时序。
+- 修复记录:
+  - `OpenImage` / `ApplyImage` 已写入规范化 `ImageDetail` JSON，并设置镜像资源类型。
+  - section、YAML、JSON 按详情 revision 分别缓存；滚动只截取和渲染可见行。
+  - raw source 缺失或不可解析时显示明确占位，不再输出空白页。
+
+### BR-016 容器详情页上下滚动卡顿
+
+- 状态: `verifying`
+- 优先级: `high`
+- 症状: 容器详情页在上下滚动时有明显卡顿,重复多次后更明显。
+- 当前行为:
+  详情页滚动状态没有稳定回写到可见边界,滚动到底部后继续下滚会积累不可见偏移,再向上滚时要先“还债”才能看到变化。当前渲染路径还会在每次刷新时重新构造完整内容,放大了卡顿感。
+- 代码锚点:
+  [internal/tui/state/detail.go:68](/home/debi/IdeaProjects/docker-tui/internal/tui/state/detail.go:68) `Scroll`
+  [internal/tui/state/detail.go:120](/home/debi/IdeaProjects/docker-tui/internal/tui/state/detail.go:120) `ClampVisibleOffset`
+  [internal/tui/ui/pages/detail/view.go:100](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/pages/detail/view.go:100) `renderSections`
+  [internal/tui/keyboard/detail.go:13](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/detail.go:13) `handleDetailKeys`
+- 期望行为:
+  1. 容器详情滚动状态应回写到可见边界,不能积累不可见 overscroll。
+  2. 向上 / 向下滚动在底部与顶部都应即时生效,不需要先回滚“欠账”。
+  3. 结构化详情视图不应在每次滚动时重建不必要的数据结构。
+- 验收标准:
+  1. 上下滚动容器详情页 10 次以上后,继续反向滚动能立即看到位置变化。
+  2. 连续滚动不会出现“看起来卡住了几步”的现象。
+  3. 详情页 footer 的可见行号与当前内容范围一致。
+- 修复记录:
+  - 详情 offset 会回写到当前文档的合法可见边界，反向滚动不再偿还不可见 overscroll。
+  - 结构化详情和源码视图使用 revision/source 文档缓存，滚动不再重新构造完整 section 或格式化 YAML/JSON。
+  - Toast timer 改为按 generation 启动和终止，空闲页面不再由永久 100ms tick 触发整屏重绘。
+  - 500 个环境变量和 500 个标签的缓存滚动 benchmark 已加入回归测试。
+
+### BR-017 Compose 详情页不应把快捷键写进正文
+
+- 状态: `verifying`
+- 优先级: `medium`
+- 症状: Compose 页面左侧 project 栏按 `d` 进入详情页后,详情正文里显示快捷操作说明;按 `s` 之后页面内容变空,用户以为详情丢了数据。
+- 当前行为:
+  `BuildProjectDetail()` 直接把“快捷操作”写进项目详情正文,详情页自身又会切换 `s` 到 YAML / JSON 源码视图,导致正文与底部快捷提示混在一起。Compose 是双栏布局,左栏和右栏的可用快捷键不同,固定正文里的单套提示会误导用户。
+- 代码锚点:
+  [internal/tui/ui/pages/compose/view.go:304](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/pages/compose/view.go:304) `BuildProjectDetail`
+  [internal/tui/ui/action/registry.go:85](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/action/registry.go:85) `Context`
+  [internal/tui/ui/action/registry.go:98](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/action/registry.go:98) `Compose`
+  [internal/tui/ui/widget/footer/footer.go:12](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/widget/footer/footer.go:12) `Shortcuts`
+- 期望行为:
+  1. Compose 详情页正文只显示项目概览数据,不再写快捷键说明。
+  2. 快捷键说明统一放到下方状态栏 / footer。
+  3. footer 在 compose 场景下要按当前焦点输出对应快捷键,左栏项目与右栏服务不能共用一套固定提示。
+- 验收标准:
+  1. 按 `d` 进入 compose 详情页后,正文不再出现“快捷操作”段落。
+  2. 按 `s` 后显示的是合法源码视图或空值占位,不是被正文快捷说明污染后的空白页。
+  3. footer 的快捷键随 compose 左右栏焦点切换而变化。
+- 修复记录:
+  - Compose 项目详情正文已移除快捷操作段落。
+  - footer 在普通 Compose 双栏模式下按 `ComposeFocus` 投影项目或服务动作。
+  - 详情 footer 只在 raw source 存在时显示 `s Source`；没有 raw source 的 Compose 项目详情按 `s` 保持 section 视图。
+  - 详情标题统一为 `Compose Detail: <project>`，breadcrumb 使用与镜像、容器详情相同的 `Compose > detail` 结构。
+  - 项目正文不再使用独立的 `Project: <name>` 文本格式。
+  - Compose 服务栏标题统一为 `Compose > <project> > Services`，不再使用 `Services: <project>`。
+  - Compose 项目详情改为只读表格，按 `Service / Image / Status / Containers` 展示并复用详情滚动状态。
+  - 表格列宽统一由 `tables.ResolveLayout` 计算；页面不再预计算或传递 `Widths`，`RenderTable` 不再按当前行内容二次收缩列宽。
 
 ### BR-008 H 键应进 Help,F1 行为复用;H 键同时承担镜像 History 入口
 
@@ -251,7 +312,7 @@
 
 ### BR-011 镜像页面超一页时光标下划页面不滚动
 
-- 状态: `open`
+- 状态: `verifying`
 - 优先级: `high`
 - 症状: 镜像列表条目超过一页后,光标下移到第二页,渲染窗口未同步跟随,选中行看不见;再次按 enter / s 之前,视图位置与光标位置不一致。
 - 当前行为:
@@ -277,6 +338,10 @@
   2. `im.ViewOffset` 在每帧渲染后等于本次实际使用的 `viewOffset`;键盘翻页后状态正确。
   3. 容器/卷/网络列表同样修复,行为统一。
   4. 镜像 panel 在 standard 多 panel 布局下,滚动行数与该 panel 实际可见行数一致,不再受整条 rail 高度干扰。
+- 修复记录:
+  - 新增表格真实数据行计算，扣除选中预览、页码、空行、表头、footer 与行间距。
+  - 镜像列表直接将 `EnsureVisible` 结果回写 `ImageListModel.ViewOffset`，不再只修改当前渲染帧的局部变量。
+  - 已覆盖 30 个镜像在 12 行 panel 中向下跨页和向上回滚的测试；Network 已迁移为直接回写 `NetworkListModel.ViewOffset`，容器与卷仍按后续独立问题推进。
 
 ### BR-012 所有表格鼠标点击选中的行位置不对
 
@@ -385,6 +450,37 @@
   3. `marked` 与 `selected` 背景同时存在时(同一行既是当前选中又被标记),高亮一致或可区分,且不出现背景色块被切的现象。
 - 修复记录:
   - `rows.go:23-55` 重写 `RenderRow` 的选中/标记分支:不再用 `cellStyleANSI` 内嵌前景 ANSI + 手填空格,改为 `joinRow(cells, false)` 走 lipgloss 完整 style(自带 SGR reset),再用 `buildStyle(ref).Width(r.rowWidth).Render(prefix + line)`。`Width` 让 lipgloss 自动填满行尾空格,`Background` 由 `ref` 提供,跨列 SGR 不再互相截断背景。
+
+### BR-018 Network 与 Audit 表格列布局不一致
+
+- 状态: `done`
+- 优先级: `medium`
+- 症状: Network 在部分宽度下名称列被限制后仍出现异常留白；Audit 使用手工固定列宽和字符串截断，未遵循其他资源页的共享表格、右上角统计和整行选中样式。
+- 期望行为:
+  1. 两页都使用共享 `RenderTable` 与 `ResolveLayout`，表头和数据行使用相同列轨道。
+  2. Network 名称与子网列使用稳定首选宽度，空间不足时收缩，空间充足时填满表格 viewport。
+  3. Audit 的时间、结果、级别保持固定宽度，操作、目标、消息使用稳定内容宽度；统计和筛选信息统一显示在右上角。
+  4. 两页滚动后都将实际 offset 回写页面状态，选中项始终在可见窗口内。
+- 修复记录:
+  - 新增 `tables/audit.jsonc`，Audit 列表删除手工 header/row 拼接并迁移到共享表格渲染。
+  - 调整 `tables/networks.jsonc` 的名称列上限；Network 直接回写 `NetworkListModel.ViewOffset`。
+  - 增加宽窄终端行宽和多页滚动回归测试。
+
+### BR-019 表格列布局未遵循稳定 Grid 约束
+
+- 状态: `done`
+- 优先级: `high`
+- 症状: 页面重复扣减 content width，列宽从 0 分配且所有列封顶后将剩余空间强制塞入最后一个 Flex 列；右侧空间、列比例和列间距的视觉结果不稳定。
+- 修复记录:
+  - 初版为 `ColumnDef` 增加 `basis/min/max/grow/shrink`，按 CSS Flex 语义执行 grow/shrink，删除突破 `max` 的 spillover。
+  - 列 gap 固定为 2 个终端单元，并作为布局缓存 key 的一部分。
+  - 初版将全部表格 profile 迁移到 grow/fill 语义。
+  - 顶层资源页直接使用 panel content width，不再重复扣减 8 列；Compose 和 Processes 不再重复扣减 4 列。
+  - 补齐镜像和卷子表的 `BannerW`，确保子表与主表使用同一布局契约。
+  - 后续宽屏回归确认单一 grow/fill 列会把剩余宽度变成中间单元格的大段空白，因此移除页面级 `grow` 权重，改由共享解析器管理扩展。
+  - 最终规则为：先按可见内容需求扩展被截断列，再由全部可伸缩列均分剩余宽度；固定列不扩展，末列右边界与 viewport 对齐。
+  - `ResolveContentLayout` 显式接收每列内容需求；增加长镜像名回归测试，验证宽屏下 Registry、Tag、ID 完整显示且不存在未使用的行尾空间。
+  - 配置来源收敛为两层：`component/table.jsonc` 唯一管理公共布局与视觉，`tables/*.jsonc` 管理资源数据 schema/profile；删除旧 `component/config.jsonc`、`column_widths.go` 和 `tables/_global.jsonc`。
 
 ## 新增条目模板
 

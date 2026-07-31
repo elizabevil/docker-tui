@@ -136,10 +136,10 @@ usableW  ← 所有子区域的渲染宽度基准
     │       │                    (panelW 传入后减左右边框)
     │       │
     │       ├── 表格: containerW = contentW
-    │       │   ├── 前缀: rowPrefix (2) + 间隙
-    │       │   ├── 列宽: colW[i] = max(表头宽, 内容宽), 受 Widths[i] 限制
-    │       │   ├── 间距: gap = (containerW - ΣcolW) / (n-1)
-    │       │   └── 分页: 页脚占 1 行, bodyH = panelHeight - overhead
+    │       │   ├── 前缀: rowPrefix (2), 仅扣减一次
+    │       │   ├── 列宽: profile basis 为稳定首选宽度, 表头与所有行共享
+    │       │   ├── 间距: 固定 2 格; 空间不足向 min 收缩, 宽屏按内容需求后均分剩余宽度
+    │       │   └── 分页: 统计位于右上角, bodyH = panelHeight - overhead
     │       │
     │       ├── 日志: 直接使用 bodyH × contentW
     │       │
@@ -165,8 +165,8 @@ usableW  ← 所有子区域的渲染宽度基准
 | panelW | `layout.go` | 391 | `panel.Panel{Width: usableW, ...}` |
 | 边框扣减 | `panel.go` | 43 | `p.Width - 2` (传给 lipgloss) |
 | contentW | `layout.go` | 363 | `panelW - 4` |
-| 表列宽 | `table.go` | 78 | `computeContentWidths(d, headers)` |
-| 列间距 | `table.go` | 259 | `(containerWidth - total) / (n-1)` |
+| 表列宽 | `tables/config.go` | `ResolveLayout` | `basis/min/max/shrink` 稳定网格 |
+| 列间距 | `component/table.jsonc` | `table.columnSpacing` | 固定 2 格 |
 | Compose 分栏 | `view.go` | 98-104 | `totalW * ratioL / (ratioL + ratioR)` |
 
 ---
@@ -191,8 +191,8 @@ usableW  ← 所有子区域的渲染宽度基准
 | Header | `internal/tui/ui/widget/header/header.jsonc` | `header.go:21-88` | `columns[].weight`, `keystroke.contentRatio` |
 | Footer | `internal/tui/ui/widget/footer/footer.jsonc` | `footer.go:16-40` | `markSymbol` |
 | Panel Border | `internal/tui/ui/component/borders.jsonc` | `border.go` | `borders.*` (5 种: rounded/double/thick/single/hidden) |
-| Table | `internal/tui/ui/component/table.jsonc` | `table_config.go` | `rowStyles`, `stateStyles`, `pages.*.columns` |
-| Table Cols | `internal/tui/ui/component/config.jsonc` | `config.go` | `cols.*.pct/more/wide/compact/show` |
+| Shared Table | `internal/tui/ui/component/table.jsonc` | `table_config.go` | `table`, `rowStyles`, `stateStyles`, `columnStyles` |
+| Table Data | `internal/tui/tables/*.jsonc` | `tables/config.go` | `columns.*.basis/min/max/shrink`, `show`, resource options |
 | Component Styles | `internal/tui/ui/component/styles.jsonc` | `styles_load.go` | `styles.*` (搜索/面包屑/Toast/快捷键/对话框等) |
 | Dialog | `internal/tui/ui/component/dialog.jsonc` | `dialog.go` | 对话框布局参数 |
 | Filter | `internal/tui/ui/component/filter.jsonc` | `filter.go` | 搜索过滤参数 |
@@ -213,15 +213,19 @@ GetStyle("stateRunning")
 每页定义多套列宽配置，通过 `ContainerProfileSelector` / `BreakpointProfileSelector` 按可用宽度自动选择：
 
 ```jsonc
-"container": {
-  "wide":  [8, 14, 12, 16, 10, 5, 8, 12, 0],  // ≥130 列
-  "more":  [8, 14, 12, 16, 0,  5, 8, 12],      // ≥85 列
-  "pct":   [8, 16, 14, 18, 0, 14],              // 默认 (百分比)
-  "show":  { "wide": 130, "more": 85, "stats": 110 }
+{
+  "key": "name",
+  "basis": 40,
+  "min": 12,
+  "shrink": 1,
+  "header": "table.name"
 }
 ```
 
 选择逻辑 (`profile_selector.go:21-31`): 从宽到窄匹配，第一个满足 `width >= MinWidth` 的 profile 生效。
+`basis` 是表头和所有数据行共享的首选轨道宽度。窗口不足时按 `shrink`
+向 `min` 收缩；窗口更宽时先满足可见数据的完整宽度，再由所有可伸缩列
+均分剩余空间，使末列右边界与表格 viewport 对齐。
 
 ---
 
@@ -305,10 +309,8 @@ internal/tui/ui/
 ├── component/                可复用组件库
 │   ├── table.go              RenderTable + SelectionInfoProvider 接口
 │   ├── table_config.go       table.jsonc 加载
-│   ├── table.jsonc           列样式/行间距/选中项配置
-│   ├── config.go             全局 Config 加载 + ColProfile
-│   ├── config.jsonc          列宽百分比/搜索/面包屑参数
-│   ├── column_widths.go      列宽计算 + 响应式断点判断
+│   ├── table.jsonc           公共布局、行/状态/语义列样式
+│   ├── config.go             全局组件样式启动
 │   ├── profile_selector.go   容器/断点 Profile 选择器
 │   ├── rows.go               行渲染 + 列独立样式 + 选中/标记背景
 │   ├── border.go             边框样式选择 + ActiveBorderStyle
@@ -361,15 +363,21 @@ internal/tui/ui/
 
 ```go
 type TableData struct {
-    Cols, Widths, Rows, Selected int
+    Cols, Rows, Selected         // 列定义、可见行、选中行
     Total, Offset, Limit         int
-    BannerW    int                 // 宽度参考
-    FooterHint string
+    BannerW    int               // 权威 panel content width
+    FooterHint string            // 与页码一起显示在右上角
     MarkedRows map[int]bool
-    ColStyles []ColumnStyle        // 列级样式
+    ColStyles []ColumnStyle      // 列级样式
     SelectionProvider SelectionInfoProvider
 }
 ```
+
+`RenderTable` 从 `BannerW` 中只扣除一次 row prefix，再按 `basis/min/max/shrink`
+计算表头和所有数据行共享的稳定列宽。列间 gap 固定为 2，不使用
+`space-between`。空间不足时向 `min` 收缩；空间充足时先扩展仍被截断的
+内容列，再由可伸缩列均分剩余宽度。固定列不参与扩展，表格与选中/标记
+行都铺满整个 viewport。
 
 ### 6.2 SelectionInfoProvider 接口
 
@@ -521,8 +529,8 @@ GetStyle("stateRunning")
 |------|--------|
 | `app.jsonc` | `marginTopPct: 5`, `marginBottomPct: 5`, `contentWidthPct: 90` |
 | `internal/data/config/default.jsonc` / 用户 `config.yml` | `layout.sectionWeights`, `layout.background`, `keymap.*` |
-| `config.jsonc` | `cols.*.pct/more/wide/compact/show` |
-| `table.jsonc` | `rowStyles`, `stateStyles`, `pages.*.columns`, `selectionInfo`, `rowSpacing` |
+| `internal/tui/tables/*.jsonc` | Data schema: `columns.*.basis/min/max/shrink`, `show`, resource options |
+| `table.jsonc` | Shared visuals: `table`, `rowStyles`, `stateStyles`, `columnStyles` |
 | `header.jsonc` | `columns[].weight`, `keystroke.displayDuration: 30`, `keystroke.animDuration: 5` |
 | `footer.jsonc` | `markSymbol: ☑` |
 | `borders.jsonc` | `borders.rounded/double/thick/single/hidden` |

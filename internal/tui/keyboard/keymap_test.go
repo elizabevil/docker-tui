@@ -61,6 +61,23 @@ func TestConfiguredBindingsApplyInDetailMode(t *testing.T) {
 	}
 }
 
+func TestDetailSourceKeyRequiresRawSource(t *testing.T) {
+	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app.Navigation.Mode = state.ModeDetail
+	app.Detail.Open("Compose Project", "Project: demo")
+
+	updated, _ := HandleKeyPress(keyMessage("s"), app)
+	if updated.Detail.DetailSourceType != state.DetailSourceSection {
+		t.Fatalf("detail without raw source changed mode: %q", updated.Detail.DetailSourceType)
+	}
+
+	updated.Detail.SetRaw(state.ResourceComposeProject, []byte(`{"project":"demo"}`))
+	updated, _ = HandleKeyPress(keyMessage("s"), updated)
+	if updated.Detail.DetailSourceType != state.DetailSourceYAML {
+		t.Fatalf("detail with raw source did not switch mode: %q", updated.Detail.DetailSourceType)
+	}
+}
+
 func TestConfiguredBindingsApplyInLogMode(t *testing.T) {
 	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
 	app.Dependencies.Config.Keymap.Down = []string{"z"}

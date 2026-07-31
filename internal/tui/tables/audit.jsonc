@@ -1,0 +1,42 @@
+{
+  "columns": {
+    "default": [
+      {
+        "key": "time",
+        "fixed": 19,
+        "header": "table.time"
+      },
+      {
+        "key": "action",
+        "basis": 26,
+        "min": 12,
+        "shrink": 1,
+        "header": "table.action"
+      },
+      {
+        "key": "target",
+        "basis": 28,
+        "min": 12,
+        "shrink": 1,
+        "header": "table.target"
+      },
+      {
+        "key": "result",
+        "fixed": 10,
+        "header": "table.result"
+      },
+      {
+        "key": "level",
+        "fixed": 8,
+        "header": "table.level"
+      },
+      {
+        "key": "message",
+        "basis": 64,
+        "min": 16,
+        "shrink": 1,
+        "header": "table.message"
+      }
+    ]
+  }
+}

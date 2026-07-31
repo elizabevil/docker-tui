@@ -142,7 +142,7 @@ type (
 		Audit        audit.Trace
 	}
 
-	ToastTick struct{}
+	ToastTick struct{ Generation uint64 }
 
 	HostStatsTick       struct{}
 	RuntimeHealthTick   struct{}

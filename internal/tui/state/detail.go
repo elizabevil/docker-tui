@@ -13,6 +13,27 @@ const (
 	DetailSourceJSON    DetailSource = "json"
 )
 
+type DetailLineKind uint8
+
+const (
+	DetailLineSection DetailLineKind = iota
+	DetailLineSubtitle
+	DetailLineValue
+	DetailLinePlain
+)
+
+type DetailDocumentLine struct {
+	Kind  DetailLineKind
+	Left  string
+	Right string
+}
+
+type DetailDocument struct {
+	Revision uint64
+	Source   DetailSource
+	Lines    []DetailDocumentLine
+}
+
 type DetailState struct {
 	ImageDetailID      string
 	ImageDetailContent string
@@ -26,6 +47,8 @@ type DetailState struct {
 	VolumeDetail       *runtimeapi.VolumeDetail
 	NetworkDetail      *runtimeapi.NetworkDetail
 	ContainerDetail    *runtimeapi.ContainerDetail
+	Revision           uint64
+	Documents          map[DetailSource]DetailDocument
 }
 
 type (
@@ -52,22 +75,32 @@ type (
 )
 
 func (s *DetailState) Open(title, content string) {
-	*s = DetailState{DetailTitle: title, ImageDetailContent: content}
+	revision := s.Revision + 1
+	*s = DetailState{DetailTitle: title, ImageDetailContent: content, Revision: revision}
 }
 
 func (s *DetailState) OpenImage(id, title string, data *runtimeapi.ImageDetail) {
-	*s = DetailState{ImageDetailID: id, DetailTitle: title, ImageDetailData: data}
+	revision := s.Revision + 1
+	*s = DetailState{ImageDetailID: id, DetailTitle: title, ImageDetailData: data, Revision: revision}
 	if data != nil {
 		s.DetailResourceType = ResourceImage
 		s.DetailRawJSON, _ = sonic.Marshal(data) //nolint:errcheck // marshalling typed structs; cannot fail in practice.
 	}
 }
 
-func (s *DetailState) Close() { *s = DetailState{} }
+func (s *DetailState) Close() {
+	revision := s.Revision + 1
+	*s = DetailState{Revision: revision}
+}
 
 func (s *DetailState) Scroll(delta int) { s.DetailOffset = max(0, s.DetailOffset+delta) }
 
-func (s *DetailState) CycleSource() {
+func (s *DetailState) HasRawSource() bool { return len(s.DetailRawJSON) > 0 }
+
+func (s *DetailState) CycleSource() bool {
+	if !s.HasRawSource() {
+		return false
+	}
 	s.DetailOffset = 0
 	switch s.DetailSourceType {
 	case DetailSourceSection:
@@ -77,29 +110,40 @@ func (s *DetailState) CycleSource() {
 	default:
 		s.DetailSourceType = DetailSourceSection
 	}
+	return true
 }
 
 func (s *DetailState) SetRaw(resourceType ResourceType, raw []byte) {
 	s.DetailRawJSON = raw
 	s.DetailResourceType = resourceType
+	s.invalidateDocument()
 }
 
 func (s *DetailState) SetContainerDetail(detail *runtimeapi.ContainerDetail) {
 	s.ContainerDetail = detail
 	s.DetailResourceType = ResourceContainer
-	s.DetailRawJSON, _ = sonic.Marshal(detail) //nolint:errcheck // marshalling typed structs; cannot fail in practice.
+	if detail != nil {
+		s.DetailRawJSON, _ = sonic.Marshal(detail) //nolint:errcheck // marshalling typed structs; cannot fail in practice.
+	}
+	s.invalidateDocument()
 }
 
 func (s *DetailState) SetVolumeDetail(detail *runtimeapi.VolumeDetail) {
 	s.VolumeDetail = detail
 	s.DetailResourceType = ResourceVolume
-	s.DetailRawJSON, _ = sonic.Marshal(detail) //nolint:errcheck // marshalling typed structs; cannot fail in practice.
+	if detail != nil {
+		s.DetailRawJSON, _ = sonic.Marshal(detail) //nolint:errcheck // marshalling typed structs; cannot fail in practice.
+	}
+	s.invalidateDocument()
 }
 
 func (s *DetailState) SetNetworkDetail(detail *runtimeapi.NetworkDetail) {
 	s.NetworkDetail = detail
 	s.DetailResourceType = ResourceNetwork
-	s.DetailRawJSON, _ = sonic.Marshal(detail) //nolint:errcheck // marshalling typed structs; cannot fail in practice.
+	if detail != nil {
+		s.DetailRawJSON, _ = sonic.Marshal(detail) //nolint:errcheck // marshalling typed structs; cannot fail in practice.
+	}
+	s.invalidateDocument()
 }
 
 func (s *DetailState) ApplyImage(id string, data *runtimeapi.ImageDetail) bool {
@@ -108,9 +152,19 @@ func (s *DetailState) ApplyImage(id string, data *runtimeapi.ImageDetail) bool {
 	}
 	s.ImageDetailData = data
 	s.DetailResourceType = ResourceImage
-	s.DetailRawJSON, _ = sonic.Marshal(data) //nolint:errcheck // marshalling typed structs; cannot fail in practice.
+	if data != nil {
+		s.DetailRawJSON, _ = sonic.Marshal(data) //nolint:errcheck // marshalling typed structs; cannot fail in practice.
+	} else {
+		s.DetailRawJSON = nil
+	}
 	s.DetailOffset = 0
+	s.invalidateDocument()
 	return true
+}
+
+func (s *DetailState) invalidateDocument() {
+	s.Revision++
+	s.Documents = nil
 }
 
 func (s *DetailState) VisibleOffset(total, visible int) int {
