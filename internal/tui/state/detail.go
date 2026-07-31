@@ -57,6 +57,10 @@ func (s *DetailState) Open(title, content string) {
 
 func (s *DetailState) OpenImage(id, title string, data *runtimeapi.ImageDetail) {
 	*s = DetailState{ImageDetailID: id, DetailTitle: title, ImageDetailData: data}
+	if data != nil {
+		s.DetailResourceType = ResourceImage
+		s.DetailRawJSON, _ = sonic.Marshal(data) //nolint:errcheck // marshalling typed structs; cannot fail in practice.
+	}
 }
 
 func (s *DetailState) Close() { *s = DetailState{} }
@@ -103,6 +107,8 @@ func (s *DetailState) ApplyImage(id string, data *runtimeapi.ImageDetail) bool {
 		return false
 	}
 	s.ImageDetailData = data
+	s.DetailResourceType = ResourceImage
+	s.DetailRawJSON, _ = sonic.Marshal(data) //nolint:errcheck // marshalling typed structs; cannot fail in practice.
 	s.DetailOffset = 0
 	return true
 }

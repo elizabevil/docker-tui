@@ -45,6 +45,8 @@
   "key.restart": "重启",
   "key.kill": "杀死",
   "key.detail": "详情",
+  "key.projects": "项目",
+  "key.services": "服务",
   "key.delete": "删除",
   "key.debug": "调试",
   "key.export": "导出",

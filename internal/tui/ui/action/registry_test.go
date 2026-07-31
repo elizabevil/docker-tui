@@ -37,3 +37,19 @@ func TestGlobalProjectsConfiguredBindings(t *testing.T) {
 	}
 	t.Fatalf("configured help binding not found: %#v", shortcuts)
 }
+
+func TestContextUsesComposeFocus(t *testing.T) {
+	app := &state.AppModel{Navigation: state.NavigationState{ActivePanel: state.PanelCompose}}
+
+	app.Compose.ComposeFocus = 0
+	left := Context(app)
+	if len(left) == 0 || left[0].Key != "Enter/→" || left[0].Description != i18n.T("key.services") {
+		t.Fatalf("compose project focus shortcuts = %#v", left)
+	}
+
+	app.Compose.ComposeFocus = 1
+	right := Context(app)
+	if len(right) == 0 || right[0].Key != "Enter" || right[0].Description != i18n.T("key.expand") {
+		t.Fatalf("compose service focus shortcuts = %#v", right)
+	}
+}

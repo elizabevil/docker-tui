@@ -89,7 +89,40 @@ func Context(app *state.AppModel) []Shortcut {
 	if app == nil {
 		return nil
 	}
+	if app.Navigation.ActivePanel == state.PanelCompose {
+		return Compose(app)
+	}
 	return ForPanel(app.Navigation.ActivePanel, len(app.Selection.MarkedIDs), app)
+}
+
+func Compose(app *state.AppModel) []Shortcut {
+	if app == nil {
+		return nil
+	}
+	if app.Compose.ComposeContainerViewID != "" {
+		return []Shortcut{
+			{keys.KEsc + "/" + keys.KLeft, i18n.T("key.back")},
+			{keys.KUp + "/" + keys.KDown, i18n.T("key.scroll")},
+		}
+	}
+	if app.Compose.ComposeFocus == 1 {
+		return []Shortcut{
+			{keys.KEnter, i18n.T("key.expand")},
+			{keys.KLeft, i18n.T("key.projects")},
+			{keys.KeyS, i18n.T("key.start")},
+			{keys.KCtrlS, i18n.T("key.stop")},
+			{keys.KeyL, i18n.T("key.logs")},
+			{keys.KCtrlD, i18n.T("key.down")},
+		}
+	}
+	return []Shortcut{
+		{keys.KEnter + "/" + keys.KRight, i18n.T("key.services")},
+		{keys.KeyD, i18n.T("key.detail")},
+		{keys.KeyS, i18n.T("key.start")},
+		{keys.KCtrlS, i18n.T("key.stop")},
+		{keys.KeyL, i18n.T("key.logs")},
+		{keys.KCtrlD, i18n.T("key.down")},
+	}
 }
 
 func ForPanel(panel state.PanelType, marked int, app ...*state.AppModel) []Shortcut {

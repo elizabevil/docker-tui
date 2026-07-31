@@ -50,6 +50,8 @@
   "key.restart": "Restart",
   "key.kill": "Kill",
   "key.detail": "Detail",
+  "key.projects": "Projects",
+  "key.services": "Services",
   "key.delete": "Delete",
   "key.debug": "Debug",
   "key.export": "Export",

@@ -1,6 +1,10 @@
 package state
 
-import "testing"
+import (
+	"testing"
+
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+)
 
 func TestDetailStateLifecycleAndSources(t *testing.T) {
 	var detail DetailState
@@ -30,6 +34,24 @@ func TestDetailStateRejectsStaleImageResult(t *testing.T) {
 	detail.DetailOffset = 5
 	if !detail.ApplyImage("current", nil) || detail.DetailOffset != 0 {
 		t.Fatalf("current image result = %#v", detail)
+	}
+}
+
+func TestDetailStateWritesImageRawJSON(t *testing.T) {
+	var detail DetailState
+	detail.OpenImage("img", "Image", &runtimeapi.ImageDetail{ID: "img", Name: "demo"})
+	if detail.DetailResourceType != ResourceImage {
+		t.Fatalf("open image resource type = %q", detail.DetailResourceType)
+	}
+	if len(detail.DetailRawJSON) == 0 {
+		t.Fatal("open image raw json missing")
+	}
+
+	if !detail.ApplyImage("img", &runtimeapi.ImageDetail{ID: "img", Name: "demo2"}) {
+		t.Fatal("apply image rejected current result")
+	}
+	if len(detail.DetailRawJSON) == 0 || detail.ImageDetailData == nil || detail.ImageDetailData.Name != "demo2" {
+		t.Fatalf("apply image raw json not updated: %#v", detail)
 	}
 }
 

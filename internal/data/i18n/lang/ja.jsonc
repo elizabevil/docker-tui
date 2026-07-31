@@ -45,6 +45,8 @@
   "key.restart": "再起動",
   "key.kill": "強制終了",
   "key.detail": "詳細",
+  "key.projects": "プロジェクト",
+  "key.services": "サービス",
   "key.delete": "削除",
   "key.debug": "デバッグ",
   "key.export": "エクスポート",

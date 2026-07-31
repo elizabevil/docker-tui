@@ -325,11 +325,6 @@ func BuildProjectDetail(proj composeProj) string {
 		b.WriteString(fmt.Sprintf("  %s %s  %d/%d  image: %s\n", ico, name, info.running, info.total, info.image))
 	}
 
-	b.WriteString("\n\u2500\u2500 \u5feb\u6377\u64cd\u4f5c \u2500\u2500\n")
-	b.WriteString("  s  Start all     S  Stop all\n")
-	b.WriteString("  l  Service logs    Ctrl+D  Compose down\n")
-	b.WriteString("  Enter \u2192 Container list   d  This view\n")
-
 	return b.String()
 }
 

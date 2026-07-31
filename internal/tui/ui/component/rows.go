@@ -29,10 +29,9 @@ func (r *RowRenderer) RenderRow(cells []string, rowIdx int, marked, selected, al
 	// 选中 / 标记行：用 lipgloss Width + Background 强制背景铺满整行，
 	// 不依赖手填空格 + 内嵌 ANSI 拼接，避免多列 SGR 互相截断背景。
 	if selected || marked {
-		// 列宽已在 joinRow 中按 colW + TruncateVisible 严格 padding，
-		// 走 noInline=false 让 lipgloss 给每个 cell 自带 SGR reset，
-		// 避免前一个 cell 的 background 跨格污染。
-		line := r.joinRow(cells, false)
+		// 列宽已在 joinRow 中按 colW + TruncateVisible 严格 padding。
+		// 选中行需要保留列前景色，但不能让单元格 reset 截断整行背景。
+		line := r.joinRow(cells, true)
 		ref := GetRowStyle("selected")
 		if marked {
 			ref = GetRowStyle("marked")
