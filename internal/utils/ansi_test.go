@@ -33,3 +33,10 @@ func TestWrapCellsUsesTerminalWidth(t *testing.T) {
 		t.Fatalf("WrapCells = %#v, want %#v", got, want)
 	}
 }
+
+func TestFitVisiblePreservesANSIAndExactWidth(t *testing.T) {
+	got := FitVisible("\x1b[31mabcdefgh\x1b[0m", 5)
+	if DisplayWidth(got) != 5 || StripANSI(got) != "abcde" {
+		t.Fatalf("FitVisible = %q, width=%d", got, DisplayWidth(got))
+	}
+}

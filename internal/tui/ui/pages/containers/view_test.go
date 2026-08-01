@@ -41,6 +41,9 @@ func TestRenderListFlexLayoutUsesFullWidthForStats(t *testing.T) {
 			if width := component.VisibleLen(line); width != wantRowWidth {
 				t.Fatalf("container row width = %d, want %d: %q", width, wantRowWidth, line)
 			}
+			if trailing := component.VisibleLen(line) - component.VisibleLen(strings.TrimRight(line, " ")); trailing > 8 {
+				t.Fatalf("container row leaves %d cells after statistics: %q", trailing, line)
+			}
 			return
 		}
 	}

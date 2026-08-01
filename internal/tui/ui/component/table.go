@@ -86,16 +86,14 @@ func RenderTable(d TableData) string {
 		prefixWidth = selectedWidth
 	}
 	columnGap := tableLayout.ColumnSpacing
-	layout := defaultTableLayoutCache.resolve(d, headers, max(1, containerW-prefixWidth), columnGap)
+	layout := resolveTableLayout(d, headers, max(1, containerW-prefixWidth), columnGap)
 	headers = layout.headers
 	colW := layout.widths
-	gap := layout.gap
-	gapStr := strings.Repeat(" ", gap)
 
 	// Row renderer — column layout computed once, reused for all rows
 	rr := &RowRenderer{
 		colW:         colW,
-		gapStr:       gapStr,
+		gapStrings:   layout.gapStrings,
 		rowPrefix:    prefix,
 		rowPrefixSel: prefixSel,
 		colStyles:    d.ColStyles,
@@ -165,6 +163,24 @@ func RenderTable(d TableData) string {
 	}
 
 	return strings.TrimSuffix(sb.String(), "\n")
+}
+
+// adaptiveGapWidths distributes unused viewport space across column gutters.
+// This keeps content-driven tracks compact while aligning the final track with
+// the right edge. Remainders are spread left-to-right and differ by at most one cell.
+func adaptiveGapWidths(base, count, extra int) []int {
+	if count <= 0 {
+		return nil
+	}
+	widths := make([]int, count)
+	share, remainder := max(0, extra)/count, max(0, extra)%count
+	for i := range widths {
+		widths[i] = max(1, base) + share
+		if i < remainder {
+			widths[i]++
+		}
+	}
+	return widths
 }
 
 func renderTopFrameLabel(label string, width int) string {

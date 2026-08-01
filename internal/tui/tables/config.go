@@ -112,9 +112,9 @@ func ResolveLayout(cols []ColumnDef, totalWidth int, gapOverride ...int) Resolve
 	return resolveLayout(cols, nil, totalWidth, resolvedGap(gapOverride))
 }
 
-// ResolveContentLayout fits stable tracks to both cell content and viewport.
-// Content columns are expanded toward desiredWidths first, then remaining
-// space is shared evenly so the table reaches the viewport's right edge.
+// ResolveContentLayout fits stable tracks to visible cell content. Columns
+// expand only when content needs the space; unused viewport width remains
+// trailing table space instead of becoming oversized empty cells.
 func ResolveContentLayout(cols []ColumnDef, desiredWidths []int, totalWidth, gap int) ResolvedLayout {
 	return resolveLayout(cols, desiredWidths, totalWidth, resolvedGap([]int{gap}))
 }
@@ -147,7 +147,9 @@ func resolveLayout(cols []ColumnDef, desiredWidths []int, totalWidth, gap int) R
 		shrinkColumns(widths, specs, occupied-columnBudget)
 	} else if occupied < columnBudget {
 		remaining := growColumnsTowardContent(widths, specs, desiredWidths, columnBudget-occupied)
-		fillColumns(widths, specs, remaining)
+		if desiredWidths == nil {
+			fillColumns(widths, specs, remaining)
+		}
 	}
 	contentWidth := gap * (n - 1)
 	for _, width := range widths {

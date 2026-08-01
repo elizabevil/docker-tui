@@ -86,8 +86,8 @@ func TestRenderListUsesStableExcelLikeColumnTracks(t *testing.T) {
 		if strings.Contains(line, "6b1b147de1234") {
 			t.Fatalf("image ID is not short: %q", line)
 		}
-		if trailing := component.VisibleLen(line) - component.VisibleLen(strings.TrimRight(line, " ")); trailing > 1 {
-			t.Fatalf("wide table leaves %d cells unused at the right edge: %q", trailing, line)
+		if trailing := component.VisibleLen(line) - component.VisibleLen(strings.TrimRight(line, " ")); trailing > 10 {
+			t.Fatalf("wide table leaves %d cells after the final value: %q", trailing, line)
 		}
 		return
 	}

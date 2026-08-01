@@ -12,7 +12,7 @@ import (
 // RowRenderer 高效渲染数据行，支持预计算列宽、列间距、列级样式。
 type RowRenderer struct {
 	colW         []int
-	gapStr       string
+	gapStrings   []string
 	rowPrefix    string
 	rowPrefixSel string
 	colStyles    []ColumnStyle
@@ -48,9 +48,9 @@ func (r *RowRenderer) RenderRow(cells []string, rowIdx int, marked, selected, al
 
 	switch {
 	case alt:
-		return buildStyle(GetRowStyle("alt")).Render(prefix + r.joinRow(cells, false))
+		return buildStyle(GetRowStyle("alt")).Width(r.rowWidth).Render(prefix + r.joinRow(cells, false))
 	default:
-		return prefix + r.joinRow(cells, false)
+		return lipgloss.NewStyle().Width(r.rowWidth).Render(prefix + r.joinRow(cells, false))
 	}
 }
 
@@ -64,7 +64,9 @@ func (r *RowRenderer) joinRow(cells []string, noReset bool) string {
 	var sb strings.Builder
 	for i, cell := range cells {
 		if i > 0 {
-			sb.WriteString(r.gapStr)
+			if i-1 < len(r.gapStrings) {
+				sb.WriteString(r.gapStrings[i-1])
+			}
 		}
 		display := cell
 		if i < len(r.colW) && r.colW[i] > 0 {

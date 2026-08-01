@@ -4,7 +4,9 @@ package utils
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
+	"github.com/charmbracelet/x/ansi"
 	"github.com/mattn/go-runewidth"
 )
 
@@ -41,7 +43,24 @@ func StripANSI(s string) string {
 // DisplayWidth returns terminal cell width after removing ANSI sequences.
 // East Asian wide characters occupy two cells; combining marks occupy zero.
 func DisplayWidth(s string) int {
-	return runewidth.StringWidth(StripANSI(s))
+	width := 0
+	for i := 0; i < len(s); {
+		if s[i] == '\033' && i+1 < len(s) && s[i+1] == '[' {
+			i += 2
+			for i < len(s) {
+				c := s[i]
+				i++
+				if (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') {
+					break
+				}
+			}
+			continue
+		}
+		r, size := utf8.DecodeRuneInString(s[i:])
+		width += runewidth.RuneWidth(r)
+		i += size
+	}
+	return width
 }
 
 // VisibleLen is kept as a compatibility alias for DisplayWidth.
@@ -127,6 +146,14 @@ func PadVisible(s string, width int) string {
 		return s
 	}
 	return s + strings.Repeat(" ", width-vis)
+}
+
+// FitVisible truncates ANSI-styled text and pads it to exactly width cells.
+func FitVisible(s string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+	return PadVisible(ansi.Truncate(s, width, ""), width)
 }
 
 // HexToRGB parses a hex color string (#RRGGBB) into RGB components.

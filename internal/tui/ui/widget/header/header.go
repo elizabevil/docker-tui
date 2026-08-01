@@ -150,7 +150,7 @@ func Render(app *state.AppModel, usableW int) string {
 	memStr := fmt.Sprintf("%s/%s",
 		utils.FormatBytes(float64(app.Metrics.HostMemUsed)),
 		utils.FormatBytes(float64(app.Metrics.HostMemTotal)))
-	colDyn := fmt.Sprintf("%s%s %dC\n%s%s\n%s%s\n%s%s\n",
+	colDyn := fmt.Sprintf("%s%s %dC\n%s%s\n%s%s\n%s%s",
 		lbl("CPU"), pct(app.Metrics.HostCPU, cpuC), app.Metrics.HostCPUCores,
 		lbl("Memory"), utils.PadVisible(memStr, 18),
 		lbl("Disk"), utils.PadVisible(app.Metrics.HostDisk, 18),
@@ -168,7 +168,7 @@ func Render(app *state.AppModel, usableW int) string {
 			eng += " [" + i18n.T(securityKey) + "]"
 		}
 	}
-	colConn := fmt.Sprintf("%s%s\n%s%s\n%s%s\n",
+	colConn := fmt.Sprintf("%s%s\n%s%s\n%s%s",
 		lbl("Engine"), eng+" "+app.Connection.EngineVersion,
 		lbl("Socket"), hostStr,
 		lbl("Language"), lang,
@@ -203,15 +203,22 @@ func Render(app *state.AppModel, usableW int) string {
 		component.GetStyle("panelTitle").Render(logoPart),
 		component.GetStyle("panelTitle").Render("v"+verStr),
 	)
+	fitColumn := func(content string, width int) string {
+		lines := strings.Split(content, "\n")
+		for i := range lines {
+			lines[i] = utils.FitVisible(lines[i], width)
+		}
+		return strings.Join(lines, "\n")
+	}
 
 	rendered := lipgloss.JoinHorizontal(lipgloss.Top,
-		lipgloss.NewStyle().Width(dynW).Render(colDyn),
-		lipgloss.NewStyle().Width(connW).Render(colConn),
-		lipgloss.NewStyle().Width(keyW).Render(colKeys),
-		lipgloss.NewStyle().Width(logoW).Align(lipgloss.Right).Render(colLogo),
+		fitColumn(colDyn, dynW),
+		fitColumn(colConn, connW),
+		fitColumn(colKeys, keyW),
+		lipgloss.NewStyle().Width(logoW).Align(lipgloss.Right).Render(fitColumn(colLogo, logoW)),
 	)
 
-	return component.GetStyle("headerBar").Render(rendered)
+	return component.GetStyle("headerBar").Width(usableW).Render(rendered)
 }
 
 // renderKeyStrokeColumn 显示快捷键日志（简化版，仅收集期间显示）。

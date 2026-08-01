@@ -148,13 +148,21 @@ type mainModel struct {
 	initialConnection string
 }
 
+const initialResizeSettleDelay = 150 * time.Millisecond
+
 func (m *mainModel) Init() tea.Cmd {
 	return tea.Batch(
+		tea.RequestWindowSize,
+		requestWindowSizeAfter(initialResizeSettleDelay),
 		func() tea.Msg { return state.HostStatsTick{} },
 		func() tea.Msg { return state.RuntimeHealthTick{} },
 		connectDocker(m.model.Connection.Pool, m.initialConnection),
 		probeAllOnStart(m.model.Connection.Pool, m.initialConnection),
 	)
+}
+
+func requestWindowSizeAfter(delay time.Duration) tea.Cmd {
+	return tea.Tick(delay, func(time.Time) tea.Msg { return tea.RequestWindowSize() })
 }
 
 func probeAllOnStart(pool *runtimeapi.ConnectionPool, active string) tea.Cmd {
