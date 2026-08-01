@@ -98,6 +98,28 @@ func truncateCells(s string, width int) string {
 	return out.String()
 }
 
+// WrapCells splits text into lines no wider than width terminal cells.
+func WrapCells(s string, width int) []string {
+	if width <= 0 || DisplayWidth(s) <= width {
+		return []string{s}
+	}
+	lines := make([]string, 0, DisplayWidth(s)/width+1)
+	var line strings.Builder
+	used := 0
+	for _, r := range s {
+		w := runewidth.RuneWidth(r)
+		if used > 0 && used+w > width {
+			lines = append(lines, line.String())
+			line.Reset()
+			used = 0
+		}
+		line.WriteRune(r)
+		used += w
+	}
+	lines = append(lines, line.String())
+	return lines
+}
+
 // PadVisible pads a string to exactly width visible characters by appending spaces.
 func PadVisible(s string, width int) string {
 	vis := DisplayWidth(s)

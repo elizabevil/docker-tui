@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"charm.land/lipgloss/v2"
+	"github.com/elizabevil/docker-tui/internal/constants"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 )
@@ -58,7 +59,7 @@ func RenderConfirmMsg(msg, target string, termW, termH int, overlayColor string)
 		dialogW = 60
 	}
 	inner := lipgloss.JoinVertical(lipgloss.Top,
-		lipgloss.NewStyle().Foreground(style.Color("yellow")).Render("\u26a0 "+msg),
+		lipgloss.NewStyle().Foreground(style.Color(constants.ColorYellow)).Render("\u26a0 "+msg),
 		"",
 		lipgloss.NewStyle().Faint(true).Render("  Target: "+target),
 		"",
@@ -66,7 +67,7 @@ func RenderConfirmMsg(msg, target string, termW, termH int, overlayColor string)
 	)
 	dialog := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		Foreground(style.Color("yellow")).
+		Foreground(style.Color(constants.ColorYellow)).
 		Background(style.Color(overlayColor)).
 		Padding(1, 2).
 		Width(dialogW).
@@ -93,7 +94,7 @@ func RenderShellDialog(shell string, termW, termH int, overlayColor string) stri
 		shell = "/bin/sh"
 	}
 	inner := lipgloss.JoinVertical(lipgloss.Top,
-		lipgloss.NewStyle().Foreground(style.Color("yellow")).Render("Enter container shell"),
+		lipgloss.NewStyle().Foreground(style.Color(constants.ColorYellow)).Render("Enter container shell"),
 		"",
 		lipgloss.NewStyle().Faint(true).Render("  Shell: "+shell+"\u2588"),
 		"",
@@ -101,7 +102,7 @@ func RenderShellDialog(shell string, termW, termH int, overlayColor string) stri
 	)
 	dialog := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		Foreground(style.Color("yellow")).
+		Foreground(style.Color(constants.ColorYellow)).
 		Background(style.Color(overlayColor)).
 		Padding(1, 2).
 		Width(dialogW).
@@ -120,7 +121,7 @@ func RenderTextInput(title, value string, cursor, termW, termH int, overlayColor
 	input := string(runes[:cursor]) + "\u2588" + string(runes[cursor:])
 	dialogW := min(60, max(40, termW*25/100))
 	inner := lipgloss.JoinVertical(lipgloss.Top,
-		lipgloss.NewStyle().Foreground(style.Color("cyan")).Render(title),
+		lipgloss.NewStyle().Foreground(style.Color(constants.ColorCyan)).Render(title),
 		"",
 		lipgloss.NewStyle().Render(input),
 		"",
@@ -142,7 +143,7 @@ func RenderProgressDialog(title, target, status string, current, total int64, te
 		progress = fmt.Sprintf("%s  %d bytes", status, current)
 	}
 	inner := lipgloss.JoinVertical(lipgloss.Top,
-		lipgloss.NewStyle().Foreground(style.Color("cyan")).Render(title),
+		lipgloss.NewStyle().Foreground(style.Color(constants.ColorCyan)).Render(title),
 		"", target, "", progress, "",
 		lipgloss.NewStyle().Faint(true).Render("[Esc] "+i18n.T("key.cancel")),
 	)

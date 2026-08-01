@@ -3,6 +3,7 @@ package component
 import (
 	"image/color"
 
+	"github.com/elizabevil/docker-tui/internal/constants"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
 
@@ -10,19 +11,19 @@ import (
 func StateColor(containerState string) color.Color {
 	switch containerState {
 	case state.ContainerStateRunning:
-		return GetColor("green")
+		return GetColor(constants.ColorGreen)
 	case state.ContainerStateStopping:
-		return GetColor("yellow")
+		return GetColor(constants.ColorYellow)
 	case state.ContainerStateStopped, state.ContainerStateExited, state.ContainerStateDead:
-		return GetColor("gray")
+		return GetColor(constants.ColorGray)
 	case state.ContainerStatePaused:
-		return GetColor("yellow")
+		return GetColor(constants.ColorYellow)
 	case state.ContainerStateCreated:
-		return GetColor("blue")
+		return GetColor(constants.ColorBlue)
 	case state.ContainerStateRestarting:
-		return GetColor("orange")
+		return GetColor(constants.ColorOrange)
 	default:
-		return GetColor("gray")
+		return GetColor(constants.ColorGray)
 	}
 }
 

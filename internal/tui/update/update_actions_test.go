@@ -26,6 +26,27 @@ func TestContainerActionResultCompletesAuditProjection(t *testing.T) {
 	}
 }
 
+func TestContainerActionFailureUsesPersistentErrorRail(t *testing.T) {
+	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app.Dependencies.Audit = audit.NewService(nil)
+	trace := app.Dependencies.Audit.Begin("resource.container.start", audit.ContainerTarget{ID: "short", Name: "api"}, audit.RuntimeContext{}, audit.UIContext{}, "Starting api")
+
+	updated, _ := handleContainerActioned(app, state.ContainerActioned{
+		Action: state.ActionStarted,
+		ID:     "short",
+		Error:  errors.New("port 8080 is already allocated"),
+		Audit:  trace,
+	})
+
+	if !strings.Contains(updated.Feedback.ErrorMessage, "started") ||
+		!strings.Contains(updated.Feedback.ErrorMessage, "port 8080 is already allocated") {
+		t.Fatalf("persistent error missing action or cause: %q", updated.Feedback.ErrorMessage)
+	}
+	if updated.Feedback.ToastLevel != state.NotificationError {
+		t.Fatalf("toast level = %v, want error", updated.Feedback.ToastLevel)
+	}
+}
+
 func TestContainerDetailLoadedWritesRawJSON(t *testing.T) {
 	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
 	title := "Container Detail: api"

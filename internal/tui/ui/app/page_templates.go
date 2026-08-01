@@ -95,7 +95,7 @@ func projectPage(m *state.AppModel, bodyHeight, bodyWidth int) pageView {
 		} else if m.Detail.DetailResourceType == state.ResourceComposeProject {
 			view.content = compose.RenderProjectDetailTable(m, bodyWidth, bodyHeight)
 		} else {
-			view.content = detail.RenderView(m, bodyHeight)
+			view.content = detail.RenderView(m, bodyHeight, bodyWidth)
 		}
 	case helpPageTemplate:
 		view.content = help.RenderView(bodyWidth, m)

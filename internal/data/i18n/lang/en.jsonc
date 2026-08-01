@@ -213,6 +213,7 @@
   "hint.tab_switch": "Tab switch",
   "hint.loading_detail": "Loading detail...",
   "hint.source_unavailable": "Source data is unavailable for this detail.",
+  "hint.source_selected": "All source selected; Ctrl+C to copy",
   "hint.compose_detail": "Enter:detail",
   "hint.compose_pods": "Enter: pods",
   "hint.start_stop_logs": "s:start S:stop l:logs",

@@ -1,6 +1,9 @@
 package utils
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestDisplayWidthUsesTerminalCells(t *testing.T) {
 	if got := DisplayWidth("中文"); got != 4 {
@@ -20,5 +23,13 @@ func TestTruncateVisibleUsesCellWidth(t *testing.T) {
 	}
 	if got := PadVisible("中文", 6); got != "中文  " {
 		t.Fatalf("PadVisible=%q, want %q", got, "中文  ")
+	}
+}
+
+func TestWrapCellsUsesTerminalWidth(t *testing.T) {
+	got := WrapCells("ab中文cd", 4)
+	want := []string{"ab中", "文cd"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("WrapCells = %#v, want %#v", got, want)
 	}
 }

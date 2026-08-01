@@ -23,3 +23,17 @@ func TestMapContainerSummariesExpandsPortRange(t *testing.T) {
 		t.Fatalf("compose project = %q", result[0].ComposeProject)
 	}
 }
+
+func TestMapContainerSummariesIncludesUnpublishedExposedPorts(t *testing.T) {
+	result := MapContainerSummaries([]dto.ContainerItem{{
+		ID: "redis", Ports: []dto.ContainerPort{{ContainerPort: 8080, HostPort: 9080, Protocol: "tcp"}},
+		ExposedPorts: map[uint16][]string{6379: {"tcp"}, 8080: {"tcp"}},
+	}})
+
+	if len(result) != 1 || len(result[0].PortBindings) != 2 {
+		t.Fatalf("unexpected port bindings: %#v", result)
+	}
+	if got := result[0].PortBindings[1]; got.ContainerPort != 6379 || got.Protocol != "tcp" || got.HostPort != 0 {
+		t.Fatalf("unexpected exposed port: %#v", got)
+	}
+}

@@ -2,18 +2,16 @@ package detail
 
 import (
 	_ "embed"
-	"encoding/json"
 	"fmt"
 	"strings"
 
 	"charm.land/lipgloss/v2"
 
-	"github.com/bytedance/sonic"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/data/runtime/docker"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
-	"gopkg.in/yaml.v3"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 //go:embed detail.jsonc
@@ -50,15 +48,15 @@ type detailSection struct {
 }
 
 // RenderView renders the detail panel content based on the current resource type.
-func RenderView(m *state.AppModel, panelHeight int) string {
-	lines := detailDocument(m)
-	return renderDocument(m, lines, panelHeight)
+func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
+	lines := detailDocument(m, panelWidth)
+	return renderDocument(m, lines, panelHeight, panelWidth)
 }
 
-func detailDocument(m *state.AppModel) []state.DetailDocumentLine {
+func detailDocument(m *state.AppModel, panelWidth int) []state.DetailDocumentLine {
 	if cached, ok := m.Detail.Documents[m.Detail.DetailSourceType]; ok &&
 		cached.Lines != nil &&
-		cached.Revision == m.Detail.Revision {
+		cached.Revision == m.Detail.Revision && cached.Width == panelWidth {
 		return cached.Lines
 	}
 
@@ -69,12 +67,14 @@ func detailDocument(m *state.AppModel) []state.DetailDocumentLine {
 	} else {
 		lines = buildSectionDocument(m)
 	}
+	lines = wrapDocument(lines, panelWidth, m.Detail.DetailSourceType != state.DetailSourceSection)
 	if m.Detail.Documents == nil {
 		m.Detail.Documents = make(map[state.DetailSource]state.DetailDocument, 3)
 	}
 	m.Detail.Documents[m.Detail.DetailSourceType] = state.DetailDocument{
 		Revision: m.Detail.Revision,
 		Source:   m.Detail.DetailSourceType,
+		Width:    panelWidth,
 		Lines:    lines,
 	}
 	return lines
@@ -132,11 +132,12 @@ func flattenSections(sections []detailSection) []state.DetailDocumentLine {
 	return bodyLines
 }
 
-func renderDocument(m *state.AppModel, bodyLines []state.DetailDocumentLine, panelHeight int) string {
+func renderDocument(m *state.AppModel, bodyLines []state.DetailDocumentLine, panelHeight, panelWidth int) string {
 	sectionStyle := component.GetStyle("detailSection")
 	labelStyle := component.GetStyle("detailLabel")
 	valueStyle := component.GetStyle("detailValue")
 	dimStyle := component.GetStyle("detailDim")
+	selectionStyle := component.GetStyle("detailSelection")
 
 	bodyHeight := panelHeight - 1
 	if bodyHeight < 3 {
@@ -151,21 +152,27 @@ func renderDocument(m *state.AppModel, bodyLines []state.DetailDocumentLine, pan
 	visibleEnd := offset + len(visible)
 	rendered := make([]string, 0, bodyHeight)
 	for _, line := range visible {
+		var renderedLine string
 		switch line.Kind {
 		case state.DetailLineSection:
-			rendered = append(rendered, sectionStyle.Render(fmt.Sprintf("  \u2500\u2500 %s ", line.Left)))
+			renderedLine = sectionStyle.Render(fmt.Sprintf("  \u2500\u2500 %s ", line.Left))
 		case state.DetailLineSubtitle:
-			rendered = append(rendered, "    "+dimStyle.Render(line.Left))
+			renderedLine = "    " + dimStyle.Render(line.Left)
 		case state.DetailLineValue:
-			rendered = append(rendered, fmt.Sprintf("    %s: %s",
-				labelStyle.Render(line.Left), valueStyle.Render(line.Right)))
+			renderedLine = fmt.Sprintf("    %s: %s", labelStyle.Render(line.Left), valueStyle.Render(line.Right))
+		case state.DetailLineContinuation:
+			renderedLine = "    " + valueStyle.Render(line.Left)
 		default:
 			if m.Detail.DetailSourceType == state.DetailSourceSection {
-				rendered = append(rendered, "    "+dimStyle.Render(line.Left))
+				renderedLine = "    " + dimStyle.Render(line.Left)
 			} else {
-				rendered = append(rendered, valueStyle.Render(line.Left))
+				renderedLine = valueStyle.Render(line.Left)
 			}
 		}
+		if m.Detail.SourceSelected && m.Detail.DetailSourceType != state.DetailSourceSection {
+			renderedLine = selectionStyle.Width(max(1, panelWidth)).Render(renderedLine)
+		}
+		rendered = append(rendered, renderedLine)
 	}
 	for len(rendered) < bodyHeight {
 		rendered = append(rendered, "")
@@ -176,7 +183,41 @@ func renderDocument(m *state.AppModel, bodyLines []state.DetailDocumentLine, pan
 	if m.Detail.DetailHint != "" {
 		footer += " \u2502 " + m.Detail.DetailHint
 	}
+	if m.Detail.SourceSelected {
+		footer += " \u2502 " + i18n.T("hint.source_selected")
+	}
 	return lipgloss.JoinVertical(lipgloss.Top, body, dimStyle.Render(footer))
+}
+
+func wrapDocument(lines []state.DetailDocumentLine, panelWidth int, source bool) []state.DetailDocumentLine {
+	if panelWidth <= 0 {
+		return lines
+	}
+	wrapped := make([]state.DetailDocumentLine, 0, len(lines))
+	for _, line := range lines {
+		switch {
+		case line.Kind == state.DetailLineValue:
+			parts := utils.WrapCells(line.Right, max(1, panelWidth-6-utils.DisplayWidth(line.Left)))
+			line.Right = parts[0]
+			wrapped = append(wrapped, line)
+			for _, part := range parts[1:] {
+				for _, continuation := range utils.WrapCells(part, max(1, panelWidth-4)) {
+					wrapped = append(wrapped, state.DetailDocumentLine{Kind: state.DetailLineContinuation, Left: continuation})
+				}
+			}
+		case source && line.Kind == state.DetailLinePlain:
+			for _, part := range utils.WrapCells(line.Left, panelWidth) {
+				wrapped = append(wrapped, state.DetailDocumentLine{Kind: state.DetailLinePlain, Left: part})
+			}
+		case line.Kind == state.DetailLinePlain:
+			for _, part := range utils.WrapCells(line.Left, max(1, panelWidth-4)) {
+				wrapped = append(wrapped, state.DetailDocumentLine{Kind: state.DetailLinePlain, Left: part})
+			}
+		default:
+			wrapped = append(wrapped, line)
+		}
+	}
+	return wrapped
 }
 
 // buildSourceDocument formats raw data once per detail revision and source.
@@ -187,28 +228,7 @@ func buildSourceDocument(m *state.AppModel) []state.DetailDocumentLine {
 			Left: i18n.T("hint.source_unavailable"),
 		}}
 	}
-	var text string
-	if m.Detail.DetailSourceType == state.DetailSourceYAML {
-		var obj interface{}
-		if err := sonic.Unmarshal(m.Detail.DetailRawJSON, &obj); err == nil {
-			if yamlBytes, err := yaml.Marshal(obj); err == nil {
-				text = string(yamlBytes)
-			}
-		}
-		if text == "" {
-			text = string(m.Detail.DetailRawJSON)
-		}
-	} else {
-		var obj interface{}
-		if err := sonic.Unmarshal(m.Detail.DetailRawJSON, &obj); err == nil {
-			if jsonBytes, err := json.MarshalIndent(obj, "", "  "); err == nil {
-				text = string(jsonBytes)
-			}
-		}
-		if text == "" {
-			text = string(m.Detail.DetailRawJSON)
-		}
-	}
+	text := m.Detail.SourceText()
 
 	lines := strings.Split(text, "\n")
 	if len(lines) == 0 || (len(lines) == 1 && lines[0] == "") {

@@ -220,6 +220,7 @@
   "hint.tab_switch": "Tab \u5207\u308a\u66ff\u3048",
   "hint.loading_detail": "\u8a73\u7d30\u3092\u8aad\u307f\u8fbc\u307f\u4e2d...",
   "hint.source_unavailable": "\u3053\u306e\u8a73\u7d30\u306b\u306f\u30bd\u30fc\u30b9\u30c7\u30fc\u30bf\u304c\u3042\u308a\u307e\u305b\u3093\u3002",
+  "hint.source_selected": "\u30bd\u30fc\u30b9\u3092\u5168\u9078\u629e\u3057\u307e\u3057\u305f\u3002Ctrl+C \u3067\u30b3\u30d4\u30fc",
   "hint.compose_detail": "Enter:\u8a73\u7d30",
   "hint.compose_pods": "Enter: \u30b3\u30f3\u30c6\u30ca",
   "hint.start_stop_logs": "s:\u8d77\u52d5 S:\u505c\u6b62 l:\u30ed\u30b0",

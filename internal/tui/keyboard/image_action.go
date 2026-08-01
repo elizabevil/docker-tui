@@ -3,8 +3,6 @@ package keyboard
 import (
 	"context"
 	"fmt"
-	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
@@ -246,23 +244,7 @@ func doImageCopyRef(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	ref := fullImageRef(img)
 	ShowToastNow(m, "✓ Copied: "+ref)
-	return m, func() tea.Msg {
-		var cmd *exec.Cmd
-		if _, err := exec.LookPath("xclip"); err == nil {
-			cmd = exec.Command("xclip", "-selection", "clipboard")
-		} else if _, err := exec.LookPath("wl-copy"); err == nil {
-			cmd = exec.Command("wl-copy")
-		} else if _, err := exec.LookPath("pbcopy"); err == nil {
-			cmd = exec.Command("pbcopy")
-		} else {
-			// Fallback: write to temp file
-			_ = os.WriteFile("/tmp/dtui-clipboard.txt", []byte(ref), 0644) //nolint:errcheck // fallback clipboard; write failure is non-fatal.
-			return nil
-		}
-		cmd.Stdin = strings.NewReader(ref)
-		_ = cmd.Run() //nolint:errcheck // clipboard best-effort.
-		return nil
-	}
+	return m, clipboardCmd(ref)
 }
 
 func tagName(img *runtimeapi.ImageSummary) string {

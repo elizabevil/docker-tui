@@ -115,8 +115,8 @@ func dispatchByMode(rawKey, key string, m *state.AppModel) (*state.AppModel, tea
 	// through helper-specific state. They are not exhaustive — keys
 	// they do not handle fall through to the action table.
 	if m.Navigation.Mode == state.ModeDetail {
-		if handleDetailKeys(key, m) {
-			return m, nil, true
+		if handled, cmd := handleDetailKeys(key, m); handled {
+			return m, cmd, true
 		}
 	}
 	if m.Navigation.Mode == state.ModeLogView {

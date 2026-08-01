@@ -81,7 +81,10 @@ func handleBatchActioned(m *state.AppModel, msg state.BatchActioned) (*state.App
 
 func handleContainerActioned(m *state.AppModel, msg state.ContainerActioned) (*state.AppModel, tea.Cmd) {
 	display := "✕ failed: " + msg.Action
-	if msg.Error == nil {
+	if msg.Error != nil {
+		display += ": " + msg.Error.Error()
+		m.Feedback.RecordError(display)
+	} else {
 		display = "✓ " + i18n.T("toast."+msg.Action, shortAuditID(msg.ID))
 	}
 	if msg.Audit.Valid() {
@@ -104,7 +107,10 @@ func handleContainerActioned(m *state.AppModel, msg state.ContainerActioned) (*s
 
 func handleImageActioned(m *state.AppModel, msg state.ImageActioned) (*state.AppModel, tea.Cmd) {
 	display := "✕ failed: " + msg.Action
-	if msg.Error == nil {
+	if msg.Error != nil {
+		display += ": " + msg.Error.Error()
+		m.Feedback.RecordError(display)
+	} else {
 		display = "✓ " + i18n.T("toast."+msg.Action, msg.Ref)
 	}
 	if msg.Audit.Valid() {
@@ -196,7 +202,10 @@ func handleNetworkDetailLoaded(m *state.AppModel, msg state.NetworkDetailLoaded)
 
 func handleGenericActioned(m *state.AppModel, msg state.GenericActioned) (*state.AppModel, tea.Cmd) {
 	display := "✕ failed: " + msg.Action
-	if msg.Error == nil {
+	if msg.Error != nil {
+		display += ": " + msg.Error.Error()
+		m.Feedback.RecordError(display)
+	} else {
 		display = "✓ " + i18n.T("toast."+msg.Action, msg.ID)
 	}
 	if msg.Audit.Valid() {

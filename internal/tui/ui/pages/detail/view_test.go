@@ -24,14 +24,14 @@ func TestRenderViewClampsImageDetailOverscroll(t *testing.T) {
 	})
 	app.Detail.DetailOffset = 1000
 
-	RenderView(app, 8)
+	RenderView(app, 8, 80)
 	bottom := app.Detail.DetailOffset
 	if bottom <= 0 || bottom >= 1000 {
 		t.Fatalf("render did not clamp overscroll: %d", bottom)
 	}
 
 	app.Detail.Scroll(-1)
-	RenderView(app, 8)
+	RenderView(app, 8, 80)
 	if app.Detail.DetailOffset != bottom-1 {
 		t.Fatalf("up scroll remained stuck: got %d, want %d", app.Detail.DetailOffset, bottom-1)
 	}
@@ -42,10 +42,25 @@ func TestRenderSectionsFooterUsesActualVisibleCount(t *testing.T) {
 	rendered := renderDocument(app, flattenSections([]detailSection{{
 		Title: "Basic",
 		Lines: []string{"ID: image"},
-	}}), 8)
+	}}), 8, 80)
 
 	if plain := component.StripANSI(rendered); !strings.Contains(plain, "1-2/2") {
 		t.Fatalf("footer does not use actual visible count: %q", plain)
+	}
+}
+
+func TestRenderImageRegistryWrapsWithoutTruncation(t *testing.T) {
+	const registry = "docker-bkrepo.internal.example.com:5000"
+	app := &state.AppModel{}
+	app.Detail.OpenImage("image", "Image Detail", &runtimeapi.ImageDetail{ID: "image", Registry: registry})
+
+	plain := component.StripANSI(RenderView(app, 12, 28))
+	joined := strings.ReplaceAll(strings.ReplaceAll(plain, "\n", ""), " ", "")
+	if !strings.Contains(joined, "Registry:"+registry) {
+		t.Fatalf("registry was truncated while wrapping: %q", plain)
+	}
+	if strings.Contains(plain, "docker-bkrepo...") {
+		t.Fatalf("registry contains truncation marker: %q", plain)
 	}
 }
 
@@ -62,14 +77,14 @@ func TestRenderViewReusesDocumentWhileScrolling(t *testing.T) {
 		},
 	})
 
-	RenderView(app, 8)
+	RenderView(app, 8, 80)
 	document := app.Detail.Documents[state.DetailSourceSection]
 	if len(document.Lines) == 0 {
 		t.Fatal("detail document was not cached")
 	}
 	first := &document.Lines[0]
 	app.Detail.Scroll(1)
-	RenderView(app, 8)
+	RenderView(app, 8, 80)
 	document = app.Detail.Documents[state.DetailSourceSection]
 	if first != &document.Lines[0] {
 		t.Fatal("scroll rebuilt the detail document")
@@ -81,7 +96,7 @@ func TestSourceDocumentIsCachedAndNeverBlank(t *testing.T) {
 	app.Detail.OpenImage("image", "Image Detail", &runtimeapi.ImageDetail{ID: "image", Name: "demo"})
 	app.Detail.CycleSource()
 
-	RenderView(app, 8)
+	RenderView(app, 8, 80)
 	yamlDocument := app.Detail.Documents[state.DetailSourceYAML]
 	var sourceLines []string
 	for _, line := range yamlDocument.Lines {
@@ -92,17 +107,17 @@ func TestSourceDocumentIsCachedAndNeverBlank(t *testing.T) {
 	}
 	first := &yamlDocument.Lines[0]
 	app.Detail.Scroll(1)
-	RenderView(app, 8)
+	RenderView(app, 8, 80)
 	yamlDocument = app.Detail.Documents[state.DetailSourceYAML]
 	if first != &yamlDocument.Lines[0] {
 		t.Fatal("scroll rebuilt the source document")
 	}
 
 	app.Detail.CycleSource()
-	RenderView(app, 8)
+	RenderView(app, 8, 80)
 	app.Detail.CycleSource()
 	app.Detail.CycleSource()
-	RenderView(app, 8)
+	RenderView(app, 8, 80)
 	yamlDocument = app.Detail.Documents[state.DetailSourceYAML]
 	if first != &yamlDocument.Lines[0] {
 		t.Fatal("source cycle rebuilt the cached YAML document")
@@ -111,7 +126,7 @@ func TestSourceDocumentIsCachedAndNeverBlank(t *testing.T) {
 	app.Detail.DetailSourceType = state.DetailSourceJSON
 	app.Detail.DetailRawJSON = nil
 	app.Detail.Documents = nil
-	rendered := RenderView(app, 8)
+	rendered := RenderView(app, 8, 80)
 	if plain := component.StripANSI(rendered); !strings.Contains(plain, "unavailable") {
 		t.Fatalf("empty source did not render an explicit placeholder: %q", plain)
 	}
@@ -133,12 +148,12 @@ func BenchmarkRenderCachedContainerDetail(b *testing.B) {
 			Labels:      labels,
 		},
 	})
-	RenderView(app, 30)
+	RenderView(app, 30, 80)
 
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		app.Detail.DetailOffset = i % 900
-		RenderView(app, 30)
+		RenderView(app, 30, 80)
 	}
 }

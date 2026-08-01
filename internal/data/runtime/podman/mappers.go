@@ -1,6 +1,7 @@
 package podman
 
 import (
+	"fmt"
 	"net"
 	"sort"
 	"time"
@@ -20,18 +21,47 @@ func MapContainerSummaries(raw []dto.ContainerItem) []runtimeapi.ContainerSummar
 			name = c.Names[0]
 		}
 		ports := make([]runtimeapi.PortBinding, 0, len(c.Ports))
+		seenPorts := make(map[string]struct{}, len(c.Ports))
 		for _, port := range c.Ports {
+			protocol := normalizedProtocol(port.Protocol)
 			portRange := port.Range
 			if portRange == 0 {
 				portRange = 1
 			}
 			for offset := uint16(0); offset < portRange; offset++ {
-				ports = append(ports, runtimeapi.PortBinding{
+				hostPort := port.HostPort
+				if hostPort > 0 {
+					hostPort += offset
+				}
+				binding := runtimeapi.PortBinding{
 					ContainerPort: port.ContainerPort + offset,
-					HostPort:      port.HostPort + offset,
-					Protocol:      port.Protocol,
+					HostPort:      hostPort,
+					Protocol:      protocol,
 					HostIP:        port.HostIP,
-				})
+				}
+				ports = append(ports, binding)
+				seenPorts[portKey(binding.ContainerPort, binding.Protocol)] = struct{}{}
+			}
+		}
+		exposed := make([]int, 0, len(c.ExposedPorts))
+		for port := range c.ExposedPorts {
+			exposed = append(exposed, int(port))
+		}
+		sort.Ints(exposed)
+		for _, exposedPort := range exposed {
+			protocols := append([]string(nil), c.ExposedPorts[uint16(exposedPort)]...)
+			if len(protocols) == 0 {
+				protocols = []string{"tcp"}
+			}
+			sort.Strings(protocols)
+			for _, protocol := range protocols {
+				protocol = normalizedProtocol(protocol)
+				key := portKey(uint16(exposedPort), protocol)
+				if _, exists := seenPorts[key]; exists {
+					continue
+				}
+				ports = append(ports, runtimeapi.PortBinding{ContainerPort: uint16(exposedPort), Protocol: protocol})
+				seenPorts[key] = struct{}{}
 			}
 		}
 		summary := runtimeapi.ContainerSummary{
@@ -52,6 +82,17 @@ func MapContainerSummaries(raw []dto.ContainerItem) []runtimeapi.ContainerSummar
 		result = append(result, summary)
 	}
 	return result
+}
+
+func portKey(port uint16, protocol string) string {
+	return fmt.Sprintf("%d/%s", port, protocol)
+}
+
+func normalizedProtocol(protocol string) string {
+	if protocol == "" {
+		return "tcp"
+	}
+	return protocol
 }
 
 // MapImageSummaries converts Podman image list items to the unified

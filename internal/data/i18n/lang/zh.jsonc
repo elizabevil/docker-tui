@@ -222,6 +222,7 @@
   "hint.tab_switch": "Tab 切换",
   "hint.loading_detail": "加载详情中...",
   "hint.source_unavailable": "此详情没有可用的源码数据。",
+  "hint.source_selected": "已全选源码；Ctrl+C 复制",
   "hint.compose_detail": "Enter:详情",
   "hint.compose_pods": "Enter: 容器",
   "hint.start_stop_logs": "s:启动 S:停止 l:日志",

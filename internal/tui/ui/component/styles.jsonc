@@ -95,6 +95,10 @@
       "color": "gray",
       "faint": true
     },
+    "detailSelection": {
+      "color": "white",
+      "background": "#37676f"
+    },
     // Log viewer — 柔和护眼配色
     "logTimestamp": {
       "color": "cyan",

@@ -483,6 +483,25 @@
   - Images 平台列统一为 `OS/ARCH`；Network 增加基础 short ID；Containers 使用紧凑 IMAGE，PORTS/IP 仅按真实内容扩展，MOUNTS/CONTAINERS 计数表头不再被截断。
   - 配置来源收敛为两层：`component/table.jsonc` 唯一管理公共布局与视觉，`tables/*.jsonc` 管理资源数据 schema/profile；删除旧 `component/config.jsonc`、`column_widths.go` 和 `tables/_global.jsonc`。
 
+### BR-020 容器端口与详情长字段、源码复制不完整
+
+- 状态: `done`
+- 优先级: `high`
+- 症状: Podman 容器列表忽略未发布的暴露端口；镜像 Registry 超过详情面板宽度后被裁掉；YAML/JSON 源码页无法使用 `Ctrl+A`、`Ctrl+C` 完整复制。
+- 修复记录:
+  - Podman 列表映射合并 `ExposedPorts` 和已发布端口，并按容器端口与协议去重；未发布端口以 `6379/tcp` 显示。
+  - 详情渲染接收实际面板宽度，按终端单元宽度折行并按宽度缓存文档，Registry 等长字段不再用省略号截断。
+  - YAML/JSON 源码视图支持 `Ctrl+A` 全选高亮、`Ctrl+C` 复制完整格式化源码；Linux、macOS、Windows 分别复用可用的系统剪贴板命令。
+
+### BR-021 资源操作失败未进入统一错误提示区
+
+- 状态: `done`
+- 优先级: `high`
+- 症状: 容器启动失败只在底部操作日志显示 `resource.container.start: ✕ failed: started`，Header 下方错误提示区为空，且实际运行时错误原因丢失。
+- 修复记录:
+  - 容器、镜像和通用资源 action handler 在失败时统一调用 `Feedback.RecordError`。
+  - 错误提示包含动作和运行时返回的具体原因，持久显示在 Header 下方两行提示区并可用 `Esc` 清除。
+
 ## 新增条目模板
 
 ```md

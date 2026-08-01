@@ -1,8 +1,11 @@
 package state
 
 import (
+	"encoding/json"
+
 	"github.com/bytedance/sonic"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"gopkg.in/yaml.v3"
 )
 
 type DetailSource string
@@ -20,6 +23,7 @@ const (
 	DetailLineSubtitle
 	DetailLineValue
 	DetailLinePlain
+	DetailLineContinuation
 )
 
 type DetailDocumentLine struct {
@@ -31,6 +35,7 @@ type DetailDocumentLine struct {
 type DetailDocument struct {
 	Revision uint64
 	Source   DetailSource
+	Width    int
 	Lines    []DetailDocumentLine
 }
 
@@ -49,6 +54,7 @@ type DetailState struct {
 	ContainerDetail    *runtimeapi.ContainerDetail
 	Revision           uint64
 	Documents          map[DetailSource]DetailDocument
+	SourceSelected     bool
 }
 
 type (
@@ -102,6 +108,7 @@ func (s *DetailState) CycleSource() bool {
 		return false
 	}
 	s.DetailOffset = 0
+	s.SourceSelected = false
 	switch s.DetailSourceType {
 	case DetailSourceSection:
 		s.DetailSourceType = DetailSourceYAML
@@ -111,6 +118,25 @@ func (s *DetailState) CycleSource() bool {
 		s.DetailSourceType = DetailSourceSection
 	}
 	return true
+}
+
+// SourceText returns the complete formatted source for the active YAML/JSON view.
+func (s *DetailState) SourceText() string {
+	if !s.HasRawSource() {
+		return ""
+	}
+	var obj interface{}
+	if err := sonic.Unmarshal(s.DetailRawJSON, &obj); err != nil {
+		return string(s.DetailRawJSON)
+	}
+	if s.DetailSourceType == DetailSourceYAML {
+		if data, err := yaml.Marshal(obj); err == nil {
+			return string(data)
+		}
+	} else if data, err := json.MarshalIndent(obj, "", "  "); err == nil {
+		return string(data)
+	}
+	return string(s.DetailRawJSON)
 }
 
 func (s *DetailState) SetRaw(resourceType ResourceType, raw []byte) {
@@ -165,6 +191,7 @@ func (s *DetailState) ApplyImage(id string, data *runtimeapi.ImageDetail) bool {
 func (s *DetailState) invalidateDocument() {
 	s.Revision++
 	s.Documents = nil
+	s.SourceSelected = false
 }
 
 func (s *DetailState) VisibleOffset(total, visible int) int {

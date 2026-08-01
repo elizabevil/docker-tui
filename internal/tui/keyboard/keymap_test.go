@@ -78,6 +78,23 @@ func TestDetailSourceKeyRequiresRawSource(t *testing.T) {
 	}
 }
 
+func TestDetailSourceSelectAllAndCopy(t *testing.T) {
+	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app.Navigation.Mode = state.ModeDetail
+	app.Detail.Open("Image Detail", "")
+	app.Detail.SetRaw(state.ResourceImage, []byte(`{"registry":"docker-bkrepo.internal"}`))
+	app.Detail.CycleSource()
+
+	updated, cmd := HandleKeyPress(keyMessage("ctrl+a"), app)
+	if cmd != nil || !updated.Detail.SourceSelected {
+		t.Fatalf("ctrl+a did not select source: selected=%v cmd=%v", updated.Detail.SourceSelected, cmd)
+	}
+	updated, cmd = HandleKeyPress(keyMessage("ctrl+c"), updated)
+	if cmd == nil {
+		t.Fatal("ctrl+c did not return a clipboard command")
+	}
+}
+
 func TestConfiguredBindingsApplyInLogMode(t *testing.T) {
 	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
 	app.Dependencies.Config.Keymap.Down = []string{"z"}
