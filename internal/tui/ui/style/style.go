@@ -6,6 +6,9 @@ import (
 	"image/color"
 
 	"charm.land/lipgloss/v2"
+
+	"github.com/elizabevil/docker-tui/internal/constants"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 // ── Palette ────────────────────────────────────────────────────
@@ -44,34 +47,35 @@ var Colors = Palette{
 	BG:      lipgloss.Color("#18191b"),
 }
 
-// Color 按调色板名返回颜色，未知名返回白色兜底。
-func Color(name string) color.Color {
-	switch name {
-	case "green":
-		return Colors.Green
-	case "cyan":
-		return Colors.Cyan
-	case "blue":
-		return Colors.Blue
-	case "red":
-		return Colors.Red
-	case "yellow":
-		return Colors.Yellow
-	case "orange":
-		return Colors.Orange
-	case "purple":
-		return Colors.Purple
-	case "white":
-		return Colors.White
-	case "gray":
-		return Colors.Gray
-	case "dark":
-		return Colors.Dark
-	case "surface":
-		return Colors.Surface
-	case "bg":
-		return Colors.BG
-	default:
-		return Colors.White
+// init 把编译期默认调色板注册到 utils，使 utils.ParseColor 在
+// tui.ApplyTheme() 运行之前即可解析调色板色名。
+func init() {
+	SyncPalette()
+}
+
+// SyncPalette 将当前 Colors 调色板注册到 utils，供 ParseColor 解析
+// 调色板色名（如 constants.ColorGreen）。主题应用后需重新调用以同步新值。
+func SyncPalette() {
+	utils.SetPaletteColor(constants.ColorGreen, Colors.Green)
+	utils.SetPaletteColor(constants.ColorCyan, Colors.Cyan)
+	utils.SetPaletteColor(constants.ColorBlue, Colors.Blue)
+	utils.SetPaletteColor(constants.ColorRed, Colors.Red)
+	utils.SetPaletteColor(constants.ColorYellow, Colors.Yellow)
+	utils.SetPaletteColor(constants.ColorOrange, Colors.Orange)
+	utils.SetPaletteColor(constants.ColorPurple, Colors.Purple)
+	utils.SetPaletteColor(constants.ColorWhite, Colors.White)
+	utils.SetPaletteColor(constants.ColorGray, Colors.Gray)
+	utils.SetPaletteColor(constants.ColorGrey, Colors.Gray)
+	utils.SetPaletteColor(constants.ColorDark, Colors.Dark)
+	utils.SetPaletteColor(constants.ColorSurface, Colors.Surface)
+	utils.SetPaletteColor(constants.ColorBG, Colors.BG)
+}
+
+// Color resolves a configured color and preserves the historical white
+// fallback for unknown values.
+func Color(value string) color.Color {
+	if resolved, ok := utils.ParseColor(value); ok {
+		return resolved
 	}
+	return Colors.White
 }

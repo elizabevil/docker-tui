@@ -8,6 +8,7 @@ import (
 
 // ShortID truncates an ID string to its first 12 characters.
 func ShortID(id string) string {
+	id = strings.TrimPrefix(id, "sha256:")
 	if len(id) > 12 {
 		return id[:12]
 	}

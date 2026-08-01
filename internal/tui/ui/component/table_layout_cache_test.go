@@ -10,8 +10,8 @@ func TestTableLayoutCacheTracksColumnContentWidths(t *testing.T) {
 	cache := NewTableLayoutCache(8)
 	data := TableData{
 		Cols: []tables.ColumnDef{
-			{Key: "name", Header: "Name", Basis: 8, Min: 6, Shrink: 1},
-			{Key: "image", Header: "Image", Basis: 8, Min: 6, Shrink: 1},
+			{Key: "name", Header: "Name", Basis: 8, Min: 6, Shrink: 1, Fill: 1},
+			{Key: "image", Header: "Image", Basis: 8, Min: 6, Shrink: 1, Fill: 1},
 		},
 		Rows: [][]string{{"nginx", "alpine"}}, BannerW: 30,
 	}
@@ -40,8 +40,8 @@ func TestTableLayoutKeepsFixedGapAndFillsViewport(t *testing.T) {
 	data := TableData{
 		Cols: []tables.ColumnDef{
 			{Key: "id", Header: "ID", Fixed: 12},
-			{Key: "name", Header: "Name", Basis: 16, Min: 10, Max: 24, Shrink: 1},
-			{Key: "stats", Header: "Stats", Basis: 30, Min: 18, Max: 36, Shrink: 1},
+			{Key: "name", Header: "Name", Basis: 16, Min: 10, Max: 24, Shrink: 1, Fill: 1},
+			{Key: "stats", Header: "Stats", Basis: 30, Min: 18, Max: 36, Shrink: 1, Fill: 1},
 		},
 		Rows: [][]string{{"container", "dtui-test-redis", "0% 0% RX:4.3KB TX:1.1KB"}},
 	}

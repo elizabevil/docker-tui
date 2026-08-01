@@ -30,6 +30,7 @@
   "table.registry": "REGISTRY",
   "table.tag": "TAG",
   "table.arch": "ARCH",
+  "table.platform": "OS/ARCH",
   "table.size": "SIZE",
   "table.project": "PROJECT",
   "table.services": "SERVICES",

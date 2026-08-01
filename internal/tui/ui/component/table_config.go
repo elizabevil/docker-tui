@@ -7,6 +7,7 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 //go:embed table.jsonc
@@ -33,8 +34,8 @@ type TableLayoutConfig struct {
 type SelectionInfoCfg struct {
 	Enabled    bool   `json:"enabled"`
 	PadLines   int    `json:"padLines"`   // 预览与表格之间的空行数，默认 1
-	Color      string `json:"color"`      // 文字颜色 palette 名，默认 "white"
-	Background string `json:"background"` // 背景颜色 palette 名，可选
+	Color      string `json:"color"`      // palette name or common color format
+	Background string `json:"background"` // palette name or common color format
 }
 
 // ColumnStyle is the resolved visual style for one rendered column.
@@ -54,24 +55,27 @@ func (c *TableStyleConfig) normalize() {
 	}
 }
 
-// validateColors 启动时校验所有列颜色名（仅一次，不刷屏）。
+// validateColors validates every configured table foreground/background once.
 func (c *TableStyleConfig) validateColors() {
-	for key, columnStyle := range c.ColumnStyles {
-		if columnStyle.Color != "" && !isValidPaletteColor(columnStyle.Color) {
-			fmt.Fprintf(os.Stderr, "[dtui] table.jsonc: columnStyles.%s: unknown color %q\n", key, columnStyle.Color)
+	validate := func(path string, ref styleRef) {
+		for property, value := range map[string]string{"color": ref.Color, "background": ref.Background} {
+			if value != "" {
+				if _, ok := utils.ParseColor(value); !ok {
+					fmt.Fprintf(os.Stderr, "[dtui] table.jsonc: %s.%s: invalid color %q\n", path, property, value)
+				}
+			}
 		}
 	}
-}
-
-var validPaletteColors = map[string]struct{}{
-	"green": {}, "cyan": {}, "blue": {}, "red": {},
-	"yellow": {}, "orange": {}, "purple": {},
-	"white": {}, "gray": {}, "dark": {}, "surface": {}, "bg": {},
-}
-
-func isValidPaletteColor(name string) bool {
-	_, ok := validPaletteColors[name]
-	return ok
+	validate("table.selectionInfo", styleRef{Color: c.Table.SelectionInfo.Color, Background: c.Table.SelectionInfo.Background})
+	for key, ref := range c.RowStyles {
+		validate("rowStyles."+key, ref)
+	}
+	for key, ref := range c.StateStyles {
+		validate("stateStyles."+key, ref)
+	}
+	for key, ref := range c.ColumnStyles {
+		validate("columnStyles."+key, ref)
+	}
 }
 
 var tableCfg TableStyleConfig

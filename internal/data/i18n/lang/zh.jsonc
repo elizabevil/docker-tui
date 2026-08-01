@@ -28,6 +28,7 @@
   "table.registry": "仓库",
   "table.tag": "标签",
   "table.arch": "架构",
+  "table.platform": "系统/架构",
   "table.size": "大小",
   "table.project": "项目",
   "table.services": "服务数",

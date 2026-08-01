@@ -11,6 +11,7 @@
         "basis": 26,
         "min": 12,
         "shrink": 1,
+        "fill": 2,
         "header": "table.action"
       },
       {
@@ -18,6 +19,7 @@
         "basis": 28,
         "min": 12,
         "shrink": 1,
+        "fill": 2,
         "header": "table.target"
       },
       {
@@ -35,6 +37,7 @@
         "basis": 64,
         "min": 16,
         "shrink": 1,
+        "fill": 5,
         "header": "table.message"
       }
     ]

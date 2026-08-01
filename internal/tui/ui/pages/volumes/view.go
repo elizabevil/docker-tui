@@ -149,7 +149,7 @@ func renderContainers(cm *state.ContainerListModel, width int, volName string, p
 		for j, cd := range colsDef {
 			switch cd.Key {
 			case "id":
-				cells[j] = c.ID[:12]
+				cells[j] = utils.ShortID(c.ID)
 			case "name":
 				cells[j] = c.Name
 			case "image":

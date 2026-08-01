@@ -2,10 +2,16 @@
   "columns": {
     "default": [
       {
+        "key": "id",
+        "fixed": 12,
+        "header": "table.id"
+      },
+      {
         "key": "name",
         "basis": 40,
         "min": 12,
         "shrink": 1,
+        "fill": 2,
         "header": "table.name"
       },
       {
@@ -20,16 +26,22 @@
       },
       {
         "key": "ctr",
-        "fixed": 3,
+        "fixed": 10,
         "header": "table.containers"
       }
     ],
     "more": [
       {
+        "key": "id",
+        "fixed": 12,
+        "header": "table.id"
+      },
+      {
         "key": "name",
         "basis": 30,
         "min": 12,
         "shrink": 1,
+        "fill": 2,
         "header": "table.name"
       },
       {
@@ -47,11 +59,12 @@
         "basis": 30,
         "min": 14,
         "shrink": 1,
+        "fill": 2,
         "header": "table.subnet"
       },
       {
         "key": "ctr",
-        "fixed": 3,
+        "fixed": 10,
         "header": "table.containers"
       },
       {
@@ -62,6 +75,6 @@
     ]
   },
   "show": {
-    "more": 71
+    "more": 84
   }
 }

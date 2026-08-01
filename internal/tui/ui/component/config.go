@@ -14,7 +14,7 @@ func init() {
 	loadComponentStyles()
 }
 
-// GetColor 按调色板名返回颜色，未知名返回白色兜底。
+// GetColor resolves palette names and common color formats, with a white fallback.
 // 简单委托给 style.Color，仅为保持 API 兼容。
 func GetColor(name string) color.Color {
 	return style.Color(name)

@@ -63,6 +63,7 @@ func TestRenderListUsesStableExcelLikeColumnTracks(t *testing.T) {
 		ID:       "6b1b147de1234567890",
 		RepoTags: []string{"h536b8/canway_d/blueking/cmdb_adminserver:v3.14.8-alpha3-cw.1"},
 		Registry: "docker-bkrepo.example.com",
+		OS:       "linux",
 		Arch:     "amd64",
 		Created:  1785395907,
 		Size:     2696 * 1000 * 100,
@@ -77,10 +78,13 @@ func TestRenderListUsesStableExcelLikeColumnTracks(t *testing.T) {
 		if got := component.VisibleLen(line); got != pageWidth {
 			t.Fatalf("image row width = %d, want %d: %q", got, pageWidth, line)
 		}
-		for _, value := range []string{"docker-bkrepo.example.com", "v3.14.8-alpha3-cw.1", "6b1b147de1234567890"} {
+		for _, value := range []string{"docker-bkrepo.example.com", "v3.14.8-alpha3-cw.1", "6b1b147de123", "linux/amd64"} {
 			if !strings.Contains(line, value) {
 				t.Fatalf("wide viewport still truncates %q: %q", value, line)
 			}
+		}
+		if strings.Contains(line, "6b1b147de1234") {
+			t.Fatalf("image ID is not short: %q", line)
 		}
 		if trailing := component.VisibleLen(line) - component.VisibleLen(strings.TrimRight(line, " ")); trailing > 1 {
 			t.Fatalf("wide table leaves %d cells unused at the right edge: %q", trailing, line)

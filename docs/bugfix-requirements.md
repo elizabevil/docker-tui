@@ -478,8 +478,9 @@
   - 顶层资源页直接使用 panel content width，不再重复扣减 8 列；Compose 和 Processes 不再重复扣减 4 列。
   - 补齐镜像和卷子表的 `BannerW`，确保子表与主表使用同一布局契约。
   - 后续宽屏回归确认单一 grow/fill 列会把剩余宽度变成中间单元格的大段空白，因此移除页面级 `grow` 权重，改由共享解析器管理扩展。
-  - 最终规则为：先按可见内容需求扩展被截断列，再由全部可伸缩列均分剩余宽度；固定列不扩展，末列右边界与 viewport 对齐。
-  - `ResolveContentLayout` 显式接收每列内容需求；增加长镜像名回归测试，验证宽屏下 Registry、Tag、ID 完整显示且不存在未使用的行尾空间。
+  - 最终规则为：先按可见内容需求扩展被截断列，再仅由显式 `fill` 主列按权重分配剩余宽度；固定列不扩展，稀疏列不吸收无意义空白，末列右边界与 viewport 对齐。
+  - `ResolveContentLayout` 显式接收每列内容需求；增加长镜像名回归测试，验证宽屏下 Registry、Tag 完整显示、ID 保持 12 位且不存在未使用的行尾空间。
+  - Images 平台列统一为 `OS/ARCH`；Network 增加基础 short ID；Containers 使用紧凑 IMAGE，PORTS/IP 仅按真实内容扩展，MOUNTS/CONTAINERS 计数表头不再被截断。
   - 配置来源收敛为两层：`component/table.jsonc` 唯一管理公共布局与视觉，`tables/*.jsonc` 管理资源数据 schema/profile；删除旧 `component/config.jsonc`、`column_widths.go` 和 `tables/_global.jsonc`。
 
 ## 新增条目模板

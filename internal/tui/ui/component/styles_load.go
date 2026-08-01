@@ -3,6 +3,7 @@ package component
 import (
 	"charm.land/lipgloss/v2"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 type styleConfig struct {
@@ -120,16 +121,12 @@ func getStyleChain(name, component string) lipgloss.Style {
 func buildStyle(ref styleRef) lipgloss.Style {
 	s := lipgloss.NewStyle()
 	if ref.Color != "" {
-		if ref.Color[0] == '#' {
-			s = s.Foreground(lipgloss.Color(ref.Color))
-		} else if c := style.Color(ref.Color); c != nil {
+		if c, ok := utils.ParseColor(ref.Color); ok {
 			s = s.Foreground(c)
 		}
 	}
 	if ref.Background != "" {
-		if ref.Background[0] == '#' {
-			s = s.Background(lipgloss.Color(ref.Background))
-		} else if c := style.Color(ref.Background); c != nil {
+		if c, ok := utils.ParseColor(ref.Background); ok {
 			s = s.Background(c)
 		}
 	}

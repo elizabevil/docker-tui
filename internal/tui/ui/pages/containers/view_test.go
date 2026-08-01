@@ -14,7 +14,7 @@ func TestRenderListFlexLayoutUsesFullWidthForStats(t *testing.T) {
 	model.Items = []runtimeapi.ContainerSummary{{
 		ID:      "10b2c97269cc",
 		Name:    "dtui-test-redis",
-		Image:   "redis:7-alpine",
+		Image:   "registry.example.com/platform/redis:7-alpine",
 		State:   state.ContainerStateRunning,
 		Status:  "running",
 		Created: 1785388988,
@@ -27,6 +27,12 @@ func TestRenderListFlexLayoutUsesFullWidthForStats(t *testing.T) {
 	rendered := component.StripANSI(RenderList(model, pageWidth, 12, nil, false))
 	if !strings.Contains(rendered, "RX:4.3KB TX:1.1KB") {
 		t.Fatalf("stats were truncated despite available width: %q", rendered)
+	}
+	if !strings.Contains(rendered, "redis:7-alpine") || strings.Contains(rendered, "registry.example.com/platform/") {
+		t.Fatalf("container image reference was not compacted: %q", rendered)
+	}
+	if !strings.Contains(rendered, "MOUNTS") {
+		t.Fatalf("mount count header was truncated: %q", rendered)
 	}
 
 	wantRowWidth := pageWidth

@@ -15,6 +15,7 @@ type ColumnDef struct {
 	Min      int    `json:"min,omitempty"`    // minimum width
 	Max      int    `json:"max,omitempty"`    // maximum width (0 = unlimited)
 	Shrink   int    `json:"shrink,omitempty"` // negative free-space weight
+	Fill     int    `json:"fill,omitempty"`   // final free-space weight
 	Fixed    int    `json:"fixed,omitempty"`  // deprecated: basis=min=max
 	Header   string `json:"header"`
 	Sortable bool   `json:"sortable,omitempty"` // column can be sorted by
@@ -146,7 +147,7 @@ func resolveLayout(cols []ColumnDef, desiredWidths []int, totalWidth, gap int) R
 		shrinkColumns(widths, specs, occupied-columnBudget)
 	} else if occupied < columnBudget {
 		remaining := growColumnsTowardContent(widths, specs, desiredWidths, columnBudget-occupied)
-		growColumnsEvenly(widths, specs, remaining)
+		fillColumns(widths, specs, remaining)
 	}
 	contentWidth := gap * (n - 1)
 	for _, width := range widths {
@@ -171,7 +172,8 @@ type columnSizing struct {
 	min    int
 	max    int
 	shrink int
-	grow   bool
+	fill   int
+	fluid  bool
 }
 
 func resolveColumnSizing(col ColumnDef) columnSizing {
@@ -198,14 +200,14 @@ func resolveColumnSizing(col ColumnDef) columnSizing {
 	if shrink <= 0 {
 		shrink = 1
 	}
-	return columnSizing{basis: basis, min: minimum, max: col.Max, shrink: shrink, grow: true}
+	return columnSizing{basis: basis, min: minimum, max: col.Max, shrink: shrink, fill: max(0, col.Fill), fluid: true}
 }
 
 func growColumnsTowardContent(widths []int, specs []columnSizing, desired []int, remaining int) int {
 	for remaining > 0 {
 		active := 0
 		for i, spec := range specs {
-			if spec.grow && i < len(desired) && widths[i] < desired[i] && (spec.max <= 0 || widths[i] < spec.max) {
+			if spec.fluid && i < len(desired) && widths[i] < desired[i] && (spec.max <= 0 || widths[i] < spec.max) {
 				active++
 			}
 		}
@@ -216,7 +218,7 @@ func growColumnsTowardContent(widths []int, specs []columnSizing, desired []int,
 		share := max(1, remaining/active)
 		before := remaining
 		for i, spec := range specs {
-			if !spec.grow || i >= len(desired) || widths[i] >= desired[i] || (spec.max > 0 && widths[i] >= spec.max) {
+			if !spec.fluid || i >= len(desired) || widths[i] >= desired[i] || (spec.max > 0 && widths[i] >= spec.max) {
 				continue
 			}
 			add := min(share, desired[i]-widths[i])
@@ -237,24 +239,25 @@ func growColumnsTowardContent(widths []int, specs []columnSizing, desired []int,
 	return 0
 }
 
-func growColumnsEvenly(widths []int, specs []columnSizing, remaining int) {
+func fillColumns(widths []int, specs []columnSizing, remaining int) {
 	for remaining > 0 {
-		active := 0
+		weight := 0
 		for i, spec := range specs {
-			if spec.grow && (spec.max <= 0 || widths[i] < spec.max) {
-				active++
+			if spec.fill > 0 && (spec.max <= 0 || widths[i] < spec.max) {
+				weight += spec.fill
 			}
 		}
-		if active == 0 {
+		if weight == 0 {
 			return
 		}
 
-		share := max(1, remaining/active)
+		before := remaining
 		for i, spec := range specs {
-			if !spec.grow || (spec.max > 0 && widths[i] >= spec.max) {
+			if spec.fill <= 0 || (spec.max > 0 && widths[i] >= spec.max) {
 				continue
 			}
-			add := min(share, remaining)
+			add := max(1, before*spec.fill/weight)
+			add = min(add, remaining)
 			if spec.max > 0 {
 				add = min(add, spec.max-widths[i])
 			}

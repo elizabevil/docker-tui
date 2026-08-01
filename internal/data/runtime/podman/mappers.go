@@ -65,7 +65,11 @@ func MapImageSummaries(raw []dto.ImageItem) []runtimeapi.ImageSummary {
 			Created:  image.Created,
 			Size:     image.Size,
 			Labels:   image.Labels,
+			OS:       image.Os,
 			Arch:     image.Arch,
+		}
+		if summary.OS == "" {
+			summary.OS = "\u2014"
 		}
 		if summary.Arch == "" {
 			summary.Arch = "\u2014"

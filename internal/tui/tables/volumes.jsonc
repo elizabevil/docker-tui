@@ -6,6 +6,7 @@
         "basis": 30,
         "min": 12,
         "shrink": 1,
+        "fill": 2,
         "header": "table.name"
       },
       {
@@ -18,6 +19,7 @@
         "basis": 64,
         "min": 16,
         "shrink": 1,
+        "fill": 4,
         "header": "table.mountpoint"
       }
     ],
@@ -27,6 +29,7 @@
         "basis": 28,
         "min": 12,
         "shrink": 1,
+        "fill": 2,
         "header": "table.name"
       },
       {
@@ -44,6 +47,7 @@
         "basis": 56,
         "min": 16,
         "shrink": 1,
+        "fill": 4,
         "header": "table.mountpoint"
       },
       {
@@ -55,7 +59,7 @@
     "containers_sub": [
       {
         "key": "id",
-        "fixed": 10,
+        "fixed": 12,
         "header": "table.id"
       },
       {
@@ -63,6 +67,7 @@
         "basis": 24,
         "min": 10,
         "shrink": 1,
+        "fill": 2,
         "header": "table.name"
       },
       {
@@ -70,6 +75,7 @@
         "basis": 32,
         "min": 10,
         "shrink": 1,
+        "fill": 4,
         "header": "table.image"
       },
       {

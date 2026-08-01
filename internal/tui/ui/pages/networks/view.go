@@ -95,6 +95,8 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 	rows := component.BuildRows(items, colsDef, viewOffset, rowHeight,
 		func(net runtimeapi.Network, cd tables.ColumnDef, _ int) string {
 			switch cd.Key {
+			case "id":
+				return utils.ShortID(net.ID)
 			case "name":
 				if net.Internal {
 					return net.Name + " \u26b2"
@@ -124,8 +126,8 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 	if !selectionDisabled {
 		if sel := nm.Selected(); sel != nil {
 			label := sel.Name
-			if len(sel.ID) >= 12 {
-				label += " (" + sel.ID[:12] + ")"
+			if sel.ID != "" {
+				label += " (" + utils.ShortID(sel.ID) + ")"
 			}
 			banner = label
 		}

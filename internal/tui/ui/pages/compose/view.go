@@ -13,6 +13,8 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
+	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 var tc = tables.MustLoad("compose")
@@ -126,8 +128,8 @@ func RenderPanel(m *state.AppModel, panelWidth int, panelHeight int) string {
 		inactiveColor = focus.InactiveColor
 	}
 
-	barColor := lipgloss.Color(activeColor)
-	noFocus := lipgloss.Color(inactiveColor)
+	barColor := style.Color(activeColor)
+	noFocus := style.Color(inactiveColor)
 	topBar := func(focused bool, w int) string {
 		c := noFocus
 		if focused {
@@ -375,7 +377,7 @@ func renderComposeContainers(m *state.AppModel, panelWidth int, panelHeight int)
 		func(c dockerclient.ContainerSummary, col tables.ColumnDef, idx int) string {
 			switch col.Key {
 			case "id":
-				return c.ID[:12]
+				return utils.ShortID(c.ID)
 			case "name":
 				return c.Name
 			case "state":

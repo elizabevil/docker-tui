@@ -43,6 +43,12 @@ func TestTableConfigOwnsSharedLayoutAndSemanticColumnStyles(t *testing.T) {
 	if !styles[0].Style.Bold {
 		t.Fatal("semantic name style is not bold")
 	}
+	if styles[0].Style.Color != "#FAF0E6" {
+		t.Fatalf("semantic name color = %q, want #FAF0E6", styles[0].Style.Color)
+	}
+	if ansi := cellStyleANSI("name", styles[0].Style); !strings.Contains(ansi, "\x1b[38;2;250;240;230m") {
+		t.Fatalf("hex column color was not converted to truecolor ANSI: %q", ansi)
+	}
 	if !styles[1].Style.Faint {
 		t.Fatal("semantic id style is not faint")
 	}

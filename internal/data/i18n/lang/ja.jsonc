@@ -28,6 +28,7 @@
   "table.registry": "レジストリ",
   "table.tag": "タグ",
   "table.arch": "アーキテクチャ",
+  "table.platform": "OS/アーキテクチャ",
   "table.size": "サイズ",
   "table.project": "プロジェクト",
   "table.services": "サービス数",

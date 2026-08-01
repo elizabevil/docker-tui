@@ -17,6 +17,7 @@
         "basis": 30,
         "min": 10,
         "shrink": 1,
+        "fill": 1,
         "header": "table.project"
       },
       {
@@ -31,7 +32,7 @@
       },
       {
         "key": "pods",
-        "fixed": 8,
+        "fixed": 10,
         "header": "table.containers"
       }
     ],
@@ -41,6 +42,7 @@
         "basis": 26,
         "min": 10,
         "shrink": 1,
+        "fill": 2,
         "header": "table.service"
       },
       {
@@ -48,6 +50,7 @@
         "basis": 44,
         "min": 12,
         "shrink": 1,
+        "fill": 4,
         "header": "table.image"
       },
       {
@@ -62,6 +65,7 @@
         "basis": 26,
         "min": 10,
         "shrink": 1,
+        "fill": 2,
         "header": "table.service"
       },
       {
@@ -69,6 +73,7 @@
         "basis": 52,
         "min": 14,
         "shrink": 1,
+        "fill": 4,
         "header": "table.image"
       },
       {
@@ -93,6 +98,7 @@
         "basis": 30,
         "min": 10,
         "shrink": 1,
+        "fill": 1,
         "header": "table.name"
       },
       {

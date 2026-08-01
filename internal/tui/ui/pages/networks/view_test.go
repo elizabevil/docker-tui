@@ -38,6 +38,9 @@ func TestRenderListFlexLayoutUsesAvailableWidth(t *testing.T) {
 		if !found {
 			t.Fatalf("page width %d: network row was not rendered: %q", pageWidth, rendered)
 		}
+		if !strings.Contains(rendered, "1234567890ab") || strings.Contains(rendered, "1234567890abc") {
+			t.Fatalf("page width %d: network short ID is wrong: %q", pageWidth, rendered)
+		}
 	}
 }
 

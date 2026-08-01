@@ -92,12 +92,7 @@ func RenderList(im *state.ImageListModel, cm *state.ContainerListModel, width in
 		if registry == "" {
 			registry = "\u2014"
 		}
-		arch := img.Arch
-		if img.IsManifest {
-			arch = "multi"
-		} else if arch == "" {
-			arch = "\u2014"
-		}
+		platform := imagePlatform(img)
 		created := utils.FormatCreated(img.Created)
 		size := component.FormatSize(img.Size)
 		arrowMark := " "
@@ -115,9 +110,9 @@ func RenderList(im *state.ImageListModel, cm *state.ContainerListModel, width in
 			case "tag":
 				cells[j] = tag
 			case "id":
-				cells[j] = img.ID
-			case "arch":
-				cells[j] = arch
+				cells[j] = utils.ShortID(img.ID)
+			case "platform":
+				cells[j] = platform
 			case "created":
 				cells[j] = created
 			case "size":
@@ -141,7 +136,7 @@ func RenderList(im *state.ImageListModel, cm *state.ContainerListModel, width in
 				reg = img.Registry
 			}
 			if name == "" {
-				return img.ID[:16]
+				return utils.ShortID(img.ID)
 			}
 			return reg + "/" + name + ":" + tag
 		})
@@ -169,6 +164,24 @@ func RenderList(im *state.ImageListModel, cm *state.ContainerListModel, width in
 	})
 }
 
+func imagePlatform(img dockerclient.ImageSummary) string {
+	if img.IsManifest {
+		return "multi"
+	}
+	osName := img.OS
+	arch := img.Arch
+	if osName == "" {
+		osName = "\u2014"
+	}
+	if arch == "" {
+		arch = "\u2014"
+	}
+	if osName == "\u2014" && arch == "\u2014" {
+		return "\u2014"
+	}
+	return osName + "/" + arch
+}
+
 func renderContainers(im *state.ImageListModel, cm *state.ContainerListModel, width int, imgID string, panelHeight int) string {
 	if cm == nil {
 		return i18n.T("msg.loading")
@@ -180,10 +193,10 @@ func renderContainers(im *state.ImageListModel, cm *state.ContainerListModel, wi
 		return i18n.T("msg.loading")
 	}
 
-	imgShort := imgID[:12]
+	imgShort := utils.ShortID(imgID)
 	var imgNames []string
 	for _, item := range im.Items {
-		if item.ID == imgID || item.ID[:12] == imgShort {
+		if item.ID == imgID || utils.ShortID(item.ID) == imgShort {
 			imgNames = append(imgNames, item.RepoTags...)
 			break
 		}
@@ -211,7 +224,7 @@ func renderContainers(im *state.ImageListModel, cm *state.ContainerListModel, wi
 
 	imgRef := fullRef(&im.Items[0])
 	for _, item := range im.Items {
-		if item.ID == imgID || item.ID[:12] == imgID[:12] {
+		if item.ID == imgID || utils.ShortID(item.ID) == imgShort {
 			imgRef = fullRef(&item)
 			break
 		}
@@ -273,7 +286,7 @@ func renderContainers(im *state.ImageListModel, cm *state.ContainerListModel, wi
 			reg = img.Registry
 		}
 		if name == "" {
-			return img.ID[:16]
+			return utils.ShortID(img.ID)
 		}
 		return reg + "/" + name + ":" + tag
 	})
@@ -335,10 +348,7 @@ func fullRef(img *dockerclient.ImageSummary) string {
 	if len(img.RepoTags) > 0 && img.RepoTags[0] != "<none>:<none>" {
 		return img.RepoTags[0]
 	}
-	if len(img.ID) >= 12 {
-		return img.ID[:12]
-	}
-	return img.ID
+	return utils.ShortID(img.ID)
 }
 
 func sortArrow(asc bool) string {
@@ -365,7 +375,7 @@ func imgHasContainer(containerImages []string, imgID string, tags []string) bool
 	}
 	_, n, _ := splitRef(tags)
 	for _, cImg := range containerImages {
-		if strings.Contains(cImg, imgID[:12]) || strings.Contains(cImg, n) {
+		if strings.Contains(cImg, utils.ShortID(imgID)) || strings.Contains(cImg, n) {
 			return true
 		}
 	}

@@ -100,6 +100,7 @@ func tableLayoutKey(data TableData, headers []string, desiredWidths []int, conta
 		writeInt(column.Min)
 		writeInt(column.Max)
 		writeInt(column.Shrink)
+		writeInt(column.Fill)
 	}
 	for _, header := range headers {
 		writeString(header)

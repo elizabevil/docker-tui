@@ -66,8 +66,8 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 	if !selectionDisabled && cm.Cursor < total {
 		sel := items[cm.Cursor]
 		b := sel.Name
-		if len(sel.ID) >= 12 {
-			b += " (" + sel.ID[:12] + ")"
+		if sel.ID != "" {
+			b += " (" + utils.ShortID(sel.ID) + ")"
 		}
 		banner = b
 	}
@@ -173,7 +173,7 @@ func buildMarkedRows(rows [][]string, items []dockerclient.ContainerSummary, off
 func CellValue(key string, c *dockerclient.ContainerSummary, status, ports, created string) string {
 	switch key {
 	case "id":
-		return c.ID[:12]
+		return utils.ShortID(c.ID)
 	case "name":
 		return c.Name
 	case "image":

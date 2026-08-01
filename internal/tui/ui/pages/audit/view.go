@@ -12,6 +12,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 var tc = tables.MustLoad("audit")
@@ -207,10 +208,7 @@ func auditCellValue(key string, r *audit.Record) string {
 			return r.Target.Name
 		}
 		if r.Target.ID != "" {
-			if len(r.Target.ID) > 12 {
-				return r.Target.ID[:12]
-			}
-			return r.Target.ID
+			return utils.ShortID(r.Target.ID)
 		}
 		return r.Target.Type
 	case "result":

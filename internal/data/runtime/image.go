@@ -32,6 +32,7 @@ type ImageSummary struct {
 	Size       int64
 	Labels     map[string]string
 	Registry   string
+	OS         string
 	Arch       string
 	IsManifest bool
 	Manifests  []ImageManifestEntry

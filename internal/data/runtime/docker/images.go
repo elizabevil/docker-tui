@@ -45,8 +45,13 @@ func (c *Client) listImagesDocker(ctx context.Context, options runtimeapi.ImageL
 		}
 		// Arch from descriptor (OCI Descriptor.Platform)
 		if img.Descriptor != nil && img.Descriptor.Platform != nil {
+			s.OS = img.Descriptor.Platform.OS
 			s.Arch = img.Descriptor.Platform.Architecture
-		} else {
+		}
+		if s.OS == "" {
+			s.OS = "\u2014"
+		}
+		if s.Arch == "" {
 			s.Arch = "\u2014"
 		}
 		// Populate manifests from Docker API
@@ -79,6 +84,9 @@ func (c *Client) listImagesDocker(ctx context.Context, options runtimeapi.ImageL
 		// Arch fallback: use first manifest's platform if descriptor not available
 		if s.Arch == "\u2014" && len(s.Manifests) > 0 && s.Manifests[0].Platform.Architecture != "" {
 			s.Arch = s.Manifests[0].Platform.Architecture
+		}
+		if s.OS == "\u2014" && len(s.Manifests) > 0 && s.Manifests[0].Platform.OS != "" {
+			s.OS = s.Manifests[0].Platform.OS
 		}
 		s.Registry, _, _ = splitImageRef(s.RepoTags)
 		result = append(result, s)

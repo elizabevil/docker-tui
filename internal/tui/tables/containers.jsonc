@@ -12,6 +12,7 @@
         "basis": 24,
         "min": 12,
         "shrink": 1,
+        "fill": 3,
         "header": "table.name",
         "sortable": true
       },
@@ -20,6 +21,7 @@
         "basis": 28,
         "min": 12,
         "shrink": 1,
+        "fill": 4,
         "header": "table.image",
         "sortable": false
       },
@@ -34,7 +36,10 @@
       },
       {
         "key": "ports",
-        "fixed": 10,
+        "basis": 12,
+        "min": 8,
+        "shrink": 1,
+        "max": 32,
         "header": "table.ports"
       },
       {
@@ -56,14 +61,16 @@
         "basis": 22,
         "min": 12,
         "shrink": 1,
+        "fill": 3,
         "header": "table.name",
         "sortable": true
       },
       {
         "key": "image",
-        "basis": 26,
+        "basis": 28,
         "min": 12,
         "shrink": 1,
+        "fill": 4,
         "header": "table.image"
       },
       {
@@ -77,17 +84,23 @@
       },
       {
         "key": "ports",
-        "fixed": 10,
+        "basis": 12,
+        "min": 8,
+        "shrink": 1,
+        "max": 32,
         "header": "table.ports"
       },
       {
         "key": "mounts",
-        "fixed": 3,
+        "fixed": 8,
         "header": "table.mounts"
       },
       {
         "key": "ip",
-        "fixed": 15,
+        "basis": 15,
+        "min": 12,
+        "shrink": 1,
+        "max": 39,
         "header": "table.ip"
       },
       {
@@ -109,14 +122,16 @@
         "basis": 22,
         "min": 12,
         "shrink": 1,
+        "fill": 3,
         "header": "table.name",
         "sortable": true
       },
       {
         "key": "image",
-        "basis": 24,
+        "basis": 28,
         "min": 12,
         "shrink": 1,
+        "fill": 4,
         "header": "table.image"
       },
       {
@@ -130,7 +145,10 @@
       },
       {
         "key": "ports",
-        "fixed": 10,
+        "basis": 12,
+        "min": 8,
+        "shrink": 1,
+        "max": 32,
         "header": "table.ports"
       },
       {
@@ -144,6 +162,7 @@
         "basis": 30,
         "min": 18,
         "shrink": 1,
+        "fill": 3,
         "header": "table.stats",
         "sortable": true
       }
@@ -160,14 +179,16 @@
         "basis": 20,
         "min": 12,
         "shrink": 1,
+        "fill": 3,
         "header": "table.name",
         "sortable": true
       },
       {
         "key": "image",
-        "basis": 24,
+        "basis": 26,
         "min": 12,
         "shrink": 1,
+        "fill": 4,
         "header": "table.image"
       },
       {
@@ -181,17 +202,23 @@
       },
       {
         "key": "ports",
-        "fixed": 10,
+        "basis": 12,
+        "min": 8,
+        "shrink": 1,
+        "max": 32,
         "header": "table.ports"
       },
       {
         "key": "mounts",
-        "fixed": 3,
+        "fixed": 8,
         "header": "table.mounts"
       },
       {
         "key": "ip",
-        "fixed": 15,
+        "basis": 15,
+        "min": 12,
+        "shrink": 1,
+        "max": 39,
         "header": "table.ip"
       },
       {
@@ -205,6 +232,7 @@
         "basis": 30,
         "min": 18,
         "shrink": 1,
+        "fill": 3,
         "header": "table.stats",
         "sortable": true
       }

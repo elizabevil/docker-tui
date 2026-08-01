@@ -8,18 +8,18 @@
     "selectionInfo": {
       "enabled": true,
       "padLines": 1,
-      "color": "white",
+      "color": "#A5D6A7",
       "background": ""
     }
   },
   "rowStyles": {
     "selected": {
-      "color": "white",
-      "background": "#37676f",
+      "color": "blue",
+      "background": "#000000",
       "bold": true
     },
     "normal": {
-      "color": "white"
+      "color": "orange"
     },
     "alt": {
       "faint": true,
@@ -43,17 +43,18 @@
   },
   // Column appearance is semantic and shared by every resource profile.
   "columnStyles": {
-    "id": { "color": "white", "faint": true },
-    "name": { "color": "white", "bold": true },
-    "project": { "color": "white", "bold": true },
-    "service": { "color": "white", "bold": true },
-    "registry": { "color": "white", "faint": true },
-    "tag": { "color": "cyan" },
-    "state": { "color": "green" },
-    "status": { "color": "green" },
-    "created": { "color": "white", "faint": true },
-    "time": { "color": "white", "faint": true },
-    "ports": { "color": "cyan" },
-    "subnet": { "color": "cyan" }
+    "id": { "color": "#ECEFF1", "faint": true },
+    "name": { "color": "#ECEFF1", "bold": true },
+    "project": { "color": "#ECEFF1", "bold": true },
+    "service": { "color": "#ECEFF1", "bold": true },
+    "registry": { "color": "#ECEFF1", "faint": true },
+    "tag": { "color": "#ECEFF1" },
+    "platform": { "color": "#ECEFF1", "faint": true },
+    "state": { "color": "#ECEFF1" },
+    "status": { "color": "#ECEFF1" },
+    "created": { "color": "#ECEFF1", "faint": true },
+    "time": { "color": "#ECEFF1", "faint": true },
+    "ports": { "color": "#ECEFF1" },
+    "subnet": { "color": "#ECEFF1" }
   }
 }

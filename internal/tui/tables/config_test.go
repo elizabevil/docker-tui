@@ -5,8 +5,8 @@ import "testing"
 func TestResolveLayoutFillsViewportAcrossFlexibleColumns(t *testing.T) {
 	columns := []ColumnDef{
 		{Key: "id", Fixed: 12},
-		{Key: "name", Basis: 24, Min: 12, Max: 32, Shrink: 1},
-		{Key: "stats", Basis: 30, Min: 18, Shrink: 1},
+		{Key: "name", Basis: 24, Min: 12, Max: 32, Shrink: 1, Fill: 1},
+		{Key: "stats", Basis: 30, Min: 18, Shrink: 1, Fill: 1},
 	}
 	layout := ResolveLayout(columns, 100, 2)
 	if layout.Widths[0] != 12 || layout.Widths[1] != 32 || layout.Widths[2] != 52 {
@@ -19,7 +19,7 @@ func TestResolveLayoutFillsViewportAcrossFlexibleColumns(t *testing.T) {
 
 func TestResolveContentLayoutPrioritizesTruncatedCells(t *testing.T) {
 	columns := []ColumnDef{
-		{Key: "registry", Basis: 12, Min: 8, Shrink: 1},
+		{Key: "registry", Basis: 12, Min: 8, Shrink: 1, Fill: 1},
 		{Key: "name", Basis: 24, Min: 12, Shrink: 1},
 		{Key: "id", Basis: 12, Min: 10, Shrink: 1},
 	}
@@ -73,13 +73,28 @@ func TestEveryTableProfileRespectsGridConstraints(t *testing.T) {
 					if spec.max > 0 && columnWidth > spec.max {
 						t.Errorf("%s/%s column %s width %d above max %d", table, profile, columns[i].Key, columnWidth, spec.max)
 					}
-					unboundedFlexible = unboundedFlexible || spec.grow && spec.max == 0
+					unboundedFlexible = unboundedFlexible || spec.fill > 0 && spec.max == 0
 				}
 				if viewportWidth > preferredWidth && unboundedFlexible && layout.TrailingWidth != 0 {
 					t.Errorf("%s/%s left %d cells unused in wide viewport", table, profile, layout.TrailingWidth)
 				}
 			}
 		}
+	}
+}
+
+func TestResolveContentLayoutDoesNotStretchSparseColumns(t *testing.T) {
+	columns := []ColumnDef{
+		{Key: "name", Basis: 20, Min: 12, Shrink: 1, Fill: 1},
+		{Key: "ports", Basis: 12, Min: 8, Max: 32, Shrink: 1},
+		{Key: "ip", Basis: 15, Min: 12, Max: 39, Shrink: 1},
+	}
+	layout := ResolveContentLayout(columns, []int{15, 1, 1}, 80, 2)
+	if layout.Widths[1] != 12 || layout.Widths[2] != 15 {
+		t.Fatalf("sparse columns absorbed fill space: %v", layout.Widths)
+	}
+	if layout.ContentWidth != 80 || layout.TrailingWidth != 0 {
+		t.Fatalf("layout does not fill viewport: %+v", layout)
 	}
 }
 

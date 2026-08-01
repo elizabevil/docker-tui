@@ -128,7 +128,7 @@ All configs use: component.ConfigLoader[T]{
 | Footer | `widget/footer/footer.jsonc` | `footer.go:16-40` | `markSymbol` |
 | Panel Border | `component/borders.jsonc` | `border.go` | `borders.*` (rounded/double/thick/single/hidden) |
 | Shared Table | `component/table.jsonc` | `table_config.go` | `table`, `rowStyles`, `stateStyles`, `columnStyles` |
-| Table Data | `tables/*.jsonc` | `tables/config.go` | `columns.*.basis/min/max/shrink`, `show`, resource options |
+| Table Data | `tables/*.jsonc` | `tables/config.go` | `columns.*.basis/min/max/shrink/fill`, `show`, resource options |
 | Component Styles | `component/styles.jsonc` | `styles_load.go` | `styles.*` (search/breadcrumb/toast/hints/dialog) |
 | Dialog | `component/dialog.jsonc` | `dialog.go` | Dialog layout params |
 | Filter | `component/filter.jsonc` | `filter.go` | Search filter params |
@@ -144,6 +144,12 @@ GetStyle("stateRunning")
   → ④ SafeFallback.Normal (safe fallback: white normal)
 ```
 
+All configured foreground and background colors use `style.ParseColor`. Supported
+forms are case-insensitive palette names (`white`, `green`, `surface`), common
+named colors, ANSI indexes (`0`-`255`), hexadecimal `#RGB`, `#RGBA`, `#RRGGBB`,
+`#RRGGBBAA`, and `rgb()` / `rgba()`. Terminal output is opaque; accepted alpha
+components do not darken the configured RGB value.
+
 ### Responsive Column Width Profiles
 
 Each page defines semantic column sizing profiles, selected automatically by `ContainerProfileSelector` / `BreakpointProfileSelector`:
@@ -154,6 +160,7 @@ Each page defines semantic column sizing profiles, selected automatically by `Co
   "basis": 40,
   "min": 12,
   "shrink": 1,
+  "fill": 4,
   "header": "table.name"
 }
 ```
@@ -166,10 +173,22 @@ The layout contract is:
 2. The row prefix is deducted exactly once by `RenderTable`.
 3. Adjacent columns always use the configured fixed two-cell gap; free width never changes the gap.
 4. `basis` is the preferred track width shared by the header and every row. Columns shrink, weighted by `shrink`, without crossing `min`.
-5. On wider viewports, columns with truncated visible content expand toward their measured content width first. Remaining width is then shared evenly by flexible columns, respecting positive `max` values.
-6. The final column reaches the viewport's right edge whenever at least one flexible column can still grow. Fixed columns never absorb surplus width.
-7. Selected and marked row backgrounds span the same full-width grid.
-8. When minimum widths no longer fit, the page must select a narrower profile instead of violating column constraints.
+5. On wider viewports, fluid columns with truncated visible content expand toward their measured content width first, regardless of `fill`.
+6. Remaining width is distributed only to columns with `fill > 0`, using `fill` as a weight and respecting positive `max` values. Sparse fields such as empty Ports or IP therefore do not create large gaps.
+7. The final column reaches the viewport's right edge whenever at least one fill column can still grow. Fixed columns never absorb surplus width.
+8. Selected and marked row backgrounds span the same full-width grid.
+9. When minimum widths no longer fit, the page must select a narrower profile instead of violating column constraints.
+
+Resource columns follow these semantic rules:
+
+| Resource | Basic columns | Wide-screen additions and behavior |
+|----------|---------------|------------------------------------|
+| Images | Registry, Name, Tag, 12-character ID, Size | `OS/ARCH` and Created; Registry/Name/Tag expand toward full content, ID stays fixed |
+| Containers | 12-character ID, Name, compact Image reference, State, Ports, Created | Mounts, IP and Statistics; only Name/Image/Statistics absorb final fill space |
+| Networks | 12-character ID, Name, Driver, Scope, Containers | Subnet and Created |
+| Volumes | Name, Driver, Mountpoint | Scope and Created |
+| Compose | Project/Service, Image, Status, container count | Child container tables keep 12-character IDs |
+| Audit | Time, Action, Target, Result, Level, Message | Action, Target and Message share available content width |
 
 ---
 
@@ -320,9 +339,9 @@ type TableData struct {
 `TableData` does not accept caller-computed column widths. `RenderTable` subtracts
 the active row prefix from `BannerW` and calls `tables.ResolveLayout` exactly
 once. Row content never changes layout allocation; it is truncated or padded
-inside the resolved basis/min/max/shrink column. Visible content requirements
-receive free width first, then flexible tracks share the remainder so the table
-fills the viewport.
+inside the resolved basis/min/max/shrink/fill column. Visible content requirements
+receive free width first, then only tracks with explicit `fill` weights share the
+remainder so sparse columns remain compact while the table fills the viewport.
 
 ### SelectionInfoProvider Interface
 
@@ -456,7 +475,7 @@ Line 3: operation log (short, always)     ← OperationLogLine
 |------|-------------|
 | `app.jsonc` | `marginTopPct: 5`, `marginBottomPct: 5`, `contentWidthPct: 90` |
 | `config.yml` | `layout.sectionWeights`, `layout.background`, `keymap.*` |
-| `tables/*.jsonc` | Data schema: `columns.*.basis/min/max/shrink`, `show`, resource options |
+| `tables/*.jsonc` | Data schema: `columns.*.basis/min/max/shrink/fill`, `show`, resource options |
 | `table.jsonc` | Shared visuals: `table`, `rowStyles`, `stateStyles`, `columnStyles` |
 | `header.jsonc` | `columns[].weight`, `keystroke.displayDuration: 30`, `keystroke.animDuration: 5` |
 | `footer.jsonc` | `markSymbol: ☑` |

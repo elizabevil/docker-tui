@@ -6,6 +6,7 @@
         "basis": 40,
         "min": 12,
         "shrink": 1,
+        "fill": 4,
         "header": "table.name"
       },
       {
@@ -13,13 +14,12 @@
         "basis": 18,
         "min": 10,
         "shrink": 1,
+        "fill": 2,
         "header": "table.tag"
       },
       {
         "key": "id",
-        "basis": 20,
-        "min": 12,
-        "shrink": 1,
+        "fixed": 12,
         "header": "table.id"
       },
       {
@@ -31,9 +31,10 @@
     "compact": [
       {
         "key": "registry",
-        "basis": 18,
-        "min": 12,
+        "basis": 28,
+        "min": 18,
         "shrink": 1,
+        "fill": 3,
         "header": "table.registry"
       },
       {
@@ -41,6 +42,7 @@
         "basis": 42,
         "min": 12,
         "shrink": 1,
+        "fill": 4,
         "header": "table.name"
       },
       {
@@ -48,13 +50,12 @@
         "basis": 18,
         "min": 10,
         "shrink": 1,
+        "fill": 2,
         "header": "table.tag"
       },
       {
         "key": "id",
-        "basis": 20,
-        "min": 12,
-        "shrink": 1,
+        "fixed": 12,
         "header": "table.id"
       },
       {
@@ -71,9 +72,10 @@
     "more": [
       {
         "key": "registry",
-        "basis": 18,
-        "min": 12,
+        "basis": 28,
+        "min": 18,
         "shrink": 1,
+        "fill": 3,
         "header": "table.registry"
       },
       {
@@ -81,6 +83,7 @@
         "basis": 44,
         "min": 12,
         "shrink": 1,
+        "fill": 4,
         "header": "table.name"
       },
       {
@@ -88,19 +91,21 @@
         "basis": 18,
         "min": 10,
         "shrink": 1,
+        "fill": 2,
         "header": "table.tag"
       },
       {
         "key": "id",
-        "basis": 20,
-        "min": 12,
-        "shrink": 1,
+        "fixed": 12,
         "header": "table.id"
       },
       {
-        "key": "arch",
-        "fixed": 6,
-        "header": "table.arch"
+        "key": "platform",
+        "basis": 14,
+        "min": 10,
+        "shrink": 1,
+        "max": 20,
+        "header": "table.platform"
       },
       {
         "key": "created",
@@ -116,9 +121,10 @@
     "wide": [
       {
         "key": "registry",
-        "basis": 20,
-        "min": 12,
+        "basis": 28,
+        "min": 18,
         "shrink": 1,
+        "fill": 3,
         "header": "table.registry"
       },
       {
@@ -126,6 +132,7 @@
         "basis": 48,
         "min": 12,
         "shrink": 1,
+        "fill": 5,
         "header": "table.name"
       },
       {
@@ -133,19 +140,21 @@
         "basis": 20,
         "min": 10,
         "shrink": 1,
+        "fill": 2,
         "header": "table.tag"
       },
       {
         "key": "id",
-        "basis": 20,
-        "min": 12,
-        "shrink": 1,
+        "fixed": 12,
         "header": "table.id"
       },
       {
-        "key": "arch",
-        "fixed": 6,
-        "header": "table.arch"
+        "key": "platform",
+        "basis": 14,
+        "min": 10,
+        "shrink": 1,
+        "max": 20,
+        "header": "table.platform"
       },
       {
         "key": "created",
@@ -161,7 +170,7 @@
     "containers_sub": [
       {
         "key": "id",
-        "fixed": 10,
+        "fixed": 12,
         "header": "table.id"
       },
       {
@@ -169,6 +178,7 @@
         "basis": 16,
         "min": 10,
         "shrink": 1,
+        "fill": 2,
         "max": 22,
         "header": "table.name"
       },
@@ -177,6 +187,7 @@
         "basis": 30,
         "min": 10,
         "shrink": 1,
+        "fill": 4,
         "header": "table.image"
       },
       {
@@ -204,6 +215,7 @@
         "basis": 28,
         "min": 14,
         "shrink": 1,
+        "fill": 3,
         "header": "table.stats"
       }
     ]

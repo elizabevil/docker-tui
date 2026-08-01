@@ -23,7 +23,7 @@ func Render(processes state.ProcessState, width, height int) string {
 	for i, title := range processes.Titles {
 		cols[i] = tables.ColumnDef{
 			Key: strings.ToLower(title), Header: title,
-			Basis: 12, Min: 6, Shrink: 1,
+			Basis: 12, Min: 6, Shrink: 1, Fill: 1,
 		}
 	}
 	rowHeight := component.CalcRowHeight(height)
