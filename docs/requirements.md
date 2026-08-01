@@ -7,6 +7,7 @@
 | 能力 | 状态 | 代码验证备注 |
 |---|---|---|
 | 容器列表、启停、重启、Kill、删除 | 已实现 | `internal/tui/keyboard/container_action.go` |
+| 容器 TASK-019 高级动作(Copy / Update / Diff / Export / Commit / Wait) | **未实现** | `registry.go:66-71` 注册了默认键位但 `actions.go:handleAction` 缺少对应 `case`,按键被静默吞掉;详见 [BR-033](bugfix-requirements.md#br-033) |
 | 实时日志 | 已实现 | 当前为按需拉取/显示，不是启动即常驻事件流 |
 | 容器 stats | 已实现 | 定时轮询当前容器列表，不是只轮询单个聚焦容器 |
 | 镜像列表、Pull、Prune、Tag、Push、Save、Load、详情 | 已实现 | 镜像传输支持进度、取消和错误展示；Debug 保留命令预览；详情页按普通镜像 layer history 或 manifest 平台变体分区渲染；Docker 与 Podman 都提供结构化 `ImageDetail`（架构、OS、Driver、LayerCount、Runtime config、History） |
@@ -17,7 +18,7 @@
 | Docker / Podman Events 实时同步 | 已实现 | 绑定活动连接，支持退避重连、事件合并、局部刷新和轮询降级；独立事件面板仍属后续增强 |
 | 自定义快捷键 | 已实现 | `keymap.*` 覆盖会编译为运行时绑定，Help / Footer 投影当前有效键位 |
 | 用户操作审计 | 已实现 | 资源操作共享 trace，终态投影到通知与 Footer，并按日写入 JSONL |
-| 运行时适配统一入口（`docker/service`） | 部分实现（`TASK-022` 进行中） | 当前 `internal/data/runtime/docker/` 与 `internal/data/runtime/podman/` 各有独立 service 入口；TASK-022 完成后才收口到统一 service；详见 [未来需求任务清单 §TASK-022 进度分解](../design/future-requirements-task-list.md#t-022-进度分解) |
+| 运行时适配统一入口（`docker/service`） | **cancelled** | 用户已决策**不引入**该层;`runtime.Engine` 仍是唯一上层抽象,Docker / Podman 各自保留 adapter。详见 [feature-todo-list.md §6.1 TASK-022 最终范围](feature-todo-list.md) |
 | Bulk 批量操作 | 部分实现 | 已有 mark 模式，但覆盖范围仍有限 |
 | 鼠标支持 | 部分实现 | 当前主要用于日志/详情滚轮滚动 |
 
@@ -30,8 +31,7 @@
 - 默认配置、运行时、Help 和 Footer 已统一为 `Ctrl+S`、`Ctrl+K`、`Ctrl+P` 等默认键位语义。
 - Filter 与 Search 已拆分：资源列表输入即时过滤并使用双 `Esc` 清除退出，日志搜索按 Enter 应用且不改变原始数据集。
 - 用户业务操作已接入统一审计模型；非审计 UI 提示不会写入审计文件。
-- **`runtime/podman` 仍引用 `runtimeapi.*` 域模型**：当前 `internal/data/runtime/podman/service_*.go` 直接返回 `[]runtimeapi.ContainerSummary` 等。TASK-022 Phase E（`docker/service` 统一入口）需要先把 service 层从 `runtimeapi` 域模型切到 `dto.*` 具名类型，再让 mapper 下沉到 `docker/service/mapper/`。
-- **全仓匿名 struct 仍有 20+ 处**：设计 [podman-rest-migration.md](../design/podman-rest-migration.md) 点名 10 处需替换；TASK-022 Phase D 执行。
+- **全仓匿名 struct 仍有 20+ 处**：TASK-022 Phase D 部分已落地(公共 API 路径);剩余内部 helper(ProgressWriter/Reader 等)保留为后续治理项。
 
 ## 当前待修 bug
 
@@ -43,8 +43,13 @@
 - [BR-016](bugfix-requirements.md#br-016-容器详情页上下滚动卡顿)：已移除空闲高频重绘并缓存详情文档，等待真实容器详情滚动回归。
 - [BR-017](bugfix-requirements.md#br-017-compose-详情页不应把快捷键写进正文)：Compose 正文、源码能力与双栏 footer 已分离，等待交互回归。
 - [BR-011](bugfix-requirements.md#br-011-镜像页面超一页时光标下划页面不滚动)：镜像列表已按真实表格行数同步回写 viewport，等待大列表交互回归。
-- [BR-012](bugfix-requirements.md#br-012-所有表格鼠标点击选中的行位置不对)：鼠标点击命中行与视觉行有偏差。
+- [BR-012](bugfix-requirements.md#br-012-所有表格鼠标点击选中的行位置不对)：**wontfix** —— 用户决定取消鼠标点击行选中，改用滚轮上下选行，详见 [BR-030](bugfix-requirements.md#br-030)。
 - [BR-015](bugfix-requirements.md#br-015-表格选中行背景色未覆盖整行)：选中行背景未完整覆盖。
+- [BR-029](bugfix-requirements.md#br-029-筛选框-enteresc-双层退出enter-应用并保留框首次-esc-回退到框二次-esc-退出筛选模式)：资源页 `/` 筛选需要 Enter 应用 + 保留框、首次 Esc 回焦点、二次 Esc 退出。
+- [BR-030](bugfix-requirements.md#br-030-取消鼠标点击表格行选中改用滚轮上下选行)：列表选择由滚轮代替鼠标点击，与 BR-012 wontfix 一致。
+- [BR-031](bugfix-requirements.md#br-031-容器页容器资源占用cpu--内存未实时刷新)：stats 拉取链路存在但用户感知不到实时刷新。
+- [BR-032](bugfix-requirements.md#br-032-表格排序n-ctrln-正反排序鼠标点击表头排序)：当前 `O` / `Ctrl+O` 与用户期望的 `N` / `Ctrl+N` / 鼠标点击表头不一致。
+- [BR-033](bugfix-requirements.md#br-033-task-019-高级容器动作未实现copy--update--diff--export--commit--wait)：注册了键位但 handler 缺失，按键被静默吞掉。
 
 ## 竞品参考
 

@@ -106,14 +106,6 @@ docker-tui/
 - `utils/`：ANSI 与格式化工具
 - `composable/filter.go`：资源过滤逻辑
 
-## `docs/ui-preview`
-
-这是独立的浏览器预览工程，不参与主程序编译：
-
-- `src/`：Vue 页面和组件
-- `public/data/`：静态模拟数据
-- `package.json`：Vite 命令
-
 ## 修改入口建议
 
 ### 加资源操作
@@ -130,4 +122,3 @@ docker-tui/
 2. `internal/tui/ui/app/*`
 3. `internal/tui/ui/component/*.jsonc`
 4. `internal/tui/tables/*.jsonc`
-5. 必要时同步 `docs/ui-preview`

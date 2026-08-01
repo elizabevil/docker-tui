@@ -12,7 +12,6 @@
 | 样式 | `charm.land/lipgloss/v2` |
 | 容器引擎接入 | `github.com/docker/docker/client` |
 | 配置 | YAML + 内嵌 JSONC 默认值 |
-| 预览系统 | `docs/ui-preview` 中的 Vue 3 + Vite |
 
 ## 顶层启动流程
 
@@ -74,7 +73,7 @@ TASK-022 Phase E（docker/service 统一入口）整 Phase **取消**。两个 m
 - **G5**：不再经 `docker/service` 层；`dto.Action` ↔ `runtimeapi.Action` 由各 mapper 内部完成
 - **G9**：docker/service 统一入口取消
 
-可立即推进 Phase A（gpgme 隔离）、B（dto 具名 + `dto.Action`）、C（Client 方法化 + 破坏性签名迁移）、D（公开 API 匿名 struct 清零）、D-2（双 mapper 落地）。不再依赖任何评审。详见 [podman-rest-migration.md](../design/podman-rest-migration.md) 与 [future-requirements-task-list.md §TASK-022 进度分解](../design/future-requirements-task-list.md)。
+TASK-022 最终范围(A / D / F 完成,B / C / D-2 / E 经范围决策取消)详见 [feature-todo-list.md §6.1](feature-todo-list.md);原始设计存档于 [design/archived/podman-rest-migration.md](../design/archived/podman-rest-migration.md)。
 
 ### `internal/tui`
 
