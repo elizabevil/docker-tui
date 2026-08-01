@@ -112,10 +112,11 @@ type DockerConfig struct {
 
 // KeymapConfig defines keyboard shortcuts.
 type KeymapConfig struct {
-	Quit    []string `json:"quit" yaml:"quit"`
-	Help    []string `json:"help" yaml:"help"`
-	Filter  []string `json:"filter" yaml:"filter"`
-	Refresh []string `json:"refresh" yaml:"refresh"`
+	Quit      []string `json:"quit" yaml:"quit"`
+	ActionBar []string `json:"actionBar" yaml:"actionBar"`
+	Help      []string `json:"help" yaml:"help"`
+	Filter    []string `json:"filter" yaml:"filter"`
+	Refresh   []string `json:"refresh" yaml:"refresh"`
 
 	ContainerStart   []string `json:"containerStart" yaml:"containerStart"`
 	ContainerStop    []string `json:"containerStop" yaml:"containerStop"`
@@ -314,6 +315,6 @@ func fallbackConfig() *Config {
 			Health:    RuntimeHealthConfig{IntervalSec: 3, TimeoutSec: 2, FailureThreshold: 2},
 		},
 		Layout: LayoutConfig{SectionWeights: SectionWeights{Top: 2, Content: 7, Bottom: 1}},
-		Keymap: KeymapConfig{Quit: []string{"q"}, Up: []string{"up", "k"}, Down: []string{"down", "j"}},
+		Keymap: KeymapConfig{Quit: []string{"ctrl+c"}, ActionBar: []string{";"}, Up: []string{"up", "k"}, Down: []string{"down", "j"}},
 	}
 }

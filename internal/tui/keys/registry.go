@@ -35,10 +35,11 @@ func Registry() []ActionSpec {
 	containers := []Context{{View: "containers"}, {View: "image-containers"}}
 	images := []Context{{View: "images"}}
 	return []ActionSpec{
-		{ActionQuit, []string{KeyQ, KeyCtrlC}, app},
+		{ActionQuit, []string{KeyCtrlC}, app},
 		{ActionHelp, []string{KeyQmark, KeyF1}, app},
 		{ActionFilter, []string{KeySlash}, main},
 		{ActionRefresh, []string{KeyR}, main},
+		{ActionActionBar, []string{KeySemicolon}, main},
 		{ActionTabNext, []string{KeyTab}, main},
 		{ActionTabPrev, []string{KeyShiftTab}, main},
 		{ActionUp, []string{KeyUp, KeyK}, main},
@@ -169,7 +170,7 @@ func Normalize(key string) string {
 
 func configuredBindings(keymap config.KeymapConfig) map[KeyAction][]string {
 	return map[KeyAction][]string{
-		ActionQuit: keymap.Quit, ActionHelp: keymap.Help, ActionFilter: keymap.Filter, ActionRefresh: keymap.Refresh,
+		ActionQuit: keymap.Quit, ActionActionBar: keymap.ActionBar, ActionHelp: keymap.Help, ActionFilter: keymap.Filter, ActionRefresh: keymap.Refresh,
 		ActionContainerStart: keymap.ContainerStart, ActionContainerStop: keymap.ContainerStop,
 		ActionContainerRestart: keymap.ContainerRestart, ActionContainerKill: keymap.ContainerKill,
 		ActionContainerRemove: keymap.ContainerRemove, ActionContainerLogs: keymap.ContainerLogs,

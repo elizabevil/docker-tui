@@ -40,6 +40,13 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 		return mm, cmd
 	}
 
+	// Q is intentionally unassigned in normal mode, including for users
+	// whose older config still binds it to Quit. Input modes receive it as
+	// text because their dispatch runs before this compatibility guard.
+	if key == keys.KeyQ && m.Navigation.Mode == state.ModeNormal {
+		return m, nil
+	}
+
 	// Global action table. Fall through to panel-level fallbacks and
 	// finally to the small set of fixed-key shortcuts.
 	var cmds []tea.Cmd
@@ -104,6 +111,9 @@ func dispatchByMode(rawKey, key string, m *state.AppModel) (*state.AppModel, tea
 		return m, cmd, true
 	case state.ModeConfirm:
 		m, cmd := handleConfirmKeys(key, m)
+		return m, cmd, true
+	case state.ModeActionBar:
+		m, cmd := handleActionBarKeys(rawKey, m)
 		return m, cmd, true
 	case state.ModeMark:
 		// Mark mode handles both arrow-keyed navigation and Space toggle.

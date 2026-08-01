@@ -68,7 +68,7 @@
 | Image Import (tarball) | 扁平 tar → 新镜像 | medium | [BR-036](bugfix-requirements.md#br-036) |
 | Registry Login | docker / podman login 私库 | medium | [BR-037](bugfix-requirements.md#br-037) |
 | Exec 页面 shell UI | 全屏 terminal + 真实 PTY | medium | [BR-038](bugfix-requirements.md#br-038) |
-| Action Bar 取代 Q | 每页多功能面板 | medium | [BR-039](bugfix-requirements.md#br-039) |
+| Action Bar 取代 Q | 每页多功能面板 | **done** | [BR-039](bugfix-requirements.md#br-039) |
 | Dialog 风格统一 | 四周透明 + panel 居中 | medium | [BR-040](bugfix-requirements.md#br-040) |
 
 > 上表能力全部**在 [docs/pending-bugs.md](pending-bugs.md) 跟踪**,本表只列能力摘要与关联 BR。**实现进度请以 pending-bugs.md 为准**。

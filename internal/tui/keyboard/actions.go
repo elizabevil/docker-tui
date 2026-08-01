@@ -120,6 +120,15 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 	case keys.ActionCommand:
 		ToCommand(m)
 		return m, nil
+
+	case keys.ActionActionBar:
+		return doActionBar(m)
+	case keys.ActionContainerRename:
+		return openRenameDialog(m)
+	case keys.ActionContainerTop:
+		return openTopView(m)
+	case keys.ActionContainerPort:
+		return openPortDetail(m)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -190,4 +199,10 @@ func probeAllConnections(m *state.AppModel) []tea.Cmd {
 // refreshAllConnections probes all pool connections concurrently.
 func refreshAllConnections(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	return m, tea.Batch(probeAllConnections(m)...)
+}
+
+func doActionBar(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	m.Navigation.ActionBar.Open()
+	m.Navigation.Mode = state.ModeActionBar
+	return m, nil
 }

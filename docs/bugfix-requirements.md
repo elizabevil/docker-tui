@@ -999,22 +999,22 @@
 
 ### BR-039 取消 Q 键退出,改为每页多功能 Action Bar
 
-- 状态: `open`
+- 状态: `done` (2026-08-01)
 - 优先级: `medium`
 - 症状:
   - 当前 `Q` 键直接退出应用(`keys/registry.go:38` `{ActionQuit, []string{KeyQ, KeyCtrlC}, app}`),用户希望**取消** Q 退出功能。
   - 当前各 table 页面(容器 / 镜像 / 卷 / 网络)的可用操作分散在多个直接键位 / 命令面板,无法集中发现。
 - 当前行为:
-  - `Q` 与 `Ctrl+C` 都绑定 `ActionQuit`,按了立刻退出。
-  - 容器 / 镜像 / 卷 / 网络页可用操作:直键 (`s`/`Ctrl+S`/`p`/`Ctrl+D` 等) + 命令面板(`:` + `rename`/`top`/`port` 等)。
-  - 没有集中可发现的多功能面板。
+  - `Q` 未分配且静默无操作,`Ctrl+C` 是唯一默认硬退出键。
+  - `;` 打开按当前 panel 动态生成的 Action Bar,用于 Rename、Top、Port 等复杂操作;直接快捷键与全局动作不重复展示。
+  - Action Bar 支持选择、数字跳转、过滤和 panel 内居中;命令面板 `:` 保持不变。
 - 代码锚点:
-  [internal/tui/keys/registry.go:38](internal/tui/keys/registry.go:38) `ActionQuit` ← `KeyQ, KeyCtrlC`
-  [internal/tui/keys/actions.go:18](internal/tui/keys/actions.go:18) `ActionQuit` handler (`tea.Quit`)
+  [internal/tui/keys/registry.go](internal/tui/keys/registry.go) `ActionQuit` ← `KeyCtrlC`;`ActionActionBar` ← `KeySemicolon`
+  [internal/tui/keyboard/actions.go](internal/tui/keyboard/actions.go) `ActionQuit` / Action Bar handler
   [internal/tui/keys/commands.go](internal/tui/keys/commands.go) 命令面板列表
   [internal/tui/keyboard/command.go](internal/tui/keyboard/command.go) `executeCommand`
 - 期望行为:
-  1. **取消 Q 键退出**:`registry.go` 删除 `KeyQ` 绑定,只保留 `Ctrl+C` 作为硬退出(`Ctrl+C` 在 dtui 中通常需要二段确认,沿用现有 `EscPending` 机制)。
+  1. **取消 Q 键退出**:`registry.go` 删除 `KeyQ` 绑定,只保留 `Ctrl+C` 作为直接硬退出;Esc 继续使用原二段退出。
   2. **新增 Action Bar**:每页触发后弹出浮层,显示当前页可用动作清单。
   3. 触发键(候选):
      - 方案 A:`;` (vim 风格)作为 Action Bar 入口,与现有 `:` 命令面板并列。

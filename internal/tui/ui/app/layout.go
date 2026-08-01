@@ -17,6 +17,7 @@ import (
 	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
+	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/actionbar"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/dialog"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/footer"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/header"
@@ -106,7 +107,7 @@ func RenderApp(m *state.AppModel) string {
 	case TerminalUnsupported:
 		return renderTerminalError(m.Viewport.Width, m.Viewport.Height)
 	case TerminalCompact:
-		return renderCompactApp(m)
+		return renderActionBar(m, renderCompactApp(m))
 	}
 
 	// Window margin: percentage of terminal height for top/bottom spacing
@@ -233,6 +234,9 @@ func RenderApp(m *state.AppModel) string {
 		Width: rep.Panel.bodyWidth,
 		Rows:  rep.Panel.bodyRows,
 	}
+	if m.Navigation.Mode == state.ModeActionBar {
+		return actionbar.RenderBar(m, result, panelBody)
+	}
 	if m.Navigation.Mode == state.ModeConfirm {
 		return dialog.RenderChoiceOverlayInPanel(result, m, panelBody)
 	}
@@ -261,6 +265,18 @@ func RenderApp(m *state.AppModel) string {
 		return dialog.CenterOnPanelDefault(result, renderRuntimeSelector(m), panelBody, m.Viewport.Width, m.Viewport.Height)
 	}
 	return result
+}
+
+func renderActionBar(m *state.AppModel, content string) string {
+	if m == nil || m.Navigation.Mode != state.ModeActionBar {
+		return content
+	}
+	report := ResolveLayout(m)
+	body := dialog.PanelBody{
+		Left: report.Panel.bodyLeft, Top: report.Panel.bodyTop,
+		Width: report.Panel.bodyWidth, Rows: report.Panel.bodyRows,
+	}
+	return actionbar.RenderBar(m, content, body)
 }
 
 func imageTransferStatus(status string) string {

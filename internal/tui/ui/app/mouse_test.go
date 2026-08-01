@@ -1,6 +1,7 @@
 package view
 
 import (
+	"strings"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
@@ -8,6 +9,18 @@ import (
 	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
+
+func TestRenderActionBarInStandardAndCompactLayouts(t *testing.T) {
+	for _, viewport := range [][2]int{{120, 32}, {79, 19}} {
+		m := newModel(viewport[0], viewport[1])
+		m.Navigation.Mode = state.ModeActionBar
+		m.Navigation.ActionBar.Open()
+		rendered := RenderApp(m)
+		if !strings.Contains(rendered, "Action Bar") {
+			t.Fatalf("Action Bar missing at %dx%d", viewport[0], viewport[1])
+		}
+	}
+}
 
 func newModel(width, height int) *state.AppModel {
 	m := state.NewAppModel(config.DefaultConfig(), nil, "test")

@@ -236,7 +236,10 @@ func TestLoadKeymapOverridePreservesOtherDefaults(t *testing.T) {
 	if len(cfg.Keymap.Help) != 1 || cfg.Keymap.Help[0] != "f3" {
 		t.Fatalf("help override = %v", cfg.Keymap.Help)
 	}
-	if len(cfg.Keymap.Quit) == 0 || cfg.Keymap.Quit[0] != "q" {
+	if len(cfg.Keymap.Quit) == 0 || cfg.Keymap.Quit[0] != "ctrl+c" {
 		t.Fatalf("quit default was not preserved: %v", cfg.Keymap.Quit)
+	}
+	if len(cfg.Keymap.ActionBar) == 0 || cfg.Keymap.ActionBar[0] != ";" {
+		t.Fatalf("action bar default was not preserved: %v", cfg.Keymap.ActionBar)
 	}
 }

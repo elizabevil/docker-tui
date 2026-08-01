@@ -6,13 +6,13 @@
 
 - **关联编号**:BR-039
 - **优先级**:medium
-- **状态**:`open`
+- **状态**:`done`
 - **依赖**:所有 panel 已有功能(否则 Action Bar 内容为空)
 - **关联设计**:[docs/feature-design.md §5.6](../feature-design.md)
 
 ## 目标
 
-取消 `Q` 作为退出应用的快捷键,改为每页多功能 Action Bar:触发后弹出浮层,按当前 panel 动态显示可用动作清单。每个条目显示**动作名 + 当前键位**(`Tag (Ctrl+T)`)。已有命令面板 (`:` 命令) 与 Action Bar 并存,不取消。
+取消 `Q` 作为退出应用的快捷键,增加按当前 panel 动态生成的 Action Bar。Action Bar 专门承载 Rename、Import、Login 等无直接快捷键的复杂/多步操作;已有直接快捷键与全局命令不重复展示。命令面板 (`:` 命令)继续保留。
 
 ## 代码结构索引
 
@@ -20,8 +20,8 @@
 
 | 文件 | 作用 |
 |---|---|
-| `internal/tui/keys/registry.go:38` | `ActionQuit ← KeyQ, KeyCtrlC`(需移除 KeyQ) |
-| `internal/tui/keys/actions.go:18` | `case ActionQuit: tea.Quit`(保留 Ctrl+C 入口) |
+| `internal/tui/keys/registry.go` | `ActionQuit ← KeyCtrlC`;`ActionActionBar ← KeySemicolon` |
+| `internal/tui/keyboard/actions.go` | `case ActionQuit: tea.Quit` 与 Action Bar 动作分发 |
 | `internal/tui/keyboard/command.go` | 命令面板 `:` 入口(`executeCommand`) |
 | `internal/tui/keys/commands.go` | 命令列表(`:rename` / `:top` / `:port` 等) |
 | `internal/tui/ui/action/registry.go` | 帮助页 / footer 投影框架 |
@@ -33,17 +33,16 @@
 
 | 文件 | 改动 |
 |---|---|
-| `internal/tui/keys/registry.go:38` | 改为 `{ActionQuit, []string{KeyCtrlC}, app}`(移除 KeyQ) |
-| `internal/tui/keys/actions.go:18` | 加 `case ActionActionBar: doActionBar(m)` |
-| `internal/tui/ui/action/registry.go` | 加 ActionBar 浮层渲染入口 |
-| `internal/tui/ui/widget/footer/footer.go` | Footer 显示 ActionBar 触发键(从 Q → `;` 或 `:` Action Bar) |
+| `internal/tui/keys/registry.go` | `{ActionQuit, []string{KeyCtrlC}, app}` 并注册 Action Bar |
+| `internal/tui/keyboard/actions.go` | Action Bar 与 typed panel 动作分发 |
+| `internal/tui/ui/action/registry.go` | Footer / Help 投影 Action Bar 快捷键 |
+| `internal/tui/ui/app/layout.go` | 标准与紧凑布局渲染 Action Bar 浮层 |
 
 ### 必须新增的文件
 
 - `internal/tui/ui/widget/actionbar/`(新子包)
   - `actionbar.go`:ActionBar 浮层渲染组件(类似 vim command palette)
-  - `registry.go`:按 `ActivePanel` 动态生成动作列表
-  - `state.go`:ActionBar 状态(open / selected / filter)
+- `internal/tui/actionbar/registry.go`:按 `ActivePanel` 动态生成 typed 动作列表
 - `internal/tui/state/actionbar.go`:ActionBar state
 - `internal/tui/keyboard/actionbar_keys.go`:`handleActionBarKeys`(j/k 选择 / Enter 执行 / Esc 关闭 / / 过滤)
 
@@ -80,7 +79,7 @@ User 在任意 panel 按 ;
 
 ### 取消 Q
 
-- [ ] 按 Q 不再退出应用;改为显示 toast `"Q 重映射到 Action Bar,按 ; 打开"` 或类似引导。
+- [x] 按 Q 不再退出应用,保持未分配且无提示。
 - [ ] Help / Footer 不再显示 `Q Quit`。
 - [ ] Ctrl+C 仍可退出(双段确认沿用)。
 
@@ -143,3 +142,13 @@ User 在任意 panel 按 ;
 - **BR-036 (Image Import)**:Image Import 通过 Action Bar 触发,不直接绑键
 - **BR-037 (Registry Login)**:Registry Login 通过 Action Bar 触发
 - **BR-040 (Dialog 统一)**:Action Bar 是 dialog 的一种,应走 `CenterOnPanel` 统一接口
+
+## 实现结果
+
+- `Q` 已解除退出绑定,普通模式下静默无操作;`Ctrl+C` 保持直接退出。
+- `;` 打开当前 panel 的 Action Bar,支持 j/k、方向键、Enter、Esc、1-9 与 `/` 过滤。
+- `internal/tui/actionbar` typed registry 当前提供 Containers 的 Rename、Top、Port;其它 panel 等待各自复杂操作落地后接入。
+- 全局动作与已有直接快捷键动作不进入 Action Bar;无快捷键动作显示 `—`。
+- Action Bar 使用 BR-040 的 panel body 几何,在标准和紧凑布局中均限制在 panel 内。
+- Footer / Help 显示 `; Action Bar`,不再显示 `Q Quit`;默认 keymap 改为 `actionBar: [";"]`、`quit: ["ctrl+c"]`。
+- BR-033、BR-035、BR-036、BR-037 尚未实现的业务动作由各自任务完成后追加到 typed registry,不属于 BR-039 基础设施缺口。

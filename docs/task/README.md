@@ -29,7 +29,7 @@
 | [BR-036](./br-036-image-import-tarball.md) | medium | 镜像 tarball 导入 (Image Import) | feature-todo-list §2 + bugfix-requirements BR-036 |
 | [BR-037](./br-037-registry-login.md) | medium | docker / podman Registry Login(私库认证) | feature-todo-list §2 + bugfix-requirements BR-037 |
 | [BR-038](./br-038-exec-shell-ui.md) | medium | 容器 Exec 页面 shell UI | feature-todo-list §2 + bugfix-requirements BR-038 |
-| [BR-039](./br-039-action-bar-replace-q.md) | medium | 取消 Q 退出,改为每页多功能 Action Bar | feature-todo-list §2 + bugfix-requirements BR-039 |
+| [BR-039](./br-039-action-bar-replace-q.md) | **done** | 取消 Q 退出,改为每页多功能 Action Bar | feature-todo-list §2 + bugfix-requirements BR-039 |
 | [BR-040](./br-040-dialog-style-center-on-panel.md) | medium | Dialog 风格统一:四周透明 + panel 居中 | feature-todo-list §2 + bugfix-requirements BR-040 |
 
 ## 任务卡模板

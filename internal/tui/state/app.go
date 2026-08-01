@@ -58,6 +58,7 @@ const (
 	ModeImageWorkflow
 	ModeImageTransfer
 	ModeAuditDetail
+	ModeActionBar
 )
 
 // ExecDialogFocus identifies focusable regions in the exec dialog.

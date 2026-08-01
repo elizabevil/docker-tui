@@ -30,11 +30,11 @@ func Global(app ...*state.AppModel) []Shortcut {
 		{bindingLabel(model, keys.ActionFilter, keys.KeySlash), i18n.T("key.filter")},
 		{bindingLabel(model, keys.ActionRefresh, keys.KeyR), "Refresh"},
 		{bindingLabel(model, keys.ActionCommand, ":"), "Command"},
+		{bindingLabel(model, keys.ActionActionBar, keys.KeySemicolon), "Action Bar"},
 		{bindingLabel(model, keys.ActionSwitchRuntime, keys.KeyF2), "Runtime"},
 		{bindingLabel(model, keys.ActionHelp, keys.KeyQmark), i18n.T("key.help")},
 		{keys.KeyHUpper, i18n.T("key.header")},
 		{keys.KeyCUpper, i18n.T("key.connect")},
-		{bindingLabel(model, keys.ActionQuit, keys.KeyQ), i18n.T("key.quit")},
 	}
 }
 
@@ -55,6 +55,8 @@ func ForMode(app *state.AppModel) []Shortcut {
 		return shortcuts("Esc", "Cancel")
 	case state.ModeCommand:
 		return shortcuts("Enter", "Run", "Tab", "Complete", "Esc", "Exit", "Ctrl+A/E", "Home/End", "Ctrl+W/U/K", "Edit")
+	case state.ModeActionBar:
+		return shortcuts("j/k", "Move", "Enter", "Run", "/", "Filter", "1-9", "Jump", "Esc", "Close")
 	case state.ModeMark:
 		return []Shortcut{
 			{bindingLabel(app, keys.ActionBack, keys.KEsc), "Cancel"},

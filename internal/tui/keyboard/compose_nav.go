@@ -53,12 +53,8 @@ func handleComposePanelKeys(key string, m *state.AppModel) (*state.AppModel, tea
 	case keys.KeyD:
 		// 左栏按 d → 项目概览
 		if m.Compose.ComposeFocus == 0 {
-			project := currentComposeProject(m)
-			if project != "" {
-				ToDetail(m, "Compose Detail: "+project, "")
-				m.Detail.DetailResourceType = state.ResourceComposeProject
-			}
-			return m, RecordKeyStroke(m, key, keys.ActionLabelDetail)
+			mm, cmd := doComposeDetail(m)
+			return mm, tea.Batch(cmd, RecordKeyStroke(m, key, keys.ActionLabelDetail))
 		}
 		return nil, nil
 	case keys.KeyS:
@@ -75,6 +71,16 @@ func handleComposePanelKeys(key string, m *state.AppModel) (*state.AppModel, tea
 		return mm, tea.Batch(cmd, RecordKeyStroke(m, key, keys.ActionLabelDown))
 	}
 	return nil, nil
+}
+
+func doComposeDetail(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	project := currentComposeProject(m)
+	if project == "" {
+		return m, nil
+	}
+	ToDetail(m, "Compose Detail: "+project, "")
+	m.Detail.DetailResourceType = state.ResourceComposeProject
+	return m, nil
 }
 
 func doComposeEnter(m *state.AppModel) (*state.AppModel, tea.Cmd) {

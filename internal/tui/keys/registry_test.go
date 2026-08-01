@@ -11,8 +11,11 @@ func TestCompileBindingsAppliesOverridesAndFallbacks(t *testing.T) {
 	if got := bindings.ByAction[ActionHelp]; len(got) != 1 || got[0] != "f3" {
 		t.Fatalf("help override = %#v", got)
 	}
-	if got := bindings.ByAction[ActionQuit]; len(got) == 0 || got[0] != "q" {
+	if got := bindings.ByAction[ActionQuit]; len(got) == 0 || got[0] != KeyCtrlC {
 		t.Fatalf("quit fallback = %#v", got)
+	}
+	if got := bindings.ByAction[ActionActionBar]; len(got) == 0 || got[0] != KeySemicolon {
+		t.Fatalf("action bar fallback = %#v", got)
 	}
 }
 

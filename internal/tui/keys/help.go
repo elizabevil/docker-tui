@@ -35,8 +35,9 @@ func HelpEntries() []HelpEntry {
 		{Key: KeyH, Description: i18n.T("key.toggle")},
 		{Key: KeySlash, Description: i18n.T("key.filter")},
 		{Key: KeyR, Description: i18n.T("key.restart")},
+		{Key: KeySemicolon, Description: "Action Bar"},
 		{Key: KeyQmark, Description: i18n.T("key.help")},
-		{Key: KeyQ, Description: i18n.T("key.quit")},
+		{Key: KeyCtrlC, Description: i18n.T("key.quit")},
 	}
 }
 

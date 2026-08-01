@@ -9,7 +9,7 @@
 
 | 状态 | 数量 | 备注 |
 |---|---|---|
-| `open` | 19 | 未开始或被搁置的需求 |
+| `open` | 18 | 未开始或被搁置的需求 |
 | `implementing` | 1 | 修复进行中(部分子任务已完成) |
 | `pending` | 1 | 用户尚未提供具体内容 |
 | `wontfix` | 1 (BR-012 已转移为新需求 BR-030,保留记录) |
@@ -36,7 +36,6 @@
 | [BR-036](#br-036) | 镜像 tarball 导入功能 | medium | open |
 | [BR-037](#br-037) | docker / podman Registry Login | medium | open |
 | [BR-038](#br-038) | 容器 Exec 页面 UI 不符合 shell 终端 | medium | open |
-| [BR-039](#br-039) | 取消 Q 键退出,改为每页多功能 Action Bar | medium | open |
 | [BR-040](#br-040) | Dialog 风格统一:四周透明 + panel 居中 | medium | open |
 | [BR-008](#br-008) | H 键应进 Help;镜像页 H 进入 History | medium | open |
 | [BR-028](#br-028) | (TBD - 待用户补充第 6 条) | - | pending |
@@ -357,34 +356,6 @@
   4. Ctrl+D 退出前台 shell 但容器继续运行。
   5. Esc 退出 dtui 的 exec mode,**不**杀掉容器前台进程。
 - 设计参考: [docs/feature-design.md §5.4](docs/feature-design.md)
-
-<a id="br-039"></a>
-
-### BR-039 取消 Q 键退出,改为每页多功能 Action Bar
-
-- 状态: `open`
-- 优先级: `medium`
-- 症状: 当前 `Q` 键直接退出应用,各 table 页可用操作分散在多个直键 / 命令面板,无法集中发现。
-- 当前行为: `Q` 与 `Ctrl+C` 都绑定 `ActionQuit`;无 Action Bar。
-- 代码锚点:
-  [internal/tui/keys/registry.go:38](internal/tui/keys/registry.go:38) `ActionQuit` ← `KeyQ, KeyCtrlC`
-  [internal/tui/keys/actions.go:18](internal/tui/keys/actions.go:18) `ActionQuit` handler (`tea.Quit`)
-  [internal/tui/keys/commands.go](internal/tui/keys/commands.go) 命令面板列表
-  [internal/tui/keyboard/command.go](internal/tui/keyboard/command.go) `executeCommand`
-- 期望行为:
-  1. **取消 Q 键退出**:`registry.go` 删除 `KeyQ` 绑定,只保留 `Ctrl+C` 作为硬退出。
-  2. **新增 Action Bar**:触发键候选 `;` (vim 风格)或扩展 `:` 命令面板;每页触发后弹出浮层,显示当前页可用动作清单。
-  3. 每个 page 的 Action Bar 包含该 page 所有 BR-033 / BR-036 / BR-037 提及的动作 + 当前键位。
-  4. detail / logs / help / 其它无新动作的页:空列表或不弹。
-  5. **已有命令保留**:`:rename` / `:top` / `:port` 等命令面板入口**不取消**,与 Action Bar 并存。
-- 验收标准:
-  1. 按 Q 不再退出应用(可改为显示 Help 或 toast "Q 已重映射到 Action Bar")。
-  2. 在镜像页按 `;`,弹出 Action Bar,列出该页所有可用动作 + 当前键位。
-  3. Action Bar 选中某动作后,与原直键效果一致;选中"无键位"动作也能执行。
-  4. detail / logs 页不强行弹 Action Bar。
-  5. 命令面板 `:` 仍可用,所有原命令保留。
-  6. Help / Footer 准确反映当前键位(移除 `Q`)。
-- 设计参考: [docs/feature-design.md §5.6](docs/feature-design.md)
 
 <a id="br-040"></a>
 

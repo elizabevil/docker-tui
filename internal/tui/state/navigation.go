@@ -11,6 +11,7 @@ type NavigationState struct {
 	FilterInput       QueryInputState
 	SearchInput       QueryInputState
 	CommandInput      QueryInputState
+	ActionBar         ActionBarState
 	FilterExitPending bool
 	FilterExitToken   uint64
 	EscPending        bool

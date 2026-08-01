@@ -50,4 +50,8 @@ const (
 	ActionSwitchRuntime      KeyAction = "switchRuntime"
 	ActionCommand            KeyAction = "command"
 	ActionRefreshConnections KeyAction = "refreshConnections"
+	ActionActionBar          KeyAction = "actionBar"
+	ActionContainerRename    KeyAction = "containerRename"
+	ActionContainerTop       KeyAction = "containerTop"
+	ActionContainerPort      KeyAction = "containerPort"
 )
