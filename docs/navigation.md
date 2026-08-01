@@ -61,7 +61,7 @@
 | `p` | 运行中容器 Pause；已暂停容器 Unpause |
 | `d` | 详情视图 |
 | `i` | Inspect |
-| `e` | 打开 exec shell 对话框 |
+| `e` | 自动探测可用 shell 并进入容器；探测失败时打开 shell 对话框 |
 | `o` / `Ctrl+O` | 切换排序列 / 切换升降序 |
 
 ### Images
@@ -179,7 +179,7 @@ Compose 面板是双栏：
 
 分两段：
 
-1. `ModeExec`：选择 `/bin/sh`、`/bin/bash`、`/bin/ash` 或自定义 shell
+1. `ModeExec`：自动探测失败后，可选择 `/bin/sh`、`/bin/bash`、`/bin/ash` 或输入自定义 shell
 2. `ModeExecPassthrough`：进入真实容器终端透传
 
 在 exec 对话框中：

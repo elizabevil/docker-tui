@@ -63,6 +63,22 @@ func TestConfirmCancelCompletesAuditTrace(t *testing.T) {
 	}
 }
 
+func TestConfirmTabAndEnterCancelChoice(t *testing.T) {
+	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app.Dependencies.Audit = audit.NewService(nil)
+	app.Navigation.Mode = state.ModeConfirm
+	app.Confirm.Open("container-stop", "api", "Stop api?", audit.Trace{})
+
+	updated, _ := handleConfirmKeys(keys.KeyTab, app)
+	if updated.Confirm.Focus != 1 {
+		t.Fatalf("focus after tab = %d", updated.Confirm.Focus)
+	}
+	updated, _ = handleConfirmKeys(keys.KeyEnter, updated)
+	if updated.Navigation.Mode != state.ModeNormal || updated.Confirm.ConfirmMessage != "" {
+		t.Fatalf("cancel choice did not close confirm: mode=%v confirm=%#v", updated.Navigation.Mode, updated.Confirm)
+	}
+}
+
 func TestUIMessageUsesNotificationWithoutAuditHistory(t *testing.T) {
 	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
 	app.Dependencies.Audit = audit.NewService(nil)

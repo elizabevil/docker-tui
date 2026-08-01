@@ -35,6 +35,43 @@ func TestBatchPauseSkipsInapplicableContainers(t *testing.T) {
 	}
 }
 
+func TestBatchContainerActionInitializesChoiceOptions(t *testing.T) {
+	m := state.NewAppModel(config.DefaultConfig(), &dockerclient.Client{}, "test")
+	m.Selection.Toggle("one")
+
+	updated, cmd := doBatchContainerAction(m, "stop", nil)
+	if cmd != nil || updated.Navigation.Mode != state.ModeConfirm {
+		t.Fatalf("batch confirmation = mode %v cmd=%v", updated.Navigation.Mode, cmd != nil)
+	}
+	if len(updated.Confirm.Options) != 2 || updated.Confirm.Options[0].ID != "cancel" || updated.Confirm.Options[1].ID != "force" {
+		t.Fatalf("batch choice options = %#v", updated.Confirm.Options)
+	}
+}
+
+func TestBulkDeleteOptionsExposeForceWhenSupported(t *testing.T) {
+	options := bulkDeleteOptions(state.PanelContainers)
+	if len(options) != 2 || options[0].ID != "cancel" || options[1].ID != "force" {
+		t.Fatalf("container bulk delete options = %#v", options)
+	}
+
+	networkOptions := bulkDeleteOptions(state.PanelNetworks)
+	if len(networkOptions) != 2 || networkOptions[0].ID != "cancel" || networkOptions[1].ID != "confirm" {
+		t.Fatalf("network bulk delete options = %#v", networkOptions)
+	}
+}
+
+func TestBatchStopOffersCancelDefaultAndForce(t *testing.T) {
+	m := state.NewAppModel(config.DefaultConfig(), &dockerclient.Client{}, "test")
+	m.Selection.Toggle("one")
+	updated, cmd := doBatchContainerAction(m, "stop", nil)
+	if cmd != nil || updated.Confirm.Focus != 0 || len(updated.Confirm.Options) != 2 {
+		t.Fatalf("batch stop confirmation = %#v", updated.Confirm)
+	}
+	if updated.Confirm.Options[0].ID != "cancel" || updated.Confirm.Options[1].ID != "force" {
+		t.Fatalf("batch stop options = %#v", updated.Confirm.Options)
+	}
+}
+
 func TestTopRejectsStoppedContainer(t *testing.T) {
 	m := state.NewAppModel(config.DefaultConfig(), &dockerclient.Client{}, "test")
 	m.Resources.Containers.Items = []runtime.ContainerSummary{{ID: "one", Name: "done", State: state.ContainerStateExited}}

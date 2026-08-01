@@ -79,8 +79,7 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 		if m.Navigation.ActivePanel != state.PanelContainers {
 			return m, nil
 		}
-		ToExec(m)
-		return m, nil
+		return doAutoExecAction(m)
 
 	case keys.ActionContainerInspect:
 		return doInspectAction(m)

@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // PlaceDialog centers dialogBox over content WITHOUT a full-screen scrim.
@@ -30,15 +31,25 @@ func PlaceDialog(content string, dialogBox string, termW, termH int, _ string, c
 	for dy := 0; dy < dlgH && startY+dy < len(contentLines); dy++ {
 		dl := dialogLines[dy]
 		visW := lipgloss.Width(dl)
-
-		leftPad := startX
-		padded := strings.Repeat(" ", leftPad) + dl
-		rightPad := termW - startX - visW
-		if rightPad > 0 {
-			padded += strings.Repeat(" ", rightPad)
+		if visW < dlgW {
+			dl += strings.Repeat(" ", dlgW-visW)
 		}
-		contentLines[startY+dy] = padded
+
+		base := contentLines[startY+dy]
+		left := ansi.TruncateWc(base, startX, "")
+		left += strings.Repeat(" ", max(0, startX-ansi.StringWidth(left)))
+		rightStart := startX + dlgW
+		right := ansi.TruncateLeftWc(ansi.TruncateWc(base, termW, ""), rightStart, "")
+		right += strings.Repeat(" ", max(0, termW-rightStart-ansi.StringWidth(right)))
+		contentLines[startY+dy] = left + dl + right
 	}
 
 	return strings.Join(contentLines, "\n")
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

@@ -45,15 +45,21 @@ func doBatchContainerAction(m *state.AppModel, action string, cmdFn func(runtime
 		return m, nil
 	}
 	count := len(m.Selection.MarkedIDs)
-	m.Navigation.Mode = state.ModeConfirm
-	m.Confirm.ConfirmAction = "batch-" + action
-	m.Confirm.ConfirmTarget = fmt.Sprintf("%d items", count)
-	m.Confirm.ConfirmMessage = fmt.Sprintf("Batch %s %d containers?", action, count)
-	m.Confirm.ConfirmAudit = beginAudit(m, "resource.container."+action,
+	target := fmt.Sprintf("%d items", count)
+	message := fmt.Sprintf("Batch %s %d containers?", action, count)
+	trace := beginAudit(m, "resource.container."+action,
 		audit.ContainerTarget{
 			ID:   fmt.Sprintf("batch-%d", count),
 			Name: fmt.Sprintf("%d containers", count),
-		}, m.Confirm.ConfirmMessage)
+		}, message)
+	m.Confirm.Open("batch-"+action, target, message, trace)
+	if action == string(runtimeapi.ActionStop) {
+		m.Confirm.Options = []state.ChoiceOption{
+			{ID: "cancel", Label: "Cancel"},
+			{ID: "force", Label: "Force", Description: "stop immediately"},
+		}
+	}
+	m.Navigation.Mode = state.ModeConfirm
 	return m, nil
 }
 
@@ -288,6 +294,22 @@ func openPortDetail(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 }
 
 func doExecAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	shell := m.Exec.ExecShell
+	if shell == "" {
+		return doExecCandidates(m, autoShellCandidates())
+	}
+	return doExecCandidates(m, []string{shell})
+}
+
+func doAutoExecAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return doExecCandidates(m, autoShellCandidates())
+}
+
+func autoShellCandidates() []string {
+	return []string{"/bin/sh", "/bin/bash", "/bin/ash", "cmd.exe", "powershell.exe", "pwsh.exe"}
+}
+
+func doExecCandidates(m *state.AppModel, candidates []string) (*state.AppModel, tea.Cmd) {
 	if m.Connection.Engine == nil {
 		return m, nil
 	}
@@ -296,28 +318,46 @@ func doExecAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		return m, nil
 	}
 
-	shell := m.Exec.ExecShell
-	if shell == "" {
-		shell = "/bin/sh"
-	}
 	m.Exec.ExecShell = ""
 	trace := beginAudit(m, "resource.container.exec",
 		audit.ExecTarget{ID: ctr.ID, Name: ctr.Name, Meta: audit.ExecMeta{ContainerID: ctr.ID}},
 		"Starting exec session in "+ctr.Name)
 
 	ctx := context.Background()
-	session, err := m.Connection.Engine.Exec().Open(ctx, ctr.ID, runtimeapi.ExecOptions{
-		Command:      []string{shell},
-		AttachStdin:  true,
-		AttachStdout: true,
-		AttachStderr: true,
-		TTY:          true,
-	})
-	if err != nil {
-		FinishAudit(m, trace, audit.ResultFailed, "Exec session failed", audit.Details{Error: err.Error(), Shell: shell})
+	var session runtimeapi.ExecSession
+	var err error
+	selectedShell := ""
+	for _, candidate := range candidates {
+		if candidate == "" {
+			continue
+		}
+		session, err = m.Connection.Engine.Exec().Open(ctx, ctr.ID, runtimeapi.ExecOptions{
+			Command:      []string{candidate},
+			AttachStdin:  true,
+			AttachStdout: true,
+			AttachStderr: true,
+			TTY:          true,
+		})
+		if err == nil {
+			selectedShell = candidate
+			break
+		}
+	}
+	if session == nil {
+		if err == nil {
+			err = fmt.Errorf("no shell candidates available")
+		}
+		FinishAudit(m, trace, audit.ResultFailed, "Exec session failed", audit.Details{Error: err.Error(), Shell: strings.Join(candidates, ", ")})
 		ShowToastNow(m, fmt.Sprintf("exec: %v", err))
+		fallback := "/bin/sh"
+		if len(candidates) > 0 && candidates[0] != "" {
+			fallback = candidates[0]
+		}
+		m.Dialog.Open(state.DialogSpec{Kind: state.DialogExec, Input: fallback})
+		m.Navigation.Mode = state.ModeExec
 		return m, nil
 	}
+	shell := selectedShell
 
 	if m.Viewport.Width > 0 && m.Viewport.Height > 0 {
 		go func() {

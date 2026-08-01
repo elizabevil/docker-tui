@@ -43,12 +43,23 @@ func doBulkDelete(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if m.Connection.Engine == nil || len(m.Selection.MarkedIDs) == 0 {
 		return m, nil
 	}
-	m.Confirm.ConfirmAction = "bulk-delete"
-	m.Confirm.ConfirmTarget = fmt.Sprintf("%d items", len(m.Selection.MarkedIDs))
-	m.Confirm.ConfirmMessage = fmt.Sprintf("Delete %d items?", len(m.Selection.MarkedIDs))
-	m.Confirm.ConfirmAudit = beginAudit(m, "resource."+bulkResourceName(m.Navigation.ActivePanel)+".delete", bulkTarget(m), m.Confirm.ConfirmMessage)
+	target := fmt.Sprintf("%d items", len(m.Selection.MarkedIDs))
+	message := fmt.Sprintf("Delete %d items?", len(m.Selection.MarkedIDs))
+	trace := beginAudit(m, "resource."+bulkResourceName(m.Navigation.ActivePanel)+".delete", bulkTarget(m), message)
+	m.Confirm.Open("bulk-delete", target, message, trace)
+	m.Confirm.Options = bulkDeleteOptions(m.Navigation.ActivePanel)
 	m.Navigation.Mode = state.ModeConfirm
 	return m, nil
+}
+
+func bulkDeleteOptions(panel state.PanelType) []state.ChoiceOption {
+	options := []state.ChoiceOption{{ID: "cancel", Label: "Cancel"}}
+	if panel != state.PanelNetworks {
+		options = append(options, state.ChoiceOption{ID: "force", Label: "Force", Description: "delete even if active or in use"})
+	} else {
+		options = append(options, state.ChoiceOption{ID: "confirm", Label: "Delete"})
+	}
+	return options
 }
 
 func doConfirmYes(m *state.AppModel) (*state.AppModel, tea.Cmd) {
@@ -56,16 +67,13 @@ func doConfirmYes(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	target := m.Confirm.ConfirmTarget
 	trace := m.Confirm.ConfirmAudit
 	m.Navigation.Mode = state.ModeNormal
-	m.Confirm.ConfirmAction = ""
-	m.Confirm.ConfirmTarget = ""
-	m.Confirm.ConfirmMessage = ""
-	m.Confirm.ConfirmAudit = audit.Trace{}
+	m.Confirm.Close()
 
 	switch {
 	case strings.HasPrefix(action, "batch-"):
 		return executeBatchAction(m, strings.TrimPrefix(action, "batch-"), trace)
-	case action == "bulk-delete":
-		return executeBulkDelete(m, trace)
+	case action == "bulk-delete", action == "bulk-delete-force":
+		return executeBulkDelete(m, trace, action == "bulk-delete-force")
 	case action == "container-stop":
 		return m, withContainerAudit(containerStopCmd(m.Connection.Engine, target), trace)
 	case action == "container-kill":
@@ -88,7 +96,7 @@ func doConfirmYes(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	return m, nil
 }
 
-func executeBulkDelete(m *state.AppModel, trace audit.Trace) (*state.AppModel, tea.Cmd) {
+func executeBulkDelete(m *state.AppModel, trace audit.Trace, force ...bool) (*state.AppModel, tea.Cmd) {
 	if len(m.Selection.MarkedIDs) == 0 {
 		return m, nil
 	}
@@ -103,6 +111,7 @@ func executeBulkDelete(m *state.AppModel, trace audit.Trace) (*state.AppModel, t
 
 	engine := m.Connection.Engine
 	panel := m.Navigation.ActivePanel
+	forceDelete := len(force) > 0 && force[0]
 	return m, func() tea.Msg {
 		result := state.BatchActioned{
 			Scope:    "bulk-delete",
@@ -115,11 +124,11 @@ func executeBulkDelete(m *state.AppModel, trace audit.Trace) (*state.AppModel, t
 			var msg tea.Msg
 			switch panel {
 			case state.PanelContainers:
-				msg = containerRemoveCmd(engine, id, true)()
+				msg = containerRemoveCmd(engine, id, forceDelete)()
 			case state.PanelImages:
-				msg = imageRemoveCmd(engine, id, true)()
+				msg = imageRemoveCmd(engine, id, forceDelete)()
 			case state.PanelVolumes:
-				msg = volumeRemoveCmd(engine, id, true)()
+				msg = volumeRemoveCmd(engine, id, forceDelete)()
 			case state.PanelNetworks:
 				msg = networkRemoveCmd(engine, id)()
 			default:

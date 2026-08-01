@@ -62,7 +62,7 @@ func ForMode(app *state.AppModel) []Shortcut {
 			{bindingLabel(app, removeAction(app.Navigation.ActivePanel), keys.KCtrlD), "Delete marked"},
 		}
 	case state.ModeConfirm:
-		return shortcuts("y", "Confirm", "n", "Cancel")
+		return shortcuts("Tab", "Switch", "Enter", "Confirm", "Esc", "Cancel")
 	case state.ModeLogView:
 		return shortcuts(bindingLabel(app, keys.ActionBack, keys.KEsc), "Back", navigationLabel(app), "Scroll", "PgUp/Dn", "Page", "g/Ctrl+G", "Top/Bot", "n/Ctrl+N", "Match", "w", "Wrap")
 	case state.ModeDetail:

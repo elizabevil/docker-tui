@@ -227,9 +227,7 @@ func RenderApp(m *state.AppModel) string {
 		overlayColor = "#0d1117cc"
 	}
 	if m.Navigation.Mode == state.ModeConfirm {
-		confirmOverlay := component.RenderConfirmMsg(m.Confirm.ConfirmMessage,
-			m.Confirm.ConfirmTarget, m.Viewport.Width, m.Viewport.Height, overlayColor)
-		return component.PlaceOverlay(m.Viewport.Width, m.Viewport.Height, confirmOverlay, overlayColor)
+		return dialog.RenderChoiceOverlay(result, m)
 	}
 	if m.Navigation.Mode == state.ModeExecShell {
 		shellOverlay := component.RenderShellDialog(m.Dialog.Input.Text,

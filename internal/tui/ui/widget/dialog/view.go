@@ -238,6 +238,33 @@ func RenderOverlay(content string, m *state.AppModel) string {
 	return PlaceDialog(content, dialogBox, m.Viewport.Width, m.Viewport.Height, oc, dlgCfg)
 }
 
+// RenderChoiceOverlay renders the shared confirm/choice window without a
+// full-screen scrim. The underlying page remains visible outside the box.
+func RenderChoiceOverlay(content string, m *state.AppModel) string {
+	cfg := LoadDialogConfig()
+	overlay := resolveOverlay(m.Dependencies.Config.UI.DialogOverlayColor, cfg)
+	options := make([]ChoiceOption, 0, len(m.Confirm.Options))
+	for _, option := range m.Confirm.Options {
+		options = append(options, ChoiceOption{
+			Label:       option.Label,
+			Description: option.Description,
+			Disabled:    option.Disabled,
+		})
+	}
+	dialogBox := ChoiceDialog(
+		i18n.T("key.confirm"),
+		m.Confirm.ConfirmMessage+"\nTarget: "+m.Confirm.ConfirmTarget,
+		options,
+		m.Confirm.Focus,
+		m.Viewport.Width,
+		m.Viewport.Height,
+		style.Colors.Yellow,
+		overlay,
+		cfg,
+	)
+	return PlaceDialog(content, dialogBox, m.Viewport.Width, m.Viewport.Height, overlay, cfg)
+}
+
 // RenderExecOverlay renders a full-screen scrim with the exec shell dialog
 // (3 shell options + custom input + confirm/cancel) centered on top.
 func RenderExecOverlay(content string, m *state.AppModel) string {
