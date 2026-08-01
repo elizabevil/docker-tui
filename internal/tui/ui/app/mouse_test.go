@@ -3,10 +3,10 @@ package view
 import (
 	"testing"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/elizabevil/docker-tui/internal/data/config"
 	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
-	tea "charm.land/bubbletea/v2"
 )
 
 func newModel(width, height int) *state.AppModel {
@@ -33,6 +33,49 @@ func TestHitTestStandardLayout(t *testing.T) {
 	}
 	if row != 2 {
 		t.Fatalf("row = %d, want 2", row)
+	}
+}
+
+// TestPanelBodyGeometryStandard verifies BR-040 fields (bodyLeft / bodyWidth)
+// are populated correctly for the standard tier.
+func TestPanelBodyGeometryStandard(t *testing.T) {
+	m := newModel(120, 32)
+	rep := ResolveLayout(m)
+	if rep.Class != TerminalStandard {
+		t.Fatalf("class = %d, want TerminalStandard", rep.Class)
+	}
+	if rep.Panel.bodyLeft < 0 || rep.Panel.bodyLeft >= m.Viewport.Width {
+		t.Fatalf("bodyLeft = %d, want 0..%d", rep.Panel.bodyLeft, m.Viewport.Width)
+	}
+	if rep.Panel.bodyWidth <= 0 {
+		t.Fatalf("bodyWidth = %d, want positive", rep.Panel.bodyWidth)
+	}
+	if rep.Panel.bodyLeft+rep.Panel.bodyWidth > m.Viewport.Width {
+		t.Errorf("panel body extends past terminal: bodyLeft=%d + bodyWidth=%d > termW=%d",
+			rep.Panel.bodyLeft, rep.Panel.bodyWidth, m.Viewport.Width)
+	}
+	if rep.Panel.bodyTop+rep.Panel.bodyRows > rep.FooterTop {
+		t.Errorf("panel body extends into footer: bodyTop=%d + bodyRows=%d > FooterTop=%d",
+			rep.Panel.bodyTop, rep.Panel.bodyRows, rep.FooterTop)
+	}
+}
+
+// TestPanelBodyGeometryCompact verifies the same fields for the compact tier.
+func TestPanelBodyGeometryCompact(t *testing.T) {
+	m := newModel(79, 19)
+	rep := ResolveLayout(m)
+	if rep.Class != TerminalCompact {
+		t.Fatalf("class = %d, want TerminalCompact", rep.Class)
+	}
+	if rep.Panel.bodyLeft != 2 {
+		t.Errorf("compact bodyLeft = %d, want 2", rep.Panel.bodyLeft)
+	}
+	expectedWidth := m.Viewport.Width - 4
+	if rep.Panel.bodyWidth != expectedWidth {
+		t.Errorf("compact bodyWidth = %d, want %d", rep.Panel.bodyWidth, expectedWidth)
+	}
+	if rep.Panel.bodyWidth <= 0 {
+		t.Fatalf("bodyWidth must be positive: %d", rep.Panel.bodyWidth)
 	}
 }
 

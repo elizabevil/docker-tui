@@ -274,3 +274,55 @@ func RenderExecOverlay(content string, m *state.AppModel) string {
 	dialogBox := ExecDialog(m, oc, dlgCfg)
 	return PlaceDialog(content, dialogBox, m.Viewport.Width, m.Viewport.Height, oc, dlgCfg)
 }
+
+// RenderChoiceOverlayInPanel splices the confirm/choice dialog box into
+// content, centering it within body (per BR-040). Sizing uses body
+// dimensions so the box fits the panel.
+func RenderChoiceOverlayInPanel(content string, m *state.AppModel, body PanelBody) string {
+	cfg := LoadDialogConfig()
+	overlay := resolveOverlay(m.Dependencies.Config.UI.DialogOverlayColor, cfg)
+	options := make([]ChoiceOption, 0, len(m.Confirm.Options))
+	for _, option := range m.Confirm.Options {
+		options = append(options, ChoiceOption{
+			Label:       option.Label,
+			Description: option.Description,
+			Disabled:    option.Disabled,
+		})
+	}
+	dialogBox := ChoiceDialog(
+		i18n.T("key.confirm"),
+		m.Confirm.ConfirmMessage+"\nTarget: "+m.Confirm.ConfirmTarget,
+		options,
+		m.Confirm.Focus,
+		body.Width,
+		body.Rows,
+		style.Colors.Yellow,
+		overlay,
+		cfg,
+	)
+	return PlaceDialogInPanel(content, dialogBox, body, cfg)
+}
+
+// RenderOverlayInPanel splices the selection dialog (used for image
+// export / image debug kinds) into content, centering within body.
+func RenderOverlayInPanel(content string, m *state.AppModel, body PanelBody) string {
+	tc := titleColorForKind(m.Dialog.Kind)
+	dlgCfg := LoadDialogConfig()
+	oc := resolveOverlay(m.Dependencies.Config.UI.DialogOverlayColor, dlgCfg)
+
+	dialogBox := SelectionDialog(
+		m.Dialog.Title, m.Dialog.Body, m.Dialog.Preview,
+		actionLabelForKind(m.Dialog.Kind), m.Dialog.Focus, body.Width, body.Rows, tc, oc, dlgCfg,
+	)
+	return PlaceDialogInPanel(content, dialogBox, body, dlgCfg)
+}
+
+// RenderExecOverlayInPanel splices the exec shell dialog into content,
+// centering within body.
+func RenderExecOverlayInPanel(content string, m *state.AppModel, body PanelBody) string {
+	dlgCfg := LoadDialogConfig()
+	oc := resolveOverlay(m.Dependencies.Config.UI.DialogOverlayColor, dlgCfg)
+
+	dialogBox := ExecDialog(m, oc, dlgCfg)
+	return PlaceDialogInPanel(content, dialogBox, body, dlgCfg)
+}

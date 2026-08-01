@@ -80,6 +80,10 @@ func RenderConfirmMsg(msg, target string, termW, termH int, overlayColor string)
 // RenderShellDialog shows the exec shell prompt as an overlay dialog.
 // If overlayColor is empty, the default from embedded dialog.jsonc is used.
 func RenderShellDialog(shell string, termW, termH int, overlayColor string) string {
+	return PlaceOverlay(termW, termH, RenderShellDialogBox(shell, termW, overlayColor), overlayColor)
+}
+
+func RenderShellDialogBox(shell string, termW int, overlayColor string) string {
 	if overlayColor == "" {
 		overlayColor = DefaultDialogConfig().OverlayColor
 	}
@@ -108,11 +112,14 @@ func RenderShellDialog(shell string, termW, termH int, overlayColor string) stri
 		Width(dialogW).
 		Align(lipgloss.Center).
 		Render(inner)
-
-	return PlaceOverlay(termW, termH, dialog, overlayColor)
+	return dialog
 }
 
 func RenderTextInput(title, value string, cursor, termW, termH int, overlayColor string) string {
+	return PlaceOverlay(termW, termH, RenderTextInputBox(title, value, cursor, termW, overlayColor), overlayColor)
+}
+
+func RenderTextInputBox(title, value string, cursor, termW int, overlayColor string) string {
 	if overlayColor == "" {
 		overlayColor = DefaultDialogConfig().OverlayColor
 	}
@@ -127,12 +134,15 @@ func RenderTextInput(title, value string, cursor, termW, termH int, overlayColor
 		"",
 		lipgloss.NewStyle().Faint(true).Render("[Enter] Confirm  [Esc] Cancel"),
 	)
-	dialog := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(1, 2).Width(dialogW).Render(inner)
-	return PlaceOverlay(termW, termH, dialog, overlayColor)
+	return lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(1, 2).Width(dialogW).Render(inner)
 }
 
 // RenderProgressDialog renders a cancellable image transfer overlay.
 func RenderProgressDialog(title, target, status string, current, total int64, termW, termH int, overlayColor string) string {
+	return PlaceOverlay(termW, termH, RenderProgressDialogBox(title, target, status, current, total, termW, overlayColor), overlayColor)
+}
+
+func RenderProgressDialogBox(title, target, status string, current, total int64, termW int, overlayColor string) string {
 	if overlayColor == "" {
 		overlayColor = DefaultDialogConfig().OverlayColor
 	}
@@ -148,8 +158,7 @@ func RenderProgressDialog(title, target, status string, current, total int64, te
 		lipgloss.NewStyle().Faint(true).Render("[Esc] "+i18n.T("key.cancel")),
 	)
 	dialogW := min(70, max(40, termW*35/100))
-	dialog := lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(1, 2).Width(dialogW).Render(inner)
-	return PlaceOverlay(termW, termH, dialog, overlayColor)
+	return lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).Padding(1, 2).Width(dialogW).Render(inner)
 }
 
 // PlaceOverlay centers a dialog over the terminal area WITHOUT a full-screen

@@ -38,13 +38,20 @@ func (h LayoutHit) String() string {
 }
 
 // panelRect describes the resolved top-row of the panel rail together
-// with the body height available for rows (excluding border + title).
+// with the body geometry available for rows (excluding border + title).
 // Tests assert against this struct so the mouse logic stays decoupled
 // from the rendering helpers.
+//
+// bodyLeft and bodyWidth are added for BR-040 (Dialog 居中于 panel
+// body): they describe the inner X range of the panel content so
+// dialog widgets can center within the panel rather than the whole
+// terminal.
 type panelRect struct {
-	panelTop int // absolute Y (terminal rows) of the panel border top
-	bodyTop  int // absolute Y of the first row inside the panel content
-	bodyRows int // number of data rows the panel can display
+	panelTop  int // absolute Y (terminal rows) of the panel border top
+	bodyTop   int // absolute Y of the first row inside the panel content
+	bodyRows  int // number of data rows the panel can display
+	bodyLeft  int // absolute X (terminal columns) of the first column inside the panel content
+	bodyWidth int // inner width excluding left + right border
 }
 
 // LayoutReport captures the resolved rails + panel geometry for a given
@@ -93,7 +100,7 @@ func resolveCompactLayout(m *state.AppModel) LayoutReport {
 	bodyTop := panelTop + 2 // border + title
 	return LayoutReport{
 		Class:         TerminalCompact,
-		Panel:         panelRect{panelTop: panelTop, bodyTop: bodyTop, bodyRows: panelH - 2},
+		Panel:         panelRect{panelTop: panelTop, bodyTop: bodyTop, bodyRows: panelH - 2, bodyLeft: 2, bodyWidth: m.Viewport.Width - 4},
 		HeaderBottom:  plan.header,
 		MessageBottom: plan.header + plan.message,
 		QueryBottom:   plan.header + plan.message + plan.query,
@@ -127,6 +134,15 @@ func resolveStandardLayout(m *state.AppModel) LayoutReport {
 		marginTop = 0
 		marginBot = 0
 	}
+	contentWidthPct := appCfg.ContentWidthPct
+	if contentWidthPct <= 0 || contentWidthPct > 100 {
+		contentWidthPct = 90
+	}
+	usableW := m.Viewport.Width * contentWidthPct / 100
+	if usableW < 50 {
+		usableW = m.Viewport.Width
+	}
+	padH := (m.Viewport.Width - usableW) / 2
 	rails := calculateRailHeights(usableH)
 	plan := railPlan{
 		header:  rails.header,
@@ -143,7 +159,7 @@ func resolveStandardLayout(m *state.AppModel) LayoutReport {
 	bodyTop := panelTop + 2 // border + title
 	return LayoutReport{
 		Class:         TerminalStandard,
-		Panel:         panelRect{panelTop: panelTop, bodyTop: bodyTop, bodyRows: plan.panel - 2},
+		Panel:         panelRect{panelTop: panelTop, bodyTop: bodyTop, bodyRows: plan.panel - 2, bodyLeft: padH + 2, bodyWidth: usableW - 4},
 		HeaderBottom:  headerBottom,
 		MessageBottom: messageBottom,
 		QueryBottom:   queryBottom,

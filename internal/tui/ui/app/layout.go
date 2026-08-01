@@ -226,32 +226,39 @@ func RenderApp(m *state.AppModel) string {
 	if overlayColor == "" {
 		overlayColor = "#0d1117cc"
 	}
+	rep := ResolveLayout(m)
+	panelBody := dialog.PanelBody{
+		Left:  rep.Panel.bodyLeft,
+		Top:   rep.Panel.bodyTop,
+		Width: rep.Panel.bodyWidth,
+		Rows:  rep.Panel.bodyRows,
+	}
 	if m.Navigation.Mode == state.ModeConfirm {
-		return dialog.RenderChoiceOverlay(result, m)
+		return dialog.RenderChoiceOverlayInPanel(result, m, panelBody)
 	}
 	if m.Navigation.Mode == state.ModeExecShell {
-		shellOverlay := component.RenderShellDialog(m.Dialog.Input.Text,
-			m.Viewport.Width, m.Viewport.Height, overlayColor)
-		return component.PlaceOverlay(m.Viewport.Width, m.Viewport.Height, shellOverlay, overlayColor)
+		shellOverlay := component.RenderShellDialogBox(m.Dialog.Input.Text, panelBody.Width, overlayColor)
+		return dialog.CenterOnPanelDefault(result, shellOverlay, panelBody, m.Viewport.Width, m.Viewport.Height)
 	}
 	if m.Navigation.Mode == state.ModeRename || m.Navigation.Mode == state.ModeResourceCreate ||
 		m.Navigation.Mode == state.ModeImageWorkflow {
-		inputOverlay := component.RenderTextInput(m.Dialog.Title, m.Dialog.Input.Text,
-			m.Dialog.Input.Cursor, m.Viewport.Width, m.Viewport.Height, overlayColor)
-		return component.PlaceOverlay(m.Viewport.Width, m.Viewport.Height, inputOverlay, overlayColor)
+		inputOverlay := component.RenderTextInputBox(m.Dialog.Title, m.Dialog.Input.Text,
+			m.Dialog.Input.Cursor, panelBody.Width, overlayColor)
+		return dialog.CenterOnPanelDefault(result, inputOverlay, panelBody, m.Viewport.Width, m.Viewport.Height)
 	}
 	if m.Navigation.Mode == state.ModeImageTransfer {
-		return component.RenderProgressDialog(m.Dialog.Title, m.Dialog.Body, imageTransferStatus(m.ImageTransfer.Progress.Status),
-			m.ImageTransfer.Progress.Current, m.ImageTransfer.Progress.Total, m.Viewport.Width, m.Viewport.Height, overlayColor)
+		progressOverlay := component.RenderProgressDialogBox(m.Dialog.Title, m.Dialog.Body, imageTransferStatus(m.ImageTransfer.Progress.Status),
+			m.ImageTransfer.Progress.Current, m.ImageTransfer.Progress.Total, panelBody.Width, overlayColor)
+		return dialog.CenterOnPanelDefault(result, progressOverlay, panelBody, m.Viewport.Width, m.Viewport.Height)
 	}
 	if m.Dialog.Kind.IsSelection() {
-		return dialog.RenderOverlay(result, m)
+		return dialog.RenderOverlayInPanel(result, m, panelBody)
 	}
 	if m.Dialog.Kind == state.DialogExec {
-		return dialog.RenderExecOverlay(result, m)
+		return dialog.RenderExecOverlayInPanel(result, m, panelBody)
 	}
 	if m.Navigation.Mode == state.ModeRuntimeSelect {
-		return component.PlaceOverlay(m.Viewport.Width, m.Viewport.Height, renderRuntimeSelector(m), overlayColor)
+		return dialog.CenterOnPanelDefault(result, renderRuntimeSelector(m), panelBody, m.Viewport.Width, m.Viewport.Height)
 	}
 	return result
 }

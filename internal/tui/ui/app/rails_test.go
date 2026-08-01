@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
+	"github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 )
@@ -172,6 +173,69 @@ func TestRenderAppRegressionMatrix(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestRenderAppDialogOverlaysPreservePageChrome(t *testing.T) {
+	cases := []struct {
+		name  string
+		setup func(*state.AppModel)
+		want  string
+	}{
+		{
+			name: "confirm",
+			setup: func(app *state.AppModel) {
+				app.Navigation.Mode = state.ModeConfirm
+				app.Confirm.Open("container-stop", "api", "Stop api?", app.Confirm.ConfirmAudit)
+			},
+			want: "Stop api?",
+		},
+		{
+			name: "rename",
+			setup: func(app *state.AppModel) {
+				app.Navigation.Mode = state.ModeRename
+				app.Dialog.Open(state.DialogSpec{Title: "Rename", Input: "api"})
+			},
+			want: "Rename",
+		},
+		{
+			name: "image-transfer",
+			setup: func(app *state.AppModel) {
+				app.Navigation.Mode = state.ModeImageTransfer
+				app.Dialog.Title = "Save image"
+				app.Dialog.Body = "archive.tar"
+				app.ImageTransfer.Progress.Status = "saving"
+			},
+			want: "Save image",
+		},
+		{
+			name: "runtime-select",
+			setup: func(app *state.AppModel) {
+				app.Navigation.Mode = state.ModeRuntimeSelect
+			},
+			want: "runtime selection unavailable",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+			app.Viewport.Width, app.Viewport.Height = 120, 32
+			app.Navigation.ActivePanel = state.PanelContainers
+			app.Resources.Containers.Items = []runtime.ContainerSummary{{ID: "abc", Name: "api", Image: "nginx", State: state.ContainerStateRunning}}
+			tc.setup(app)
+
+			rendered := RenderApp(app)
+			plain := component.StripANSI(rendered)
+			if !strings.Contains(plain, "Containers") || !strings.Contains(plain, "api") {
+				t.Fatalf("overlay dropped header chrome: %q", rendered)
+			}
+			if !strings.Contains(plain, tc.want) {
+				t.Fatalf("overlay missing dialog content %q: %q", tc.want, rendered)
+			}
+			if rows := strings.Count(rendered, "\n") + 1; rows != app.Viewport.Height {
+				t.Fatalf("overlay rows = %d, want %d", rows, app.Viewport.Height)
+			}
+		})
 	}
 }
 
