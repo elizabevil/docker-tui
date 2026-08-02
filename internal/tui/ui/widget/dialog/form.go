@@ -35,6 +35,9 @@ func FormDialog(m *state.AppModel, overlayColor string, cfg dialogConfig) string
 		"",
 	}
 	labelWidth, valueWidth := formLayout(form.Fields, innerWidth)
+	if form.Loading {
+		parts = append(parts, component.GetStyle("dim").Render(i18n.T("container.update.form.loading")))
+	}
 	for i := range form.Fields {
 		parts = append(parts, renderFormField(form, &form.Fields[i], i, labelWidth, valueWidth))
 	}
@@ -56,7 +59,11 @@ func FormDialog(m *state.AppModel, overlayColor string, cfg dialogConfig) string
 
 	parts = append(parts, buttons)
 	parts = append(parts, "")
-	parts = append(parts, component.GetStyle("dim").Render(i18n.T("form.hint.navigation")))
+	hintKey := "form.hint.navigation"
+	if form.Kind == state.FormContainerUpdate {
+		hintKey = "form.hint.update_navigation"
+	}
+	parts = append(parts, component.GetStyle("dim").Render(i18n.T(hintKey)))
 
 	box := DialogBox(DialogStyle{Width: dialogW, Height: dialogH, TitleColor: style.Colors.Cyan, OverlayColor: overlayColor, LeftAligned: true}, parts...)
 	if form.Popup.Open {

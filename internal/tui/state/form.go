@@ -1,6 +1,10 @@
 package state
 
-import "strings"
+import (
+	"strings"
+
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+)
 
 // FormKind identifies the parameter form behind a complex container action.
 // Forms are presented in a dedicated overlay (ModeContainerForm) and hold a
@@ -81,6 +85,9 @@ type FormField struct {
 	PathMode    PathMode
 	Suggestions []PathEntry
 	PathLoading bool
+	// PathTabInput records a completed Tab request that could not extend the
+	// common prefix. Repeating Tab with the same input opens the candidate list.
+	PathTabInput string
 
 	Touched bool // true once the user manually edited the value
 }
@@ -116,6 +123,14 @@ type FormSpec struct {
 	CWD        string
 }
 
+// ContainerUpdateConfigLoaded carries the current limits fetched for an open
+// Update form. ContainerID prevents applying stale inspect results.
+type ContainerUpdateConfigLoaded struct {
+	ContainerID string
+	Detail      *runtimeapi.ContainerDetail
+	Error       error
+}
+
 // FormState owns the active container-action form: its fields, the focused
 // field, the Confirm / Cancel slots that follow the fields, and any popup.
 type FormState struct {
@@ -128,6 +143,7 @@ type FormState struct {
 	OnConfirm  bool // when FieldFocus == -1, true selects Confirm, false Cancel
 	Popup      FormPopupState
 	CWD        string
+	Loading    bool
 }
 
 // Open resets the form to a fresh state from a spec. The initial focus is the

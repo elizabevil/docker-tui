@@ -102,6 +102,8 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		return m, nil
 	case state.ContainerPathCompleted:
 		return keyboard.HandleContainerPathCompleted(m, msg)
+	case state.ContainerUpdateConfigLoaded:
+		return keyboard.HandleContainerUpdateConfigLoaded(m, msg)
 	case keyboard.ContainerDiffDone:
 		return handleContainerDiffDone(m, msg)
 	case keyboard.ContainerWaitDone:

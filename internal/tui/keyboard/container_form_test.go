@@ -104,18 +104,73 @@ func TestOpenContainerExportForm(t *testing.T) {
 }
 
 func TestOpenContainerUpdateForm(t *testing.T) {
-	m := formModel(t, &stubContainerService{})
+	svc := &stubContainerService{inspectFn: func(_ context.Context, id string) (*runtimeapi.ContainerDetail, error) {
+		if id != "c1" {
+			t.Fatalf("inspect id = %q", id)
+		}
+		return &runtimeapi.ContainerDetail{Resources: runtimeapi.ContainerResources{
+			Memory: 512 * 1024 * 1024, NanoCPUs: 1_500_000_000,
+			RestartPolicy: "on-failure", MaximumRetryCount: 4,
+		}}, nil
+	}}
+	m := formModel(t, svc)
 	updated, cmd := openContainerUpdateForm(m)
-	if cmd != nil {
-		t.Fatalf("open returned a cmd %T, want nil", cmd)
+	if cmd == nil || !updated.Form.Loading {
+		t.Fatalf("open must inspect current configuration: loading=%v cmd=%v", updated.Form.Loading, cmd)
 	}
 	requireForm(t, updated, state.FormContainerUpdate, 4)
+	msg := cmd().(state.ContainerUpdateConfigLoaded)
+	updated, _ = HandleContainerUpdateConfigLoaded(updated, msg)
+	if updated.Form.Loading {
+		t.Fatal("inspect result must clear loading")
+	}
+	if got := updated.Form.Get(fieldMemory).Text(); got != "512" {
+		t.Fatalf("memory = %q, want 512", got)
+	}
+	if got := updated.Form.Get(fieldCPUs).Text(); got != "1.5" {
+		t.Fatalf("CPUs = %q, want 1.5", got)
+	}
 	restart := updated.Form.Get(fieldRestartPolicy)
 	if restart == nil || restart.Kind != state.FormSelect || len(restart.Options) != len(restartPolicyChoices) {
 		t.Fatalf("update restart field wrong: %#v", restart)
 	}
-	if restart.Option() != restartPolicyUnchanged {
-		t.Fatalf("restart default = %q, want unchanged", restart.Option())
+	if restart.Option() != "on-failure" || updated.Form.Get(fieldMaxRetries).Text() != "4" {
+		t.Fatalf("restart config = %q/%q", restart.Option(), updated.Form.Get(fieldMaxRetries).Text())
+	}
+}
+
+func TestContainerUpdateInspectDoesNotOverwriteTouchedField(t *testing.T) {
+	m := formModel(t, &stubContainerService{})
+	openContainerUpdateForm(m)
+	memory := m.Form.Get(fieldMemory)
+	memory.Input.Set("256")
+	memory.Touched = true
+	msg := state.ContainerUpdateConfigLoaded{ContainerID: "c1", Detail: &runtimeapi.ContainerDetail{
+		Resources: runtimeapi.ContainerResources{Memory: 512 * 1024 * 1024, NanoCPUs: 2_000_000_000, RestartPolicy: "always"},
+	}}
+	HandleContainerUpdateConfigLoaded(m, msg)
+	if memory.Text() != "256" || m.Form.Get(fieldCPUs).Text() != "2" {
+		t.Fatalf("inspect overwrote edited value or missed untouched value: memory=%q cpus=%q", memory.Text(), m.Form.Get(fieldCPUs).Text())
+	}
+}
+
+func TestContainerUpdateTabCyclesFocus(t *testing.T) {
+	m := formModel(t, &stubContainerService{})
+	openContainerUpdateForm(m)
+	if m.Form.FocusedButton() != "cancel" {
+		t.Fatal("setup must start on Cancel")
+	}
+	handleContainerFormKey(keys.KeyTab, m)
+	if m.Form.FieldFocus != 0 {
+		t.Fatalf("Tab from Cancel = field %d, want 0", m.Form.FieldFocus)
+	}
+	handleContainerFormKey(keys.KeyTab, m)
+	if m.Form.FieldFocus != 1 {
+		t.Fatalf("second Tab = field %d, want 1", m.Form.FieldFocus)
+	}
+	handleContainerFormKey(keys.KeyShiftTab, m)
+	if m.Form.FieldFocus != 0 {
+		t.Fatalf("Shift+Tab = field %d, want 0", m.Form.FieldFocus)
 	}
 }
 
@@ -629,6 +684,10 @@ func TestFormPathTabMultipleCandidatesOpensPopup(t *testing.T) {
 	dst.Input.Set(filepath.Join(dir, "al"))
 
 	updated, _ := handleContainerFormKey(keys.KeyTab, m)
+	if updated.Form.Popup.Open || !strings.HasSuffix(dst.Text(), "alp") {
+		t.Fatalf("first Tab must only extend the common prefix: input=%q popup=%#v", dst.Text(), updated.Form.Popup)
+	}
+	updated, _ = handleContainerFormKey(keys.KeyTab, updated)
 	if !updated.Form.Popup.Open || updated.Form.Popup.Kind != state.PopupPath {
 		t.Fatalf("multiple candidates must open path popup: %#v", updated.Form.Popup)
 	}
@@ -997,6 +1056,7 @@ func TestPathPopupForwardAndReverseCycle(t *testing.T) {
 	}
 	dst.Input.Set(filepath.Join(dir, "al"))
 	handleContainerFormKey(keys.KeyTab, m)
+	handleContainerFormKey(keys.KeyTab, m)
 	if !m.Form.Popup.Open {
 		t.Fatal("Tab must open popup")
 	}
@@ -1008,6 +1068,37 @@ func TestPathPopupForwardAndReverseCycle(t *testing.T) {
 	handleContainerFormKey(keys.KeyShiftTab, m)
 	if m.Form.Popup.Cursor != start {
 		t.Fatalf("Shift+Tab in popup must reverse cursor: want %d got %d", start, m.Form.Popup.Cursor)
+	}
+}
+
+func TestPathPopupLeftRightSelectsCandidates(t *testing.T) {
+	m := formModel(t, &stubContainerService{})
+	openContainerExportForm(m)
+	dst := m.Form.Get(fieldDestinationPath)
+	m.Form.MoveSlot(1)
+	dir := t.TempDir()
+	for _, name := range []string{"alpha.tar", "alpine.tar"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	dst.Input.Set(filepath.Join(dir, "al"))
+	handleContainerFormKey(keys.KeyTab, m)
+	handleContainerFormKey(keys.KeyTab, m)
+	if !m.Form.Popup.Open {
+		t.Fatal("second Tab must open candidates")
+	}
+	handleContainerFormKey(keys.KeyRight, m)
+	if m.Form.Popup.Cursor != 1 {
+		t.Fatalf("Right cursor = %d, want 1", m.Form.Popup.Cursor)
+	}
+	handleContainerFormKey(keys.KeyLeft, m)
+	if m.Form.Popup.Cursor != 0 {
+		t.Fatalf("Left cursor = %d, want 0", m.Form.Popup.Cursor)
+	}
+	handleContainerFormKey(keys.KeyEnter, m)
+	if m.Form.Popup.Open || !strings.HasSuffix(dst.Text(), "alpha.tar") {
+		t.Fatalf("Enter must confirm file: input=%q popup=%#v", dst.Text(), m.Form.Popup)
 	}
 }
 
@@ -1123,6 +1214,7 @@ func TestPathPopupEnterOnDirectoryVsFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	dst.Input.Set(dir + "/")
+	handleContainerFormKey(keys.KeyTab, m)
 	handleContainerFormKey(keys.KeyTab, m)
 	if !m.Form.Popup.Open {
 		t.Fatal("Tab must open popup")

@@ -51,16 +51,20 @@ func (t *trackerReadCloser) isClosed() bool {
 // stubContainerService implements runtimeapi.ContainerService with pluggable
 // diff / wait / export / copy behaviors. Unused methods are no-op stubs.
 type stubContainerService struct {
-	diffFn   func(context.Context, string) ([]runtimeapi.ContainerDiffChange, error)
-	waitFn   func(context.Context, string, string) (runtimeapi.ContainerWaitResult, error)
-	exportFn func(context.Context, string) (io.ReadCloser, error)
-	copyFn   func(context.Context, string, string) (io.ReadCloser, error)
+	inspectFn func(context.Context, string) (*runtimeapi.ContainerDetail, error)
+	diffFn    func(context.Context, string) ([]runtimeapi.ContainerDiffChange, error)
+	waitFn    func(context.Context, string, string) (runtimeapi.ContainerWaitResult, error)
+	exportFn  func(context.Context, string) (io.ReadCloser, error)
+	copyFn    func(context.Context, string, string) (io.ReadCloser, error)
 }
 
 func (s *stubContainerService) List(context.Context, runtimeapi.ContainerListOptions) ([]runtimeapi.ContainerSummary, error) {
 	return nil, nil
 }
-func (s *stubContainerService) Inspect(context.Context, string) (*runtimeapi.ContainerDetail, error) {
+func (s *stubContainerService) Inspect(ctx context.Context, id string) (*runtimeapi.ContainerDetail, error) {
+	if s.inspectFn != nil {
+		return s.inspectFn(ctx, id)
+	}
 	return nil, nil
 }
 func (s *stubContainerService) Top(context.Context, string) (runtimeapi.ContainerProcesses, error) {

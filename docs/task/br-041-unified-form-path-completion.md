@@ -358,8 +358,9 @@ Form 主页面使用方向键进行空间导航:
 
 - Tab 只补全当前路径或命令字段。
 - 单候选直接补全。
-- 多候选补全公共前缀并打开候选列表。
+- 多候选首次 Tab 只补全公共前缀；再次 Tab 打开候选列表。
 - 重复 Tab 在候选列表中循环或保持列表打开。
+- 路径候选支持 Left/Right 与 Up/Down 移动，Enter 确认文件或进入目录。
 - 无候选时保持当前输入并显示提示。
 - Tab 和 Shift+Tab 都不得把焦点移动到其他输入框或按钮。
 - 字段、选择框和按钮之间的移动统一使用 Up/Down/Left/Right。
@@ -494,6 +495,12 @@ Form 状态必须保留原目标 resource ID；弹出确认、资源列表刷新
 - 补全命令异步运行，不阻塞 Bubble Tea UI；单候选直接补全，多候选应用公共前缀并打开弹层。
 - 该增强仅适用于运行中且包含 `/bin/sh` 的 Linux 容器；其他场景明确降级为手工输入，不阻断 Copy。
 - Image Save 自动生成绝对 tar 路径；Image Load 可浏览本地目录，提交时校验为已存在的普通文件。
+
+### Update Form 补充（2026-08-02）
+
+- 打开 Update 后异步 Inspect 当前容器，显示 Memory、CPU、Restart policy 和 Max retries。
+- Inspect 返回前已经编辑的字段不会被异步结果覆盖。
+- Update 使用 Tab/Shift+Tab 切换字段和按钮；路径类 Form 继续保留 Tab 补全语义。
 
 ## 13. 候选文件
 

@@ -149,8 +149,60 @@ func openContainerUpdateForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 			{Key: fieldMaxRetries, Label: i18n.T("container.update.form.max_retries"), Kind: state.FormInt},
 		},
 	})
+	m.Form.Loading = true
 	m.Navigation.Mode = state.ModeContainerForm
+	return m, containerUpdateConfigCmd(m.Connection.Engine, ctr.ID)
+}
+
+func containerUpdateConfigCmd(engine runtimeapi.Engine, containerID string) tea.Cmd {
+	return func() tea.Msg {
+		detail, err := engine.Containers().Inspect(context.Background(), containerID)
+		return state.ContainerUpdateConfigLoaded{ContainerID: containerID, Detail: detail, Error: err}
+	}
+}
+
+// HandleContainerUpdateConfigLoaded pre-fills untouched fields with the
+// container's effective resource configuration.
+func HandleContainerUpdateConfigLoaded(m *state.AppModel, msg state.ContainerUpdateConfigLoaded) (*state.AppModel, tea.Cmd) {
+	if m.Navigation.Mode != state.ModeContainerForm || m.Form.Kind != state.FormContainerUpdate || m.Form.TargetID != msg.ContainerID {
+		return m, nil
+	}
+	m.Form.Loading = false
+	if msg.Error != nil || msg.Detail == nil {
+		err := msg.Error
+		if err == nil {
+			err = fmt.Errorf("container inspect returned no data")
+		}
+		ShowToastWarn(m, i18n.T("container.update.form.load_failed", err.Error()))
+		return m, nil
+	}
+	resources := msg.Detail.Resources
+	setUntouchedFormText(m.Form.Get(fieldMemory), formatResourceValue(float64(resources.Memory)/(1024*1024)))
+	setUntouchedFormText(m.Form.Get(fieldCPUs), formatResourceValue(float64(resources.NanoCPUs)/1e9))
+	setUntouchedFormText(m.Form.Get(fieldMaxRetries), strconv.Itoa(resources.MaximumRetryCount))
+	if restart := m.Form.Get(fieldRestartPolicy); restart != nil && !restart.Touched {
+		policy := resources.RestartPolicy
+		if policy == "" {
+			policy = "no"
+		}
+		for i, option := range restart.Options {
+			if option == policy {
+				restart.Index = i
+				break
+			}
+		}
+	}
 	return m, nil
+}
+
+func setUntouchedFormText(field *state.FormField, value string) {
+	if field != nil && !field.Touched {
+		field.Input.Set(value)
+	}
+}
+
+func formatResourceValue(value float64) string {
+	return strconv.FormatFloat(value, 'f', -1, 64)
 }
 
 // openContainerCommitForm opens the Commit form. Repository is required; tag,
@@ -189,6 +241,14 @@ func handleContainerFormKey(key string, m *state.AppModel) (*state.AppModel, tea
 	// Button area: focus is on Cancel (default) or Confirm.
 	if m.Form.FocusedButton() != "" {
 		switch key {
+		case keys.KeyTab:
+			if m.Form.Kind == state.FormContainerUpdate {
+				m.Form.MoveSlot(1)
+			}
+		case keys.KeyShiftTab:
+			if m.Form.Kind == state.FormContainerUpdate {
+				m.Form.MoveSlot(-1)
+			}
 		case keys.KeyUp:
 			m.Form.MoveField(-1)
 		case keys.KeyDown:
@@ -215,6 +275,7 @@ func handleContainerFormKey(key string, m *state.AppModel) (*state.AppModel, tea
 			switch key {
 			case keys.KeyLeft, keys.KeyRight, keys.KeySpace:
 				f.Toggle = !f.Toggle
+				f.Touched = true
 				return m, nil
 			}
 		case state.FormText, state.FormInt, state.FormPath:
@@ -236,15 +297,14 @@ func handleContainerFormKey(key string, m *state.AppModel) (*state.AppModel, tea
 	case keys.KeyDown:
 		m.Form.MoveField(1)
 	case keys.KeyTab:
-		// Tab only drives completion on Path fields; it never moves focus.
-		if f != nil && f.Kind == state.FormPath {
+		if m.Form.Kind == state.FormContainerUpdate {
+			m.Form.MoveSlot(1)
+		} else if f != nil && f.Kind == state.FormPath {
 			return m, pathTabCycle(m, f)
 		}
 	case keys.KeyShiftTab:
-		// Shift+Tab only reverse-cycles inside an open path popup; otherwise
-		// it is a no-op so it never moves focus between fields.
-		if f != nil && f.Kind == state.FormPath && m.Form.Popup.Open {
-			m.Form.PopupCursor(-1)
+		if m.Form.Kind == state.FormContainerUpdate {
+			m.Form.MoveSlot(-1)
 		}
 	case keys.KeyCtrlSpace:
 		if f != nil && f.Kind == state.FormPath {
@@ -289,9 +349,10 @@ func handleContainerFormKey(key string, m *state.AppModel) (*state.AppModel, tea
 }
 
 func handleFormFieldChanged(m *state.AppModel, f *state.FormField) {
+	f.Touched = true
 	if f.Kind == state.FormPath {
-		f.Touched = true
 		f.PathLoading = false
+		f.PathTabInput = ""
 		if f.PathSource == state.PathContainer {
 			f.Suggestions = nil
 		} else {
@@ -326,20 +387,28 @@ func applyPathSuggestions(m *state.AppModel, f *state.FormField, openPopup bool)
 	switch len(f.Suggestions) {
 	case 1:
 		applyPathEntry(f, f.Suggestions[0])
+		f.PathTabInput = ""
 	case 0:
+		f.PathTabInput = ""
 		ShowToastWarn(m, i18n.T("form.path.no_matches"))
 	default:
-		if !openPopup {
-			if prefix := commonPathPrefix(f.Suggestions); len(prefix) > len(f.Input.Text) {
-				f.Input.Set(prefix)
-				f.Touched = true
-				if f.PathSource == state.PathLocal {
-					completeForField(m, f)
-				}
+		prefix := commonPathPrefix(f.Suggestions)
+		if !openPopup && len(prefix) > len(f.Input.Text) {
+			f.Input.Set(prefix)
+			f.Touched = true
+			// The next Tab with the newly extended prefix lists candidates,
+			// matching interactive shell completion.
+			f.PathTabInput = prefix
+			if f.PathSource == state.PathLocal {
+				completeForField(m, f)
 			}
+			return
 		}
-		if len(f.Suggestions) > 0 {
+		if openPopup || f.PathTabInput == f.Input.Text {
 			m.Form.OpenPopup()
+			f.PathTabInput = ""
+		} else {
+			f.PathTabInput = f.Input.Text
 		}
 	}
 }
@@ -460,6 +529,14 @@ func handleFormPopupKey(key string, m *state.AppModel) (*state.AppModel, tea.Cmd
 		m.Form.PopupCursor(-1)
 	case keys.KeyDown:
 		m.Form.PopupCursor(1)
+	case keys.KeyLeft:
+		if m.Form.Popup.Kind == state.PopupPath {
+			m.Form.PopupCursor(-1)
+		}
+	case keys.KeyRight:
+		if m.Form.Popup.Kind == state.PopupPath {
+			m.Form.PopupCursor(1)
+		}
 	case keys.KeyHome:
 		m.Form.PopupCursorHome()
 	case keys.KeyEnd:
@@ -511,6 +588,7 @@ func confirmFormPopup(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case state.FormSelect:
 		if idx := m.Form.Popup.Cursor; idx >= 0 && idx < len(f.Options) {
 			f.Index = idx
+			f.Touched = true
 		}
 		m.Form.ClosePopup()
 	case state.FormMultiSelect:
@@ -606,12 +684,12 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		opts := runtimeapi.ContainerUpdateOptions{}
 		changed := false
 		if mem := m.Form.Get(fieldMemory); mem != nil && mem.Text() != "" {
-			mb, err := strconv.ParseInt(mem.Text(), 10, 64)
-			if err != nil || mb < 0 || mb > math.MaxInt64/(1024*1024) {
+			mb, err := strconv.ParseFloat(mem.Text(), 64)
+			if err != nil || mb < 0 || math.IsNaN(mb) || math.IsInf(mb, 0) || mb > float64(math.MaxInt64)/(1024*1024) {
 				ShowToastWarn(m, i18n.T("container.update.form.invalid"))
 				return m, nil
 			}
-			bytes := mb * 1024 * 1024
+			bytes := int64(mb * 1024 * 1024)
 			opts.Memory = &bytes
 			changed = true
 		}
