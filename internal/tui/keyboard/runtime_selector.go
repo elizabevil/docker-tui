@@ -72,6 +72,7 @@ func handleRuntimeSelectorKey(key string, m *state.AppModel) (*state.AppModel, t
 		m.Connection.RuntimeSelectorCursor = (m.Connection.RuntimeSelectorCursor + 1) % len(names)
 	case keys.KeyEnter:
 		name := names[m.Connection.RuntimeSelectorCursor]
+		m.ContainerWait.Stop()
 		m.Connection.Begin()
 		return m, runtimeConnectionCmd(m, name)
 	}

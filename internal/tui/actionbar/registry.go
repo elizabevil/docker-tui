@@ -66,6 +66,14 @@ func containerActions(m *state.AppModel) []ActionItem {
 			Label: "Port", Action: keys.ActionContainerPort,
 			Description: "Open structured container port mappings", Disabled: missingContainer,
 		},
+		{
+			Label: "Filesystem Diff", Action: keys.ActionContainerDiff,
+			Description: "Inspect filesystem changes from the base image", Disabled: missingEngine || missingContainer,
+		},
+		{
+			Label: "Wait", Action: keys.ActionContainerWait,
+			Description: "Wait until the container is no longer running", Disabled: missingEngine || missingContainer,
+		},
 	}
 }
 

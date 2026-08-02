@@ -6,7 +6,7 @@
 
 - **关联编号**:BR-035
 - **优先级**:medium
-- **状态**:`open`
+- **状态**:`partial` - Events 面板已完成；Network Connect / Disconnect 待实现
 - **依赖**:TASK-008(Docker / Podman Events 已接入主循环)
 - **关联设计**:[docs/feature-design.md §5.7 / §5.3](../feature-design.md)
 
@@ -14,6 +14,22 @@
 
 1. **Events 独立面板**:`F3` 全局进入 `ModeEvents`,浏览 runtime events 流,默认保留最近 1000 条,支持 Filter / Pause / Clear。
 2. **Network Connect / Disconnect**:网络页与容器详情页加入容器接入 / 脱离网络动作,补齐 `NetworkService` 接口。
+
+## 当前实现进度（2026-08-02）
+
+### Events
+
+- [x] F3 全局入口、独立 `ModeEvents`、面包屑与返回原页面。
+- [x] 复用事件订阅，保留最近 1000 条，Pause / Resume 使用合并容量受限的缓冲区。
+- [x] Filter、滚动、鼠标滚轮、Clear 二次确认。
+- [x] 公共 Flex Table、i18n、底部状态栏快捷键提示。
+- [x] Events 页面内部只显示状态与过滤条件，不重复显示快捷键。
+
+### Network Connect / Disconnect
+
+- [ ] 扩展 `NetworkService` 与 Docker / Podman adapter。
+- [ ] 增加网络连接参数表单及 Action Bar 动作。
+- [ ] 增加结果反馈、audit、刷新与双 runtime 测试。
 
 ## 代码结构索引
 

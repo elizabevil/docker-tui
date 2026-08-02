@@ -66,7 +66,8 @@ func doConfirmYes(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	action := m.Confirm.ConfirmAction
 	target := m.Confirm.ConfirmTarget
 	trace := m.Confirm.ConfirmAudit
-	m.Navigation.Mode = state.ModeNormal
+	returnMode := confirmReturnMode(m)
+	m.Navigation.Mode = returnMode
 	m.Confirm.Close()
 
 	switch {
@@ -92,6 +93,9 @@ func doConfirmYes(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		return m, resourcePruneCmd(m, runtimeapi.ResourceVolume, trace)
 	case action == "network-prune":
 		return m, resourcePruneCmd(m, runtimeapi.ResourceNetwork, trace)
+	case action == "events-clear":
+		m.EventPanel.Clear()
+		return m, nil
 	}
 	return m, nil
 }

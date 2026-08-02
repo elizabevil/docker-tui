@@ -10,6 +10,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/compose"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/containers"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/detail"
+	pageevents "github.com/elizabevil/docker-tui/internal/tui/ui/pages/events"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/help"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/history"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/images"
@@ -48,6 +49,8 @@ func templateFor(m *state.AppModel) pageTemplateKind {
 	case m.Navigation.Mode == state.ModeAuditDetail:
 		return detailPageTemplate
 	case m.Navigation.Mode == state.ModeHistory:
+		return detailPageTemplate
+	case m.Navigation.Mode == state.ModeEvents:
 		return detailPageTemplate
 	case m.Navigation.ActivePanel == state.PanelHelp:
 		return helpPageTemplate
@@ -101,6 +104,9 @@ func projectPage(m *state.AppModel, bodyHeight, bodyWidth int) pageView {
 			view.title = i18n.T("history.title")
 			view.summary = fmt.Sprintf(i18n.T("history.summary"), m.History.ImageRef, len(m.History.Layers))
 			view.content = history.RenderView(m, bodyHeight, bodyWidth)
+		} else if m.Navigation.Mode == state.ModeEvents {
+			view.title = i18n.T("events.title")
+			view.content = pageevents.RenderView(&m.EventPanel, bodyHeight, bodyWidth)
 		} else if m.Detail.DetailResourceType == state.ResourceComposeProject {
 			view.content = compose.RenderProjectDetailTable(m, bodyWidth, bodyHeight)
 		} else {

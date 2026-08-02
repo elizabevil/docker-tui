@@ -49,6 +49,7 @@ func Registry() []ActionSpec {
 		{ActionDelete, []string{KeyCtrlD}, main},
 		{ActionCommand, []string{":"}, app},
 		{ActionSwitchRuntime, []string{KeyF2}, app},
+		{ActionEvents, []string{KeyF3}, app},
 		{ActionDetail, []string{KeyD}, []Context{{View: "containers"}, {View: "images"}, {View: "volumes"}, {View: "networks"}}},
 		{ActionContainerStart, []string{KeyS}, containers},
 		{ActionContainerStop, []string{KeyCtrlS}, containers},
@@ -64,12 +65,12 @@ func Registry() []ActionSpec {
 		// TASK-019 advanced container actions. Keys chosen to avoid
 		// collisions with the existing lifecycle bindings above; users can
 		// override via the keymap config.
-		{ActionContainerUpdate, []string{KeyCtrlW}, containers},
-		{ActionContainerDiff, []string{KeyF2}, containers},
-		{ActionContainerExport, []string{KeyCtrlX}, containers},
-		{ActionContainerCommit, []string{KeyCtrlK}, containers},
-		{ActionContainerWait, []string{KeyCtrlY}, containers},
-		{ActionContainerCopy, []string{KeyCtrlO}, containers},
+		{ActionContainerUpdate, nil, containers},
+		{ActionContainerDiff, nil, containers},
+		{ActionContainerExport, nil, containers},
+		{ActionContainerCommit, nil, containers},
+		{ActionContainerWait, nil, containers},
+		{ActionContainerCopy, nil, containers},
 		{ActionImagePull, []string{KeyCtrlP}, images},
 		{ActionImageRemove, []string{KeyCtrlD}, images},
 		{ActionImagePrune, []string{KeyP}, images},

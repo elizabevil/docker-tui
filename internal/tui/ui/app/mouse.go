@@ -312,6 +312,9 @@ func scrollActivePanel(m *state.AppModel, delta int) {
 	case state.ModeHistory:
 		total := len(history.FilterLayers(m.History.Layers, m.History.Filter))
 		m.History.MoveCursor(delta, total, max(1, m.Viewport.Height-18))
+	case state.ModeEvents:
+		total := len(m.EventPanel.FilteredEvents())
+		m.EventPanel.MoveCursor(delta, total, max(1, m.Viewport.Height-18))
 	}
 }
 

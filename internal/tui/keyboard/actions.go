@@ -16,6 +16,7 @@ import (
 func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*state.AppModel, tea.Cmd) {
 	switch action {
 	case keys.ActionQuit:
+		m.ContainerWait.Stop()
 		return m, tea.Quit
 
 	case keys.ActionHelp:
@@ -123,6 +124,12 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 
 	case keys.ActionImageHistory:
 		return openHistoryPage(m)
+	case keys.ActionEvents:
+		return openEventsPage(m)
+	case keys.ActionContainerDiff:
+		return doContainerDiff(m)
+	case keys.ActionContainerWait:
+		return doContainerWait(m)
 
 	case keys.ActionActionBar:
 		return doActionBar(m)
@@ -163,6 +170,7 @@ func handleBackAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	m.Metrics.StatsActive = false
 	if m.Navigation.EscPending {
 		m.Navigation.EscPending = false
+		m.ContainerWait.Stop()
 		return m, tea.Quit
 	}
 	m.Navigation.EscPending = true

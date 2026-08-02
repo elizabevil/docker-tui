@@ -2,6 +2,9 @@ package update
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
@@ -22,6 +25,8 @@ func handleMouseWheel(m *state.AppModel, msg tea.MouseWheelMsg) *state.AppModel 
 			m.Detail.Scroll(-3)
 		case state.ModeLogView:
 			m.Log.Scroll(-3)
+		case state.ModeEvents:
+			m.EventPanel.MoveCursor(-3, len(m.EventPanel.FilteredEvents()), max(1, m.Viewport.Height-18))
 		}
 	case tea.MouseWheelDown:
 		switch m.Navigation.Mode {
@@ -29,6 +34,8 @@ func handleMouseWheel(m *state.AppModel, msg tea.MouseWheelMsg) *state.AppModel 
 			m.Detail.Scroll(3)
 		case state.ModeLogView:
 			m.Log.Scroll(3)
+		case state.ModeEvents:
+			m.EventPanel.MoveCursor(3, len(m.EventPanel.FilteredEvents()), max(1, m.Viewport.Height-18))
 		}
 	}
 	return m
@@ -93,6 +100,10 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case state.ContainerProcessesLoaded:
 		m.Processes.Apply(msg.ContainerID, msg.Processes.Titles, msg.Processes.Processes, msg.Error)
 		return m, nil
+	case keyboard.ContainerDiffDone:
+		return handleContainerDiffDone(m, msg)
+	case keyboard.ContainerWaitDone:
+		return handleContainerWaitDone(m, msg)
 
 	case state.ImageActioned:
 		return handleImageActioned(m, msg)
@@ -191,6 +202,66 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+func handleContainerDiffDone(m *state.AppModel, msg keyboard.ContainerDiffDone) (*state.AppModel, tea.Cmd) {
+	if msg.Error != nil {
+		keyboard.FinishAudit(m, msg.Audit, audit.ResultFailed, "Container diff failed", audit.Details{Error: msg.Error.Error()})
+		m.Feedback.RecordError("resource.container.diff: " + msg.Error.Error())
+		return m, nil
+	}
+	var content strings.Builder
+	content.WriteString("KIND  PATH\n")
+	for _, change := range msg.Changes {
+		content.WriteString(fmt.Sprintf("%-5s %s\n", containerDiffKind(change.Kind), change.Path))
+	}
+	if len(msg.Changes) == 0 {
+		content.WriteString("No filesystem changes.\n")
+	}
+	keyboard.FinishAudit(m, msg.Audit, audit.ResultSucceeded, "Container diff loaded", audit.Details{})
+	keyboard.ToDetail(m, "Container Diff: "+shortMessageID(msg.ContainerID), content.String())
+	return m, nil
+}
+
+func handleContainerWaitDone(m *state.AppModel, msg keyboard.ContainerWaitDone) (*state.AppModel, tea.Cmd) {
+	// A response from an older wait must not affect a newer operation. A
+	// response for the current generation is still terminal after Stop(), and
+	// must close its audit record instead of being discarded as stale.
+	if msg.Generation == 0 || msg.Generation != m.ContainerWait.Generation {
+		return m, nil
+	}
+	m.ContainerWait.Stop()
+	if errors.Is(msg.Error, context.Canceled) {
+		keyboard.FinishAudit(m, msg.Audit, audit.ResultCancelled, "Container wait cancelled", audit.Details{})
+		return m, nil
+	}
+	if msg.Error != nil {
+		keyboard.FinishAudit(m, msg.Audit, audit.ResultFailed, "Container wait failed", audit.Details{Error: msg.Error.Error()})
+		m.Feedback.RecordError("resource.container.wait: " + msg.Error.Error())
+		return m, nil
+	}
+	message := fmt.Sprintf("Container exited with status %d", msg.Result.StatusCode)
+	keyboard.FinishAudit(m, msg.Audit, audit.ResultSucceeded, message, audit.Details{})
+	m.Feedback.ShowToast(message, state.NotificationSuccess, 30)
+	return m, nil
+}
+
+func containerDiffKind(kind runtimeapi.ChangeKind) string {
+	switch kind {
+	case runtimeapi.ChangeAdded:
+		return "ADD"
+	case runtimeapi.ChangeDeleted:
+		return "DEL"
+	default:
+		return "MOD"
+	}
+}
+
+func shortMessageID(id string) string {
+	if len(id) > 12 {
+		return id[:12]
+	}
+	return id
 }
 
 func handleExecOutput(m *state.AppModel, msg state.ExecOutput) (*state.AppModel, tea.Cmd) {

@@ -21,6 +21,7 @@ func TestTemplateFor(t *testing.T) {
 		{name: "detail", app: state.AppModel{Navigation: state.NavigationState{Mode: state.ModeDetail}}, want: detailPageTemplate},
 		{name: "logs", app: state.AppModel{Navigation: state.NavigationState{Mode: state.ModeLogView}}, want: logPageTemplate},
 		{name: "log search", app: state.AppModel{Navigation: state.NavigationState{Mode: state.ModeSearch}, Log: state.LogState{LogContainerID: "container"}}, want: logPageTemplate},
+		{name: "events", app: state.AppModel{Navigation: state.NavigationState{Mode: state.ModeEvents}}, want: detailPageTemplate},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

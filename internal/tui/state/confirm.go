@@ -9,6 +9,7 @@ type ConfirmState struct {
 	ConfirmAudit   audit.Trace
 	Options        []ChoiceOption
 	Focus          int
+	ReturnMode     AppMode
 }
 
 type ChoiceOption struct {

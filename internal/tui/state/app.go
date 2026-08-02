@@ -60,6 +60,7 @@ const (
 	ModeAuditDetail
 	ModeActionBar
 	ModeHistory
+	ModeEvents
 )
 
 // ExecDialogFocus identifies focusable regions in the exec dialog.
@@ -98,6 +99,8 @@ type AppModel struct {
 	Viewport      ViewportState
 	Processes     ProcessState
 	Events        EventState
+	EventPanel    EventsPanelState
+	ContainerWait ContainerWaitState
 	ImageTransfer ImageTransferState
 	History       HistoryState
 	Audit         AuditState

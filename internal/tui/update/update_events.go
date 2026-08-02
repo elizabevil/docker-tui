@@ -64,6 +64,7 @@ func handleRuntimeEvent(m *state.AppModel, msg state.RuntimeEventReceived) (*sta
 		return scheduleEventReconnect(m, msg.Generation, msg.Item.Error)
 	}
 	m.Events.RecordReady()
+	m.EventPanel.AppendItems([]runtimeapi.EventItem{msg.Item})
 	token, scheduleFlush := m.Events.MarkDirty(msg.Item.Event.ResourceType)
 	commands := []tea.Cmd{readEventCmd(msg.Generation, msg.Items)}
 	if scheduleFlush {

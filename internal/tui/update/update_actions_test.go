@@ -1,6 +1,7 @@
 package update
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -8,6 +9,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/config"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/tui/keyboard"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
 
@@ -85,6 +87,33 @@ func TestHistoryLoadedIgnoresStaleResponse(t *testing.T) {
 	})
 	if updated.History.Loading || len(updated.History.Layers) != 1 || updated.History.Layers[0].ID != "new" {
 		t.Fatalf("current response not applied: %+v", updated.History)
+	}
+}
+
+func TestContainerWaitDoneIgnoresStaleGeneration(t *testing.T) {
+	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	_, generation := app.ContainerWait.Begin()
+	updated, _ := handleContainerWaitDone(app, keyboard.ContainerWaitDone{Generation: generation + 1})
+	if !updated.ContainerWait.Current(generation) {
+		t.Fatal("stale wait response stopped the current wait")
+	}
+}
+
+func TestContainerWaitCancellationCompletesCurrentGeneration(t *testing.T) {
+	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app.Dependencies.Audit = audit.NewService(nil)
+	_, generation := app.ContainerWait.Begin()
+	trace := app.Dependencies.Audit.Begin("resource.container.wait", audit.ContainerTarget{ID: "abc"}, audit.RuntimeContext{}, audit.UIContext{}, "Waiting")
+	app.ContainerWait.Stop()
+
+	updated, _ := handleContainerWaitDone(app, keyboard.ContainerWaitDone{
+		Generation: generation,
+		Error:      context.Canceled,
+		Audit:      trace,
+	})
+	records := updated.Dependencies.Audit.RecentOperations()
+	if len(records) != 3 || records[2].Result != audit.ResultCancelled {
+		t.Fatalf("cancelled wait records=%#v", records)
 	}
 }
 

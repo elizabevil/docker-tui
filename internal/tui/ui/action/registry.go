@@ -32,6 +32,7 @@ func Global(app ...*state.AppModel) []Shortcut {
 		{bindingLabel(model, keys.ActionCommand, ":"), "Command"},
 		{bindingLabel(model, keys.ActionActionBar, keys.KeySemicolon), "Action Bar"},
 		{bindingLabel(model, keys.ActionSwitchRuntime, keys.KeyF2), "Runtime"},
+		{bindingLabel(model, keys.ActionEvents, keys.KeyF3), i18n.T("events.title")},
 		{bindingLabel(model, keys.ActionHelp, keys.KeyQmark), i18n.T("key.help")},
 		{keys.KeyCUpper, i18n.T("key.connect")},
 	}
@@ -61,6 +62,11 @@ func ForMode(app *state.AppModel) []Shortcut {
 			return shortcuts("Enter/Esc", i18n.T("history.filter_done"), "Backspace", i18n.T("history.filter_delete"))
 		}
 		return shortcuts("Esc", i18n.T("key.back"), "j/k", i18n.T("key.scroll"), "PgUp/Dn", i18n.T("history.page"), "g/G", i18n.T("history.first_last"), "/", i18n.T("key.filter"))
+	case state.ModeEvents:
+		if app.EventPanel.Filtering {
+			return shortcuts("Enter/Esc", i18n.T("events.filter_done"), "Backspace", i18n.T("history.filter_delete"))
+		}
+		return shortcuts("Esc", i18n.T("key.back"), "j/k", i18n.T("key.scroll"), "PgUp/Dn", i18n.T("history.page"), "Space", i18n.T("events.pause"), "/", i18n.T("key.filter"), "Ctrl+D", i18n.T("events.clear"))
 	case state.ModeMark:
 		return []Shortcut{
 			{bindingLabel(app, keys.ActionBack, keys.KEsc), "Cancel"},

@@ -26,6 +26,15 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 		m.Feedback.ClearError()
 	}
 
+	// Events is a global read-only page. Resolve it before page-owned modes
+	// such as History and Help consume otherwise-unhandled keys. Input and
+	// confirmation modes remain modal and are intentionally excluded.
+	if m.Navigation.Mode != state.ModeEvents && canOpenEventsFrom(m.Navigation.Mode) {
+		if action, known := resolveAction(key, m); known && action == keys.ActionEvents {
+			return handleAction(action, m, []tea.Cmd{RecordKeyStroke(m, key, KeyStrokeActionLabel(key))})
+		}
+	}
+
 	// Mode-keyed dispatch first: dialogs, inputs, exec passthrough and
 	// focused detail overlays all consume the key before the global
 	// action table gets a chance.
@@ -58,6 +67,16 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 		return mm, cmd
 	}
 	return handleShortcuts(key, m, cmds)
+}
+
+func canOpenEventsFrom(mode state.AppMode) bool {
+	switch mode {
+	case state.ModeNormal, state.ModeDetail, state.ModeLogView, state.ModeHelp,
+		state.ModeTop, state.ModeAuditDetail, state.ModeHistory:
+		return true
+	default:
+		return false
+	}
 }
 
 // dispatchByMode routes the key to the handler that owns the active
@@ -117,6 +136,9 @@ func dispatchByMode(rawKey, key string, m *state.AppModel) (*state.AppModel, tea
 		return m, cmd, true
 	case state.ModeHistory:
 		m, cmd := handleHistoryKeys(rawKey, m)
+		return m, cmd, true
+	case state.ModeEvents:
+		m, cmd := handleEventPanelKeys(rawKey, m)
 		return m, cmd, true
 	case state.ModeMark:
 		// Mark mode handles both arrow-keyed navigation and Space toggle.
@@ -376,6 +398,8 @@ func keyMode(mode state.AppMode) string {
 		return "resource-create"
 	case state.ModeAuditDetail:
 		return "audit-detail"
+	case state.ModeEvents:
+		return "events"
 	default:
 		return "normal"
 	}

@@ -50,6 +50,7 @@ const (
 	ActionSwitchRuntime      KeyAction = "switchRuntime"
 	ActionCommand            KeyAction = "command"
 	ActionImageHistory       KeyAction = "imageHistory"
+	ActionEvents             KeyAction = "events"
 	ActionRefreshConnections KeyAction = "refreshConnections"
 	ActionActionBar          KeyAction = "actionBar"
 	ActionContainerRename    KeyAction = "containerRename"

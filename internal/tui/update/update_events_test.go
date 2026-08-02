@@ -38,6 +38,9 @@ func TestHandleRuntimeEventCoalescesRefresh(t *testing.T) {
 	if firstCommand == nil || secondCommand == nil || !model.Events.Dirty["container"] || !model.Events.Dirty["image"] {
 		t.Fatalf("events were not coalesced: %#v", model.Events)
 	}
+	if len(model.EventPanel.Events) != 2 {
+		t.Fatalf("event panel retained %d events, want 2", len(model.EventPanel.Events))
+	}
 }
 
 func TestHandleRuntimeEventErrorEnablesFallback(t *testing.T) {

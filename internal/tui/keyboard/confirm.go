@@ -41,7 +41,7 @@ func handleConfirmKeys(key string, m *state.AppModel) (*state.AppModel, tea.Cmd)
 		return doConfirmYes(m)
 	case keys.KeyN, keys.KeyNUpper, keys.KeyEsc:
 		FinishAudit(m, m.Confirm.ConfirmAudit, audit.ResultCancelled, "Operation cancelled", audit.Details{})
-		m.Navigation.Mode = state.ModeNormal
+		m.Navigation.Mode = confirmReturnMode(m)
 		m.Confirm.Close()
 		return m, nil
 	}
@@ -50,7 +50,14 @@ func handleConfirmKeys(key string, m *state.AppModel) (*state.AppModel, tea.Cmd)
 
 func cancelConfirm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	FinishAudit(m, m.Confirm.ConfirmAudit, audit.ResultCancelled, "Operation cancelled", audit.Details{})
-	m.Navigation.Mode = state.ModeNormal
+	m.Navigation.Mode = confirmReturnMode(m)
 	m.Confirm.Close()
 	return m, nil
+}
+
+func confirmReturnMode(m *state.AppModel) state.AppMode {
+	if m.Confirm.ReturnMode != state.ModeNormal {
+		return m.Confirm.ReturnMode
+	}
+	return state.ModeNormal
 }
