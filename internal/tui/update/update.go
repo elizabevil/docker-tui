@@ -100,10 +100,20 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case state.ContainerProcessesLoaded:
 		m.Processes.Apply(msg.ContainerID, msg.Processes.Titles, msg.Processes.Processes, msg.Error)
 		return m, nil
+	case state.ContainerPathCompleted:
+		return keyboard.HandleContainerPathCompleted(m, msg)
 	case keyboard.ContainerDiffDone:
 		return handleContainerDiffDone(m, msg)
 	case keyboard.ContainerWaitDone:
 		return handleContainerWaitDone(m, msg)
+	case keyboard.ContainerUpdateDone:
+		return handleContainerUpdateDone(m, msg)
+	case keyboard.ContainerCommitDone:
+		return handleContainerCommitDone(m, msg)
+	case keyboard.ContainerExportDone:
+		return handleContainerExportDone(m, msg)
+	case keyboard.ContainerCopyDone:
+		return handleContainerCopyDone(m, msg)
 
 	case state.ImageActioned:
 		return handleImageActioned(m, msg)

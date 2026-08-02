@@ -61,6 +61,7 @@ const (
 	ModeActionBar
 	ModeHistory
 	ModeEvents
+	ModeContainerForm
 )
 
 // ExecDialogFocus identifies focusable regions in the exec dialog.
@@ -104,6 +105,7 @@ type AppModel struct {
 	ImageTransfer ImageTransferState
 	History       HistoryState
 	Audit         AuditState
+	Form          FormState
 }
 
 // NewAppModel creates a new application model with default state.

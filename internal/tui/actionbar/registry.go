@@ -74,6 +74,22 @@ func containerActions(m *state.AppModel) []ActionItem {
 			Label: "Wait", Action: keys.ActionContainerWait,
 			Description: "Wait until the container is no longer running", Disabled: missingEngine || missingContainer,
 		},
+		{
+			Label: "Copy", Action: keys.ActionContainerCopy,
+			Description: "Copy a file or directory out of the container as a tar", Disabled: missingEngine || missingContainer,
+		},
+		{
+			Label: "Update", Action: keys.ActionContainerUpdate,
+			Description: "Change memory, CPU and restart-policy resources", Disabled: missingEngine || missingContainer,
+		},
+		{
+			Label: "Export", Action: keys.ActionContainerExport,
+			Description: "Export the container filesystem as a tar", Disabled: missingEngine || missingContainer,
+		},
+		{
+			Label: "Commit", Action: keys.ActionContainerCommit,
+			Description: "Snapshot the container as a new image", Disabled: missingEngine || missingContainer,
+		},
 	}
 }
 

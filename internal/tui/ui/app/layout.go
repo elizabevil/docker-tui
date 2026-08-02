@@ -255,6 +255,9 @@ func RenderApp(m *state.AppModel) string {
 			m.ImageTransfer.Progress.Current, m.ImageTransfer.Progress.Total, panelBody.Width, overlayColor)
 		return dialog.CenterOnPanelDefault(result, progressOverlay, panelBody, m.Viewport.Width, m.Viewport.Height)
 	}
+	if m.Navigation.Mode == state.ModeContainerForm {
+		return dialog.RenderContainerFormOverlayInPanel(result, m, panelBody)
+	}
 	if m.Dialog.Kind.IsSelection() {
 		return dialog.RenderOverlayInPanel(result, m, panelBody)
 	}

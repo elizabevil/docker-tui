@@ -93,6 +93,8 @@ func modeLabel(mode state.AppMode) string {
 		return "top"
 	case state.ModeRename:
 		return "rename"
+	case state.ModeContainerForm:
+		return "container-form"
 	default:
 		return "normal"
 	}

@@ -89,6 +89,26 @@ func doConfirmYes(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		return m, withGenericAudit(volumeRemoveCmd(m.Connection.Engine, target, true), trace)
 	case action == "network-remove":
 		return m, withGenericAudit(networkRemoveCmd(m.Connection.Engine, target), trace)
+	case action == "container-copy":
+		src := m.Form.Get(fieldSourcePath).Text()
+		dst := m.Form.Get(fieldDestinationPath).Text()
+		id := m.Form.TargetID
+		clearContainerForm(m)
+		return m, withAdvancedAudit(containerCopyCmd(m.Connection.Engine, id, src, dst), trace)
+	case action == "container-export":
+		dst := m.Form.Get(fieldDestinationPath).Text()
+		id := m.Form.TargetID
+		clearContainerForm(m)
+		return m, withAdvancedAudit(containerExportCmd(m.Connection.Engine, id, dst), trace)
+	case action == "image-save":
+		path := m.Form.Get(fieldImagePath)
+		if path == nil {
+			clearContainerForm(m)
+			return m, nil
+		}
+		request := runtimeapi.ImageTransferRequest{Operation: runtimeapi.ImageTransferSave, Source: m.Form.TargetID, Path: path.Text()}
+		clearContainerForm(m)
+		return beginImageTransfer(m, request)
 	case action == "volume-prune":
 		return m, resourcePruneCmd(m, runtimeapi.ResourceVolume, trace)
 	case action == "network-prune":

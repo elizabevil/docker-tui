@@ -14,7 +14,7 @@ func TestContainersExposeOnlyComplexActions(t *testing.T) {
 	m := state.NewAppModel(config.DefaultConfig(), &dockerclient.Client{}, "test")
 	m.Resources.Containers.Items = []runtimeapi.ContainerSummary{{ID: "one", Name: "api", State: state.ContainerStateRunning}}
 	items := VisibleItems(m)
-	want := []keys.KeyAction{keys.ActionContainerRename, keys.ActionContainerTop, keys.ActionContainerPort, keys.ActionContainerDiff, keys.ActionContainerWait}
+	want := []keys.KeyAction{keys.ActionContainerRename, keys.ActionContainerTop, keys.ActionContainerPort, keys.ActionContainerDiff, keys.ActionContainerWait, keys.ActionContainerCopy, keys.ActionContainerUpdate, keys.ActionContainerExport, keys.ActionContainerCommit}
 	if len(items) != len(want) {
 		t.Fatalf("items = %#v", items)
 	}

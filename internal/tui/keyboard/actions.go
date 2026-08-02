@@ -139,6 +139,14 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 		return openTopView(m)
 	case keys.ActionContainerPort:
 		return openPortDetail(m)
+	case keys.ActionContainerCopy:
+		return openContainerCopyForm(m)
+	case keys.ActionContainerUpdate:
+		return openContainerUpdateForm(m)
+	case keys.ActionContainerExport:
+		return openContainerExportForm(m)
+	case keys.ActionContainerCommit:
+		return openContainerCommitForm(m)
 	}
 
 	return m, tea.Batch(cmds...)

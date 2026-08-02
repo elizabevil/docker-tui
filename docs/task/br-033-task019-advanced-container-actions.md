@@ -6,7 +6,7 @@
 
 - **关联编号**:TASK-019 + BR-033
 - **优先级**:high
-- **状态**:`partial` - Diff / Wait 已接入 Action Bar；Copy / Update / Export / Commit 待表单集成
+- **状态**:`done` - 6 个高级动作全部接入 Action Bar：Diff / Wait（既有）+ Copy / Update / Export / Commit（表单集成完成）
 - **依赖**:TASK-017(高频容器操作)、TASK-021(统一 runtime)
 - **关联设计**:[docs/feature-design.md §2.1](../feature-design.md)、[bugfix-requirements.md BR-033](../bugfix-requirements.md)
 
@@ -26,10 +26,10 @@
 - [x] Wait：Action Bar 触发、可取消 context、generation 防陈旧响应、退出/切换 runtime 清理、toast 与 audit。
 - [x] Copy / Export 共用流保存核心：临时文件写入后原子替换，失败不破坏已有文件。
 - [x] 6 个高级动作取消默认快捷键，统一保留给 Action Bar，解决 F2 / Ctrl+K / Ctrl+O 冲突。
-- [ ] Copy：补源路径与目标 tar 路径表单、Action Bar 入口及结果处理。
-- [ ] Update：补资源参数表单、Action Bar 入口及结果处理。
-- [ ] Export：补目标 tar 路径表单、Action Bar 入口及结果处理。
-- [ ] Commit：补镜像引用等参数表单、Action Bar 入口及结果处理。
+- [x] Copy：补源路径与目标 tar 路径表单、Action Bar 入口及结果处理。
+- [x] Update：补资源参数表单、Action Bar 入口及结果处理。
+- [x] Export：补目标 tar 路径表单、Action Bar 入口及结果处理。
+- [x] Commit：补镜像引用等参数表单、Action Bar 入口及结果处理。
 
 ## 代码结构索引
 

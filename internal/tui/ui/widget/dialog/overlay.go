@@ -41,7 +41,7 @@ func PlaceDialog(content string, dialogBox string, termW, termH int, _ string, c
 		rightStart := startX + dlgW
 		right := ansi.TruncateLeftWc(ansi.TruncateWc(base, termW, ""), rightStart, "")
 		right += strings.Repeat(" ", max(0, termW-rightStart-ansi.StringWidth(right)))
-		contentLines[startY+dy] = left + dl + right
+		contentLines[startY+dy] = left + ansiReset + dl + ansiReset + right
 	}
 
 	return strings.Join(contentLines, "\n")

@@ -140,6 +140,9 @@ func dispatchByMode(rawKey, key string, m *state.AppModel) (*state.AppModel, tea
 	case state.ModeEvents:
 		m, cmd := handleEventPanelKeys(rawKey, m)
 		return m, cmd, true
+	case state.ModeContainerForm:
+		m, cmd := handleContainerFormKey(normalizeInputKey(rawKey), m)
+		return m, cmd, true
 	case state.ModeMark:
 		// Mark mode handles both arrow-keyed navigation and Space toggle.
 		m, cmd := handleMarkMode(key, m)
@@ -367,7 +370,7 @@ func keySurface(mode state.AppMode) string {
 	switch mode {
 	case state.ModeFilter, state.ModeSearch, state.ModeImagePull, state.ModeImageWorkflow, state.ModeCommand:
 		return "input"
-	case state.ModeConfirm, state.ModeExport, state.ModeDebug, state.ModeExec, state.ModeExecShell, state.ModeRename, state.ModeResourceCreate, state.ModeImageTransfer, state.ModeAuditDetail:
+	case state.ModeConfirm, state.ModeExport, state.ModeDebug, state.ModeExec, state.ModeExecShell, state.ModeRename, state.ModeResourceCreate, state.ModeImageTransfer, state.ModeAuditDetail, state.ModeContainerForm:
 		return "dialog"
 	default:
 		return "main"
@@ -400,6 +403,8 @@ func keyMode(mode state.AppMode) string {
 		return "audit-detail"
 	case state.ModeEvents:
 		return "events"
+	case state.ModeContainerForm:
+		return "container-form"
 	default:
 		return "normal"
 	}

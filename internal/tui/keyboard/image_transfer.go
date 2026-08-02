@@ -3,7 +3,6 @@ package keyboard
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
@@ -33,10 +32,9 @@ func openImageWorkflow(m *state.AppModel, operation runtimeapi.ImageTransferOper
 		kind, title = state.DialogImagePush, i18n.T("image.push.title")
 		input = fullImageRef(selected)
 	case runtimeapi.ImageTransferSave:
-		kind, title = state.DialogImageSave, i18n.T("image.save.title")
-		input = filepath.Clean(tagName(selected) + ".tar")
+		return openImageSaveForm(m, selected)
 	case runtimeapi.ImageTransferLoad:
-		kind, title = state.DialogImageLoad, i18n.T("image.load.title")
+		return openImageLoadForm(m)
 	default:
 		return m, nil
 	}
@@ -57,23 +55,18 @@ func handleImageWorkflowInput(key string, m *state.AppModel) (*state.AppModel, t
 			return m, nil
 		}
 		operation := runtimeapi.ImageTransferOperation(m.Dialog.Action)
-		request := runtimeapi.ImageTransferRequest{Operation: operation}
-		if operation == runtimeapi.ImageTransferLoad {
-			request.Path = filepath.Clean(value)
-		} else {
-			selected := m.Resources.Images.Selected()
-			if selected == nil {
-				clearDialogState(m)
-				return m, nil
-			}
-			request.Source = fullImageRef(selected)
-			switch operation {
-			case runtimeapi.ImageTransferTag, runtimeapi.ImageTransferPush:
-				request.Destination = value
-			case runtimeapi.ImageTransferSave:
-				request.Path = filepath.Clean(value)
-			}
+		if operation != runtimeapi.ImageTransferTag && operation != runtimeapi.ImageTransferPush {
+			clearDialogState(m)
+			return m, nil
 		}
+		request := runtimeapi.ImageTransferRequest{Operation: operation}
+		selected := m.Resources.Images.Selected()
+		if selected == nil {
+			clearDialogState(m)
+			return m, nil
+		}
+		request.Source = fullImageRef(selected)
+		request.Destination = value
 		return beginImageTransfer(m, request)
 	default:
 		editQueryInput(key, &m.Dialog.Input)

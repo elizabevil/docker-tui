@@ -326,3 +326,13 @@ func RenderExecOverlayInPanel(content string, m *state.AppModel, body PanelBody)
 	dialogBox := ExecDialog(m, oc, dlgCfg)
 	return PlaceDialogInPanel(content, dialogBox, body, dlgCfg)
 }
+
+// RenderContainerFormOverlayInPanel splices the container-action form dialog
+// (Copy / Update / Export / Commit) into content, centering within body.
+func RenderContainerFormOverlayInPanel(content string, m *state.AppModel, body PanelBody) string {
+	dlgCfg := LoadDialogConfig()
+	oc := resolveOverlay(m.Dependencies.Config.UI.DialogOverlayColor, dlgCfg)
+
+	dialogBox := FormDialog(m, oc, dlgCfg)
+	return PlaceDialogInPanel(content, dialogBox, body, dlgCfg)
+}

@@ -37,7 +37,7 @@ func TestCenterOnPanelNormal(t *testing.T) {
 		}
 		rightPart := strings.Repeat(".", 20)
 		want := leftPart + dl + rightPart
-		if lines[9+dy] != want {
+		if ansi.Strip(lines[9+dy]) != want {
 			t.Errorf("dialog line %d\n  got: %q\n want: %q", dy, lines[9+dy], want)
 		}
 	}
@@ -70,7 +70,7 @@ func TestCenterOnPanelClampsWideDialog(t *testing.T) {
 		dlPart := strings.Repeat("#", 20)
 		rightPart := strings.Repeat(".", 50)
 		want := leftPart + dlPart + rightPart
-		if lines[lineIdx] != want {
+		if ansi.Strip(lines[lineIdx]) != want {
 			t.Errorf("line %d\n  got: %q\n want: %q", lineIdx, lines[lineIdx], want)
 		}
 	}

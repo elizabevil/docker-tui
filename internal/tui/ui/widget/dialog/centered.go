@@ -7,6 +7,8 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
+const ansiReset = "\x1b[0m"
+
 // PanelBody describes the rectangular region of a panel body in
 // terminal coordinates where a dialog may be centered.
 //
@@ -112,7 +114,9 @@ func CenterOnPanel(content, dialogBox string, body PanelBody, termW, termH int, 
 		rightStart := startX + effW
 		right := ansi.TruncateLeftWc(ansi.TruncateWc(base, termW, ""), rightStart, "")
 		right += strings.Repeat(" ", max(0, termW-rightStart-ansi.StringWidth(right)))
-		contentLines[line] = left + dl + right
+		// Reset at both splice boundaries. Without this, a selected table row's
+		// background leaks into transparent dialog cells and moves on repaint.
+		contentLines[line] = left + ansiReset + dl + ansiReset + right
 	}
 
 	return strings.Join(contentLines, "\n")

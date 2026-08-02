@@ -38,6 +38,9 @@ func handleConfirmKeys(key string, m *state.AppModel) (*state.AppModel, tea.Cmd)
 		}
 		return cancelConfirm(m)
 	case keys.KeyY, keys.KeyY_upper:
+		if m.Confirm.ConfirmAction == "container-copy" || m.Confirm.ConfirmAction == "container-export" || m.Confirm.ConfirmAction == "image-save" {
+			return m, nil
+		}
 		return doConfirmYes(m)
 	case keys.KeyN, keys.KeyNUpper, keys.KeyEsc:
 		FinishAudit(m, m.Confirm.ConfirmAudit, audit.ResultCancelled, "Operation cancelled", audit.Details{})

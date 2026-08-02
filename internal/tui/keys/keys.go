@@ -43,6 +43,7 @@ const (
 	KeyDigit9 = "9"
 
 	KeyShiftTab         = "shift+tab"
+	KeyCtrlSpace        = "ctrl+space"
 	KeyCtrlC            = "ctrl+c"
 	KeyCtrlA            = "ctrl+a"
 	KeyCtrlD            = "ctrl+d"

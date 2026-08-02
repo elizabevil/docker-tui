@@ -1,0 +1,32 @@
+{
+  "columns": {
+    "default": [
+      {
+        "key": "time",
+        "fixed": 19,
+        "header": "table.time"
+      },
+      {
+        "key": "type",
+        "fixed": 10,
+        "header": "table.type"
+      },
+      {
+        "key": "action",
+        "basis": 18,
+        "min": 8,
+        "shrink": 1,
+        "fill": 1,
+        "header": "table.action"
+      },
+      {
+        "key": "resource",
+        "basis": 48,
+        "min": 16,
+        "shrink": 1,
+        "fill": 4,
+        "header": "table.resource"
+      }
+    ]
+  }
+}
