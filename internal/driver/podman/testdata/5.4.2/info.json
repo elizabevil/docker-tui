@@ -1,16 +1,12 @@
 {
-  "ID": "9145366d-fa40-4606-aef6-5c3c5a411ad4",
+  "ID": "846f4d3c-9184-4159-a1e9-dd84f400b5cf",
   "Containers": 3,
-  "ContainersRunning": 1,
+  "ContainersRunning": 3,
   "ContainersPaused": 0,
-  "ContainersStopped": 2,
-  "Images": 4,
+  "ContainersStopped": 0,
+  "Images": 187,
   "Driver": "overlay",
   "DriverStatus": [
-    [
-      "Supports volatile",
-      "true"
-    ],
     [
       "Backing Filesystem",
       "extfs"
@@ -30,6 +26,10 @@
     [
       "Supports shifting",
       "false"
+    ],
+    [
+      "Supports volatile",
+      "true"
     ]
   ],
   "Plugins": {
@@ -60,14 +60,14 @@
   "BridgeNfIptables": false,
   "BridgeNfIp6tables": false,
   "Debug": false,
-  "NFd": 11,
+  "NFd": 37,
   "OomKillDisable": false,
-  "NGoroutines": 14,
-  "SystemTime": "2026-07-24T01:27:02.840307711+08:00",
+  "NGoroutines": 33,
+  "SystemTime": "2026-08-01T22:46:57.54909116-04:00",
   "LoggingDriver": "",
   "CgroupDriver": "systemd",
   "NEventsListener": 0,
-  "KernelVersion": "6.12.96+deb13-amd64",
+  "KernelVersion": "7.0.10+deb13-amd64",
   "OperatingSystem": "debian",
   "OSVersion": "13",
   "OSType": "linux",
@@ -80,14 +80,14 @@
     "IndexConfigs": {},
     "Mirrors": []
   },
-  "NCPU": 16,
-  "MemTotal": 30375690240,
+  "NCPU": 14,
+  "MemTotal": 16733364224,
   "GenericResources": null,
   "DockerRootDir": "/home/debi/.local/share/containers/storage",
   "HttpProxy": "",
   "HttpsProxy": "",
   "NoProxy": "",
-  "Name": "debi",
+  "Name": "debian",
   "Labels": null,
   "ExperimentalBuild": true,
   "ServerVersion": "5.4.2",
@@ -160,7 +160,7 @@
   "CPURealtimeRuntime": false,
   "CgroupVersion": "2",
   "Rootless": true,
-  "SwapFree": 25786576896,
-  "SwapTotal": 25786576896,
-  "Uptime": "3h 38m 0.00s (Approximately 0.12 days)"
+  "SwapFree": 0,
+  "SwapTotal": 0,
+  "Uptime": "31h 8m 49.00s (Approximately 1.29 days)"
 }

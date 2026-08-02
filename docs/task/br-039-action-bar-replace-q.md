@@ -40,7 +40,7 @@
 
 ### 必须新增的文件
 
-- `internal/tui/ui/widget/actionbar/`(新子包)
+- `internal/tui/actionbar/`(新子包)
   - `actionbar.go`:ActionBar 浮层渲染组件(类似 vim command palette)
 - `internal/tui/actionbar/registry.go`:按 `ActivePanel` 动态生成 typed 动作列表
 - `internal/tui/state/actionbar.go`:ActionBar state
@@ -60,7 +60,7 @@ User 在任意 panel 按 ;
   → keyboard/actions.go:handleActionBar(m)
       m.Navigation.Mode = state.ModeActionBar
       m.ActionBar.Open(panel) // 加载该 panel 的动作列表
-  → ui/widget/actionbar/actionbar.go:RenderBar(m)
+  → internal/tui/actionbar/actionbar.go:RenderBar(m)
       按 ActivePanel 加载动作条目:
         镜像页: Pull / Tag / Push / Save / Load / Import / History / Prune / Remove / Refresh / Filter ...
         容器页: Start / Stop / Kill / Exec / Logs / Stats / Top / Port / Update / Diff / Export / Commit / Wait / Copy / Filter ...

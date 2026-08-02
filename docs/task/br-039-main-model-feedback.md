@@ -60,7 +60,7 @@ type ActionBarState struct {
 **正确做法**:
 - 新建 **带 KeyAction 的统一 Action Bar 条目**结构,例如:
   ```go
-  // internal/tui/ui/widget/actionbar/registry.go
+  // internal/tui/actionbar/registry.go
   type ActionItem struct {
       Key         string         // 显示键位(e.g. "Ctrl+T" / "Q" / "—")
       Label       string         // 显示名(e.g. "Tag image")
@@ -122,8 +122,8 @@ type ActionBarState struct {
 - 新增 `internal/tui/keyboard/actions.go:case ActionActionBar: doActionBar(m)` + 改 Q 引导 case
 - 新增 `internal/tui/keyboard/keyboard.go:dispatchByMode(ModeActionBar)` + 拦截 Q 走 toast
 - 新增 `internal/tui/keyboard/actionbar_keys.go`:`handleActionBarKeys`
-- 新增 `internal/tui/ui/widget/actionbar/registry.go`:`ActionItem` + `ActionsFor(m, panel) []ActionItem`(typed,**接已有 handler**)
-- 新增 `internal/tui/ui/widget/actionbar/actionbar.go`:`RenderBar(m, content, body) string` + 通过 `dialog.PlaceDialogInPanel` 居中
+- 新增 `internal/tui/actionbar/registry.go`:`ActionItem` + `ActionsFor(m, panel) []ActionItem`(typed,**接已有 handler**)
+- 新增 `internal/tui/actionbar/actionbar.go`:`RenderBar(m, content, body) string` + 通过 `dialog.PlaceDialogInPanel` 居中
 - 改 `internal/tui/ui/app/layout.go`:加 `ModeActionBar` 分支
 - 改 `internal/tui/ui/action/registry.go:37`:删除 Q Quit 行(同步 Footer / Help)
 

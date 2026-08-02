@@ -32,10 +32,10 @@ BR-039-A 目标:
 | `internal/tui/state/actionbar_test.go` | 状态机测试 | ~80 |
 | `internal/tui/keyboard/actionbar_keys.go` | Action Bar 键盘 handler | ~80 |
 | `internal/tui/keyboard/actionbar_keys_test.go` | 按键分支测试 | ~100 |
-| `internal/tui/ui/widget/actionbar/registry.go` | `ActionItem` + `ActionsFor(m)` typed registry | ~150 |
-| `internal/tui/ui/widget/actionbar/registry_test.go` | registry 测试 | ~120 |
-| `internal/tui/ui/widget/actionbar/actionbar.go` | `RenderBar` 通过 `PlaceDialogInPanel` 居中 | ~100 |
-| `internal/tui/ui/widget/actionbar/actionbar_test.go` | RenderBar + 居中测试 | ~100 |
+| `internal/tui/actionbar/registry.go` | `ActionItem` + `ActionsFor(m)` typed registry | ~150 |
+| `internal/tui/actionbar/registry_test.go` | registry 测试 | ~120 |
+| `internal/tui/actionbar/actionbar.go` | `RenderBar` 通过 `PlaceDialogInPanel` 居中 | ~100 |
+| `internal/tui/actionbar/actionbar_test.go` | RenderBar + 居中测试 | ~100 |
 
 ### 2.2 修改文件 (9)
 
@@ -92,7 +92,7 @@ package state
 // field and a method to share the same name on a struct; using
 // Visible keeps Open() and Close() as the public lifecycle methods.
 //
-// The widget layer (ui/widget/actionbar) translates this state into
+// The widget layer (internal/tui/actionbar) translates this state into
 // the typed []ActionItem list and back.
 type ActionBarState struct {
     Visible   bool   // whether the Action Bar overlay is shown
@@ -333,7 +333,7 @@ package keyboard
 
 import (
     "github.com/elizabevil/docker-tui/internal/tui/state"
-    "github.com/elizabevil/docker-tui/internal/tui/ui/widget/actionbar"
+    "github.com/elizabevil/docker-tui/internal/tui/actionbar"
 
     tea "charm.land/bubbletea/v2"
 )
@@ -416,7 +416,7 @@ func handleActionBarKeys(rawKey string, m *state.AppModel) (*state.AppModel, tea
 ```
 
 **重要说明 — registry 与 keyboard 职责划分**:
-- `ui/widget/actionbar/VisibleItems(m)` 只**返回 typed `[]ActionItem`**,每个 Item 含 `Action KeyAction` 字段。**这只验证 ID 映射**(哪个 panel 配哪些 KeyAction)。
+- `ui/actionbar/VisibleItems(m)` 只**返回 typed `[]ActionItem`**,每个 Item 含 `Action KeyAction` 字段。**这只验证 ID 映射**(哪个 panel 配哪些 KeyAction)。
 - 真实执行链(`Enter` 后调 `handleAction(sel.Action, m, nil)` → 已有 `case ActionContainerStart` 等)是 **keyboard 包内** 的,本轮需要新增 `keyboard/actionbar_keys_test.go` 端到端验证。
 - `widget/actionbar/registry_test.go` 只测 ID 列表正确性;`keyboard/actionbar_keys_test.go` 测 Enter 后真的执行了对应 handler(可通过 mock `*state.AppModel` + 验证 `m.Resources.Containers.Loading` / toast 等副作用)。
 
@@ -429,7 +429,7 @@ func handleActionBarKeys(rawKey string, m *state.AppModel) (*state.AppModel, tea
 **不存在的旧路径**(本设计禁止):
 - `internal/config`、`internal/tui/model`、`internal/data/docker`
 
-### 3.11 `internal/tui/ui/widget/actionbar/` (新子包)### 3.11 `internal/tui/ui/widget/actionbar/` (新子包)
+### 3.11 `internal/tui/actionbar/` (新子包)
 
 #### 3.11.1 `registry.go`
 
@@ -627,7 +627,7 @@ if m.Navigation.Mode == state.ModeActionBar {
 }
 ```
 
-需要 import `"github.com/elizabevil/docker-tui/internal/tui/ui/widget/actionbar"`。
+需要 import `"github.com/elizabevil/docker-tui/internal/tui/actionbar"`。
 
 ### 3.13 `internal/tui/ui/action/registry.go`
 
@@ -665,12 +665,12 @@ func Global(app ...*state.AppModel) []Shortcut {
 
 **问题**: `handleActionBarKeys`(`keyboard` 包)需要枚举当前 panel 的 ActionItem 列表,但**不能** import `widget/actionbar`(会循环)。
 
-**决策 A**:**VisibleItems 放在 `ui/widget/actionbar/`**(`registry.go`)。
-- `handleActionBarKeys` 通过 `m.Navigation.ActivePanel + m.Navigation.ActionBar.Filter` 调 `widget/actionbar.VisibleItems(m)`,**keyboard 包 import widget/actionbar**。这没问题,因为 keyboard 已经是顶层包(import state / keys / ui),加一个 ui/widget/actionbar 依赖不形成循环(actionbar 不 import keyboard)。
+**决策 A**:**VisibleItems 放在 `internal/tui/actionbar/`**(`registry.go`)。
+- `handleActionBarKeys` 通过 `m.Navigation.ActivePanel + m.Navigation.ActionBar.Filter` 调 `internal/tui/actionbar.VisibleItems(m)`,**keyboard 包 import actionbar 子包**。这没问题,因为 keyboard 已经是顶层包(import state / keys / ui),加 `internal/tui/actionbar` 依赖不形成循环(actionbar 不 import keyboard)。
 - `widget/actionbar/registry.go` 内调 `keyboard.handleAction` 不可行(同样循环);改用**直接返回 `keys.KeyAction` 列表**,由 keyboard 端 `handleActionBarKeys` 选完后调 `handleAction(action, m, nil)`(本包)。
 
 **决策 B**:`VisibleItems` 拆成两段:
-- `ui/widget/actionbar/VisibleItems` → 返回 `[]keys.KeyAction`(纯数据)
+- `internal/tui/actionbar/VisibleItems` → 返回 `[]keys.KeyAction`(纯数据)
 - `widget/actionbar/actionbar.go` → 渲染层
 
 keyboard import actionbar → 无循环。
@@ -839,7 +839,7 @@ func TestActionBarKeysEnterExecutes(t *testing.T) { ... }
 func TestActionBarKeysDigitJump(t *testing.T) { ... }
 ```
 
-### 6.3 `ui/widget/actionbar/registry_test.go`
+### 6.3 `internal/tui/actionbar/registry_test.go`
 
 ```go
 func TestActionsForContainers(t *testing.T) {
@@ -883,7 +883,7 @@ func TestVisibleItemsFilter(t *testing.T) {
 }
 ```
 
-### 6.4 `ui/widget/actionbar/actionbar_test.go`
+### 6.4 `internal/tui/actionbar/actionbar_test.go`
 
 ```go
 func TestRenderBarEmpty(t *testing.T) {
@@ -956,8 +956,8 @@ func TestRenderAppModeActionBar(t *testing.T) {
 | 4 | `state/app.go` | 加 `ModeActionBar` | `go build ./internal/tui/state/` |
 | 5 | `state/navigation.go` | 加 `ActionBar` 字段 | 同上 |
 | 6 | `state/actionbar.go` (新) | `ActionBarState` + 方法 | `go test ./internal/tui/state/` |
-| 7 | `ui/widget/actionbar/registry.go` (新) | `ActionItem` + `VisibleItems` + 6 panel actions | `go build ./internal/tui/ui/widget/actionbar/` |
-| 8 | `ui/widget/actionbar/actionbar.go` (新) | `RenderBar` | 同上 |
+| 7 | `internal/tui/actionbar/registry.go` (新) | `ActionItem` + `VisibleItems` + 6 panel actions | `go build ./internal/tui/actionbar/` |
+| 8 | `internal/tui/actionbar/actionbar.go` (新) | `RenderBar` | 同上 |
 | 9 | `keyboard/actions.go` | 加 `case ActionActionBar: doActionBar(m)` | `go build ./internal/tui/keyboard/` |
 | 10 | `keyboard/keyboard.go` | `HandleKeyPress` 早期加 Q 拦截;`dispatchByMode` 加 `ModeActionBar` 分支 | `go test ./internal/tui/keyboard/` |
 | 11 | `keyboard/actionbar_keys.go` (新) | `handleActionBarKeys` | 同上 |

@@ -209,7 +209,7 @@ type ActionItem struct {
 
 ### 4.1 建议包位置
 
-**`internal/tui/ui/widget/actionbar/`**(新子包,与 dialog / footer / header / panel 平级)
+**`internal/tui/actionbar/`**(新子包,与 dialog / footer / header / panel 平级)
 
 理由:
 - Action Bar 是**浮层 widget**,与 dialog 同类
@@ -225,7 +225,7 @@ type ActionItem struct {
 Action Bar 渲染流程:
 
 ```text
-ui/widget/actionbar/actionbar.go:RenderBar(m, body)
+internal/tui/actionbar/actionbar.go:RenderBar(m, body)
   → 生成 ActionItem 列表(根据 m.Navigation.ActivePanel / m.ActionBar.Filter)
   → 计算高度(行数 = len(items) + 1 标题行)
   → 渲染为 lipgloss 风格的多行 list(类似 fuzzy finder)
@@ -291,9 +291,9 @@ ui/widget/actionbar/actionbar.go:RenderBar(m, body)
 | `internal/tui/keyboard/actions.go:16` | 加 `case ActionActionBar: return doActionBar(m)` |
 | `internal/tui/keyboard/keyboard.go:60-112` | `dispatchByMode` 加 `case state.ModeActionBar: ...` 调用 `handleActionBarKeys` |
 | `internal/tui/keyboard/actionbar_keys.go`(新) | `handleActionBarKeys(key, m)` 函数 |
-| `internal/tui/ui/widget/actionbar/`(新子包) | 至少一个 `actionbar.go` 含 `RenderBar(m, content, body) string` |
-| `internal/tui/ui/widget/actionbar/registry.go`(新) | `ActionsFor(m) []keys.KeyAction` 占位 — BR-039-A 只返回 hardcoded 列表,BR-039-B 改为动态 |
-| `internal/tui/ui/widget/actionbar/state.go`(新) | 简单 state helper(如果不用 state 包) |
+| `internal/tui/actionbar/`(新子包) | 至少一个 `actionbar.go` 含 `RenderBar(m, content, body) string` |
+| `internal/tui/actionbar/registry.go`(新) | `ActionsFor(m) []keys.KeyAction` 占位 — BR-039-A 只返回 hardcoded 列表,BR-039-B 改为动态 |
+| `internal/tui/actionbar/state.go`(新) | 简单 state helper(如果不用 state 包) |
 | `internal/tui/ui/app/layout.go` | 加 `if m.Navigation.Mode == state.ModeActionBar { ... }` 分支调 `widget/actionbar.RenderBar(m, body)` + `dialog.PlaceDialogInPanel(content, box, body, cfg)` |
 | `internal/tui/ui/action/registry.go:37` | 删 `ActionQuit` 行(或保留,等 BR-039-D) |
 | `internal/tui/keys/display.go:61` | 保留 `ActionLabelQuit` 给 BR-039-D 改文案 |
@@ -313,8 +313,8 @@ ui/widget/actionbar/actionbar.go:RenderBar(m, body)
 |---|---|
 | `internal/tui/state/actionbar_test.go`(新) | `TestActionBarOpen/Close/Reset/MoveSelection/Filter` 状态机测试 |
 | `internal/tui/keyboard/actionbar_keys_test.go`(新) | 测 `handleActionBarKeys` 各按键分支:Enter → handleAction / j → MoveSelection / Esc → Close / 数字键 → JumpToN |
-| `internal/tui/ui/widget/actionbar/actionbar_test.go`(新) | `TestRenderBarPanelCentered` —— 验证 Action Bar 浮层用 BR-040 `PlaceDialogInPanel` 居中于 panel body |
-| `internal/tui/ui/widget/actionbar/registry_test.go`(新) | `TestActionsFor` 占位测试(返回 hardcoded 列表) |
+| `internal/tui/actionbar/actionbar_test.go`(新) | `TestRenderBarPanelCentered` —— 验证 Action Bar 浮层用 BR-040 `PlaceDialogInPanel` 居中于 panel body |
+| `internal/tui/actionbar/registry_test.go`(新) | `TestActionsFor` 占位测试(返回 hardcoded 列表) |
 
 ### 6.2 修改
 
@@ -386,7 +386,7 @@ ui/widget/actionbar/actionbar.go:RenderBar(m, body)
 
 - **现状清晰**:Q 走 `registry.go:38` → `actions.go:18-19` → `tea.Quit`;`:` 走独立 `ModeCommand` 路径(`command.go:12`);Esc 走 `handleBackAction` 双段确认;Ctrl+C 与 Q 共用 `ActionQuit` 但**不**走 EscPending。各 panel action 入口都集中在 `keyboard/actions.go:56-122`,模式清晰。
 - **最小实现**:BR-039-A 只做框架 + Q→toast + ; 打开 + Esc 关闭 + Enter 执行(调 `handleAction`)+ j/k 移动 + 数字键跳转。动作列表用 hardcoded 占位(每 panel 返回固定 []KeyAction),BR-039-B 改为动态。
-- **包位置**:`internal/tui/ui/widget/actionbar/` 新子包,通过 `dialog.PlaceDialogInPanel(content, box, body, cfg)` 复用 BR-040 居中数学。
+- **包位置**:`internal/tui/actionbar/` 新子包,通过 `dialog.PlaceDialogInPanel(content, box, body, cfg)` 复用 BR-040 居中数学。
 - **Mode 复用**:新 `ModeActionBar` 枚举,`dispatchByMode` 加 case;`ActionBarState` 嵌入 `NavigationState`。
 - **8 个待确认问题**中,触发键 `;` + 动作列表 hardcoded + 空页面通用 actions + 单 panel 焦点是 BR-039-A 关键决策。
 

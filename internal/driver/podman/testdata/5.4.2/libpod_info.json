@@ -14,11 +14,11 @@
       "path": "/usr/bin/conmon",
       "version": "conmon version 2.1.12, commit: unknown"
     },
-    "cpus": 16,
+    "cpus": 14,
     "cpuUtilization": {
-      "userPercent": 4.9,
-      "systemPercent": 0.69,
-      "idlePercent": 94.41
+      "userPercent": 2.67,
+      "systemPercent": 1.57,
+      "idlePercent": 95.76
     },
     "databaseBackend": "sqlite",
     "distribution": {
@@ -27,8 +27,8 @@
       "codename": "trixie"
     },
     "eventLogger": "journald",
-    "freeLocks": 2043,
-    "hostname": "debi",
+    "freeLocks": 2042,
+    "hostname": "debian",
     "idMappings": {
       "gidmap": [
         {
@@ -55,10 +55,10 @@
         }
       ]
     },
-    "kernel": "6.12.96+deb13-amd64",
+    "kernel": "7.0.10+deb13-amd64",
     "logDriver": "journald",
-    "memFree": 16744730624,
-    "memTotal": 30375690240,
+    "memFree": 442802176,
+    "memTotal": 16733364224,
     "networkBackend": "netavark",
     "networkBackendInfo": {
       "backend": "netavark",
@@ -102,9 +102,9 @@
       "package": "passt_0.0~git20250503.587980c-2+deb13u1_amd64",
       "version": ""
     },
-    "swapFree": 25786576896,
-    "swapTotal": 25786576896,
-    "uptime": "3h 38m 1.00s (Approximately 0.12 days)",
+    "swapFree": 0,
+    "swapTotal": 0,
+    "uptime": "31h 8m 49.00s (Approximately 1.29 days)",
     "variant": "",
     "linkmode": "dynamic"
   },
@@ -113,14 +113,14 @@
     "containerStore": {
       "number": 3,
       "paused": 0,
-      "running": 1,
-      "stopped": 2
+      "running": 3,
+      "stopped": 0
     },
     "graphDriverName": "overlay",
     "graphOptions": {},
     "graphRoot": "/home/debi/.local/share/containers/storage",
-    "graphRootAllocated": 464716759040,
-    "graphRootUsed": 117933006848,
+    "graphRootAllocated": 99804827648,
+    "graphRootUsed": 72213970944,
     "graphStatus": {
       "Backing Filesystem": "extfs",
       "Native Overlay Diff": "true",
@@ -131,7 +131,7 @@
     },
     "imageCopyTmpDir": "/var/tmp",
     "imageStore": {
-      "number": 4
+      "number": 187
     },
     "runRoot": "/run/user/1000/containers",
     "volumePath": "/home/debi/.local/share/containers/storage/volumes",
@@ -160,7 +160,7 @@
     "Version": "5.4.2",
     "GoVersion": "go1.24.4",
     "GitCommit": "",
-    "BuiltTime": "Mon Dec 22 00:42:01 2025",
+    "BuiltTime": "Sun Dec 21 11:42:01 2025",
     "Built": 1766335321,
     "BuildOrigin": "Debian",
     "OsArch": "linux/amd64",

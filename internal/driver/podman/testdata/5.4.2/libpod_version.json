@@ -9,11 +9,11 @@
       "Details": {
         "APIVersion": "5.4.2",
         "Arch": "amd64",
-        "BuildTime": "2025-12-22T00:42:01+08:00",
+        "BuildTime": "2025-12-21T11:42:01-05:00",
         "Experimental": "false",
         "GitCommit": "",
         "GoVersion": "go1.24.4",
-        "KernelVersion": "6.12.96+deb13-amd64",
+        "KernelVersion": "7.0.10+deb13-amd64",
         "MinAPIVersion": "4.0.0",
         "Os": "linux"
       }
@@ -40,6 +40,6 @@
   "GoVersion": "go1.24.4",
   "Os": "linux",
   "Arch": "amd64",
-  "KernelVersion": "6.12.96+deb13-amd64",
-  "BuildTime": "2025-12-22T00:42:01+08:00"
+  "KernelVersion": "7.0.10+deb13-amd64",
+  "BuildTime": "2025-12-21T11:42:01-05:00"
 }
