@@ -27,6 +27,18 @@ func TestResolverUsesViewPriorityForConflictingDeleteBinding(t *testing.T) {
 	}
 }
 
+func TestImageHistoryUsesHOnlyInImages(t *testing.T) {
+	resolver := NewResolver(CompileBindings(config.KeymapConfig{}))
+	images := Context{App: "app", Surface: "main", View: "images", Mode: "normal"}
+	if action, ok := resolver.Resolve(KeyH, images); !ok || action != ActionImageHistory {
+		t.Fatalf("Resolve(h, images) = %q, %v", action, ok)
+	}
+	containers := Context{App: "app", Surface: "main", View: "containers", Mode: "normal"}
+	if action, ok := resolver.Resolve(KeyH, containers); ok {
+		t.Fatalf("Resolve(h, containers) unexpectedly resolved %q", action)
+	}
+}
+
 func TestResourceDeleteOverrideDisablesLegacyGenericBinding(t *testing.T) {
 	resolver := NewResolver(CompileBindings(config.KeymapConfig{ImageRemove: []string{"z"}}))
 	context := Context{App: "app", Surface: "main", View: "images", Mode: "normal"}

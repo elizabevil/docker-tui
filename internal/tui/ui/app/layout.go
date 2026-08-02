@@ -691,6 +691,8 @@ func buildBreadcrumbItems(m *state.AppModel) []component.BreadcrumbItem {
 		items = append(items, component.BreadcrumbItem{Label: "exec", ID: "exec"})
 	case state.ModeHelp:
 		items = append(items, component.BreadcrumbItem{Label: "help", ID: "help"})
+	case state.ModeHistory:
+		items = append(items, component.BreadcrumbItem{Label: i18n.T("history.title"), ID: "history"})
 	}
 
 	return items

@@ -29,6 +29,16 @@ func newModel(width, height int) *state.AppModel {
 	return m
 }
 
+func TestHistoryMouseWheelMovesCursor(t *testing.T) {
+	m := newModel(120, 32)
+	m.Navigation.Mode = state.ModeHistory
+	m.History.Layers = make([]dockerclient.ImageHistoryLayer, 20)
+	scrollActivePanel(m, 3)
+	if m.History.Cursor != 3 {
+		t.Fatalf("history cursor = %d, want 3", m.History.Cursor)
+	}
+}
+
 func TestHitTestStandardLayout(t *testing.T) {
 	m := newModel(120, 32)
 	rep := ResolveLayout(m)

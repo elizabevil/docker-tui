@@ -160,6 +160,9 @@
     "imageLoad": [
       "ctrl+l"
     ],
+    "imageHistory": [
+      "h"
+    ],
     "volumeCreate": [
       "c"
     ],

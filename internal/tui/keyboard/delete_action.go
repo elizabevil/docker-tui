@@ -56,7 +56,7 @@ func doEnterAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if m.Navigation.ActivePanel == state.PanelContainers && m.Connection.Engine != nil {
 		return doLogAction(m)
 	}
-	if m.Navigation.ActivePanel == state.PanelImages && m.Connection.Engine != nil {
+	if m.Navigation.ActivePanel == state.PanelImages {
 		return doImageExpand(m)
 	}
 	if m.Navigation.ActivePanel == state.PanelVolumes {

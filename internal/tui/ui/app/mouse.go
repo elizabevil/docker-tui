@@ -3,6 +3,7 @@ package view
 import (
 	tea "charm.land/bubbletea/v2"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
+	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/history"
 )
 
 // LayoutHit identifies which rail a mouse coordinate belongs to. The
@@ -308,6 +309,9 @@ func scrollActivePanel(m *state.AppModel, delta int) {
 		m.Detail.Scroll(delta)
 	case state.ModeLogView:
 		m.Log.Scroll(delta)
+	case state.ModeHistory:
+		total := len(history.FilterLayers(m.History.Layers, m.History.Filter))
+		m.History.MoveCursor(delta, total, max(1, m.Viewport.Height-18))
 	}
 }
 

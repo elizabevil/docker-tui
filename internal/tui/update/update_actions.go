@@ -140,6 +140,14 @@ func handleImageDetailLoaded(m *state.AppModel, msg state.ImageDetailLoaded) (*s
 	return m, nil
 }
 
+func handleHistoryLoaded(m *state.AppModel, msg state.HistoryLoadedMsg) (*state.AppModel, tea.Cmd) {
+	if m.History.ImageID == "" || m.History.ImageID != msg.ImageID {
+		return m, nil
+	}
+	m.History.Apply(msg.Layers, runtimeapi.ImageHistoryLayerAPI, msg.Err)
+	return m, nil
+}
+
 func handleContainerDetailLoaded(m *state.AppModel, msg state.ContainerDetailLoaded) (*state.AppModel, tea.Cmd) {
 	if msg.Error != nil || msg.Detail == nil {
 		if m.Navigation.Mode != state.ModeDetail || m.Detail.DetailTitle != msg.Title {

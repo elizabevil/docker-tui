@@ -27,7 +27,9 @@ func TestContainersExposeOnlyComplexActions(t *testing.T) {
 
 func TestDirectAndGlobalActionsAreExcluded(t *testing.T) {
 	m := state.NewAppModel(config.DefaultConfig(), nil, "test")
-	for _, panel := range []state.PanelType{state.PanelImages, state.PanelVolumes, state.PanelNetworks, state.PanelCompose, state.PanelAudit} {
+	// Image History is a no-shortcut complex action; other panels have
+	// no Action Bar items until a per-panel set is added.
+	for _, panel := range []state.PanelType{state.PanelVolumes, state.PanelNetworks, state.PanelCompose, state.PanelAudit} {
 		m.Navigation.ActivePanel = panel
 		if items := VisibleItems(m); len(items) != 0 {
 			t.Fatalf("panel %v contains direct/global actions: %#v", panel, items)
@@ -47,5 +49,19 @@ func TestContainerActionAvailabilityAndFiltering(t *testing.T) {
 	items = VisibleItems(m)
 	if len(items) != 1 || items[0].Action != keys.ActionContainerRename {
 		t.Fatalf("filtered items = %#v", items)
+	}
+}
+
+func TestImagesExposeHistoryWhenEligible(t *testing.T) {
+	m := state.NewAppModel(config.DefaultConfig(), &dockerclient.Client{}, "test")
+	m.Navigation.ActivePanel = state.PanelImages
+	m.Resources.Images.Items = []runtimeapi.ImageSummary{{ID: "sha256:one", RepoTags: []string{"nginx:latest"}}}
+	items := VisibleItems(m)
+	if len(items) != 1 || items[0].Action != keys.ActionImageHistory || items[0].Disabled {
+		t.Fatalf("image actions = %#v", items)
+	}
+	m.Resources.Images.Items[0].IsManifest = true
+	if items = VisibleItems(m); len(items) != 1 || !items[0].Disabled {
+		t.Fatalf("manifest history should be disabled: %#v", items)
 	}
 }

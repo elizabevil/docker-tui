@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/elizabevil/docker-tui/internal/data/config"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
 
@@ -26,6 +28,20 @@ func TestTemplateFor(t *testing.T) {
 				t.Fatalf("templateFor() = %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestImageContainerSubviewSummaryUsesPersistentImageRef(t *testing.T) {
+	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app.Navigation.ActivePanel = state.PanelImages
+	app.Resources.Images.Items = []runtimeapi.ImageSummary{{ID: "sha256:image", RepoTags: []string{"example/nginx:latest"}}}
+	app.Resources.Images.ContainersViewID = "sha256:image"
+	app.Resources.Images.ContainersViewRef = "example/nginx:latest"
+	app.Resources.Containers.Items = []runtimeapi.ContainerSummary{{ID: "container", Name: "web", Image: "example/nginx:latest"}}
+
+	page := projectPage(app, 12, 120)
+	if page.summary != "Image: example/nginx:latest" {
+		t.Fatalf("summary = %q", page.summary)
 	}
 }
 

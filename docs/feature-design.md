@@ -242,7 +242,7 @@ dtui 设计:
 
 **已有命令保留**:`:rename` / `:top` / `:port` 等命令面板入口不取消,与 Action Bar 并存(命令面板保留为"可输入"形态,Action Bar 保留为"可点击列表"形态)。
 
-**实现位置**:新增 `internal/tui/ui/widget/actionbar/` 子包(暂定名),UI 类似 `widget/dialog/` 的浮层 + `widget/footer/` 的快捷键提示。
+**实现位置**:新增 `internal/tui/actionbar/` 子包(暂定名),UI 类似 `widget/dialog/` 的浮层 + `widget/footer/` 的快捷键提示。
 
 ### 5.7 Events 流独立面板 (F3)
 

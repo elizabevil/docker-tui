@@ -1,0 +1,37 @@
+{
+  "columns": {
+    "default": [
+      {
+        "key": "id",
+        "fixed": 14,
+        "header": "table.layer"
+      },
+      {
+        "key": "created",
+        "fixed": 12,
+        "header": "table.created"
+      },
+      {
+        "key": "size",
+        "fixed": 10,
+        "header": "table.size"
+      },
+      {
+        "key": "created_by",
+        "basis": 40,
+        "min": 12,
+        "shrink": 1,
+        "fill": 4,
+        "header": "table.created_by"
+      },
+      {
+        "key": "comment",
+        "basis": 30,
+        "min": 8,
+        "shrink": 1,
+        "fill": 2,
+        "header": "table.comment"
+      }
+    ]
+  }
+}

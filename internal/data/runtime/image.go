@@ -118,6 +118,10 @@ type ImageListOptions struct {
 type ImageService interface {
 	List(context.Context, ImageListOptions) ([]ImageSummary, error)
 	Inspect(context.Context, ImageSummary) (*ImageDetail, error)
+	// History returns the layer history for summary. Callers must check
+	// summary.IsManifest before invoking: manifest-list images have no
+	// layers to show and should be rendered via ManifestVariants instead.
+	History(context.Context, ImageSummary) ([]ImageHistoryLayer, error)
 }
 
 // SplitImageRef splits the first RepoTag into registry, name, and tag.

@@ -121,6 +121,9 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 		ToCommand(m)
 		return m, nil
 
+	case keys.ActionImageHistory:
+		return openHistoryPage(m)
+
 	case keys.ActionActionBar:
 		return doActionBar(m)
 	case keys.ActionContainerRename:

@@ -93,3 +93,19 @@ func TestRenderListUsesStableExcelLikeColumnTracks(t *testing.T) {
 	}
 	t.Fatalf("image row was not rendered: %q", rendered)
 }
+
+func TestContainerSubviewShowsSelectedContainerInsteadOfDuplicateImage(t *testing.T) {
+	images := state.NewImageListModel()
+	images.Items = []runtimeapi.ImageSummary{{ID: "sha256:image", RepoTags: []string{"example/nginx:latest"}}}
+	images.ContainersViewID = "sha256:image"
+	containers := state.NewContainerListModel()
+	containers.Items = []runtimeapi.ContainerSummary{{ID: "container123456789", Name: "web", Image: "example/nginx:latest"}}
+
+	plain := component.StripANSI(RenderList(images, containers, 120, 12, nil, false))
+	if !strings.Contains(plain, "Container: web (container123)") {
+		t.Fatalf("selected container summary missing: %q", plain)
+	}
+	if strings.Count(plain, "example/nginx:latest") > 1 {
+		t.Fatalf("image reference is duplicated: %q", plain)
+	}
+}

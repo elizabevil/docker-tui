@@ -1,14 +1,17 @@
 package view
 
 import (
+	"fmt"
 	"strings"
 
+	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/audit"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/compose"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/containers"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/detail"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/help"
+	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/history"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/images"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/logs"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/networks"
@@ -43,6 +46,8 @@ func templateFor(m *state.AppModel) pageTemplateKind {
 	case m.Navigation.Mode == state.ModeTop:
 		return detailPageTemplate
 	case m.Navigation.Mode == state.ModeAuditDetail:
+		return detailPageTemplate
+	case m.Navigation.Mode == state.ModeHistory:
 		return detailPageTemplate
 	case m.Navigation.ActivePanel == state.PanelHelp:
 		return helpPageTemplate
@@ -92,6 +97,10 @@ func projectPage(m *state.AppModel, bodyHeight, bodyWidth int) pageView {
 		} else if m.Navigation.Mode == state.ModeAuditDetail {
 			view.title = "Audit Detail"
 			view.content = audit.RenderDetail(m.Audit.DetailRecord, bodyWidth, bodyHeight)
+		} else if m.Navigation.Mode == state.ModeHistory {
+			view.title = i18n.T("history.title")
+			view.summary = fmt.Sprintf(i18n.T("history.summary"), m.History.ImageRef, len(m.History.Layers))
+			view.content = history.RenderView(m, bodyHeight, bodyWidth)
 		} else if m.Detail.DetailResourceType == state.ResourceComposeProject {
 			view.content = compose.RenderProjectDetailTable(m, bodyWidth, bodyHeight)
 		} else {
@@ -102,6 +111,9 @@ func projectPage(m *state.AppModel, bodyHeight, bodyWidth int) pageView {
 	case splitPageTemplate:
 		view.content = compose.RenderPanel(m, bodyWidth, bodyHeight)
 	default:
+		if m.Navigation.ActivePanel == state.PanelImages && m.Resources.Images.ContainersViewID != "" {
+			view.summary = "Image: " + m.Resources.Images.ContainersViewRef
+		}
 		view.content = renderListPage(m, bodyHeight, bodyWidth)
 	}
 	return view

@@ -1,8 +1,6 @@
 package keyboard
 
 import (
-	"fmt"
-
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -12,15 +10,16 @@ import (
 
 // ToImageContainers enters the container sub-view for the selected image.
 // Sets ContainersViewID so the images panel renders containers using that image.
-func ToImageContainers(m *state.AppModel, imgID string) {
+func ToImageContainers(m *state.AppModel, imgID, imageRef string) {
 	m.Resources.Images.ContainersViewID = imgID
+	m.Resources.Images.ContainersViewRef = imageRef
 	m.Resources.Images.ContainerCursor = 0
-	m.Feedback.InfoMessage = fmt.Sprintf("Containers using %s", shortID(imgID))
 }
 
 // BackFromImageContainers leaves the container sub-view.
 func BackFromImageContainers(m *state.AppModel) {
 	m.Resources.Images.ContainersViewID = ""
+	m.Resources.Images.ContainersViewRef = ""
 	m.Resources.Images.ContainerCursor = 0
 	m.Feedback.InfoMessage = ""
 }

@@ -39,3 +39,27 @@ func (s PodmanImageService) Inspect(ctx context.Context, summary runtimeapi.Imag
 	// separate, on-demand request when the dedicated history view is added.
 	return MapImageInspect(*inspect, nil), nil
 }
+
+func (s PodmanImageService) History(ctx context.Context, summary runtimeapi.ImageSummary) ([]runtimeapi.ImageHistoryLayer, error) {
+	raw, err := s.Client.REST.ImageHistory(ctx, summary.ID)
+	if err != nil {
+		return nil, runtimeapi.MapRuntimeError(err, runtimeapi.Operation(runtimeapi.ResourceImage, "history"), runtimeapi.ResourceRef{Type: runtimeapi.ResourceImage, ID: summary.ID}, runtimeapi.Podman)
+	}
+	return mapPodmanHistory(raw), nil
+}
+
+// mapPodmanHistory converts the Podman REST DTO history entries into
+// the runtime-neutral ImageHistoryLayer slice.
+func mapPodmanHistory(raw []dto.LayerHistoryEntry) []runtimeapi.ImageHistoryLayer {
+	layers := make([]runtimeapi.ImageHistoryLayer, 0, len(raw))
+	for _, h := range raw {
+		layers = append(layers, runtimeapi.ImageHistoryLayer{
+			ID:        h.ID,
+			Created:   h.Created,
+			CreatedBy: h.CreatedBy,
+			Size:      h.Size,
+			Comment:   h.Comment,
+		})
+	}
+	return layers
+}

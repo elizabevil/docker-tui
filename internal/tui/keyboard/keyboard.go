@@ -115,6 +115,9 @@ func dispatchByMode(rawKey, key string, m *state.AppModel) (*state.AppModel, tea
 	case state.ModeActionBar:
 		m, cmd := handleActionBarKeys(rawKey, m)
 		return m, cmd, true
+	case state.ModeHistory:
+		m, cmd := handleHistoryKeys(rawKey, m)
+		return m, cmd, true
 	case state.ModeMark:
 		// Mark mode handles both arrow-keyed navigation and Space toggle.
 		m, cmd := handleMarkMode(key, m)
@@ -210,8 +213,8 @@ func handlePanelFallbacks(key string, m *state.AppModel) (*state.AppModel, tea.C
 }
 
 // handleShortcuts covers the small set of fixed-key bindings that do
-// not appear in the action table: header toggle, connection info,
-// sort cycle, sort direction, and Space-mark toggle.
+// not appear in the action table: connection info, sort controls, and
+// Space-mark toggle.
 func handleShortcuts(key string, m *state.AppModel, cmds []tea.Cmd) (*state.AppModel, tea.Cmd) {
 	if keys.IsSpace(key) {
 		if m.Navigation.Mode == state.ModeMark {
@@ -222,9 +225,6 @@ func handleShortcuts(key string, m *state.AppModel, cmds []tea.Cmd) (*state.AppM
 		return mm, batchWith(cmds, RecordKeyStroke(m, key, keys.ActionLabelMark), cmd)
 	}
 	switch key {
-	case keys.KeyH:
-		m.Viewport.ToggleHeader()
-		return m, batchWith(cmds, RecordKeyStroke(m, key, keys.ActionLabelHeader))
 	case keys.KeyC:
 		mm, cmd := showConnectionInfo(m)
 		return mm, batchWith(cmds, RecordKeyStroke(m, key, keys.ActionLabelConn), cmd)

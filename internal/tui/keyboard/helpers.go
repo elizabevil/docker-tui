@@ -273,7 +273,7 @@ func KeyStrokeActionLabel(key string) string {
 		keys.KeyE: "Exec", keys.KeyEUpper: "Exec",
 		keys.KeyM: "Stats", keys.KeyMUpper: "Stats",
 		keys.KeyPUpper: "Pull", keys.KeyP: "Prune",
-		keys.KeyH: "Header", keys.KeyHUpper: "Header",
+		keys.KeyH: "History", keys.KeyHUpper: "History",
 		keys.KeyC: "Conn", keys.KeyCUpper: "Conn",
 		keys.KeyO: "Sort", keys.KeyOUpper: "Sort",
 		keys.KeyEnter: "Open",

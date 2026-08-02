@@ -27,18 +27,19 @@ type (
 )
 
 type ImageListModel struct {
-	Items            []dockerclient.ImageSummary
-	Cursor           int
-	ViewOffset       int
-	Loading          bool
-	Error            error
-	Filter           string
-	SortBy           ImageSortColumn
-	SortAsc          bool
-	ExpandedID       string // deprecated — kept for compatibility
-	ContainersViewID string
-	ContainerCursor  int
-	ContainerOffset  int
+	Items             []dockerclient.ImageSummary
+	Cursor            int
+	ViewOffset        int
+	Loading           bool
+	Error             error
+	Filter            string
+	SortBy            ImageSortColumn
+	SortAsc           bool
+	ExpandedID        string // deprecated — kept for compatibility
+	ContainersViewID  string
+	ContainersViewRef string
+	ContainerCursor   int
+	ContainerOffset   int
 }
 
 func NewImageListModel() *ImageListModel {

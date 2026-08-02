@@ -222,14 +222,6 @@ func renderContainers(im *state.ImageListModel, cm *state.ContainerListModel, wi
 		return renderInfoBlock([]string{component.StrNoContainer, "Press Esc to return"}, panelHeight)
 	}
 
-	imgRef := fullRef(&im.Items[0])
-	for _, item := range im.Items {
-		if item.ID == imgID || utils.ShortID(item.ID) == imgShort {
-			imgRef = fullRef(&item)
-			break
-		}
-	}
-
 	total := len(matched)
 	rowHeight := component.CalcRowHeight(panelHeight)
 	containerCursor := min(max(0, im.ContainerCursor), total-1)
@@ -276,36 +268,31 @@ func renderContainers(im *state.ImageListModel, cm *state.ContainerListModel, wi
 	selRow := selectedContainerSubRow(matched, containerOffset, containerCursor)
 
 	selProv := component.NewSelectionProviderFromFn(func() string {
-		items := im.FilteredItems()
-		if im.Cursor >= len(items) {
+		if containerCursor < 0 || containerCursor >= len(matched) {
 			return ""
 		}
-		img := items[im.Cursor]
-		reg, name, tag := splitRef(img.RepoTags)
-		if reg == "" {
-			reg = img.Registry
-		}
+		container := matched[containerCursor]
+		name := container.Name
 		if name == "" {
-			return utils.ShortID(img.ID)
+			name = "<unnamed>"
 		}
-		return reg + "/" + name + ":" + tag
+		return "Container: " + name + " (" + utils.ShortID(container.ID) + ")"
 	})
 	colStyles := component.GetColumnStyles(colsDef)
-	return component.RenderSelectionBanner(imgRef, w) + "\n" +
-		component.RenderTable(component.TableData{
-			Cols:              colsDef,
-			Rows:              rows,
-			Selected:          selRow,
-			Total:             total,
-			Offset:            containerOffset,
-			Limit:             rowHeight,
-			HeaderOverrides:   overrides,
-			FooterHint:        "l:logs Enter:logs Esc:back",
-			BodyHeight:        panelHeight,
-			BannerW:           w,
-			ColStyles:         colStyles,
-			SelectionProvider: selProv,
-		})
+	return component.RenderTable(component.TableData{
+		Cols:              colsDef,
+		Rows:              rows,
+		Selected:          selRow,
+		Total:             total,
+		Offset:            containerOffset,
+		Limit:             rowHeight,
+		HeaderOverrides:   overrides,
+		FooterHint:        "l:logs Enter:logs Esc:back",
+		BodyHeight:        panelHeight,
+		BannerW:           w,
+		ColStyles:         colStyles,
+		SelectionProvider: selProv,
+	})
 }
 
 func selectedContainerSubRow(items []dockerclient.ContainerSummary, offset, cursor int) int {

@@ -59,6 +59,7 @@ const (
 	ModeImageTransfer
 	ModeAuditDetail
 	ModeActionBar
+	ModeHistory
 )
 
 // ExecDialogFocus identifies focusable regions in the exec dialog.
@@ -98,6 +99,7 @@ type AppModel struct {
 	Processes     ProcessState
 	Events        EventState
 	ImageTransfer ImageTransferState
+	History       HistoryState
 	Audit         AuditState
 }
 

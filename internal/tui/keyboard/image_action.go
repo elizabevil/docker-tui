@@ -162,7 +162,7 @@ func doImageExpand(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		ShowToastWarn(m, "no containers using "+shortID(img.ID))
 		return m, nil
 	}
-	ToImageContainers(m, img.ID)
+	ToImageContainers(m, img.ID, fullImageRef(img))
 	return m, nil
 }
 

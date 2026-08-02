@@ -33,7 +33,6 @@ func Global(app ...*state.AppModel) []Shortcut {
 		{bindingLabel(model, keys.ActionActionBar, keys.KeySemicolon), "Action Bar"},
 		{bindingLabel(model, keys.ActionSwitchRuntime, keys.KeyF2), "Runtime"},
 		{bindingLabel(model, keys.ActionHelp, keys.KeyQmark), i18n.T("key.help")},
-		{keys.KeyHUpper, i18n.T("key.header")},
 		{keys.KeyCUpper, i18n.T("key.connect")},
 	}
 }
@@ -57,6 +56,11 @@ func ForMode(app *state.AppModel) []Shortcut {
 		return shortcuts("Enter", "Run", "Tab", "Complete", "Esc", "Exit", "Ctrl+A/E", "Home/End", "Ctrl+W/U/K", "Edit")
 	case state.ModeActionBar:
 		return shortcuts("j/k", "Move", "Enter", "Run", "/", "Filter", "1-9", "Jump", "Esc", "Close")
+	case state.ModeHistory:
+		if app.History.Filtering {
+			return shortcuts("Enter/Esc", i18n.T("history.filter_done"), "Backspace", i18n.T("history.filter_delete"))
+		}
+		return shortcuts("Esc", i18n.T("key.back"), "j/k", i18n.T("key.scroll"), "PgUp/Dn", i18n.T("history.page"), "g/G", i18n.T("history.first_last"), "/", i18n.T("key.filter"))
 	case state.ModeMark:
 		return []Shortcut{
 			{bindingLabel(app, keys.ActionBack, keys.KEsc), "Cancel"},
@@ -171,6 +175,7 @@ func ForPanel(panel state.PanelType, marked int, app ...*state.AppModel) []Short
 		return []Shortcut{
 			{keys.KSpace, i18n.T("key.mark")}, {keys.KRight, i18n.T("key.expand")},
 			{keys.KeyY, i18n.T("key.copy")}, {bindingLabel(model, keys.ActionDetail, keys.KeyD), i18n.T("key.detail")},
+			{bindingLabel(model, keys.ActionImageHistory, keys.KeyHUpper), i18n.T("history.title")},
 			{keys.KCtrlB, i18n.T("key.debug")}, {bindingLabel(model, keys.ActionImageTag, keys.KeyCtrlT), i18n.T("key.tag")},
 			{bindingLabel(model, keys.ActionImagePush, keys.KeyCtrlU), i18n.T("key.push")},
 			{bindingLabel(model, keys.ActionImageSave, keys.KeyCtrlE), i18n.T("key.save")}, {bindingLabel(model, keys.ActionImageLoad, keys.KeyCtrlL), i18n.T("key.load")},
@@ -232,10 +237,12 @@ func pauseLabel(model *state.AppModel) string {
 
 func Sections(app ...*state.AppModel) []Section {
 	model := firstModel(app)
+	imageShortcuts := ForPanel(state.PanelImages, 0, model)
+	imageShortcuts = append(imageShortcuts, Shortcut{Key: "Action Bar", Description: i18n.T("history.title")})
 	return []Section{
 		{Title: i18n.T("help.global"), Shortcuts: Global(model)},
 		{Title: i18n.T("help.containers"), Shortcuts: ForPanel(state.PanelContainers, 0, model)},
-		{Title: i18n.T("help.images"), Shortcuts: ForPanel(state.PanelImages, 0, model)},
+		{Title: i18n.T("help.images"), Shortcuts: imageShortcuts},
 		{Title: "Compose", Shortcuts: ForPanel(state.PanelCompose, 0, model)},
 		{Title: i18n.T("help.volumes_networks"), Shortcuts: ForPanel(state.PanelVolumes, 0, model)},
 	}

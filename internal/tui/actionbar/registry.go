@@ -38,9 +38,17 @@ func VisibleItems(m *state.AppModel) []ActionItem {
 }
 
 func actionsForPanel(m *state.AppModel) []ActionItem {
-	if m.Navigation.ActivePanel != state.PanelContainers {
+	switch m.Navigation.ActivePanel {
+	case state.PanelImages:
+		return imageActions(m)
+	case state.PanelContainers:
+		return containerActions(m)
+	default:
 		return nil
 	}
+}
+
+func containerActions(m *state.AppModel) []ActionItem {
 	container := m.Resources.Containers.Selected()
 	missingContainer := container == nil
 	missingEngine := m.Connection.Engine == nil
@@ -57,6 +65,18 @@ func actionsForPanel(m *state.AppModel) []ActionItem {
 		{
 			Label: "Port", Action: keys.ActionContainerPort,
 			Description: "Open structured container port mappings", Disabled: missingContainer,
+		},
+	}
+}
+
+func imageActions(m *state.AppModel) []ActionItem {
+	summary := m.Resources.Images.Selected()
+	missingImage := summary == nil
+	missingEngine := m.Connection.Engine == nil
+	return []ActionItem{
+		{
+			Label: "Image History", Action: keys.ActionImageHistory,
+			Description: "View per-layer build history", Disabled: missingEngine || missingImage || summary.IsManifest,
 		},
 	}
 }

@@ -67,6 +67,27 @@ func TestContainerDetailLoadedWritesRawJSON(t *testing.T) {
 	}
 }
 
+func TestHistoryLoadedIgnoresStaleResponse(t *testing.T) {
+	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app.History.Open("current", "current:latest")
+
+	updated, _ := handleHistoryLoaded(app, state.HistoryLoadedMsg{
+		ImageID: "stale",
+		Layers:  []runtimeapi.ImageHistoryLayer{{ID: "old"}},
+	})
+	if !updated.History.Loading || len(updated.History.Layers) != 0 {
+		t.Fatalf("stale response changed history: %+v", updated.History)
+	}
+
+	updated, _ = handleHistoryLoaded(app, state.HistoryLoadedMsg{
+		ImageID: "current",
+		Layers:  []runtimeapi.ImageHistoryLayer{{ID: "new"}},
+	})
+	if updated.History.Loading || len(updated.History.Layers) != 1 || updated.History.Layers[0].ID != "new" {
+		t.Fatalf("current response not applied: %+v", updated.History)
+	}
+}
+
 func TestVolumeDetailLoadedShowsErrorPlaceholder(t *testing.T) {
 	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
 	title := "Volume Detail: data"
