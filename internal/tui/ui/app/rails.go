@@ -140,13 +140,13 @@ func renderQueryRail(m *state.AppModel, width int) string {
 	kind := queryKindFor(m)
 	switch kind {
 	case queryFilter:
-		return renderQueryInput(kind, m.Navigation.FilterInput.Text, m.Navigation.FilterInput.Cursor, width)
+		return renderQueryInput(kind, m.Navigation.FilterInput.Text, m.Navigation.FilterInput.Cursor, width, !m.CursorBlinkHidden)
 	case querySearch:
-		return renderQueryInput(kind, m.Navigation.SearchInput.Text, m.Navigation.SearchInput.Cursor, width)
+		return renderQueryInput(kind, m.Navigation.SearchInput.Text, m.Navigation.SearchInput.Cursor, width, !m.CursorBlinkHidden)
 	case queryCommand:
-		return renderQueryInput(kind, m.Navigation.CommandInput.Text, m.Navigation.CommandInput.Cursor, width)
+		return renderQueryInput(kind, m.Navigation.CommandInput.Text, m.Navigation.CommandInput.Cursor, width, !m.CursorBlinkHidden)
 	case queryImagePull:
-		return renderQueryInput(kind, m.Dialog.Input.Text, m.Dialog.Input.Cursor, width)
+		return renderQueryInput(kind, m.Dialog.Input.Text, m.Dialog.Input.Cursor, width, !m.CursorBlinkHidden)
 	default:
 		return ""
 	}
@@ -181,7 +181,7 @@ func queryKindFor(m *state.AppModel) queryKind {
 	return queryNone
 }
 
-func renderQueryInput(kind queryKind, text string, cursor int, width int) string {
+func renderQueryInput(kind queryKind, text string, cursor int, width int, cursorVisible ...bool) string {
 	if kind == queryNone {
 		return ""
 	}
@@ -189,6 +189,7 @@ func renderQueryInput(kind queryKind, text string, cursor int, width int) string
 	innerWidth := max(8, boxWidth-4)
 
 	var input string
+	visible := len(cursorVisible) == 0 || cursorVisible[0]
 	switch kind {
 	case queryCommand:
 		prefix := component.GetStyle("commandPrefix").Render(": ")
@@ -196,16 +197,20 @@ func renderQueryInput(kind queryKind, text string, cursor int, width int) string
 		if suffix != "" {
 			typed := component.GetStyle("searchBar").Render(text)
 			hint := component.GetStyle("searchHint").Render(suffix)
-			input = prefix + typed + "\u2588" + hint
+			cursorMark := "\u2588"
+			if !visible {
+				cursorMark = " "
+			}
+			input = prefix + typed + cursorMark + hint
 		} else {
-			input = prefix + component.GetStyle("searchBar").Render(insertCursor(text, cursor))
+			input = prefix + component.GetStyle("searchBar").Render(insertCursor(text, cursor, visible))
 		}
 	case querySearch:
-		input = component.GetStyle("searchBar").Render("Search: " + insertCursor(text, cursor))
+		input = component.GetStyle("searchBar").Render("Search: " + insertCursor(text, cursor, visible))
 	case queryImagePull:
-		input = component.GetStyle("searchBar").Render("Pull: " + insertCursor(text, cursor))
+		input = component.GetStyle("searchBar").Render("Pull: " + insertCursor(text, cursor, visible))
 	default:
-		input = component.GetStyle("searchBar").Render("Filter: " + insertCursor(text, cursor))
+		input = component.GetStyle("searchBar").Render("Filter: " + insertCursor(text, cursor, visible))
 	}
 
 	content := component.PadVisible(input, innerWidth)

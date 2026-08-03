@@ -1,7 +1,11 @@
 package podman
 
 import (
+	"context"
+	"net/http"
 	"testing"
+
+	"github.com/elizabevil/docker-tui/internal/driver/podman/dto"
 )
 
 // TestAdvancedContainerPaths verifies the TASK-019 URL helpers return the
@@ -18,7 +22,7 @@ func TestAdvancedContainerPaths(t *testing.T) {
 		{"wait", ContainerWaitPath(id), "/libpod/containers/abc123/wait"},
 		{"changes", ContainerChangesPath(id), "/libpod/containers/abc123/changes"},
 		{"export", ContainerExportPath(id), "/libpod/containers/abc123/export"},
-		{"commit", ContainerCommitPath(id), "/libpod/containers/abc123/commit"},
+		{"commit", ContainerCommitPath(), "/libpod/commit"},
 		{"archive", ContainerArchivePath(id), "/libpod/containers/abc123/archive"},
 	}
 	for _, tc := range cases {
@@ -27,6 +31,40 @@ func TestAdvancedContainerPaths(t *testing.T) {
 				t.Fatalf("path = %q, want %q", tc.got, tc.want)
 			}
 		})
+	}
+}
+
+func TestContainerCommitUsesCollectionEndpointAndQuery(t *testing.T) {
+	client, err := NewRESTClient(RESTConfig{
+		Endpoint:   "http://podman.test",
+		APIVersion: "5.4.2",
+		HTTPClient: &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+			if request.Method != http.MethodPost || request.URL.Path != "/v5.4.2/libpod/commit" {
+				t.Fatalf("request = %s %s", request.Method, request.URL.Path)
+			}
+			query := request.URL.Query()
+			for key, want := range map[string]string{
+				"container": "abc123", "repo": "localhost/demo", "tag": "v1",
+				"author": "dtui", "comment": "snapshot", "pause": "true",
+			} {
+				if got := query.Get(key); got != want {
+					t.Fatalf("query %s = %q, want %q", key, got, want)
+				}
+			}
+			return response(http.StatusCreated, `{"Id":"sha256:new"}`), nil
+		})},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := client.ContainerCommit(context.Background(), "abc123", dto.ContainerCommitOptions{
+		Repository: "localhost/demo", Tag: "v1", Author: "dtui", Comment: "snapshot", Pause: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.ID != "sha256:new" {
+		t.Fatalf("commit ID = %q", result.ID)
 	}
 }
 

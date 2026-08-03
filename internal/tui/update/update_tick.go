@@ -29,24 +29,26 @@ func handleStatsReceived(m *state.AppModel, msg state.StatsReceived) (*state.App
 	return m, nil
 }
 
+func handleCursorBlinkTick(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	m.CursorBlinkHidden = !m.CursorBlinkHidden
+	return m, tea.Tick(500*time.Millisecond, func(time.Time) tea.Msg {
+		return state.CursorBlinkTick{}
+	})
+}
+
 func handleStatsTick(m *state.AppModel, _ state.StatsTick) (*state.AppModel, tea.Cmd) {
 	if m.Connection.Engine == nil {
 		m.Metrics.StatsActive = false
 		return m, nil
 	}
-	// Auto-enable stats when containers panel is active
-	if !m.Metrics.StatsActive && m.Navigation.ActivePanel == state.PanelContainers {
-		m.Metrics.StatsActive = true
-	}
-	if !m.Metrics.StatsActive {
-		return m, nil
-	}
 
-	// Fetch stats for all currently visible (filtered) containers
-	items := m.Resources.Containers.SortedItems()
-	cmds := make([]tea.Cmd, 0, len(items))
-	for _, c := range items {
-		cmds = append(cmds, keyboard.FetchStats(m.Connection.Engine.Containers(), c.ID))
+	shouldFetch := m.Navigation.ActivePanel == state.PanelContainers && m.Navigation.Mode == state.ModeNormal
+	m.Metrics.StatsActive = shouldFetch
+	cmds := make([]tea.Cmd, 0, len(m.Resources.Containers.Items)+1)
+	if shouldFetch {
+		for _, c := range m.Resources.Containers.SortedItems() {
+			cmds = append(cmds, keyboard.FetchStats(m.Connection.Engine.Containers(), c.ID))
+		}
 	}
 
 	// Schedule next tick
@@ -59,6 +61,31 @@ func handleStatsTick(m *state.AppModel, _ state.StatsTick) (*state.AppModel, tea
 	}))
 
 	return m, tea.Batch(cmds...)
+}
+
+func handleContainerProcessesLoaded(m *state.AppModel, msg state.ContainerProcessesLoaded) (*state.AppModel, tea.Cmd) {
+	if !m.Processes.Apply(msg.ContainerID, msg.Processes.Titles, msg.Processes.Processes, msg.Error) {
+		return m, nil
+	}
+	if m.Navigation.Mode != state.ModeTop || m.Processes.ContainerID == "" {
+		return m, nil
+	}
+	id, generation := m.Processes.ContainerID, m.Processes.Generation
+	return m, tea.Tick(2*time.Second, func(time.Time) tea.Msg {
+		return state.ContainerProcessesTick{ContainerID: id, Generation: generation}
+	})
+}
+
+func handleContainerProcessesTick(m *state.AppModel, msg state.ContainerProcessesTick) (*state.AppModel, tea.Cmd) {
+	if m.Navigation.Mode != state.ModeTop || m.Connection.Engine == nil ||
+		msg.ContainerID != m.Processes.ContainerID || msg.Generation != m.Processes.Generation {
+		return m, nil
+	}
+	if m.Processes.Loading {
+		return m, tea.Tick(500*time.Millisecond, func(time.Time) tea.Msg { return msg })
+	}
+	m.Processes.Loading = true
+	return m, keyboard.FetchContainerProcesses(m.Connection.Engine.Containers(), msg.ContainerID)
 }
 
 func handleDockerConnected(m *state.AppModel, msg state.DockerConnected) (*state.AppModel, tea.Cmd) {

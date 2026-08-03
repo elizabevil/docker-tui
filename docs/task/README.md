@@ -31,6 +31,8 @@
 | [BR-038](./br-038-exec-shell-ui.md) | medium | 容器 Exec 页面 shell UI | feature-todo-list §2 + bugfix-requirements BR-038 |
 | [BR-039](./br-039-action-bar-replace-q.md) | **done** | 取消 Q 退出,改为每页多功能 Action Bar | feature-todo-list §2 + bugfix-requirements BR-039 |
 | [BR-040](./br-040-dialog-style-center-on-panel.md) | medium | Dialog 风格统一:四周透明 + panel 居中 | feature-todo-list §2 + bugfix-requirements BR-040 |
+| [BR-041](./br-041-unified-form-path-completion.md) | **high** | FORM 导航与路径补全统一 | BR-033 后续交互规范 |
+| [BR-042](./br-042-form-runtime-refresh-corrections.md) | **high** | FORM 焦点/光标与 Commit、Wait、Top、Stats 修正 | BR-033 + BR-041 运行时缺陷 |
 
 ## 任务卡模板
 

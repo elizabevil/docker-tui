@@ -83,7 +83,7 @@ func RenderShellDialog(shell string, termW, termH int, overlayColor string) stri
 	return PlaceOverlay(termW, termH, RenderShellDialogBox(shell, termW, overlayColor), overlayColor)
 }
 
-func RenderShellDialogBox(shell string, termW int, overlayColor string) string {
+func RenderShellDialogBox(shell string, termW int, overlayColor string, cursorVisible ...bool) string {
 	if overlayColor == "" {
 		overlayColor = DefaultDialogConfig().OverlayColor
 	}
@@ -97,10 +97,14 @@ func RenderShellDialogBox(shell string, termW int, overlayColor string) string {
 	if shell == "" {
 		shell = "/bin/sh"
 	}
+	cursor := "\u2588"
+	if len(cursorVisible) > 0 && !cursorVisible[0] {
+		cursor = " "
+	}
 	inner := lipgloss.JoinVertical(lipgloss.Top,
 		lipgloss.NewStyle().Foreground(style.Color(constants.ColorYellow)).Render("Enter container shell"),
 		"",
-		lipgloss.NewStyle().Faint(true).Render("  Shell: "+shell+"\u2588"),
+		lipgloss.NewStyle().Faint(true).Render("  Shell: "+shell+cursor),
 		"",
 		lipgloss.NewStyle().Faint(true).Render("  [Enter] Confirm  [Esc] Cancel"),
 	)
@@ -119,13 +123,17 @@ func RenderTextInput(title, value string, cursor, termW, termH int, overlayColor
 	return PlaceOverlay(termW, termH, RenderTextInputBox(title, value, cursor, termW, overlayColor), overlayColor)
 }
 
-func RenderTextInputBox(title, value string, cursor, termW int, overlayColor string) string {
+func RenderTextInputBox(title, value string, cursor, termW int, overlayColor string, cursorVisible ...bool) string {
 	if overlayColor == "" {
 		overlayColor = DefaultDialogConfig().OverlayColor
 	}
 	runes := []rune(value)
 	cursor = min(max(0, cursor), len(runes))
-	input := string(runes[:cursor]) + "\u2588" + string(runes[cursor:])
+	mark := "\u2588"
+	if len(cursorVisible) > 0 && !cursorVisible[0] {
+		mark = " "
+	}
+	input := string(runes[:cursor]) + mark + string(runes[cursor:])
 	dialogW := min(60, max(40, termW*25/100))
 	inner := lipgloss.JoinVertical(lipgloss.Top,
 		lipgloss.NewStyle().Foreground(style.Color(constants.ColorCyan)).Render(title),

@@ -9,10 +9,12 @@ type ProcessState struct {
 	ViewOffset    int
 	Loading       bool
 	Error         string
+	Generation    uint64
 }
 
 func (s *ProcessState) Open(id, name string) {
-	*s = ProcessState{ContainerID: id, ContainerName: name, Loading: true}
+	generation := s.Generation + 1
+	*s = ProcessState{ContainerID: id, ContainerName: name, Loading: true, Generation: generation}
 }
 
 func (s *ProcessState) Apply(id string, titles []string, rows [][]string, err error) bool {
@@ -32,4 +34,7 @@ func (s *ProcessState) Apply(id string, titles []string, rows [][]string, err er
 }
 
 func (s *ProcessState) Move(delta int) { s.Cursor = boundedCursor(s.Cursor+delta, len(s.Rows)) }
-func (s *ProcessState) Close()         { *s = ProcessState{} }
+func (s *ProcessState) Close() {
+	generation := s.Generation + 1
+	*s = ProcessState{Generation: generation}
+}

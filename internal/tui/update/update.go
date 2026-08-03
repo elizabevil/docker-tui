@@ -69,6 +69,7 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		return handleMouseClick(m, msg)
 
 	case tea.KeyPressMsg:
+		m.CursorBlinkHidden = false
 		updatedModel, cmd := keyboard.HandleKeyPress(msg, m)
 		if updatedModel.Selection.PendingImagePull != "" && updatedModel.Navigation.Mode == state.ModeNormal && updatedModel.Connection.Engine != nil {
 			pullRef, trace := updatedModel.Selection.TakeImagePull()
@@ -98,8 +99,9 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case state.BatchActioned:
 		return handleBatchActioned(m, msg)
 	case state.ContainerProcessesLoaded:
-		m.Processes.Apply(msg.ContainerID, msg.Processes.Titles, msg.Processes.Processes, msg.Error)
-		return m, nil
+		return handleContainerProcessesLoaded(m, msg)
+	case state.ContainerProcessesTick:
+		return handleContainerProcessesTick(m, msg)
 	case state.ContainerPathCompleted:
 		return keyboard.HandleContainerPathCompleted(m, msg)
 	case state.ContainerUpdateConfigLoaded:
@@ -153,6 +155,9 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 	case state.StatsTick:
 		return handleStatsTick(m, msg)
+
+	case state.CursorBlinkTick:
+		return handleCursorBlinkTick(m)
 
 	case state.DockerConnected:
 		return handleDockerConnected(m, msg)

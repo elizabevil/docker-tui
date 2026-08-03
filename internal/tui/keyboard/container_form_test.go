@@ -154,6 +154,21 @@ func TestContainerUpdateInspectDoesNotOverwriteTouchedField(t *testing.T) {
 	}
 }
 
+func TestContainerUpdateInspectLeavesUnlimitedResourcesBlank(t *testing.T) {
+	m := formModel(t, &stubContainerService{})
+	openContainerUpdateForm(m)
+	msg := state.ContainerUpdateConfigLoaded{ContainerID: "c1", Detail: &runtimeapi.ContainerDetail{
+		Resources: runtimeapi.ContainerResources{RestartPolicy: "no"},
+	}}
+	HandleContainerUpdateConfigLoaded(m, msg)
+	if memory, cpus := m.Form.Get(fieldMemory).Text(), m.Form.Get(fieldCPUs).Text(); memory != "" || cpus != "" {
+		t.Fatalf("unlimited resources must stay blank: memory=%q cpus=%q", memory, cpus)
+	}
+	if retries := m.Form.Get(fieldMaxRetries).Text(); retries != "" {
+		t.Fatalf("non-on-failure retries = %q, want blank", retries)
+	}
+}
+
 func TestContainerUpdateTabCyclesFocus(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerUpdateForm(m)
@@ -180,10 +195,19 @@ func TestOpenContainerCommitForm(t *testing.T) {
 	if cmd != nil {
 		t.Fatalf("open returned a cmd %T, want nil", cmd)
 	}
-	requireForm(t, updated, state.FormContainerCommit, 5)
+	requireForm(t, updated, state.FormContainerCommit, 7)
 	pause := updated.Form.Get(fieldPause)
 	if pause == nil || pause.Kind != state.FormBool || !pause.Toggle {
 		t.Fatalf("commit pause field must default to true: %#v", pause)
+	}
+	if updated.Form.Get(fieldRepository).Text() != "nginx" || updated.Form.Get(fieldTag).Text() != "latest" {
+		t.Fatalf("commit image defaults = %q:%q", updated.Form.Get(fieldRepository).Text(), updated.Form.Get(fieldTag).Text())
+	}
+	if export := updated.Form.Get(fieldExportTar); export == nil || export.Toggle {
+		t.Fatalf("export tar must default false: %#v", export)
+	}
+	if archive := updated.Form.Get(fieldArchivePath); archive == nil || archive.Text() == "" {
+		t.Fatalf("commit archive must have a default path: %#v", archive)
 	}
 }
 
@@ -397,9 +421,13 @@ func TestSubmitContainerUpdateFormParsesOptions(t *testing.T) {
 	m := formModel(t, capture)
 	openContainerUpdateForm(m)
 	m.Form.Get(fieldMemory).Input.Set("256")
+	m.Form.Get(fieldMemory).Touched = true
 	m.Form.Get(fieldCPUs).Input.Set("1.5")
+	m.Form.Get(fieldCPUs).Touched = true
 	m.Form.Get(fieldRestartPolicy).Index = 2 // "always"
+	m.Form.Get(fieldRestartPolicy).Touched = true
 	m.Form.Get(fieldMaxRetries).Input.Set("3")
+	m.Form.Get(fieldMaxRetries).Touched = true
 	m.Form.OnConfirm = true
 
 	updated, cmd := submitContainerForm(m)
@@ -437,7 +465,9 @@ func TestSubmitContainerUpdateFormOnFailureRetries(t *testing.T) {
 	m := formModel(t, capture)
 	openContainerUpdateForm(m)
 	m.Form.Get(fieldRestartPolicy).Index = 4 // "on-failure"
+	m.Form.Get(fieldRestartPolicy).Touched = true
 	m.Form.Get(fieldMaxRetries).Input.Set("5")
+	m.Form.Get(fieldMaxRetries).Touched = true
 	m.Form.OnConfirm = true
 
 	_, cmd := submitContainerForm(m)
@@ -458,6 +488,7 @@ func TestSubmitContainerUpdateFormInvalidInput(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerUpdateForm(m)
 	m.Form.Get(fieldMemory).Input.Set("many")
+	m.Form.Get(fieldMemory).Touched = true
 	m.Form.OnConfirm = true
 
 	updated, cmd := submitContainerForm(m)
@@ -486,6 +517,7 @@ func TestSubmitContainerUpdateFormRequiresAChange(t *testing.T) {
 func TestSubmitContainerCommitFormRequiresRepository(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerCommitForm(m)
+	m.Form.Get(fieldRepository).Input.Set("")
 	m.Form.OnConfirm = true
 	updated, cmd := submitContainerForm(m)
 	if cmd != nil {
@@ -565,6 +597,65 @@ func TestEditFormFieldSpaceTogglesBool(t *testing.T) {
 	handleContainerFormKey("x", m)
 	if pause.Toggle == before {
 		t.Fatal("typing on a bool field must not re-toggle it")
+	}
+}
+
+func TestFormBoolIgnoresLeftRight(t *testing.T) {
+	m := formModel(t, &stubContainerService{})
+	openContainerCommitForm(m)
+	m.Form.FieldFocus = 4
+	pause := m.Form.Get(fieldPause)
+	before := pause.Toggle
+	handleContainerFormKey(keys.KeyLeft, m)
+	handleContainerFormKey(keys.KeyRight, m)
+	if pause.Toggle != before {
+		t.Fatal("Bool must only toggle with Space")
+	}
+}
+
+func TestExportTarBoolTogglesThroughBubbleTeaSpace(t *testing.T) {
+	m := formModel(t, &stubContainerService{})
+	openContainerCommitForm(m)
+	m.Form.FieldFocus = 5
+	export := m.Form.Get(fieldExportTar)
+	if export == nil || export.Toggle {
+		t.Fatalf("export setup = %#v", export)
+	}
+	msg := tea.KeyPressMsg(tea.Key{Code: tea.KeySpace})
+	updated, cmd := HandleKeyPress(msg, m)
+	if cmd != nil {
+		t.Fatalf("Space toggle returned command %T", cmd)
+	}
+	if !updated.Form.Get(fieldExportTar).Toggle {
+		t.Fatalf("Bubble Tea key %q did not toggle Export tar", msg.String())
+	}
+}
+
+func TestNormalizeInputKeyMapsNamedSpace(t *testing.T) {
+	if got := normalizeInputKey(keys.KeySpaceName); got != keys.KeySpace {
+		t.Fatalf("normalizeInputKey(space) = %q, want a literal space", got)
+	}
+}
+
+func TestSubmitContainerCommitWithImageExport(t *testing.T) {
+	capture := &captureService{}
+	m := formModel(t, capture)
+	openContainerCommitForm(m)
+	destination := filepath.Join(t.TempDir(), "snapshot.tar")
+	m.Form.Get(fieldExportTar).Toggle = true
+	m.Form.Get(fieldArchivePath).Input.Set(destination)
+	m.Form.OnConfirm = true
+
+	updated, cmd := submitContainerForm(m)
+	if cmd == nil || updated.Navigation.Mode != state.ModeNormal {
+		t.Fatalf("commit export did not start: mode=%v cmd=%v", updated.Navigation.Mode, cmd)
+	}
+	done, ok := cmd().(ContainerCommitDone)
+	if !ok {
+		t.Fatalf("commit export command returned %T", cmd())
+	}
+	if done.ExportPath != destination || done.ImageID != "img-new" {
+		t.Fatalf("commit export result = %#v", done)
 	}
 }
 
@@ -1071,34 +1162,34 @@ func TestPathPopupForwardAndReverseCycle(t *testing.T) {
 	}
 }
 
-func TestPathPopupLeftRightSelectsCandidates(t *testing.T) {
+func TestPathPopupLeftRightNavigatesDirectories(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerExportForm(m)
 	dst := m.Form.Get(fieldDestinationPath)
 	m.Form.MoveSlot(1)
 	dir := t.TempDir()
-	for _, name := range []string{"alpha.tar", "alpine.tar"} {
-		if err := os.WriteFile(filepath.Join(dir, name), []byte("x"), 0o644); err != nil {
-			t.Fatal(err)
-		}
+	if err := os.Mkdir(filepath.Join(dir, "alpha"), 0o755); err != nil {
+		t.Fatal(err)
 	}
-	dst.Input.Set(filepath.Join(dir, "al"))
+	if err := os.Mkdir(filepath.Join(dir, "beta"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "alpha", "inside.tar"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	dst.Input.Set(dir + string(os.PathSeparator))
 	handleContainerFormKey(keys.KeyTab, m)
 	handleContainerFormKey(keys.KeyTab, m)
 	if !m.Form.Popup.Open {
 		t.Fatal("second Tab must open candidates")
 	}
 	handleContainerFormKey(keys.KeyRight, m)
-	if m.Form.Popup.Cursor != 1 {
-		t.Fatalf("Right cursor = %d, want 1", m.Form.Popup.Cursor)
+	if !m.Form.Popup.Open || !strings.HasSuffix(dst.Text(), "alpha"+string(os.PathSeparator)) {
+		t.Fatalf("Right must enter directory: input=%q popup=%#v", dst.Text(), m.Form.Popup)
 	}
 	handleContainerFormKey(keys.KeyLeft, m)
-	if m.Form.Popup.Cursor != 0 {
-		t.Fatalf("Left cursor = %d, want 0", m.Form.Popup.Cursor)
-	}
-	handleContainerFormKey(keys.KeyEnter, m)
-	if m.Form.Popup.Open || !strings.HasSuffix(dst.Text(), "alpha.tar") {
-		t.Fatalf("Enter must confirm file: input=%q popup=%#v", dst.Text(), m.Form.Popup)
+	if !m.Form.Popup.Open || dst.Text() != dir+string(os.PathSeparator) {
+		t.Fatalf("Left must return to parent: input=%q popup=%#v", dst.Text(), m.Form.Popup)
 	}
 }
 
@@ -1219,33 +1310,13 @@ func TestPathPopupEnterOnDirectoryVsFile(t *testing.T) {
 	if !m.Form.Popup.Open {
 		t.Fatal("Tab must open popup")
 	}
-	// Select the directory row (cursor starts at 0 since dirs are first).
+	// Enter confirms the selected directory instead of navigating into it.
 	handleContainerFormKey(keys.KeyEnter, m)
-	if !m.Form.Popup.Open {
-		t.Fatal("Enter on a directory must keep the popup open")
+	if m.Form.Popup.Open {
+		t.Fatal("Enter on a directory must confirm and close the popup")
 	}
 	if !strings.HasSuffix(dst.Input.Text, string(os.PathSeparator)) {
 		t.Fatalf("Enter on a directory must append separator: %q", dst.Input.Text)
-	}
-	// Now select the file row and confirm.
-	if len(dst.Suggestions) == 0 {
-		t.Fatal("Entering a directory must refresh its candidates")
-	}
-	for i, entry := range dst.Suggestions {
-		if !entry.IsDir {
-			handleContainerFormKey(keys.KeyHome, m)
-			for j := 0; j < i; j++ {
-				handleContainerFormKey(keys.KeyDown, m)
-			}
-			break
-		}
-	}
-	handleContainerFormKey(keys.KeyEnter, m)
-	if m.Form.Popup.Open {
-		t.Fatal("Enter on a file must close the popup")
-	}
-	if !strings.HasSuffix(dst.Input.Text, ".tar") {
-		t.Fatalf("Enter on a file must write its name: %q", dst.Input.Text)
 	}
 }
 

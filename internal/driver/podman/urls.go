@@ -93,8 +93,8 @@ func ContainerChangesPath(id string) string {
 func ContainerExportPath(id string) string {
 	return fmt.Sprintf("/libpod/containers/%s/export", escape(id))
 }
-func ContainerCommitPath(id string) string {
-	return fmt.Sprintf("/libpod/containers/%s/commit", escape(id))
+func ContainerCommitPath() string {
+	return "/libpod/commit"
 }
 func ContainerArchivePath(id string) string {
 	return fmt.Sprintf("/libpod/containers/%s/archive", escape(id))

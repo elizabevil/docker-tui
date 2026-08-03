@@ -6,6 +6,8 @@
 > 依赖: BR-033、BR-040  
 > 执行方式: 小模型分批实现，主模型 review、集成和提交
 
+> FORM 焦点、闪烁光标以及 Podman Commit/Wait、Top/Stats 刷新修正统一记录在 [BR-042](./br-042-form-runtime-refresh-corrections.md)，后续实现不得在页面内重复定义规则。
+
 ## 1. 背景
 
 BR-033 为 Copy / Update / Export / Commit 增加了通用 Form，但当前实现仍有以下问题:
@@ -360,7 +362,8 @@ Form 主页面使用方向键进行空间导航:
 - 单候选直接补全。
 - 多候选首次 Tab 只补全公共前缀；再次 Tab 打开候选列表。
 - 重复 Tab 在候选列表中循环或保持列表打开。
-- 路径候选支持 Left/Right 与 Up/Down 移动，Enter 确认文件或进入目录。
+- 路径候选使用 Up/Down 在当前目录同级移动，Right 进入选中目录，Left 返回父目录，Enter 确认文件或目录。
+- Path Popup 打开后保持固定宽高；切换目录和异步加载只替换固定行内容，不重新挂载不同尺寸窗口。
 - 无候选时保持当前输入并显示提示。
 - Tab 和 Shift+Tab 都不得把焦点移动到其他输入框或按钮。
 - 字段、选择框和按钮之间的移动统一使用 Up/Down/Left/Right。
@@ -501,6 +504,14 @@ Form 状态必须保留原目标 resource ID；弹出确认、资源列表刷新
 - 打开 Update 后异步 Inspect 当前容器，显示 Memory、CPU、Restart policy 和 Max retries。
 - Inspect 返回前已经编辑的字段不会被异步结果覆盖。
 - Update 使用 Tab/Shift+Tab 切换字段和按钮；路径类 Form 继续保留 Tab 补全语义。
+
+### Commit Form 补充（2026-08-02）
+
+- Repository、Tag、Author、Comment、Archive destination 均提供默认值。
+- Bool 切换统一由公共 `FormField.ToggleBool()` 定义，所有 Form 只响应 Space；Pause 默认 true，Export image as tar 默认 false。
+- Form 原始按键先统一归一化：Bubble Tea 的 `space` 与字面空格都转换为 `keys.KeySpace`；字段级规则只由 `handleFormFieldEditKey` 分发。
+- 启用 Export image as tar 后，Commit 成功会自动启动 Image Save 到本地 tar。
+- tar 目标已存在时仍默认 Cancel，必须显式选择 Force。
 
 ## 13. 候选文件
 

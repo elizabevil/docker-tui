@@ -8,6 +8,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/utils"
 
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -86,6 +87,27 @@ func TestFormDialogFieldErrorAligned(t *testing.T) {
 	out := FormDialog(m, "", defaultDialogConfig())
 	if !strings.Contains(out, "required") {
 		t.Fatal("field error must be rendered below the field row")
+	}
+}
+
+func TestFormDialogDoesNotHighlightButtonsWhileFieldFocused(t *testing.T) {
+	m := formTestModel(state.FormSpec{
+		Kind:   state.FormContainerCommit,
+		Fields: []state.FormField{{Key: "repository", Label: "Repository", Kind: state.FormText}},
+	})
+	m.Form.FieldFocus = 0
+	out := stripANSI(FormDialog(m, "", defaultDialogConfig()))
+	if strings.Contains(out, "\u25b6") {
+		t.Fatalf("field focus leaked into button selection: %q", out)
+	}
+}
+
+func TestEditableValueHiddenCursorPreservesWidth(t *testing.T) {
+	field := state.FormField{Kind: state.FormText, Input: state.QueryInputState{Text: "demo", Cursor: 4}}
+	visible := stripANSI(renderEditableValue(&field, true, 20, true))
+	hidden := stripANSI(renderEditableValue(&field, true, 20, false))
+	if lipgloss.Width(visible) != lipgloss.Width(hidden) {
+		t.Fatalf("cursor blink changed width: visible=%q hidden=%q", visible, hidden)
 	}
 }
 
@@ -170,6 +192,34 @@ func TestRenderFormPopupPathRows(t *testing.T) {
 	}
 	if !strings.Contains(out, "sub/") {
 		t.Fatal("directory candidates must carry a trailing separator")
+	}
+}
+
+func TestPathPopupGeometryStaysFixedAcrossDirectoryLoads(t *testing.T) {
+	render := func(suggestions []state.PathEntry, loading bool) string {
+		m := formTestModel(state.FormSpec{Kind: state.FormContainerCopy, Fields: []state.FormField{{
+			Key: "source", Label: "Container path", Kind: state.FormPath,
+			PathSource: state.PathContainer, Suggestions: suggestions, PathLoading: loading,
+		}}})
+		m.Form.FieldFocus = 0
+		m.Form.OpenPopup()
+		return renderFormPopup(m.Form, "box", 60, 20)
+	}
+	one := render([]state.PathEntry{{Name: "apk", Path: "/etc/apk", IsDir: true}}, false)
+	many := render([]state.PathEntry{
+		{Name: "a", Path: "/etc/a", IsDir: true}, {Name: "b", Path: "/etc/b", IsDir: true},
+		{Name: "c", Path: "/etc/c"}, {Name: "d", Path: "/etc/d"},
+	}, false)
+	loading := render(nil, true)
+	wantLines := len(strings.Split(one, "\n"))
+	if got := len(strings.Split(many, "\n")); got != wantLines {
+		t.Fatalf("many-candidate popup height = %d, want %d", got, wantLines)
+	}
+	if got := len(strings.Split(loading, "\n")); got != wantLines {
+		t.Fatalf("loading popup height = %d, want %d", got, wantLines)
+	}
+	if lipgloss.Width(one) != lipgloss.Width(many) || lipgloss.Width(one) != lipgloss.Width(loading) {
+		t.Fatalf("popup width changed: one=%d many=%d loading=%d", lipgloss.Width(one), lipgloss.Width(many), lipgloss.Width(loading))
 	}
 }
 

@@ -8,8 +8,45 @@ import (
 	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/data/runtime"
 	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime/docker"
+	"github.com/elizabevil/docker-tui/internal/data/runtime/mockengine"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
+
+func TestCursorBlinkTickTogglesAndReschedules(t *testing.T) {
+	app := &state.AppModel{}
+	if _, cmd := handleCursorBlinkTick(app); cmd == nil || !app.CursorBlinkHidden {
+		t.Fatalf("first cursor tick: hidden=%v cmd=%v", app.CursorBlinkHidden, cmd)
+	}
+	if _, cmd := handleCursorBlinkTick(app); cmd == nil || app.CursorBlinkHidden {
+		t.Fatalf("second cursor tick: hidden=%v cmd=%v", app.CursorBlinkHidden, cmd)
+	}
+}
+
+func TestStatsTickKeepsSchedulerAliveOutsideContainers(t *testing.T) {
+	app := state.NewAppModel(config.DefaultConfig(), mockengine.New(), "test")
+	app.Navigation.ActivePanel = state.PanelImages
+	if _, cmd := handleStatsTick(app, state.StatsTick{}); cmd == nil {
+		t.Fatal("stats scheduler stopped after leaving containers")
+	}
+	if app.Metrics.StatsActive {
+		t.Fatal("stats fetch must be inactive outside containers")
+	}
+}
+
+func TestTopRefreshSchedulesAndRejectsStaleTick(t *testing.T) {
+	app := state.NewAppModel(config.DefaultConfig(), mockengine.New(), "test")
+	app.Navigation.Mode = state.ModeTop
+	app.Processes.Open("c1", "api")
+	app.Processes.Loading = false
+	msg := state.ContainerProcessesLoaded{ContainerID: "c1", Processes: runtime.ContainerProcesses{}}
+	if _, cmd := handleContainerProcessesLoaded(app, msg); cmd == nil {
+		t.Fatal("top result did not schedule refresh")
+	}
+	stale := state.ContainerProcessesTick{ContainerID: "c1", Generation: app.Processes.Generation + 1}
+	if _, cmd := handleContainerProcessesTick(app, stale); cmd != nil {
+		t.Fatal("stale top tick scheduled a request")
+	}
+}
 
 func TestToastTickStopsWhenIdleAndIgnoresStaleGeneration(t *testing.T) {
 	app := &state.AppModel{}

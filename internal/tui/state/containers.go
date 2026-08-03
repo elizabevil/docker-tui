@@ -91,6 +91,11 @@ type (
 		Error       error
 	}
 
+	ContainerProcessesTick struct {
+		ContainerID string
+		Generation  uint64
+	}
+
 	LogBatchReceived struct {
 		ContainerID string
 		Lines       []string
@@ -117,7 +122,8 @@ type (
 		Error       error
 	}
 
-	StatsTick struct{}
+	StatsTick       struct{}
+	CursorBlinkTick struct{}
 
 	ImageActioned struct {
 		Action  string

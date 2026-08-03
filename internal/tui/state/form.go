@@ -232,6 +232,17 @@ func (f *FormField) ToggleMulti(option string) {
 	}
 }
 
+// ToggleBool is the single activation path for FormBool fields. Keyboard
+// handlers call it only for Space so every Form shares the same Bool rule.
+func (f *FormField) ToggleBool() bool {
+	if f == nil || f.Kind != FormBool {
+		return false
+	}
+	f.Toggle = !f.Toggle
+	f.Touched = true
+	return true
+}
+
 // OpenPopup opens a popup for the focused field. The cursor starts on the
 // currently selected option (or the first row otherwise).
 func (s *FormState) OpenPopup() {

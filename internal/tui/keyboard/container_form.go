@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"path"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -34,6 +35,8 @@ const (
 	fieldAuthor          = "author"
 	fieldComment         = "comment"
 	fieldPause           = "pause"
+	fieldExportTar       = "exportTar"
+	fieldArchivePath     = "archivePath"
 	fieldImagePath       = "imagePath"
 )
 
@@ -177,9 +180,15 @@ func HandleContainerUpdateConfigLoaded(m *state.AppModel, msg state.ContainerUpd
 		return m, nil
 	}
 	resources := msg.Detail.Resources
-	setUntouchedFormText(m.Form.Get(fieldMemory), formatResourceValue(float64(resources.Memory)/(1024*1024)))
-	setUntouchedFormText(m.Form.Get(fieldCPUs), formatResourceValue(float64(resources.NanoCPUs)/1e9))
-	setUntouchedFormText(m.Form.Get(fieldMaxRetries), strconv.Itoa(resources.MaximumRetryCount))
+	if resources.Memory > 0 {
+		setUntouchedFormText(m.Form.Get(fieldMemory), formatResourceValue(float64(resources.Memory)/(1024*1024)))
+	}
+	if resources.NanoCPUs > 0 {
+		setUntouchedFormText(m.Form.Get(fieldCPUs), formatResourceValue(float64(resources.NanoCPUs)/1e9))
+	}
+	if resources.RestartPolicy == "on-failure" && resources.MaximumRetryCount > 0 {
+		setUntouchedFormText(m.Form.Get(fieldMaxRetries), strconv.Itoa(resources.MaximumRetryCount))
+	}
 	if restart := m.Form.Get(fieldRestartPolicy); restart != nil && !restart.Touched {
 		policy := resources.RestartPolicy
 		if policy == "" {
@@ -212,22 +221,60 @@ func openContainerCommitForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelContainers || ctr == nil {
 		return m, nil
 	}
-	pause := state.FormField{Key: fieldPause, Label: i18n.T("container.commit.form.pause"), Kind: state.FormBool, Toggle: true}
+	cwd := workingDir()
+	repository, tag := defaultCommitImage(ctr.Image, ctr.Name)
+	author := strings.TrimSpace(os.Getenv("USER"))
+	if author == "" {
+		author = strings.TrimSpace(os.Getenv("USERNAME"))
+	}
+	if author == "" {
+		author = "dtui"
+	}
+	fields := []state.FormField{
+		{Key: fieldRepository, Label: i18n.T("container.commit.form.repository"), Kind: state.FormText},
+		{Key: fieldTag, Label: i18n.T("container.commit.form.tag"), Kind: state.FormText},
+		{Key: fieldAuthor, Label: i18n.T("container.commit.form.author"), Kind: state.FormText},
+		{Key: fieldComment, Label: i18n.T("container.commit.form.comment"), Kind: state.FormText},
+		{Key: fieldPause, Label: i18n.T("container.commit.form.pause"), Kind: state.FormBool, Toggle: true},
+		{Key: fieldExportTar, Label: i18n.T("container.commit.form.export_tar"), Kind: state.FormBool},
+		{Key: fieldArchivePath, Label: i18n.T("container.commit.form.archive"), Kind: state.FormPath, PathSource: state.PathLocal, PathMode: state.PathSaveFile},
+	}
+	fields[0].Input.Set(repository)
+	fields[1].Input.Set(tag)
+	fields[2].Input.Set(author)
+	fields[3].Input.Set(i18n.T("container.commit.form.comment_default", ctr.Name))
+	fields[6].Input.Set(state.DefaultImageSaveName(cwd, repository+":"+tag, shortContainerID(ctr.ID), time.Now()))
 	m.Form.Open(state.FormSpec{
 		Kind:       state.FormContainerCommit,
 		Title:      i18n.T("container.commit.form.title"),
 		TargetID:   ctr.ID,
 		TargetName: ctr.Name,
-		Fields: []state.FormField{
-			{Key: fieldRepository, Label: i18n.T("container.commit.form.repository"), Kind: state.FormText},
-			{Key: fieldTag, Label: i18n.T("container.commit.form.tag"), Kind: state.FormText},
-			{Key: fieldAuthor, Label: i18n.T("container.commit.form.author"), Kind: state.FormText},
-			{Key: fieldComment, Label: i18n.T("container.commit.form.comment"), Kind: state.FormText},
-			pause,
-		},
+		CWD:        cwd,
+		Fields:     fields,
 	})
 	m.Navigation.Mode = state.ModeContainerForm
 	return m, nil
+}
+
+func defaultCommitImage(image, containerName string) (repository, tag string) {
+	image = strings.TrimSpace(image)
+	if image == "" || strings.HasPrefix(image, "sha256:") {
+		return state.SanitizeName(containerName, "container") + "-snapshot", "latest"
+	}
+	if at := strings.IndexByte(image, '@'); at >= 0 {
+		image = image[:at]
+	}
+	repository, tag = image, "latest"
+	if colon := strings.LastIndexByte(image, ':'); colon > strings.LastIndexByte(image, '/') {
+		repository, tag = image[:colon], image[colon+1:]
+	}
+	if repository == "" {
+		repository = state.SanitizeName(containerName, "container") + "-snapshot"
+	}
+	if tag == "" {
+		tag = "latest"
+	}
+	return repository, tag
 }
 
 // handleContainerFormKey drives the container-action form overlay (BR-041 §3).
@@ -267,28 +314,8 @@ func handleContainerFormKey(key string, m *state.AppModel) (*state.AppModel, tea
 
 	f := m.Form.Field()
 
-	// Field-level edits (Text/Int/Path use editQueryInput; Bool uses Space or
-	// Left/Right; per BR-041 §3.1 Left/Right do not switch Select/MultiSelect).
-	if f != nil {
-		switch f.Kind {
-		case state.FormBool:
-			switch key {
-			case keys.KeyLeft, keys.KeyRight, keys.KeySpace:
-				f.Toggle = !f.Toggle
-				f.Touched = true
-				return m, nil
-			}
-		case state.FormText, state.FormInt, state.FormPath:
-			switch key {
-			case keys.KeyLeft, keys.KeyRight, keys.KeyHome, keys.KeyEnd,
-				keys.KeyBackspace, keys.KeyDelete, keys.KeySpace:
-				_, changed := editQueryInput(key, &f.Input)
-				if changed {
-					handleFormFieldChanged(m, f)
-				}
-				return m, nil
-			}
-		}
+	if handled := handleFormFieldEditKey(key, m, f); handled {
+		return m, nil
 	}
 
 	switch key {
@@ -346,6 +373,35 @@ func handleContainerFormKey(key string, m *state.AppModel) (*state.AppModel, tea
 		}
 	}
 	return m, nil
+}
+
+// handleFormFieldEditKey is the single field-type interaction policy shared
+// by every Form. Navigation and popup activation remain in the form-level
+// state machine; primitive editing and Bool activation are defined here.
+func handleFormFieldEditKey(key string, m *state.AppModel, f *state.FormField) bool {
+	if f == nil {
+		return false
+	}
+	switch f.Kind {
+	case state.FormBool:
+		if keys.IsSpace(key) {
+			f.ToggleBool()
+			return true
+		}
+		// Bool never treats Left/Right or printable input as an edit.
+		return key == keys.KeyLeft || key == keys.KeyRight || len([]rune(key)) == 1
+	case state.FormText, state.FormInt, state.FormPath:
+		switch key {
+		case keys.KeyLeft, keys.KeyRight, keys.KeyHome, keys.KeyEnd,
+			keys.KeyBackspace, keys.KeyDelete, keys.KeySpace:
+			_, changed := editQueryInput(key, &f.Input)
+			if changed {
+				handleFormFieldChanged(m, f)
+			}
+			return true
+		}
+	}
+	return false
 }
 
 func handleFormFieldChanged(m *state.AppModel, f *state.FormField) {
@@ -503,7 +559,7 @@ func HandleContainerPathCompleted(m *state.AppModel, msg state.ContainerPathComp
 		return m, nil
 	}
 	f := m.Form.Get(msg.FieldKey)
-	if f == nil || f.PathSource != state.PathContainer || f.Input.Text != msg.Input {
+	if f == nil || f.PathSource != state.PathContainer || f.Input.Text != msg.Input || !f.PathLoading {
 		return m, nil
 	}
 	f.PathLoading = false
@@ -524,6 +580,11 @@ func HandleContainerPathCompleted(m *state.AppModel, msg state.ContainerPathComp
 func handleFormPopupKey(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	switch key {
 	case keys.KeyEsc:
+		if m.Form.Popup.Kind == state.PopupPath {
+			if f := m.Form.PopupField(); f != nil {
+				f.PathLoading = false
+			}
+		}
 		m.Form.ClosePopup()
 	case keys.KeyUp:
 		m.Form.PopupCursor(-1)
@@ -531,11 +592,11 @@ func handleFormPopupKey(key string, m *state.AppModel) (*state.AppModel, tea.Cmd
 		m.Form.PopupCursor(1)
 	case keys.KeyLeft:
 		if m.Form.Popup.Kind == state.PopupPath {
-			m.Form.PopupCursor(-1)
+			return navigatePathPopupParent(m)
 		}
 	case keys.KeyRight:
 		if m.Form.Popup.Kind == state.PopupPath {
-			m.Form.PopupCursor(1)
+			return navigatePathPopupChild(m)
 		}
 	case keys.KeyHome:
 		m.Form.PopupCursorHome()
@@ -563,6 +624,7 @@ func handleFormPopupKey(key string, m *state.AppModel) (*state.AppModel, tea.Cmd
 					m.Form.TogglePopupMulti(f.Options[idx])
 				case state.FormSelect:
 					f.Index = idx
+					f.Touched = true
 					m.Form.ClosePopup()
 				}
 			}
@@ -597,17 +659,72 @@ func confirmFormPopup(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		if idx := m.Form.Popup.Cursor; idx >= 0 && idx < len(f.Suggestions) {
 			entry := f.Suggestions[idx]
 			applyPathEntry(f, entry)
-			if entry.IsDir {
-				if f.PathSource == state.PathContainer {
-					m.Form.ClosePopup()
-					return m, requestContainerPathCompletion(m, f, true)
-				}
-				completeForField(m, f)
-				m.Form.Popup.Cursor = 0
-				return m, nil
-			}
 		}
 		m.Form.ClosePopup()
+	}
+	return m, nil
+}
+
+func navigatePathPopupChild(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	f := m.Form.PopupField()
+	if f == nil || m.Form.Popup.Cursor < 0 || m.Form.Popup.Cursor >= len(f.Suggestions) {
+		return m, nil
+	}
+	entry := f.Suggestions[m.Form.Popup.Cursor]
+	if !entry.IsDir {
+		return m, nil
+	}
+	applyPathEntry(f, entry)
+	return reloadPathPopup(m, f)
+}
+
+func navigatePathPopupParent(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	f := m.Form.PopupField()
+	if f == nil || f.PathLoading {
+		return m, nil
+	}
+	separator := string(os.PathSeparator)
+	current := f.Input.Text
+	if f.PathSource == state.PathContainer {
+		separator = "/"
+		current = strings.ReplaceAll(current, "\\", "/")
+	}
+	hadTrailingSeparator := strings.HasSuffix(current, separator)
+	current = strings.TrimSuffix(current, separator)
+	var parent string
+	if f.PathSource == state.PathContainer {
+		parent = path.Dir(current)
+		if !hadTrailingSeparator {
+			parent = path.Dir(parent)
+		}
+		if parent == "." {
+			parent = "/"
+		}
+	} else {
+		parent = filepath.Dir(current)
+		if !hadTrailingSeparator {
+			parent = filepath.Dir(parent)
+		}
+	}
+	if parent != separator && !strings.HasSuffix(parent, separator) {
+		parent += separator
+	}
+	f.Input.Set(parent)
+	f.Touched = true
+	return reloadPathPopup(m, f)
+}
+
+func reloadPathPopup(m *state.AppModel, f *state.FormField) (*state.AppModel, tea.Cmd) {
+	f.PathTabInput = ""
+	if f.PathSource == state.PathContainer {
+		// Preserve the mounted popup while the next directory is loading so its
+		// width and height remain stable throughout navigation.
+		return m, requestContainerPathCompletion(m, f, true)
+	}
+	m.Form.ClosePopup()
+	completeForField(m, f)
+	if len(f.Suggestions) > 0 {
+		m.Form.OpenPopup()
 	}
 	return m, nil
 }
@@ -683,7 +800,7 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		}
 		opts := runtimeapi.ContainerUpdateOptions{}
 		changed := false
-		if mem := m.Form.Get(fieldMemory); mem != nil && mem.Text() != "" {
+		if mem := m.Form.Get(fieldMemory); mem != nil && mem.Touched && mem.Text() != "" {
 			mb, err := strconv.ParseFloat(mem.Text(), 64)
 			if err != nil || mb < 0 || math.IsNaN(mb) || math.IsInf(mb, 0) || mb > float64(math.MaxInt64)/(1024*1024) {
 				ShowToastWarn(m, i18n.T("container.update.form.invalid"))
@@ -693,7 +810,7 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 			opts.Memory = &bytes
 			changed = true
 		}
-		if cpu := m.Form.Get(fieldCPUs); cpu != nil && cpu.Text() != "" {
+		if cpu := m.Form.Get(fieldCPUs); cpu != nil && cpu.Touched && cpu.Text() != "" {
 			cores, err := strconv.ParseFloat(cpu.Text(), 64)
 			if err != nil || cores < 0 || math.IsNaN(cores) || math.IsInf(cores, 0) || cores > float64(math.MaxInt64)/1e9 {
 				ShowToastWarn(m, i18n.T("container.update.form.invalid"))
@@ -703,12 +820,12 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 			opts.NanoCPUs = &nano
 			changed = true
 		}
-		if restart := m.Form.Get(fieldRestartPolicy); restart != nil && restart.Option() != restartPolicyUnchanged {
+		if restart := m.Form.Get(fieldRestartPolicy); restart != nil && restart.Touched && restart.Option() != restartPolicyUnchanged {
 			policy := restart.Option()
 			opts.RestartPolicy = &policy
 			changed = true
 			if policy == "on-failure" {
-				if retries := m.Form.Get(fieldMaxRetries); retries != nil && retries.Text() != "" {
+				if retries := m.Form.Get(fieldMaxRetries); retries != nil && retries.Touched && retries.Text() != "" {
 					val, err := strconv.Atoi(retries.Text())
 					if err != nil || val < 0 {
 						ShowToastWarn(m, i18n.T("container.update.form.invalid"))
@@ -730,29 +847,16 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		if m.Navigation.ActivePanel != state.PanelContainers || id == "" {
 			return m, nil
 		}
-		repo := m.Form.Get(fieldRepository)
-		if repo == nil {
-			clearContainerForm(m)
-			return m, nil
-		}
-		if repo.Text() == "" {
+		opts, archivePath, err := containerCommitFormRequest(m)
+		if err != nil {
 			ShowToastWarn(m, i18n.T("container.commit.form.required"))
 			return m, nil
 		}
-		tag := m.Form.Get(fieldTag).Text()
-		if tag == "" {
-			tag = "latest"
-		}
-		opts := runtimeapi.ContainerCommitOptions{
-			Repository: repo.Text(),
-			Tag:        tag,
-			Author:     m.Form.Get(fieldAuthor).Text(),
-			Comment:    m.Form.Get(fieldComment).Text(),
-			Pause:      m.Form.Get(fieldPause).Toggle,
+		if archivePath != "" && localDestExists(m, archivePath) {
+			return openOverwriteConfirm(m, "container-commit-export", "resource.container.commit", "Commit container "+name+" and export image")
 		}
 		trace := beginAudit(m, "resource.container.commit", containerTarget(m, id), "Commit container "+name)
-		clearContainerForm(m)
-		return m, withAdvancedAudit(containerCommitCmd(m.Connection.Engine, id, opts), trace)
+		return executeContainerCommitForm(m, opts, archivePath, trace)
 
 	case state.FormImageSave:
 		path := m.Form.Get(fieldImagePath)
@@ -790,6 +894,41 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	clearContainerForm(m)
 	return m, nil
+}
+
+func containerCommitFormRequest(m *state.AppModel) (runtimeapi.ContainerCommitOptions, string, error) {
+	repo := m.Form.Get(fieldRepository)
+	if repo == nil || repo.Text() == "" {
+		return runtimeapi.ContainerCommitOptions{}, "", fmt.Errorf("repository is required")
+	}
+	tag := m.Form.Get(fieldTag).Text()
+	if tag == "" {
+		tag = "latest"
+	}
+	opts := runtimeapi.ContainerCommitOptions{
+		Repository: repo.Text(), Tag: tag, Author: m.Form.Get(fieldAuthor).Text(),
+		Comment: m.Form.Get(fieldComment).Text(), Pause: m.Form.Get(fieldPause).Toggle,
+	}
+	archivePath := ""
+	if export := m.Form.Get(fieldExportTar); export != nil && export.Toggle {
+		archive := m.Form.Get(fieldArchivePath)
+		if archive == nil || archive.Text() == "" {
+			return runtimeapi.ContainerCommitOptions{}, "", fmt.Errorf("archive path is required")
+		}
+		destination, err := normalizeSaveDestination(archive.Text(), m.Form.CWD)
+		if err != nil {
+			return runtimeapi.ContainerCommitOptions{}, "", err
+		}
+		archive.Input.Set(destination)
+		archivePath = destination
+	}
+	return opts, archivePath, nil
+}
+
+func executeContainerCommitForm(m *state.AppModel, opts runtimeapi.ContainerCommitOptions, archivePath string, trace audit.Trace) (*state.AppModel, tea.Cmd) {
+	id := m.Form.TargetID
+	clearContainerForm(m)
+	return m, withAdvancedAudit(containerCommitCmd(m.Connection.Engine, id, opts, archivePath), trace)
 }
 
 // clearContainerForm resets the mode and closes the active form.

@@ -291,6 +291,17 @@ func (c *RESTClient) Delete(ctx context.Context, path string) error {
 
 // Post performs a versioned POST request with an optional JSON body.
 func (c *RESTClient) Post(ctx context.Context, path string, query url.Values, input, output any) error {
+	return c.post(ctx, path, query, input, output, false)
+}
+
+// postLongRunning performs a JSON POST whose lifetime is controlled only by
+// ctx. Blocking API operations such as container wait must not inherit the
+// ordinary client's short request timeout.
+func (c *RESTClient) postLongRunning(ctx context.Context, path string, query url.Values, input, output any) error {
+	return c.post(ctx, path, query, input, output, true)
+}
+
+func (c *RESTClient) post(ctx context.Context, path string, query url.Values, input, output any, longRunning bool) error {
 	if err := c.ensureVersion(ctx); err != nil {
 		return err
 	}
@@ -302,7 +313,13 @@ func (c *RESTClient) Post(ctx context.Context, path string, query url.Values, in
 		}
 		body = bytes.NewReader(encoded)
 	}
-	return c.do(ctx, http.MethodPost, c.url(path, query), body, output)
+	client := c.client
+	if longRunning {
+		clientCopy := *c.client
+		clientCopy.Timeout = 0
+		client = &clientCopy
+	}
+	return c.doWithClient(ctx, client, http.MethodPost, c.url(path, query), body, output)
 }
 
 // DeleteWithQuery performs a versioned DELETE while preserving operation-specific
@@ -323,6 +340,10 @@ func (c *RESTClient) ensureVersion(ctx context.Context) error {
 // do executes an HTTP request with the given URL. Callers build the full URL
 // via c.url() before calling do.
 func (c *RESTClient) do(ctx context.Context, method string, u *url.URL, body io.Reader, output any) error {
+	return c.doWithClient(ctx, c.client, method, u, body, output)
+}
+
+func (c *RESTClient) doWithClient(ctx context.Context, client *http.Client, method string, u *url.URL, body io.Reader, output any) error {
 	req, err := http.NewRequestWithContext(ctx, method, u.String(), body)
 	if err != nil {
 		return newPodmanError(KindInvalid, "", err)
@@ -330,7 +351,7 @@ func (c *RESTClient) do(ctx context.Context, method string, u *url.URL, body io.
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	response, err := c.client.Do(req)
+	response, err := client.Do(req)
 	if err != nil {
 		kind := classifyContextError(err)
 		if kind == KindInternal {

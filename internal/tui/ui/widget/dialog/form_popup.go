@@ -3,6 +3,7 @@ package dialog
 import (
 	"strings"
 
+	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
@@ -21,7 +22,11 @@ func renderFormPopup(form state.FormState, box string, dialogW, _ int) string {
 	}
 	rows := popupRows(field)
 	if len(rows) == 0 {
-		return box
+		message := i18n.T("form.path.no_matches")
+		if field.PathLoading {
+			message = i18n.T("form.path.loading")
+		}
+		rows = []string{message}
 	}
 
 	popupW := dialogW - 6
@@ -30,6 +35,9 @@ func renderFormPopup(form state.FormState, box string, dialogW, _ int) string {
 	}
 	innerW := popupW - 4
 	lines := visiblePopupRows(form, field, rows, innerW, state.FormPopupVisibleRows)
+	for len(lines) < state.FormPopupVisibleRows {
+		lines = append(lines, component.FormRow("", 0, innerW, ""))
+	}
 	lines = append([]string{component.FormRow("", 0, innerW, field.Label), component.FormRow("", 0, innerW, "")}, lines...)
 
 	return DialogBox(DialogStyle{Width: popupW, TitleColor: style.Colors.Cyan, LeftAligned: true}, lines...)

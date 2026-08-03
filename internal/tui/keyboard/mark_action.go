@@ -100,6 +100,13 @@ func doConfirmYes(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		id := m.Form.TargetID
 		clearContainerForm(m)
 		return m, withAdvancedAudit(containerExportCmd(m.Connection.Engine, id, dst), trace)
+	case action == "container-commit-export":
+		opts, archivePath, err := containerCommitFormRequest(m)
+		if err != nil {
+			clearContainerForm(m)
+			return m, nil
+		}
+		return executeContainerCommitForm(m, opts, archivePath, trace)
 	case action == "image-save":
 		path := m.Form.Get(fieldImagePath)
 		if path == nil {

@@ -328,7 +328,11 @@ func normalizeInputKey(key string) string {
 	if len([]rune(key)) == 1 {
 		return key
 	}
-	return keys.Normalize(key)
+	normalized := keys.Normalize(key)
+	if keys.IsSpace(normalized) {
+		return keys.KeySpace
+	}
+	return normalized
 }
 
 func resolveAction(key string, m *state.AppModel) (keys.KeyAction, bool) {

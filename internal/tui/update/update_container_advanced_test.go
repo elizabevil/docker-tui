@@ -7,6 +7,7 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/config"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/data/runtime/mockengine"
 	"github.com/elizabevil/docker-tui/internal/tui/keyboard"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
@@ -177,6 +178,21 @@ func TestHandleContainerCommitDoneSuccess(t *testing.T) {
 	}
 	if updated.Feedback.ToastMessage == "" {
 		t.Fatal("success commit must surface a toast")
+	}
+}
+
+func TestHandleContainerCommitDoneStartsRequestedImageExport(t *testing.T) {
+	app := advancedApp()
+	app.Connection.Engine = mockengine.New()
+	updated, cmd := handleContainerCommitDone(app, keyboard.ContainerCommitDone{
+		ContainerID: "short", ImageID: "sha256:abcdef", ExportPath: "/tmp/snapshot.tar",
+	})
+	if cmd == nil || updated.Navigation.Mode != state.ModeImageTransfer {
+		t.Fatalf("commit export did not enter image transfer: mode=%v cmd=%v", updated.Navigation.Mode, cmd)
+	}
+	request := updated.ImageTransfer.Request
+	if request.Operation != runtimeapi.ImageTransferSave || request.Source != "sha256:abcdef" || request.Path != "/tmp/snapshot.tar" {
+		t.Fatalf("image export request = %#v", request)
 	}
 }
 

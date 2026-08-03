@@ -35,7 +35,7 @@ type ContainerUpdateResponse struct {
 }
 
 // ContainerCommitOptions captures parameters for
-// /libpod/containers/{id}/commit.
+// /libpod/commit.
 type ContainerCommitOptions struct {
 	Repository string
 	Tag        string

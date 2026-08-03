@@ -73,6 +73,10 @@ func handleContainerCommitDone(m *state.AppModel, msg keyboard.ContainerCommitDo
 	keyboard.FinishAudit(m, msg.Audit, audit.ResultSucceeded, "Container commit completed", audit.Details{})
 	keyboard.ShowToastNow(m, display)
 	if m.Connection.Engine != nil {
+		if msg.ExportPath != "" {
+			updated, exportCmd := keyboard.BeginCommittedImageExport(m, msg.ImageID, msg.ExportPath)
+			return updated, tea.Batch(exportCmd, keyboard.FetchImages(m.Connection.Engine))
+		}
 		return m, keyboard.FetchImages(m.Connection.Engine)
 	}
 	return m, nil

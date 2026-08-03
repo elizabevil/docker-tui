@@ -50,10 +50,12 @@ func (c *RESTClient) ContainerExport(ctx context.Context, id string) (io.ReadClo
 
 // ContainerCommit snapshots the container as a new image. TASK-019.
 func (c *RESTClient) ContainerCommit(ctx context.Context, id string, options dto.ContainerCommitOptions) (*dto.ContainerCommitResponse, error) {
-	query := url.Values{}
-	if options.Repository != "" || options.Tag != "" {
-		repo := options.Repository + ":" + options.Tag
-		query.Set("repo", repo)
+	query := url.Values{"container": {id}}
+	if options.Repository != "" {
+		query.Set("repo", options.Repository)
+	}
+	if options.Tag != "" {
+		query.Set("tag", options.Tag)
 	}
 	if options.Comment != "" {
 		query.Set("comment", options.Comment)
@@ -67,7 +69,7 @@ func (c *RESTClient) ContainerCommit(ctx context.Context, id string, options dto
 		query.Set("pause", "false")
 	}
 	var raw dto.ContainerCommitResponse
-	if err := c.Post(ctx, ContainerCommitPath(id), query, nil, &raw); err != nil {
+	if err := c.Post(ctx, ContainerCommitPath(), query, nil, &raw); err != nil {
 		return nil, err
 	}
 	return &raw, nil
@@ -81,7 +83,7 @@ func (c *RESTClient) ContainerWait(ctx context.Context, id, condition string) (*
 		query.Set("condition", condition)
 	}
 	var raw dto.ContainerWaitResponse
-	if err := c.Post(ctx, ContainerWaitPath(id), query, nil, &raw); err != nil {
+	if err := c.postLongRunning(ctx, ContainerWaitPath(id), query, nil, &raw); err != nil {
 		return nil, err
 	}
 	return &raw, nil

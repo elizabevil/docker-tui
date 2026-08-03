@@ -214,3 +214,17 @@ func TestMoveButtonTogglesCancelConfirm(t *testing.T) {
 		t.Fatal("MoveButton on a field focus must not toggle")
 	}
 }
+
+func TestToggleBoolIsSharedAndKindSafe(t *testing.T) {
+	field := FormField{Kind: FormBool}
+	if !field.ToggleBool() || !field.Toggle || !field.Touched {
+		t.Fatalf("first toggle = %#v", field)
+	}
+	if !field.ToggleBool() || field.Toggle {
+		t.Fatalf("second toggle = %#v", field)
+	}
+	text := FormField{Kind: FormText}
+	if text.ToggleBool() || text.Toggle || text.Touched {
+		t.Fatalf("non-Bool field changed: %#v", text)
+	}
+}

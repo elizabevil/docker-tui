@@ -20,6 +20,21 @@ func FormDialog(m *state.AppModel, overlayColor string, cfg dialogConfig) string
 	form := m.Form
 	dialogW := dialogWidth(m.Viewport.Width, cfg)
 	dialogH := dialogHeight(m.Viewport.Height, cfg)
+	requiredH := len(form.Fields) + 10
+	for i := range form.Fields {
+		if form.Fields[i].Error != "" {
+			requiredH++
+		}
+	}
+	if form.Loading {
+		requiredH++
+	}
+	if requiredH > dialogH {
+		dialogH = requiredH
+	}
+	if maxH := m.Viewport.Height - 2; maxH > 0 && dialogH > maxH {
+		dialogH = maxH
+	}
 	if overlayColor == "" {
 		overlayColor = "#0d1117cc"
 	}
@@ -39,18 +54,22 @@ func FormDialog(m *state.AppModel, overlayColor string, cfg dialogConfig) string
 		parts = append(parts, component.GetStyle("dim").Render(i18n.T("container.update.form.loading")))
 	}
 	for i := range form.Fields {
-		parts = append(parts, renderFormField(form, &form.Fields[i], i, labelWidth, valueWidth))
+		parts = append(parts, renderFormField(form, &form.Fields[i], i, labelWidth, valueWidth, !m.CursorBlinkHidden))
 	}
 	parts = append(parts, "")
 
-	onConfirm := form.OnConfirm && form.FieldFocus < 0
+	buttonsFocused := form.FieldFocus < 0 && !form.Popup.Open
+	onConfirm := buttonsFocused && form.OnConfirm
 	var confirmBtn, cancelBtn string
 	if onConfirm {
 		confirmBtn = lipgloss.NewStyle().Foreground(style.Colors.Green).Bold(true).Render(enterKey + " \u25b6 " + confirmLabel)
 		cancelBtn = lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(escKey + " " + cancelLabel)
-	} else {
+	} else if buttonsFocused {
 		confirmBtn = lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(enterKey + " " + confirmLabel)
 		cancelBtn = lipgloss.NewStyle().Foreground(style.Colors.Green).Bold(true).Render(escKey + " \u25b6 " + cancelLabel)
+	} else {
+		confirmBtn = lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(enterKey + " " + confirmLabel)
+		cancelBtn = lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(escKey + " " + cancelLabel)
 	}
 	// Cancel on the left, Confirm on the right; the group is centered.
 	buttons := lipgloss.NewStyle().Width(innerWidth).Align(lipgloss.Center).Render(
@@ -99,7 +118,7 @@ func formLayout(fields []state.FormField, innerWidth int) (labelWidth, valueWidt
 // renderFormField draws one two-column row for a form field. The focused field
 // is highlighted; any validation error is drawn on a following line aligned to
 // the value column (BR-041 §9.8).
-func renderFormField(form state.FormState, f *state.FormField, index, labelWidth, valueWidth int) string {
+func renderFormField(form state.FormState, f *state.FormField, index, labelWidth, valueWidth int, cursorVisible ...bool) string {
 	focused := form.FieldFocus == index
 
 	label := component.FormRow(f.Label, labelWidth, -1, "")
@@ -111,7 +130,7 @@ func renderFormField(form state.FormState, f *state.FormField, index, labelWidth
 	if f.Kind == state.FormSelect || f.Kind == state.FormMultiSelect {
 		value, marker = renderSelectCell(f, focused, valueWidth)
 	} else {
-		value = renderFormValue(f, focused, valueWidth)
+		value = renderFormValue(f, focused, valueWidth, cursorVisible...)
 	}
 
 	if marker != "" {
@@ -128,7 +147,7 @@ func renderFormField(form state.FormState, f *state.FormField, index, labelWidth
 }
 
 // renderFormValue renders the primitive value of a text/int/path/bool field.
-func renderFormValue(f *state.FormField, focused bool, valueWidth int) string {
+func renderFormValue(f *state.FormField, focused bool, valueWidth int, cursorVisible ...bool) string {
 	switch f.Kind {
 	case state.FormBool:
 		mark := " "
@@ -141,14 +160,14 @@ func renderFormValue(f *state.FormField, focused bool, valueWidth int) string {
 		}
 		return lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(cell)
 	default: // FormText, FormInt, FormPath
-		return renderEditableValue(f, focused, valueWidth)
+		return renderEditableValue(f, focused, valueWidth, cursorVisible...)
 	}
 }
 
 // renderEditableValue draws a text-like field. Inside existing text the
 // cursor styles the current rune without consuming another terminal cell, so
 // Left/Right never shifts the path. At end-of-input a one-cell caret is shown.
-func renderEditableValue(f *state.FormField, focused bool, valueWidth int) string {
+func renderEditableValue(f *state.FormField, focused bool, valueWidth int, cursorVisible ...bool) string {
 	runes := []rune(f.Input.Text)
 	cursor := clampCursor(f.Input.Cursor, len(runes))
 	start := 0
@@ -172,10 +191,17 @@ func renderEditableValue(f *state.FormField, focused bool, valueWidth int) strin
 	}
 
 	before := lipgloss.NewStyle().Foreground(style.Colors.White).Render(string(runes[start:cursor]))
+	visible := len(cursorVisible) == 0 || cursorVisible[0]
 	caret := lipgloss.NewStyle().Foreground(style.Colors.Cyan).Bold(true).Underline(true)
 	current := "\u258f"
 	if cursor < len(runes) {
 		current = string(runes[cursor])
+	}
+	if !visible {
+		caret = lipgloss.NewStyle().Foreground(style.Colors.White)
+		if cursor == len(runes) {
+			current = " "
+		}
 	}
 	afterStart := cursor
 	if cursor < len(runes) {

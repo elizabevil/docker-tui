@@ -19,18 +19,22 @@ func RenderBar(m *state.AppModel, content string, body dialog.PanelBody) string 
 		return content
 	}
 	box := renderBox(actionmodel.VisibleItems(m), m.Navigation.ActionBar.Selected,
-		m.Navigation.ActionBar.Filtering, m.Navigation.ActionBar.Filter, body)
+		m.Navigation.ActionBar.Filtering, m.Navigation.ActionBar.Filter, body, !m.CursorBlinkHidden)
 	return dialog.PlaceDialogInPanel(content, box, body, dialog.LoadDialogConfig())
 }
 
-func renderBox(items []actionmodel.ActionItem, selected int, filtering bool, filter string, body dialog.PanelBody) string {
+func renderBox(items []actionmodel.ActionItem, selected int, filtering bool, filter string, body dialog.PanelBody, cursorVisible ...bool) string {
 	boxWidth := min(72, max(28, body.Width*2/3))
 	boxWidth = min(boxWidth, max(8, body.Width-2))
 	innerWidth := max(4, boxWidth-4)
 
 	lines := []string{component.GetStyle("panelTitle").Render("Action Bar")}
 	if filtering {
-		lines = append(lines, component.TruncateVisible("/ "+filter+"|", innerWidth))
+		cursor := "|"
+		if len(cursorVisible) > 0 && !cursorVisible[0] {
+			cursor = " "
+		}
+		lines = append(lines, component.TruncateVisible("/ "+filter+cursor, innerWidth))
 	} else {
 		lines = append(lines, component.GetStyle("dim").Render("/ filter   1-9 jump   Esc close"))
 	}

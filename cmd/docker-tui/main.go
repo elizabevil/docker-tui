@@ -156,9 +156,14 @@ func (m *mainModel) Init() tea.Cmd {
 		requestWindowSizeAfter(initialResizeSettleDelay),
 		func() tea.Msg { return state.HostStatsTick{} },
 		func() tea.Msg { return state.RuntimeHealthTick{} },
+		cursorBlinkCmd(),
 		connectDocker(m.model.Connection.Pool, m.initialConnection),
 		probeAllOnStart(m.model.Connection.Pool, m.initialConnection),
 	)
+}
+
+func cursorBlinkCmd() tea.Cmd {
+	return tea.Tick(500*time.Millisecond, func(time.Time) tea.Msg { return state.CursorBlinkTick{} })
 }
 
 func requestWindowSizeAfter(delay time.Duration) tea.Cmd {

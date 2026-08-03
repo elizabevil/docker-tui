@@ -241,13 +241,13 @@ func RenderApp(m *state.AppModel) string {
 		return dialog.RenderChoiceOverlayInPanel(result, m, panelBody)
 	}
 	if m.Navigation.Mode == state.ModeExecShell {
-		shellOverlay := component.RenderShellDialogBox(m.Dialog.Input.Text, panelBody.Width, overlayColor)
+		shellOverlay := component.RenderShellDialogBox(m.Dialog.Input.Text, panelBody.Width, overlayColor, !m.CursorBlinkHidden)
 		return dialog.CenterOnPanelDefault(result, shellOverlay, panelBody, m.Viewport.Width, m.Viewport.Height)
 	}
 	if m.Navigation.Mode == state.ModeRename || m.Navigation.Mode == state.ModeResourceCreate ||
 		m.Navigation.Mode == state.ModeImageWorkflow {
 		inputOverlay := component.RenderTextInputBox(m.Dialog.Title, m.Dialog.Input.Text,
-			m.Dialog.Input.Cursor, panelBody.Width, overlayColor)
+			m.Dialog.Input.Cursor, panelBody.Width, overlayColor, !m.CursorBlinkHidden)
 		return dialog.CenterOnPanelDefault(result, inputOverlay, panelBody, m.Viewport.Width, m.Viewport.Height)
 	}
 	if m.Navigation.Mode == state.ModeImageTransfer {
@@ -464,7 +464,7 @@ func sliceColors(colors []string, start, count int) []string {
 	return colors[start : start+count]
 }
 
-func insertCursor(text string, cursor int) string {
+func insertCursor(text string, cursor int, cursorVisible ...bool) string {
 	r := []rune(text)
 	if cursor < 0 {
 		cursor = 0
@@ -472,7 +472,11 @@ func insertCursor(text string, cursor int) string {
 	if cursor > len(r) {
 		cursor = len(r)
 	}
-	return string(r[:cursor]) + "\u2588" + string(r[cursor:])
+	mark := "\u2588"
+	if len(cursorVisible) > 0 && !cursorVisible[0] {
+		mark = " "
+	}
+	return string(r[:cursor]) + mark + string(r[cursor:])
 }
 
 func currentTableFilterLabel(m *state.AppModel) string {

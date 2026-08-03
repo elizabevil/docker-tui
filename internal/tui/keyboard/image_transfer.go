@@ -86,6 +86,16 @@ func beginImageTransfer(m *state.AppModel, request runtimeapi.ImageTransferReque
 	return m, startImageTransferCmd(ctx, generation, m.Connection.Engine.ImageTransfers(), request)
 }
 
+// BeginCommittedImageExport starts an Image Save immediately after a
+// successful container commit.
+func BeginCommittedImageExport(m *state.AppModel, imageID, destination string) (*state.AppModel, tea.Cmd) {
+	return beginImageTransfer(m, runtimeapi.ImageTransferRequest{
+		Operation: runtimeapi.ImageTransferSave,
+		Source:    imageID,
+		Path:      destination,
+	})
+}
+
 func startImageTransferCmd(ctx context.Context, generation uint64, service runtimeapi.ImageTransferService, request runtimeapi.ImageTransferRequest) tea.Cmd {
 	return func() tea.Msg {
 		events, err := service.Run(ctx, request)

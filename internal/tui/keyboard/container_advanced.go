@@ -131,16 +131,17 @@ func containerUpdateCmd(engine runtimeapi.Engine, id string, opts runtimeapi.Con
 type ContainerCommitDone struct {
 	ContainerID string
 	ImageID     string
+	ExportPath  string
 	Error       error
 	Audit       audit.Trace
 }
 
 // containerCommitCmd snapshots the container as a new image. The commit form
 // (repository/tag/comment/author/pause) is deferred to the dialog layer.
-func containerCommitCmd(engine runtimeapi.Engine, id string, opts runtimeapi.ContainerCommitOptions) tea.Cmd {
+func containerCommitCmd(engine runtimeapi.Engine, id string, opts runtimeapi.ContainerCommitOptions, exportPath string) tea.Cmd {
 	return func() tea.Msg {
 		result, err := engine.Containers().Commit(context.Background(), id, opts)
-		return ContainerCommitDone{ContainerID: id, ImageID: result.ID, Error: err}
+		return ContainerCommitDone{ContainerID: id, ImageID: result.ID, ExportPath: exportPath, Error: err}
 	}
 }
 

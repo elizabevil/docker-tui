@@ -714,6 +714,7 @@
 - 症状:
   - 在容器页按 `m` 开启 stats 后,选中容器的 CPU / 内存数据没有按预期实时刷新;视图上的数值停留在初始值或上一次刷新时的快照。
 - 当前行为:
+  - 2026-08-02 BR-042 已修复 ticker 生命周期:离开 Containers 页面时仍保留下一轮调度,返回后恢复请求,不再因一次页面切换永久停止。该条目继续保持 `open`,等待真实 Podman 下 30 秒刷新验证与 stats 错误提示补齐。
   - `internal/tui/update/update_tick.go:32` `handleStatsTick` 已实现:容器页激活时 `StatsActive=true`,按 `Docker.StatsPollSec`(默认 3 秒) 周期为**当前过滤后**的容器列表派发 `FetchStats` 命令;`update_tick.go:17` `handleStatsReceived` 把数据写入 `m.Resources.Containers.Stats[msg.ContainerID]`。
   - `internal/tui/ui/pages/containers/view.go:90` 渲染时通过 `cm.Stats[c.ID]` 读取最新值。
   - 但实测中数据没有"看起来"实时刷新:可能原因包括 (a) `tea.Tick` 被 `Feedback.ToastGeneration` 或 detail revision 等其它 ticker 阻塞,导致 stats tick 实际频率低于 `StatsPollSec`;(b) 长轮询或 socket I/O 在 podman no-cgo 模式下阻塞过久,(c) 数据写入路径触发了不必要的全屏重绘,(d) `FetchStats` 出错被静默忽略。

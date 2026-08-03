@@ -106,6 +106,8 @@ type AppModel struct {
 	History       HistoryState
 	Audit         AuditState
 	Form          FormState
+	// CursorBlinkHidden is shared by every editable input renderer.
+	CursorBlinkHidden bool
 }
 
 // NewAppModel creates a new application model with default state.

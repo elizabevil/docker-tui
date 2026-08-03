@@ -8,6 +8,9 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/elizabevil/docker-tui/internal/driver/podman/dto"
 )
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
@@ -193,6 +196,28 @@ func TestRESTClientPostEncodesJSONAndQuery(t *testing.T) {
 	}
 	if output.Name != "cache" {
 		t.Fatalf("output = %#v", output)
+	}
+}
+
+func TestPostLongRunningDisablesClientTimeout(t *testing.T) {
+	var hadDeadline bool
+	httpClient := &http.Client{
+		Timeout: time.Millisecond,
+		Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+			_, hadDeadline = request.Context().Deadline()
+			return response(http.StatusOK, `{"StatusCode":0}`), nil
+		}),
+	}
+	client, err := NewRESTClient(RESTConfig{Endpoint: "http://podman.test", APIVersion: "5.4.2", HTTPClient: httpClient})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var output dto.ContainerWaitResponse
+	if err := client.postLongRunning(context.Background(), "/libpod/containers/id/wait", nil, nil, &output); err != nil {
+		t.Fatal(err)
+	}
+	if hadDeadline {
+		t.Fatal("long-running request inherited http.Client.Timeout")
 	}
 }
 

@@ -56,7 +56,7 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg dialogConfig) string
 		cursor = len(inputRunes)
 	}
 	inputDisplay := component.GetStyle("dim").Render(i18n.T("inspect.shell")+": ") + string(inputRunes[:cursor])
-	if m.Dialog.Focus == execFocusInput {
+	if m.Dialog.Focus == execFocusInput && !m.CursorBlinkHidden {
 		inputDisplay += "\u2588" // block cursor when focused
 	} else {
 		inputDisplay += " " // space when not focused

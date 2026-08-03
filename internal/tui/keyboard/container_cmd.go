@@ -65,6 +65,12 @@ func fetchContainerProcesses(service runtimeapi.ContainerService, id string) tea
 	}
 }
 
+// FetchContainerProcesses exposes the Top refresh command to the update
+// ticker while keeping the runtime request construction in the keyboard layer.
+func FetchContainerProcesses(service runtimeapi.ContainerService, id string) tea.Cmd {
+	return fetchContainerProcesses(service, id)
+}
+
 func containerRemoveCmd(client runtimeapi.Engine, id string, force bool) tea.Cmd {
 	return func() tea.Msg {
 		_, err := client.Actions().Execute(context.Background(), containerRef(id), runtimeapi.ActionRemove,
