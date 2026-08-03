@@ -152,10 +152,11 @@ func panelDialogWidth(bodyW int, cfg dialogConfig) int {
 	return w
 }
 
-// panelDialogHeight computes dialog height from a panel body using the
-// full panel height, clamped to cfg.MinHeight / cfg.MaxHeight (BR-043 §3.2).
+// panelDialogHeight computes dialog height from a panel body using a fixed
+// 3/4 ratio, clamped to cfg.MinHeight / cfg.MaxHeight (BR-043 §3.2 + height
+// revision: dialog 宽 3/4、高 3/4,均为 panel 比例).
 func panelDialogHeight(bodyH int, cfg dialogConfig) int {
-	h := bodyH
+	h := bodyH * 3 / 4
 	if cfg.MinHeight > 0 && h < cfg.MinHeight {
 		h = cfg.MinHeight
 	}

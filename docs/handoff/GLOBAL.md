@@ -5,6 +5,16 @@
 
 ## 决策日志(主模型 → 全体)
 
+### 2026-08-03 — BR-043 §3.2 高度修订 + Confirm/Cancel 同行渲染
+
+- **决策**:选择框高度从 panel 等高修订为 panel * 3/4(与宽度对称);Confirm/Cancel 从方案 B 的列表末尾两行改为同行左右排版
+- **理由**:用户 2026-08-03 反馈——BR-043 §8.2 原话"等高+宽为 3/4"应解读为"宽 3/4、高 3/4"两轴对称;Confirm/Cancel 同行布局更符合 flex 视觉对齐
+- **改动**:
+  - `panelDialogHeight`: `bodyH` → `bodyH * 3 / 4`(仍 clamp cfg.MinHeight/MaxHeight)
+  - `FormDialog` 渲染:移除两个独立 `renderBtnRow` 调用,合并为单行左 Cancel + 右 Confirm,焦点模型不变(Confirm=n、Cancel=n+1 线性)
+- **影响**:所有 `Render*InPanel` 调用(FormDialog/ExecDialog/SelectionDialog)高度变为 panel * 3/4;小窗口(40x16)下 height=12,需确认无挤压
+- **验证**:form/dialog/state/keyboard/keys 包测试全过
+
 ### 2026-08-03 — BR-043 批次 A-D 实施完成
 
 - **决策**:R2 批次按 GLOBAL.md § 2026-08-03 BR-043 六个问题决策实施

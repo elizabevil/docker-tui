@@ -73,20 +73,23 @@ func FormDialog(m *state.AppModel, overlayColor string, cfg dialogConfig, bodyW,
 	}
 	parts = append(parts, "")
 
-	// Confirm/Cancel as the last two list rows (BR-043 §3.3 scheme B).
-	renderBtnRow := func(key, label string, focused bool) string {
-		var rendered string
+	// Confirm/Cancel on the same line, left-right (BR-043 §3.3 scheme B +
+	// height 3/4 revision). Cancel on the left (Esc), Confirm on the right
+	// (Enter). Focus stays linear: Cancel = n+1, Confirm = n.
+	renderBtn := func(key, label string, focused bool) string {
 		if focused {
-			rendered = lipgloss.NewStyle().Foreground(style.Colors.Green).Bold(true).Render(key + " \u25b6 " + label)
-		} else {
-			rendered = lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(key + " " + label)
+			return lipgloss.NewStyle().Foreground(style.Colors.Green).Bold(true).Render(key + " \u25b6 " + label)
 		}
-		return lipgloss.NewStyle().Width(innerWidth).Align(lipgloss.Center).Render(rendered)
+		return lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(key + " " + label)
 	}
 	confirmFocused := form.FieldFocus == form.ConfirmSlot() && !form.Popup.Open
 	cancelFocused := form.FieldFocus == form.CancelSlot() && !form.Popup.Open
-	parts = append(parts, renderBtnRow(enterKey, form.ConfirmLabel, confirmFocused))
-	parts = append(parts, renderBtnRow(escKey, form.CancelLabel, cancelFocused))
+	cancelBtn := renderBtn(escKey, form.CancelLabel, cancelFocused)
+	confirmBtn := renderBtn(enterKey, form.ConfirmLabel, confirmFocused)
+	buttons := lipgloss.NewStyle().Width(innerWidth).Align(lipgloss.Center).Render(
+		cancelBtn + "   " + confirmBtn,
+	)
+	parts = append(parts, buttons)
 	parts = append(parts, "")
 	hintKey := "form.hint.navigation"
 	if form.Kind == state.FormContainerUpdate {
