@@ -850,7 +850,7 @@
   2. 选中镜像 > 50 layer 时,上下滚动 / PgDn / j 翻页均无卡顿,体感与 BR-016 修复后一致。
   3. History 页与镜像详情页的 `s` Source(YAML / JSON)互不干扰。
   4. 详情页不再渲染 History 分区(沿用 BR-008 决策);`History` 段在 detail 渲染路径上完全移除。
-- 设计参考: [docs/feature-design.md §5.1](docs/feature-design.md#51-镜像-history-顶层页-h-键)
+- 设计参考: [feature-design.md §5.1](feature-design.md#51-镜像-history-顶层页-h-键)
 
 ### BR-035 Events 独立面板 (F3 键) + Network Connect/Disconnect
 
@@ -892,8 +892,8 @@
   2. 容器启动 / 停止 / 镜像 pull 等事件在 Events 面板实时出现,带时间戳与动作类型。
   3. 在网络页 / 容器详情页能把运行中容器接入新网络;`docker exec ctr ping new-net-peer` 验证网络可达。
   4. 把容器从网络 disconnect 后,容器在该网络的接口消失;不影响其它网络。
-  5. Events 面板与 Network Connect/Disconnect 都按 [docs/feature-design.md](docs/feature-design.md) 中的设计目标实现,不破坏现有功能。
-- 设计参考: [docs/feature-design.md §5.7](docs/feature-design.md#57-events-流独立面板-f3)、[§5.3](docs/feature-design.md#53-network-connect--disconnect)
+  5. Events 面板与 Network Connect/Disconnect 都按 [feature-design.md](feature-design.md) 中的设计目标实现,不破坏现有功能。
+- 设计参考: [feature-design.md §5.7](feature-design.md#57-events-流独立面板-f3)、[§5.3](feature-design.md#53-network-connect--disconnect)
 
 ### BR-036 镜像 tarball 导入功能 (Image Import)
 
@@ -926,7 +926,7 @@
   2. 提交后,新镜像出现在镜像列表,inspect 可见但只有 1 层(history 为空)。
   3. `docker save` 出来的多 layer tarball 走 `Load` (`Ctrl+L`),`docker export` 出来的扁平 tarball 走 Import,两条路径独立、不混淆。
   4. Podman 端行为一致。
-- 设计参考: [docs/feature-design.md §5.10](docs/feature-design.md#510-image-import-br-036)
+- 设计参考: [feature-design.md §5.10](feature-design.md#510-image-import-br-036)
 
 ### BR-037 docker / podman Registry Login(私库认证)
 
@@ -960,7 +960,7 @@
   3. 错误凭证返回明确 toast(`Unauthorized` 等),不泄露密码。
   4. Podman 端等价行为。
   5. dtui 进程退出后,引擎凭证仍存在(由引擎自身管理)。
-- 设计参考: [docs/feature-design.md §5.9](docs/feature-design.md#59-registry-login-br-037)
+- 设计参考: [feature-design.md §5.9](feature-design.md#59-registry-login-br-037)
 
 ### BR-038 容器 Exec 页面 UI 不符合 shell 终端
 
@@ -996,7 +996,7 @@
   3. ↑↓ 翻历史、Tab 补全、Ctrl+L 清屏、Ctrl+C 发 SIGINT(能被前台进程接收)均工作。
   4. Ctrl+D 退出前台 shell 但容器继续运行(对应 `detach` 语义)。
   5. Esc 退出 dtui 的 exec mode,**不**杀掉容器前台进程。
-- 设计参考: [docs/feature-design.md §5.4](docs/feature-design.md#54-container-attach-vs-exec)
+- 设计参考: [feature-design.md §5.4](feature-design.md#54-container-attach-vs-exec)
 
 ### BR-039 取消 Q 键退出,改为每页多功能 Action Bar
 
@@ -1037,7 +1037,7 @@
   4. detail / logs 页不强行弹 Action Bar(空列表或直接 no-op)。
   5. 命令面板 `:` 仍可用,所有原命令保留。
   6. Help / Footer 准确反映当前键位(移除 `Q`)。
-- 设计参考: [docs/feature-design.md §5.6](docs/feature-design.md#56-q-键退出--多功能-action-bar)
+- 设计参考: [feature-design.md §5.6](feature-design.md#56-q-键退出--多功能-action-bar)
 
 ### BR-040 Dialog 风格统一:四周透明 + panel 居中
 
@@ -1079,7 +1079,7 @@
   2. 同类 dialog(例如两个 confirm)风格一致:边框 / 内边距 / 标题位置相同。
   3. panel 缩窄 / 拉宽时,dialog 跟着居中且不溢出 panel。
   4. dialog 内的按钮 / 输入框 / 文本行版式统一。
-- 设计参考: [docs/feature-design.md §5.8](docs/feature-design.md#58-dialog-风格统一四周透明--panel-居中)
+- 设计参考: [feature-design.md §5.8](feature-design.md#58-dialog-风格统一四周透明--panel-居中)
 
 ### BR-028 (TBD - 待用户补充)
 

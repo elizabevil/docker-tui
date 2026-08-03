@@ -6,7 +6,7 @@
 > 依赖: BR-033、BR-040  
 > 执行方式: 小模型分批实现，主模型 review、集成和提交
 
-> FORM 焦点、闪烁光标以及 Podman Commit/Wait、Top/Stats 刷新修正统一记录在 [BR-042](./br-042-form-runtime-refresh-corrections.md)，后续实现不得在页面内重复定义规则。
+> FORM 焦点、闪烁光标以及 Podman Commit/Wait、Top/Stats 刷新修正统一记录在 [R01-03 Stats/Top/Wait](../requirement/R01-container/R01-03-stats-top.md) + [constraint/C01-form.md](../constraint/C01-form.md) + [constraint/C05-path.md](../constraint/C05-path.md)(原 BR-042 已归档删除)，后续实现不得在页面内重复定义规则。
 
 ## 1. 背景
 

@@ -42,6 +42,13 @@ TUI: Bubble Tea v2
   docs/design/current-design.md
 ```
 
+## 通信与状态
+
+- [handoff/README.md](handoff/README.md):跨会话持续状态 — 主模型决策日志、待确认问题、活跃批次、已交接归档;开工前必读。
+- [docs-architecture.md](docs-architecture.md):文档真理源架构 — 需求树与横切约束分层。
+- [requirement/README.md](requirement/README.md):需求树真理源(R01-R05)。
+- [constraint/README.md](constraint/README.md):横切约束真理源(C01-C06)。
+
 ## 小模型使用原则
 
 ```text

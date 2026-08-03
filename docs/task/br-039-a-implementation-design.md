@@ -2,7 +2,7 @@
 
 > 角色: 小模型(只读分析 + 设计输出)
 > 范围: BR-039-A 框架 + typed action registry 基础(不接完整 UI / 不接全部页面动作)
-> 输入: 主模型简报 [docs/task/next-small-model-brief.md](next-small-model-brief.md) + 反馈 [docs/task/br-039-main-model-feedback.md](br-039-main-model-feedback.md) + 任务卡 [br-039-action-bar-replace-q.md](br-039-action-bar-replace-q.md) + 上一轮只读分析 [br-039-code-location-analysis.md](br-039-code-location-analysis.md) + BR-040 [br-040-dialog-style-center-on-panel.md](br-040-dialog-style-center-on-panel.md)
+> 输入: 主模型简报(原 `next-small-model-brief.md` 已归档删除) + 反馈 [docs/task/br-039-main-model-feedback.md](br-039-main-model-feedback.md) + 任务卡 [br-039-action-bar-replace-q.md](br-039-action-bar-replace-q.md) + 上一轮只读分析 [br-039-code-location-analysis.md](br-039-code-location-analysis.md) + BR-040(原 task 已归档,内容见 [../requirement/R03-form-action/R03-03-action-dialog-layout.md](../requirement/R03-form-action/R03-03-action-dialog-layout.md))
 > 输出: 本文件(唯一交付物)
 > 状态: 已实施并由主模型修正;本文作为设计过程归档,最终结果以任务卡与源码为准。
 

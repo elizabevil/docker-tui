@@ -32,6 +32,27 @@ DTUI_VERSION=v0.2.0 go build -o ./dist/dtui ./cmd/docker-tui
 - [feature-design.md](feature-design.md):**功能设计总览** — 最终实现目标与原生 Docker / Podman / 竞品的功能对比矩阵;设计决策与路线;明确不在范围的能力。
 - [feature-todo-list.md](feature-todo-list.md):**功能实现待办清单** — TASK 历史台账 + 设计驱动需求摘要 + 已取消决议;新任务不再使用 TASK-xxx 编号,统一改用 BR-xxx / FR-xxx。
 
+### 需求真理源
+
+- [requirement/README.md](requirement/README.md):**需求树** — 大需求(5 个 R##)与子需求(R##-##)的索引;每个需求文档包含目标、用户流程、UI/UX、功能规则、验收标准、迁移记录。
+- [requirement/R01-container/](requirement/R01-container/README.md):容器大需求(高级动作、Exec shell、Stats/Top/Wait)。
+- [requirement/R02-image/](requirement/R02-image/README.md):镜像大需求(History 顶层页、Import tarball、Registry Login)。
+- [requirement/R03-form-action/](requirement/R03-form-action/README.md):表单与动作展示(Form 公共模式、Action Bar、Action 展示框布局)。
+- [requirement/R04-runtime/](requirement/R04-runtime/README.md):运行时能力(Docker / Podman 差异评估)。
+- [requirement/R05-events-network/](requirement/R05-events-network/README.md):事件流与网络(Events 面板、Network Connect/Disconnect)。
+
+### 横切约束
+
+- [constraint/README.md](constraint/README.md):**横切约束索引** — 多需求共享的 UI/交互/工程规则。
+- [constraint/C01-form.md](constraint/C01-form.md):Form 字段类型、焦点、Tab 补全、条件显示、错误提示。
+- [constraint/C02-dialog.md](constraint/C02-dialog.md):Dialog 居中、尺寸、Action 展示框布局。
+- [constraint/C03-table.md](constraint/C03-table.md):表格列布局、选中态、滚动。
+- [constraint/C04-keybinding.md](constraint/C04-keybinding.md):快捷键分层、Action Bar 角色、链接键。
+- [constraint/C05-path.md](constraint/C05-path.md):Local / Container 路径语义、补全、绝对化。
+- [constraint/C06-i18n.md](constraint/C06-i18n.md):i18n key 命名空间、终端宽度。
+
+> 需求文档引用约束时只用链接,不复制通用段落。
+
 ### 修复流程
 
 - [bugfix-requirements.md](bugfix-requirements.md):**历史 bug 修复需求台账**,单独跟踪修复项;包含修复记录。
@@ -43,6 +64,7 @@ DTUI_VERSION=v0.2.0 go build -o ./dist/dtui ./cmd/docker-tui
 - [navigation.md](navigation.md):当前默认交互与快捷键。
 - [project-structure.md](project-structure.md):目录与包职责,已按代码核对。
 - [requirements.md](requirements.md):产品范围和路线图,包含规划项,等于已实现清单。
+- [docs-architecture.md](docs-architecture.md):**本文档**架构说明 — 真理源、约束、实施卡的层级关系。
 
 ### 用户参考
 

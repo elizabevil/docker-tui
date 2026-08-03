@@ -1,10 +1,10 @@
 # BR-040 只读代码定位分析报告
 
 > 建立日期: 2026-08-01
-> 来源: [docs/task/next-small-model-brief.md](next-small-model-brief.md)
+> 来源: 主模型简报(原 `next-small-model-brief.md` 已归档删除)
 > 角色: 小模型只读定位助手
 > 目标需求: BR-040 Dialog 风格统一 — 四周透明 + panel 居中
-> 参考任务卡: [docs/task/br-040-dialog-style-center-on-panel.md](br-040-dialog-style-center-on-panel.md)
+> 参考任务卡: BR-040(原 task 已归档删除,内容见 [../requirement/R03-form-action/R03-03-action-dialog-layout.md](../requirement/R03-form-action/R03-03-action-dialog-layout.md))
 
 > 本报告是 BR-040 实现前的代码定位结果,**未修改任何代码**。
 > 输出格式遵循 [docs/ai-prompts.md](../ai-prompts.md) "单任务代码定位 Prompt"。

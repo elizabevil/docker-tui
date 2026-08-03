@@ -6,7 +6,7 @@
 > 来源: 小模型执行主模型 prompt("只读分析,不改代码")
 > 目标需求: BR-039 取消 Q 退出,改为每页多功能 Action Bar
 > 参考任务卡: [docs/task/br-039-action-bar-replace-q.md](br-039-action-bar-replace-q.md)
-> 关联任务卡: [docs/task/br-040-dialog-style-center-on-panel.md](br-040-dialog-style-center-on-panel.md)(已 done)
+> 关联任务卡: BR-040(原 task 已归档删除,内容见 [../requirement/R03-form-action/R03-03-action-dialog-layout.md](../requirement/R03-form-action/R03-03-action-dialog-layout.md))
 
 > 本报告只读分析,未修改任何代码。
 > BR-039 任务卡"建议任务分解"中 BR-039-A 阶段(只做弹出/选择/关闭,Execute 为占位)的输入。
@@ -369,7 +369,7 @@ internal/tui/actionbar/actionbar.go:RenderBar(m, body)
 | 类别 | 文件 |
 |---|---|
 | **任务卡** | `docs/task/br-039-action-bar-replace-q.md`(目标 / 范围 / 风险) |
-| **关联已完** | `docs/task/br-040-dialog-style-center-on-panel.md` + `internal/tui/ui/widget/dialog/centered.go`(`PlaceDialogInPanel`) |
+| **关联已完** | BR-040(原 task 已归档,内容见 [../requirement/R03-form-action/R03-03-action-dialog-layout.md](../requirement/R03-form-action/R03-03-action-dialog-layout.md)) + `internal/tui/ui/widget/dialog/centered.go`(`PlaceDialogInPanel`) |
 | **键盘主分发** | `internal/tui/keyboard/keyboard.go:14`(`HandleKeyPress`) + `60-112`(`dispatchByMode`) |
 | **action 注册** | `internal/tui/keys/registry.go:38`(`ActionQuit`) + `49`(`ActionCommand`) + `40-85`(全部 default keys) |
 | **action 处理** | `internal/tui/keyboard/actions.go:16-126`(`handleAction` switch) |

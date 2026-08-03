@@ -1,13 +1,17 @@
 # 需求规格
 
-本文是产品范围与路线图文档，不是当前实现清单。实现现状请看 [README.md](README.md) 和 [architecture.md](architecture.md)。
+> **真理源**: 完整需求树已迁移到 [requirement/README.md](requirement/README.md),按 5 个大需求(R01-R05)组织。
+> 每个 R##-## 文档包含目标、用户流程、UI/UX、功能规则、验收标准、迁移记录。
+>
+> **本文**保留:实现能力与状态总表、已验证差距、待修 bug 索引、竞品参考、用户场景。
+> 实现现状请看 [README.md](README.md) 和 [architecture.md](architecture.md)。
 
 ## 当前范围与状态
 
 | 能力 | 状态 | 代码验证备注 |
 |---|---|---|
 | 容器列表、启停、重启、Kill、删除 | 已实现 | `internal/tui/keyboard/container_action.go` |
-| 容器 TASK-019 高级动作(Copy / Update / Diff / Export / Commit / Wait) | **未实现** | `registry.go:66-71` 注册了默认键位但 `actions.go:handleAction` 缺少对应 `case`,按键被静默吞掉;详见 [BR-033](bugfix-requirements.md#br-033) |
+| 容器 TASK-019 高级动作 (Copy / Update / Diff / Export / Commit / Wait) | 已实现 | 6 个动作全部接入 Action Bar;Diff / Wait 含取消、过期响应丢弃与 audit;Copy / Update / Export / Commit 走统一 Form 流程(含默认文件名、路径补全、覆盖确认)。当前 Form 持续完善中(详见 [requirement/R01-container/R01-01-advanced-ops.md](requirement/R01-container/R01-01-advanced-ops.md)) |
 | 实时日志 | 已实现 | 当前为按需拉取/显示，不是启动即常驻事件流 |
 | 容器 stats | 已实现 | 定时轮询当前容器列表，不是只轮询单个聚焦容器 |
 | 镜像列表、Pull、Prune、Tag、Push、Save、Load、详情 | 已实现 | 镜像传输支持进度、取消和错误展示；Debug 保留命令预览；详情页按普通镜像 layer history 或 manifest 平台变体分区渲染；Docker 与 Podman 都提供结构化 `ImageDetail`（架构、OS、Driver、LayerCount、Runtime config、History） |
@@ -49,7 +53,7 @@
 - [BR-030](bugfix-requirements.md#br-030-取消鼠标点击表格行选中改用滚轮上下选行)：列表选择由滚轮代替鼠标点击，与 BR-012 wontfix 一致。
 - [BR-031](bugfix-requirements.md#br-031-容器页容器资源占用cpu--内存未实时刷新)：stats 拉取链路存在但用户感知不到实时刷新。
 - [BR-032](bugfix-requirements.md#br-032-表格排序n-ctrln-正反排序鼠标点击表头排序)：当前 `O` / `Ctrl+O` 与用户期望的 `N` / `Ctrl+N` / 鼠标点击表头不一致。
-- [BR-033](bugfix-requirements.md#br-033-task-019-高级容器动作未实现copy--update--diff--export--commit--wait)：注册了键位但 handler 缺失，按键被静默吞掉。
+- [BR-033](bugfix-requirements.md#br-033-task-019-高级容器动作未实现copy--update--diff--export--commit--wait)：高级动作已接入 Action Bar 与统一 Form;剩余 Form 交互与运行时细节按 [R01-01](requirement/R01-container/R01-01-advanced-ops.md) / [R03](requirement/R03-form-action/README.md) 跟踪。
 
 ## 竞品参考
 

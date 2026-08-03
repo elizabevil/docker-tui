@@ -255,7 +255,7 @@
   1. 镜像页按 H 键,弹出 History 顶层页,标题为 `<image>:<tag> history`;行数等于镜像 layer 数。
   2. 选中镜像 > 50 layer 时,上下滚动 / PgDn / j 翻页均无卡顿。
   3. 详情页不再渲染 History 分区。
-- 设计参考: [docs/feature-design.md §5.1](docs/feature-design.md)
+- 设计参考: [docs/feature-design.md §5.1](feature-design.md)
 
 <a id="br-035"></a>
 
@@ -282,7 +282,7 @@
   2. 容器启动 / 停止 / 镜像 pull 等事件在 Events 面板实时出现。
   3. 在网络页 / 容器详情页能把运行中容器接入新网络;`docker exec ctr ping new-net-peer` 验证网络可达。
   4. disconnect 后,容器在该网络的接口消失;不影响其它网络。
-- 设计参考: [docs/feature-design.md §5.7](docs/feature-design.md) / [§5.3](docs/feature-design.md)
+- 设计参考: [docs/feature-design.md §5.7](feature-design.md) / [§5.3](feature-design.md)
 
 <a id="br-036"></a>
 
@@ -305,7 +305,7 @@
   1. 镜像页 Action Bar 中 "Import tarball" 可点击;触发表单。
   2. 提交后,新镜像出现在镜像列表,inspect 可见但只有 1 层(history 为空)。
   3. `docker save` 多 layer tarball 走 `Load` (Ctrl+L),`docker export` 扁平 tarball 走 Import,两条路径独立。
-- 设计参考: [docs/feature-design.md §5.10](docs/feature-design.md)
+- 设计参考: [docs/feature-design.md §5.10](feature-design.md)
 
 <a id="br-037"></a>
 
@@ -328,7 +328,7 @@
   2. 登录成功后,dtui 内 `ImagePull` (`Ctrl+P`) 私有仓库镜像成功,无需外部 `docker login`。
   3. 错误凭证返回明确 toast(`Unauthorized` 等),不泄露密码。
   4. dtui 进程退出后,引擎凭证仍存在(由引擎自身管理)。
-- 设计参考: [docs/feature-design.md §5.9](docs/feature-design.md)
+- 设计参考: [docs/feature-design.md §5.9](feature-design.md)
 
 <a id="br-038"></a>
 
@@ -355,7 +355,7 @@
   3. ↑↓ 翻历史、Tab 补全、Ctrl+L 清屏、Ctrl+C 发 SIGINT 均工作。
   4. Ctrl+D 退出前台 shell 但容器继续运行。
   5. Esc 退出 dtui 的 exec mode,**不**杀掉容器前台进程。
-- 设计参考: [docs/feature-design.md §5.4](docs/feature-design.md)
+- 设计参考: [docs/feature-design.md §5.4](feature-design.md)
 
 <a id="br-040"></a>
 
@@ -385,7 +385,7 @@
   2. 同类 dialog(例如两个 confirm)风格一致:边框 / 内边距 / 标题位置相同。
   3. panel 缩窄 / 拉宽时,dialog 跟着居中且不溢出 panel。
   4. dialog 内的按钮 / 输入框 / 文本行版式统一。
-- 设计参考: [docs/feature-design.md §5.8](docs/feature-design.md)
+- 设计参考: [docs/feature-design.md §5.8](feature-design.md)
 
 <a id="br-028"></a>
 
