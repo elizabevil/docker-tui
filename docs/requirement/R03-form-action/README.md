@@ -9,6 +9,7 @@
 | [R03-01](./R03-01-form-pattern.md) | 公共 Form 字段模式、状态、提交 | implementing | high | [task/br-041-unified-form-path-completion.md](../../task/br-041-unified-form-path-completion.md) + [task/br-041-form-navigation-followup-prompt.md](../../task/br-041-form-navigation-followup-prompt.md) |
 | [R03-02](./R03-02-action-bar.md) | Action Bar 替换 Q,承载多动作入口 | implementing | high | [task/br-039-action-bar-replace-q.md](../../task/br-039-action-bar-replace-q.md) |
 | [R03-03](./R03-03-action-dialog-layout.md) | Action 展示框尺寸 + flex 布局 + 共享焦点 | planned | high | 原 BR-040 已归档;[task/br-043-form-action-bar-redesign.md](../../task/br-043-form-action-bar-redesign.md) 保留 |
+| [R03-04](./R03-04-path-popup.md) | FormPath 补全 popup:eza-l 风格 + BrowseMode + drill-down | implementing | high | [task/br-041-unified-form-path-completion.md](../../task/br-041-unified-form-path-completion.md) + BR-043 §3.1 |
 
 ## 关联约束
 
