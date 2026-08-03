@@ -31,12 +31,13 @@
 |---|---:|---|
 | `done` | 24 | TASK-001 ~ TASK-019, TASK-021 ~ TASK-025 (详见 [§6 历史台账](#6-历史-tasks-task-001--task-025)) |
 | `in_progress` | 0 | — |
-| `todo` | 1 | TASK-020 (Podman 专有能力评估) |
+| `todo` | 2 | TASK-020 (Podman 专有能力评估)、TASK-026 (macOS 应用支持) |
 | `blocked` | 0 | — |
 
 ## 当前执行顺序
 
 1. 推进 `TASK-020` 的 Docker / Podman 专有能力评估(P3,等用户/产品决策后归档)。
+2. `TASK-026` macOS 应用支持方案已建,待用户批准后按 [plan](superpowers/plans/2026-08-03-macos-app-support.md) 8-task 计划实施(P3,无产品决策阻塞)。
 
 ---
 
@@ -53,6 +54,20 @@
   2. 给出"纳入 / 暂缓 / 不实现"的明确决议。
   3. 决议写入 [docs/feature-design.md §3](feature-design.md) "不在范围"列表或新建 TASK。
   4. 测试 / 文档同步。
+
+### TASK-026 — macOS 应用支持
+
+- 状态: `todo` (方案已建,待批准)
+- 优先级: `P3`
+- 方案: [superpowers/plans/2026-08-03-macos-app-support.md](superpowers/plans/2026-08-03-macos-app-support.md)(8 tasks, Phase 1+2)
+- 依赖: 无
+- 范围:
+  - **Phase 1**(platform support):macOS 正确默认 socket 路径(Docker Desktop for Mac `~/.docker/run/docker.sock` + Podman machine `~/.local/share/containers/podman/machine/qemu/podman.sock`),通过 `//go:build darwin` 拆分实现
+  - **Phase 2**(distribution):`.app` bundle 打包(`Info.plist` + `MacOS/<binary>` + `PkgInfo`),新增 `just build-darwin-{amd64,arm64}-app` recipes
+- 完成定义:
+  1. Phase 1 Tasks 1-4:Build tag 拆分 + `connection_darwin.go` + 编译期断言测试 + 端到端 nocgo 验证
+  2. Phase 2 Tasks 5-8:`Info.plist` 模板 + `build-app.sh` 脚本 + `scripts/build.just` recipes + README 更新
+  3. 不在本任务范围(cgo/gpgme、CI、Homebrew、签名、公证、lipo)—— 已在 plan "Future Work" 章节记录,后续按需拆为独立 TASK。
 
 ---
 

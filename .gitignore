@@ -3,3 +3,6 @@
 internal/data/runtime/podman/testdata/
 .omo/
 .opencode/
+# musl-gpgme build scratch area (all configure/build side-effects)
+scripts/musl-gpgme/work/*
+!scripts/musl-gpgme/work/.gitkeep

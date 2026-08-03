@@ -95,6 +95,23 @@
 - 更完整的鼠标支持
 - 发布流程和分发整理
 - 预览系统与实际 TUI 的文档同步约束
+- **macOS 应用支持** — 完整方案在 [superpowers/plans/2026-08-03-macos-app-support.md](superpowers/plans/2026-08-03-macos-app-support.md):
+  - macOS 正确 socket 路径(Docker Desktop for Mac `~/.docker/run/docker.sock` + Podman machine `~/.local/share/containers/podman/machine/qemu/podman.sock`)
+  - `.app` bundle 打包(`Info.plist` + `MacOS/<binary>` + `PkgInfo`)
+  - 未来:CI macOS runner、Homebrew formula、代码签名与公证、通用二进制(lipo)、app icon
+
+## 平台与分发(Phases)
+
+| 目标 | 状态 | 方案进度 |
+|---|---|---|
+| Linux amd64/arm64 单 binary | ✅ 已实现 | `just build` / `just build-linux-{amd64,arm64}-nocgo` |
+| Windows amd64 单 binary | ✅ 已实现 | `just build-windows-amd64-nocgo` |
+| macOS amd64/arm64 单 binary | ✅ 已实现 | `just build-darwin-{amd64,arm64}-nocgo` |
+| macOS 正确默认 socket 路径 | 📋 方案已建 | [Task 1-4 of plan](superpowers/plans/2026-08-03-macos-app-support.md) |
+| macOS `.app` bundle | 📋 方案已建 | [Task 5-8 of plan](superpowers/plans/2026-08-03-macos-app-support.md) |
+| macOS cgo/gpgme/Podman bindings | 📋 未来 | 需 osxcross 或 Mac CI runner(超出当前方案) |
+| Homebrew formula | 📋 未来 | 发布流程上线后 |
+| 代码签名 + 公证 | 📋 未来 | 需 Apple Developer ID |
 
 ## 用户场景
 

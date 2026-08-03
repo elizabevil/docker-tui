@@ -81,3 +81,6 @@ build-all: build-all-cgo build-all-nocgo
 clean:
     rm -rf {{ out }}
     go clean -cache
+
+# Static musl build (CGO=1, gpgme linked in) lives in scripts/musl-gpgme/.
+# Load it via:  just musl-gpgme::build-musl-static   (arch via DTUI_ARCH, default amd64)
