@@ -90,6 +90,16 @@ type FormField struct {
 	PathTabInput string
 
 	Touched bool // true once the user manually edited the value
+
+	// DependsOn names another field whose current value gates this field's
+	// visibility. When DependsOn is empty, the field is always shown.
+	DependsOn string
+	// DependsEq is the bool value the dependency must hold for this field
+	// to remain visible. Only meaningful when the dependency is a FormBool.
+	DependsEq bool
+	// Hidden is set by RecomputeVisibility and read by the renderer and
+	// MoveField to skip this field. Mutating it directly is unsupported.
+	Hidden bool
 }
 
 // Text returns the trimmed value of a text/Int field.
@@ -115,12 +125,14 @@ func (f *FormField) StepSelect(delta int) {
 
 // FormSpec is the atom used to open a form dialog with a known field layout.
 type FormSpec struct {
-	Kind       FormKind
-	Title      string
-	TargetID   string
-	TargetName string
-	Fields     []FormField
-	CWD        string
+	Kind         FormKind
+	Title        string
+	TargetID     string
+	TargetName   string
+	Fields       []FormField
+	CWD          string
+	ConfirmLabel string
+	CancelLabel  string
 }
 
 // ContainerUpdateConfigLoaded carries the current limits fetched for an open
@@ -132,39 +144,59 @@ type ContainerUpdateConfigLoaded struct {
 }
 
 // FormState owns the active container-action form: its fields, the focused
-// field, the Confirm / Cancel slots that follow the fields, and any popup.
+// row, the Confirm / Cancel slots that follow the fields, and any popup.
+//
+// FieldFocus is a single linear index over every focusable row
+// (BR-043 §3.3 scheme B): values 0..len(Fields)-1 select fields,
+// len(Fields) selects the Confirm row, len(Fields)+1 selects the Cancel row.
+// Up/Down navigation wraps across the whole list.
 type FormState struct {
-	Kind       FormKind
-	Title      string
-	TargetID   string
-	TargetName string
-	Fields     []FormField
-	FieldFocus int  // index into Fields; -1 selects the Confirm/Cancel slot
-	OnConfirm  bool // when FieldFocus == -1, true selects Confirm, false Cancel
-	Popup      FormPopupState
-	CWD        string
-	Loading    bool
+	Kind         FormKind
+	Title        string
+	TargetID     string
+	TargetName   string
+	Fields       []FormField
+	FieldFocus   int
+	ConfirmLabel string
+	CancelLabel  string
+	Popup        FormPopupState
+	CWD          string
+	Loading      bool
 }
 
 // Open resets the form to a fresh state from a spec. The initial focus is the
-// Cancel slot (OnConfirm=false) so the safest action is always selected.
+// Cancel row so the safest action is always selected (BR-043 §3.3).
 func (s *FormState) Open(spec FormSpec) {
-	*s = FormState{
-		Kind:       spec.Kind,
-		Title:      spec.Title,
-		TargetID:   spec.TargetID,
-		TargetName: spec.TargetName,
-		Fields:     spec.Fields,
-		FieldFocus: -1,
-		OnConfirm:  false,
-		CWD:        spec.CWD,
+	confirm := spec.ConfirmLabel
+	if confirm == "" {
+		confirm = "Confirm"
 	}
+	cancel := spec.CancelLabel
+	if cancel == "" {
+		cancel = "Cancel"
+	}
+	*s = FormState{
+		Kind:         spec.Kind,
+		Title:        spec.Title,
+		TargetID:     spec.TargetID,
+		TargetName:   spec.TargetName,
+		Fields:       spec.Fields,
+		ConfirmLabel: confirm,
+		CancelLabel:  cancel,
+		FieldFocus:   len(spec.Fields) + 1, // Cancel row
+		CWD:          spec.CWD,
+	}
+	s.RecomputeVisibility()
 }
 
 // Field returns the currently focused field, or nil when the focus is on the
-// Confirm/Cancel slot or there are no fields.
+// Confirm / Cancel row, the index is out of range, or the focused field is
+// currently hidden (DependsOn not satisfied).
 func (s *FormState) Field() *FormField {
 	if s.FieldFocus < 0 || s.FieldFocus >= len(s.Fields) {
+		return nil
+	}
+	if s.Fields[s.FieldFocus].Hidden {
 		return nil
 	}
 	return &s.Fields[s.FieldFocus]
@@ -180,42 +212,66 @@ func (s *FormState) Get(key string) *FormField {
 	return nil
 }
 
-// SlotCount is the total number of Tab stops: every field plus Confirm and
-// Cancel.
+// SlotCount is the total number of focusable rows: every field plus Confirm
+// and Cancel (BR-043 §3.3).
 func (s *FormState) SlotCount() int { return len(s.Fields) + 2 }
 
-// Slot returns the focus index for Confirm and Cancel respectively.
+// ConfirmSlot returns the focus index of the Confirm row.
 func (s *FormState) ConfirmSlot() int { return len(s.Fields) }
-func (s *FormState) CancelSlot() int  { return len(s.Fields) + 1 }
 
-// MoveSlot advances focus by delta across fields + Confirm + Cancel, wrapping
-// around. The result stays within [0, SlotCount-1] and is exposed as
-// FieldFocus (-1 = focus not on a field) plus OnConfirm.
-func (s *FormState) MoveSlot(delta int) {
-	total := s.SlotCount()
-	if total <= 0 {
-		return
-	}
-	cur := 0
-	if s.FieldFocus >= 0 {
-		cur = s.FieldFocus
-	} else if s.OnConfirm {
-		cur = s.ConfirmSlot()
-	} else {
-		cur = s.CancelSlot()
-	}
-	next := (cur + delta%total + total) % total
-	s.FieldFocus = -1
-	s.OnConfirm = false
-	if next < len(s.Fields) {
-		s.FieldFocus = next
-	} else if next == s.ConfirmSlot() {
-		s.OnConfirm = true
-	}
-}
+// CancelSlot returns the focus index of the Cancel row.
+func (s *FormState) CancelSlot() int { return len(s.Fields) + 1 }
 
 // Close clears the form back to its zero value.
 func (s *FormState) Close() { *s = FormState{} }
+
+// RecomputeVisibility updates each field's Hidden flag from its DependsOn /
+// DependsEq configuration. If the currently focused field becomes hidden as
+// a result, focus is moved to the next visible field; if no visible field
+// exists, focus falls back to the Cancel row. Call this after Open and
+// after any change to a field that other fields depend on (BR-043 §3.5).
+func (s *FormState) RecomputeVisibility() {
+	for i := range s.Fields {
+		s.Fields[i].Hidden = s.fieldHidden(&s.Fields[i])
+	}
+	if s.FieldFocus < 0 || s.FieldFocus >= len(s.Fields) {
+		return
+	}
+	if !s.Fields[s.FieldFocus].Hidden {
+		return
+	}
+	if n := len(s.Fields); n > 0 {
+		cur := s.FieldFocus
+		for i := 0; i < n; i++ {
+			cur++
+			if cur >= n {
+				s.FieldFocus = s.CancelSlot()
+				return
+			}
+			if !s.Fields[cur].Hidden {
+				s.FieldFocus = cur
+				return
+			}
+		}
+	}
+	s.FieldFocus = s.CancelSlot()
+}
+
+// fieldHidden reports whether f should be hidden based on its DependsOn
+// configuration. Unsupported dependency kinds default to visible.
+func (s *FormState) fieldHidden(f *FormField) bool {
+	if f.DependsOn == "" {
+		return false
+	}
+	dep := s.Get(f.DependsOn)
+	if dep == nil {
+		return false
+	}
+	if dep.Kind == FormBool {
+		return dep.Toggle != f.DependsEq
+	}
+	return false
+}
 
 // IsMulti reports whether a FormMultiSelect field has any selected option.
 func (f *FormField) IsMulti() bool { return len(f.Selected) > 0 }
@@ -343,62 +399,50 @@ func (s *FormState) PopupCursorPage(delta, pageSize int) {
 // ClosePopup closes the active popup but leaves the form open.
 func (s *FormState) ClosePopup() { s.Popup = FormPopupState{} }
 
-// FocusedButton reports which button slot currently owns the focus, or ""
-// when focus is on a field. The default Cancel slot returns "cancel".
+// FocusedButton reports which button row currently owns the focus, or ""
+// when focus is on a field row (BR-043 §3.3).
 func (s *FormState) FocusedButton() string {
-	if s.FieldFocus >= 0 {
+	switch s.FieldFocus {
+	case s.ConfirmSlot():
+		return "confirm"
+	case s.CancelSlot():
+		return "cancel"
+	default:
 		return ""
 	}
-	if s.OnConfirm {
-		return "confirm"
-	}
-	return "cancel"
 }
 
-// MoveField moves field focus up or down with the rules from BR-041 §3.1:
-// Down from the last field enters the button area at Cancel; Up from the
-// first field enters the button area at Cancel; Up from the button area
-// returns to the last field; Down in the button area is a no-op (does not
-// cycle or execute). Entering the button area never auto-selects Confirm.
+// MoveField moves focus up or down across every row with wrap-around
+// (BR-043 §3.3 scheme B): fields 0..len(Fields)-1, then Confirm
+// (len(Fields)), then Cancel (len(Fields)+1). Hidden fields are skipped
+// (BR-043 §3.5); if the next non-hidden row would be a button row, focus
+// lands directly on it. A negative FieldFocus (zero-value form) is
+// interpreted as the Cancel row.
 func (s *FormState) MoveField(delta int) {
-	if len(s.Fields) == 0 {
+	total := s.SlotCount()
+	if total <= 0 {
 		return
 	}
-	if s.FieldFocus < 0 {
-		if delta < 0 {
-			s.FieldFocus = len(s.Fields) - 1
-			s.OnConfirm = false
+	cur := s.FieldFocus
+	if cur < 0 {
+		cur = s.CancelSlot()
+	}
+	for i := 0; i < total; i++ {
+		next := (cur + delta + total) % total
+		if next < len(s.Fields) {
+			if s.Fields[next].Hidden {
+				cur = next
+				continue
+			}
 		}
+		s.FieldFocus = next
 		return
 	}
-	if delta > 0 {
-		if s.FieldFocus == len(s.Fields)-1 {
-			s.FieldFocus = -1
-			s.OnConfirm = false
-			return
-		}
-		s.FieldFocus++
-		return
-	}
-	if s.FieldFocus == 0 {
-		s.FieldFocus = -1
-		s.OnConfirm = false
-		return
-	}
-	s.FieldFocus--
 }
 
-// MoveButton follows the spatial order Cancel (left), Confirm (right).
-// Repeated movement at either edge stays on that edge.
-func (s *FormState) MoveButton(delta int) {
-	if s.FieldFocus >= 0 {
-		return
-	}
-	if delta == 0 {
-		return
-	}
-	s.OnConfirm = delta > 0
-}
+// MoveButton is a no-op kept for backward compatibility; Cancel/Confirm
+// navigation is now handled by MoveField's linear row model (BR-043 §3.3).
+func (s *FormState) MoveButton(delta int) { _ = delta }
 
 // TogglePopupMulti updates the popup's working selection. The field itself is
 // unchanged until CommitPopupMulti, allowing Esc to cancel cleanly.

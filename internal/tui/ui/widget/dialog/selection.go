@@ -14,15 +14,25 @@ import (
 // SelectionDialog renders a dialog with Tab-focusable Confirm/Cancel buttons.
 // focus == 0 highlights Confirm; focus == 1 highlights Cancel.
 // Buttons show Enter (Confirm) and Esc (Cancel) shortcut hints.
-func SelectionDialog(title, body, preview, action string, focus int, termW, termH int, titleColor color.Color, overlayColor string, cfg dialogConfig) string {
+//
+// When bodyW > 0 and bodyH > 0, dialog sizing follows the active panel body
+// (BR-043 §3.2: width = bodyW*3/4, height = bodyH, clamped to cfg). Otherwise
+// it falls back to termW/termH-percentage sizing.
+func SelectionDialog(title, body, preview, action string, focus int, termW, termH int, bodyW, bodyH int, titleColor color.Color, overlayColor string, cfg dialogConfig) string {
 	if titleColor == nil {
 		titleColor = style.Colors.Cyan
 	}
 	if overlayColor == "" {
 		overlayColor = "#0d1117cc"
 	}
-	dialogW := dialogWidth(termW, cfg)
-	dialogH := dialogHeight(termH, cfg)
+	var dialogW, dialogH int
+	if bodyW > 0 && bodyH > 0 {
+		dialogW = panelDialogWidth(bodyW, cfg)
+		dialogH = panelDialogHeight(bodyH, cfg)
+	} else {
+		dialogW = dialogWidth(termW, cfg)
+		dialogH = dialogHeight(termH, cfg)
+	}
 
 	confirmLabel := i18n.T("key.confirm")
 	cancelLabel := i18n.T("key.cancel")

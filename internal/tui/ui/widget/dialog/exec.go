@@ -17,9 +17,19 @@ var execShellOptions = []string{"/bin/sh", "/bin/bash", "/bin/ash"}
 
 // ExecDialog renders the container exec dialog with shell options + custom input.
 // Focus and input cursor are owned by DialogState.
-func ExecDialog(m *state.AppModel, overlayColor string, cfg dialogConfig) string {
-	dialogW := dialogWidth(m.Viewport.Width, cfg)
-	dialogH := dialogHeight(m.Viewport.Height, cfg)
+//
+// When bodyW > 0 and bodyH > 0, dialog sizing follows the active panel body
+// (BR-043 §3.2: width = bodyW*3/4, height = bodyH, clamped to cfg). Otherwise
+// it falls back to viewport-percentage sizing.
+func ExecDialog(m *state.AppModel, overlayColor string, cfg dialogConfig, bodyW, bodyH int) string {
+	var dialogW, dialogH int
+	if bodyW > 0 && bodyH > 0 {
+		dialogW = panelDialogWidth(bodyW, cfg)
+		dialogH = panelDialogHeight(bodyH, cfg)
+	} else {
+		dialogW = dialogWidth(m.Viewport.Width, cfg)
+		dialogH = dialogHeight(m.Viewport.Height, cfg)
+	}
 	if overlayColor == "" {
 		overlayColor = "#0d1117cc"
 	}

@@ -47,4 +47,26 @@
 
 ## 历史批次
 
+### 批次 R2:BR-043 Form / Action Bar 优化
+
+- **完成日期**:2026-08-03
+- **范围**:BR-043 §3.1/3.2/3.3/3.5/3.6 五项;3.4 配置拆分 + per-form DefaultFocus + DependsValue 枚举扩展三项 followup 不在本轮
+- **主模型决策**:BR-043 §7 五项待确认项(见 [GLOBAL.md § 2026-08-03](./GLOBAL.md#2026-08-03--br-043-六个问题决策))
+- **变更统计**:4 个 feat commits,12 个文件改动(+/- ~440 行)
+
+### 子任务交付
+
+| 批次 | commit | 范围 |
+|---|---|---|
+| A 路径绝对化 + 面板尺寸 | `1731789` | `keyboard/container_form.go`(blur-time `state.Absolute`)+ `dialog/{view,form,exec,selection}.go`(panel 3/4 宽 + 等高)+ `dialog/form_test.go` |
+| B Commit form 条件字段 | `8ec0e4d` | `state/form.go`(DependsOn/DependsEq/Hidden + RecomputeVisibility)+ `keyboard/container_form.go`(archivePath 条件可见)+ `dialog/form.go`(跳过 Hidden) |
+| C Action 页面布局重构(方案 B) | `9e0078f` | `state/form.go`(FieldFocus 线性化,移除 OnConfirm)+ `keyboard/container_form.go`(Enter 按 Confirm/Cancel 分支)+ `dialog/form.go`(Confirm/Cancel 列表行渲染)+ 多个测试 |
+| D C 键迁 command palette | `29d8cfe` | `keyboard/keyboard.go`(移除 KeyC fallback)+ `keyboard/command.go`(conn-info 分发)+ `keys/commands.go`(CommandConnInfo)+ `keys/display.go`(清理未用 ActionLabelConn) |
+
+### 引用
+
+- 设计来源:[task/br-043-form-action-bar-redesign.md](../task/br-043-form-action-bar-redesign.md)
+- 决策记录:[GLOBAL.md § 2026-08-03 BR-043 六个问题决策](./GLOBAL.md#2026-08-03--br-043-六个问题决策)
+- 完成时状态:[STATE.md R2.3 验证](./STATE.md#r23--验证)
+
 (暂无 R0 及之前的归档批次。若需要,可从 git log 提取)

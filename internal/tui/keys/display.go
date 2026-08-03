@@ -55,7 +55,6 @@ const (
 	ActionLabelMark       = "Mark"
 	ActionLabelSwitch     = "Switch"
 	ActionLabelHeader     = "Header"
-	ActionLabelConn       = "Conn"
 	ActionLabelHelp       = "Help"
 	ActionLabelFilter     = "Filter"
 	ActionLabelQuit       = "Quit"

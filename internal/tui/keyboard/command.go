@@ -56,6 +56,8 @@ func executeCommand(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		return openTopView(m)
 	case keys.CommandPort:
 		return openPortDetail(m)
+	case keys.CommandConnInfo:
+		return showConnectionInfo(m)
 	}
 	return m, nil
 }

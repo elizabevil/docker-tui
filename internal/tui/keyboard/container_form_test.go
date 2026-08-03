@@ -71,8 +71,8 @@ func requireForm(t *testing.T, m *state.AppModel, kind state.FormKind, fields in
 	if len(m.Form.Fields) != fields {
 		t.Fatalf("form fields = %d, want %d", len(m.Form.Fields), fields)
 	}
-	if m.Form.FieldFocus != -1 || m.Form.OnConfirm {
-		t.Fatalf("default focus must be Cancel: FieldFocus=%d OnConfirm=%v", m.Form.FieldFocus, m.Form.OnConfirm)
+	if m.Form.FieldFocus != m.Form.CancelSlot() {
+		t.Fatalf("default focus must be Cancel: FieldFocus=%d", m.Form.FieldFocus)
 	}
 }
 
@@ -262,45 +262,55 @@ func TestHandleContainerFormKeyFocusLoop(t *testing.T) {
 		return updated
 	}
 
-	// Up from default Cancel returns to the last field.
+	// Up from default Cancel returns to the Confirm row (BR-043 §3.3 linear model).
+	m = up()
+	if m.Form.FieldFocus != m.Form.ConfirmSlot() {
+		t.Fatalf("Up from Cancel = %d, want Confirm (%d)", m.Form.FieldFocus, m.Form.ConfirmSlot())
+	}
+	// Up from Confirm returns to the last field (index 1).
 	m = up()
 	if m.Form.FieldFocus != 1 {
-		t.Fatalf("Up from Cancel = %d, want last field 1", m.Form.FieldFocus)
+		t.Fatalf("Up from Confirm = %d, want last field 1", m.Form.FieldFocus)
 	}
 	// Up from field 1 moves to field 0.
 	m = up()
 	if m.Form.FieldFocus != 0 {
 		t.Fatalf("Up from field 1 = %d, want field 0", m.Form.FieldFocus)
 	}
-	// Up from field 0 enters the button area at Cancel.
+	// Up from field 0 wraps to Cancel.
 	m = up()
-	if m.Form.FieldFocus != -1 || m.Form.OnConfirm {
-		t.Fatalf("Up from first field = focus=%d onConfirm=%v, want Cancel", m.Form.FieldFocus, m.Form.OnConfirm)
+	if m.Form.FieldFocus != m.Form.CancelSlot() {
+		t.Fatalf("Up from first field = focus=%d, want Cancel (%d)", m.Form.FieldFocus, m.Form.CancelSlot())
 	}
-	// Down from button area stays.
+	// Down from Cancel wraps to field 0.
 	m = down()
-	if m.Form.FieldFocus != -1 || m.Form.OnConfirm {
-		t.Fatalf("Down in buttons must stay: focus=%d onConfirm=%v", m.Form.FieldFocus, m.Form.OnConfirm)
+	if m.Form.FieldFocus != 0 {
+		t.Fatalf("Down from Cancel wraps = %d, want field 0", m.Form.FieldFocus)
 	}
-	// Tab never moves focus between fields.
+	// Tab never moves focus in non-Update forms.
 	m = tab()
-	if m.Form.FieldFocus != -1 || m.Form.OnConfirm {
-		t.Fatalf("Tab in buttons must not move focus: focus=%d onConfirm=%v", m.Form.FieldFocus, m.Form.OnConfirm)
+	if m.Form.FieldFocus != 0 {
+		t.Fatalf("Tab on field in Copy form must not move focus: focus=%d", m.Form.FieldFocus)
 	}
-	// Shift+Tab never moves focus either.
+	// Shift+Tab same.
 	m = shiftTab()
-	if m.Form.FieldFocus != -1 || m.Form.OnConfirm {
-		t.Fatalf("Shift+Tab in buttons must not move focus: focus=%d onConfirm=%v", m.Form.FieldFocus, m.Form.OnConfirm)
+	if m.Form.FieldFocus != 0 {
+		t.Fatalf("Shift+Tab on field in Copy form must not move focus: focus=%d", m.Form.FieldFocus)
 	}
-	// Up returns to the last field.
-	m = up()
-	if m.Form.FieldFocus != 1 {
-		t.Fatalf("Up from buttons = %d, want last field 1", m.Form.FieldFocus)
-	}
-	// Down from the last field enters the button area at Cancel.
+	// Down from field 0 returns to field 1.
 	m = down()
-	if m.Form.FieldFocus != -1 || m.Form.OnConfirm {
-		t.Fatalf("Down from last = focus=%d onConfirm=%v, want Cancel", m.Form.FieldFocus, m.Form.OnConfirm)
+	if m.Form.FieldFocus != 1 {
+		t.Fatalf("Down from field 0 = %d, want field 1", m.Form.FieldFocus)
+	}
+	// Down from last field enters Confirm.
+	m = down()
+	if m.Form.FieldFocus != m.Form.ConfirmSlot() {
+		t.Fatalf("Down from last = focus=%d, want Confirm (%d)", m.Form.FieldFocus, m.Form.ConfirmSlot())
+	}
+	// Down from Confirm enters Cancel.
+	m = down()
+	if m.Form.FieldFocus != m.Form.CancelSlot() {
+		t.Fatalf("Down from Confirm = focus=%d, want Cancel (%d)", m.Form.FieldFocus, m.Form.CancelSlot())
 	}
 }
 
@@ -333,7 +343,7 @@ func TestHandleContainerFormKeyEnterOnCancelCloses(t *testing.T) {
 func TestHandleContainerFormKeyEnterAdvancesFromField(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerCopyForm(m)
-	m.Form.MoveSlot(1) // Cancel -> source field.
+	m.Form.MoveField(1) // Cancel -> source field.
 
 	updated, cmd := handleContainerFormKey(keys.KeyEnter, m)
 	if cmd != nil {
@@ -348,7 +358,7 @@ func TestSubmitContainerCopyFormValidation(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerCopyForm(m)
 	// Focus on Confirm then submit with empty required fields.
-	m.Form.OnConfirm = true
+	m.Form.FieldFocus = m.Form.ConfirmSlot()
 	updated, cmd := submitContainerForm(m)
 	if cmd != nil {
 		t.Fatalf("empty copy form returned a cmd %T, want nil", cmd)
@@ -369,7 +379,7 @@ func TestSubmitContainerCopyFormSuccess(t *testing.T) {
 	openContainerCopyForm(m)
 	m.Form.Get(fieldSourcePath).Input.Set("/etc/app.conf")
 	m.Form.Get(fieldDestinationPath).Input.Set("/tmp/app.tar")
-	m.Form.OnConfirm = true
+	m.Form.FieldFocus = m.Form.ConfirmSlot()
 
 	updated, cmd := submitContainerForm(m)
 	if cmd == nil {
@@ -389,7 +399,7 @@ func TestSubmitContainerFormKeepsOriginalTargetAfterListRefresh(t *testing.T) {
 	openContainerCopyForm(m)
 	m.Form.Get(fieldSourcePath).Input.Set("/etc/app.conf")
 	m.Form.Get(fieldDestinationPath).Input.Set("/tmp/app.tar")
-	m.Form.OnConfirm = true
+	m.Form.FieldFocus = m.Form.ConfirmSlot()
 	// Simulate an event-driven refresh changing the selected row while the
 	// form is open. Submission must retain the container captured at Open.
 	m.Resources.Containers.Items = []runtimeapi.ContainerSummary{{ID: "c2", Name: "worker"}}
@@ -406,7 +416,7 @@ func TestSubmitContainerExportFormValidation(t *testing.T) {
 	openContainerExportForm(m)
 	// Export autofills a default destination name; clear it to test validation.
 	m.Form.Get(fieldDestinationPath).Input.Set("")
-	m.Form.OnConfirm = true
+	m.Form.FieldFocus = m.Form.ConfirmSlot()
 	updated, cmd := submitContainerForm(m)
 	if cmd != nil {
 		t.Fatalf("empty export form returned a cmd %T, want nil", cmd)
@@ -428,7 +438,7 @@ func TestSubmitContainerUpdateFormParsesOptions(t *testing.T) {
 	m.Form.Get(fieldRestartPolicy).Touched = true
 	m.Form.Get(fieldMaxRetries).Input.Set("3")
 	m.Form.Get(fieldMaxRetries).Touched = true
-	m.Form.OnConfirm = true
+	m.Form.FieldFocus = m.Form.ConfirmSlot()
 
 	updated, cmd := submitContainerForm(m)
 	if cmd == nil {
@@ -468,7 +478,7 @@ func TestSubmitContainerUpdateFormOnFailureRetries(t *testing.T) {
 	m.Form.Get(fieldRestartPolicy).Touched = true
 	m.Form.Get(fieldMaxRetries).Input.Set("5")
 	m.Form.Get(fieldMaxRetries).Touched = true
-	m.Form.OnConfirm = true
+	m.Form.FieldFocus = m.Form.ConfirmSlot()
 
 	_, cmd := submitContainerForm(m)
 	if cmd == nil {
@@ -489,7 +499,7 @@ func TestSubmitContainerUpdateFormInvalidInput(t *testing.T) {
 	openContainerUpdateForm(m)
 	m.Form.Get(fieldMemory).Input.Set("many")
 	m.Form.Get(fieldMemory).Touched = true
-	m.Form.OnConfirm = true
+	m.Form.FieldFocus = m.Form.ConfirmSlot()
 
 	updated, cmd := submitContainerForm(m)
 	if cmd != nil {
@@ -503,7 +513,7 @@ func TestSubmitContainerUpdateFormInvalidInput(t *testing.T) {
 func TestSubmitContainerUpdateFormRequiresAChange(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerUpdateForm(m)
-	m.Form.OnConfirm = true
+	m.Form.FieldFocus = m.Form.ConfirmSlot()
 
 	updated, cmd := submitContainerForm(m)
 	if cmd != nil {
@@ -518,7 +528,7 @@ func TestSubmitContainerCommitFormRequiresRepository(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerCommitForm(m)
 	m.Form.Get(fieldRepository).Input.Set("")
-	m.Form.OnConfirm = true
+	m.Form.FieldFocus = m.Form.ConfirmSlot()
 	updated, cmd := submitContainerForm(m)
 	if cmd != nil {
 		t.Fatalf("empty commit repo returned a cmd %T, want nil", cmd)
@@ -537,7 +547,7 @@ func TestSubmitContainerCommitFormSuccess(t *testing.T) {
 	m.Form.Get(fieldComment).Input.Set("pinned build")
 	// Pause stays at its default true.
 
-	m.Form.OnConfirm = true
+	m.Form.FieldFocus = m.Form.ConfirmSlot()
 	updated, cmd := submitContainerForm(m)
 	if cmd == nil {
 		t.Fatal("valid commit form must return a command")
@@ -567,7 +577,7 @@ func TestSubmitContainerCommitFormDefaultsTagToLatest(t *testing.T) {
 	m := formModel(t, capture)
 	openContainerCommitForm(m)
 	m.Form.Get(fieldRepository).Input.Set("registry.example/app")
-	m.Form.OnConfirm = true
+	m.Form.FieldFocus = m.Form.ConfirmSlot()
 
 	_, cmd := submitContainerForm(m)
 	if cmd == nil {
@@ -584,7 +594,7 @@ func TestEditFormFieldSpaceTogglesBool(t *testing.T) {
 	openContainerCommitForm(m)
 	pause := m.Form.Get(fieldPause)
 	// Focus the pause field (index 4).
-	m.Form.MoveSlot(5)
+	m.Form.MoveField(5)
 	if m.Form.Field() == nil || m.Form.Field().Key != fieldPause {
 		t.Fatalf("focus = %#v, want pause field", m.Form.Field())
 	}
@@ -644,7 +654,7 @@ func TestSubmitContainerCommitWithImageExport(t *testing.T) {
 	destination := filepath.Join(t.TempDir(), "snapshot.tar")
 	m.Form.Get(fieldExportTar).Toggle = true
 	m.Form.Get(fieldArchivePath).Input.Set(destination)
-	m.Form.OnConfirm = true
+	m.Form.FieldFocus = m.Form.ConfirmSlot()
 
 	updated, cmd := submitContainerForm(m)
 	if cmd == nil || updated.Navigation.Mode != state.ModeNormal {
@@ -739,7 +749,7 @@ func TestFormPathTabCompletionAppliesSingleCandidate(t *testing.T) {
 	openContainerExportForm(m)
 	dst := m.Form.Get(fieldDestinationPath)
 	// Focus the destination field (index 0).
-	m.Form.MoveSlot(1)
+	m.Form.MoveField(1)
 	// Seed a single directory candidate.
 	dir := t.TempDir()
 	if err := os.WriteFile(dir+"/backup.tar", []byte("x"), 0o644); err != nil {
@@ -765,7 +775,7 @@ func TestFormPathTabMultipleCandidatesOpensPopup(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerExportForm(m)
 	dst := m.Form.Get(fieldDestinationPath)
-	m.Form.MoveSlot(1)
+	m.Form.MoveField(1)
 	dir := t.TempDir()
 	for _, name := range []string{"alpha.tar", "alpine.tar"} {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte("x"), 0o644); err != nil {
@@ -787,7 +797,7 @@ func TestFormPathTabMultipleCandidatesOpensPopup(t *testing.T) {
 func TestCopySourceChangeRegeneratesUntouchedDestination(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerCopyForm(m)
-	m.Form.MoveSlot(1) // source
+	m.Form.MoveField(1) // source
 	dst := m.Form.Get(fieldDestinationPath)
 	before := dst.Text()
 	for _, key := range []string{"/", "e", "t", "c", "/", "a", "p", "p", ".", "c", "o", "n", "f"} {
@@ -824,7 +834,9 @@ func TestCopySourceBackspaceRegeneratesUntouchedDestination(t *testing.T) {
 func TestPathBackspaceRefreshesCompletionState(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerExportForm(m)
-	m.Form.MoveField(-1)
+	// Export form has one field (destination). Move from default Cancel to the
+	// destination field via linear wrap (BR-043 §3.3).
+	m.Form.FieldFocus = 0
 	dst := m.Form.Get(fieldDestinationPath)
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "alpha.tar"), []byte("x"), 0o644); err != nil {
@@ -852,7 +864,7 @@ func TestFormPathCtrlSpaceOpensPopup(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerExportForm(m)
 	dst := m.Form.Get(fieldDestinationPath)
-	m.Form.MoveSlot(1) // focus destination
+	m.Form.MoveField(1) // focus destination
 	dir := t.TempDir()
 	if err := os.WriteFile(dir+"/backup.tar", []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
@@ -879,7 +891,7 @@ func TestFormPathCtrlSpaceOpensPopup(t *testing.T) {
 func TestContainerPathCompletionFallsBackToManualInput(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerCopyForm(m)
-	m.Form.MoveSlot(1)
+	m.Form.MoveField(1)
 	source := m.Form.Get(fieldSourcePath)
 	source.Input.Set("/etc/ng")
 
@@ -900,7 +912,7 @@ func TestContainerPathCompletionFallsBackToManualInput(t *testing.T) {
 func TestContainerPathTabCompletesSingleDirectory(t *testing.T) {
 	m := formModelWithPathExec(t, "d\tetc\r\nf\tentrypoint.sh\r\n")
 	openContainerCopyForm(m)
-	m.Form.MoveSlot(1)
+	m.Form.MoveField(1)
 	source := m.Form.Get(fieldSourcePath)
 	source.Input.Set("/et")
 
@@ -921,7 +933,7 @@ func TestContainerPathTabCompletesSingleDirectory(t *testing.T) {
 func TestContainerPathCtrlSpaceOpensDirectoryPopup(t *testing.T) {
 	m := formModelWithPathExec(t, "d\tnginx\nf\thosts\nf\tresolv.conf\n")
 	openContainerCopyForm(m)
-	m.Form.MoveSlot(1)
+	m.Form.MoveField(1)
 	source := m.Form.Get(fieldSourcePath)
 	source.Input.Set("/etc/")
 
@@ -942,7 +954,7 @@ func TestContainerPathCtrlSpaceOpensDirectoryPopup(t *testing.T) {
 func TestContainerPathCompletionIgnoresStaleInput(t *testing.T) {
 	m := formModelWithPathExec(t, "d\tetc\n")
 	openContainerCopyForm(m)
-	m.Form.MoveSlot(1)
+	m.Form.MoveField(1)
 	source := m.Form.Get(fieldSourcePath)
 	source.Input.Set("/et")
 	_, cmd := handleContainerFormKey(keys.KeyTab, m)
@@ -966,7 +978,7 @@ func TestFormSelectPopupNavigationAndCommit(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerUpdateForm(m)
 	// Focus the restart select (index 2).
-	m.Form.MoveSlot(3)
+	m.Form.MoveField(3)
 	if f := m.Form.Field(); f == nil || f.Key != fieldRestartPolicy {
 		t.Fatalf("focus = %#v, want restart select", m.Form.Field())
 	}
@@ -1007,7 +1019,7 @@ func TestSubmitContainerCopyOverwriteConfirm(t *testing.T) {
 	}
 	m.Form.Get(fieldSourcePath).Input.Set("/etc/app.conf")
 	m.Form.Get(fieldDestinationPath).Input.Set(target)
-	m.Form.OnConfirm = true
+	m.Form.FieldFocus = m.Form.ConfirmSlot()
 
 	updated, cmd := submitContainerForm(m)
 	if cmd != nil {
@@ -1041,7 +1053,7 @@ func TestSubmitContainerCopyOverwriteCancelKeepsForm(t *testing.T) {
 	}
 	m.Form.Get(fieldSourcePath).Input.Set("/etc/app.conf")
 	m.Form.Get(fieldDestinationPath).Input.Set(target)
-	m.Form.OnConfirm = true
+	m.Form.FieldFocus = m.Form.ConfirmSlot()
 	updated, _ := submitContainerForm(m)
 
 	// Cancel returns to the still-open form.
@@ -1064,7 +1076,7 @@ func TestSubmitContainerExportOverwriteForceRuns(t *testing.T) {
 	}
 	dst := m.Form.Get(fieldDestinationPath)
 	dst.Input.Set(target)
-	m.Form.OnConfirm = true
+	m.Form.FieldFocus = m.Form.ConfirmSlot()
 	updated, _ := submitContainerForm(m)
 	if updated.Navigation.Mode != state.ModeConfirm {
 		t.Fatalf("expected overwrite confirm, mode=%v", updated.Navigation.Mode)
@@ -1087,7 +1099,7 @@ func TestFormTabDoesNotMoveFocusOnNonPath(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerCommitForm(m)
 	// Default focus is Cancel; from there Down reaches the last field (5).
-	m.Form.MoveSlot(1)
+	m.Form.MoveField(1)
 	if m.Form.FieldFocus != 0 {
 		t.Fatalf("setup focus = %d, want 0", m.Form.FieldFocus)
 	}
@@ -1102,11 +1114,11 @@ func TestFormTabDoesNotMoveFocusOnNonPath(t *testing.T) {
 	}
 	// Bool field: Tab must also not move focus.
 	openContainerCommitForm(m)
-	m.Form.MoveSlot(1) // 0
-	m.Form.MoveSlot(1) // 1
-	m.Form.MoveSlot(1) // 2
-	m.Form.MoveSlot(1) // 3
-	m.Form.MoveSlot(1) // 4 (pause bool)
+	m.Form.MoveField(1) // 0
+	m.Form.MoveField(1) // 1
+	m.Form.MoveField(1) // 2
+	m.Form.MoveField(1) // 3
+	m.Form.MoveField(1) // 4 (pause bool)
 	start = m.Form.FieldFocus
 	if m.Form.Field() == nil || m.Form.Field().Kind != state.FormBool {
 		t.Fatalf("setup focus = %#v, want bool", m.Form.Field())
@@ -1121,7 +1133,7 @@ func TestFormPathTabNoCandidateKeepsFocusAndShowsToast(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerExportForm(m)
 	dst := m.Form.Get(fieldDestinationPath)
-	m.Form.MoveSlot(1)
+	m.Form.MoveField(1)
 	// A path that matches no files in an empty temp dir.
 	dst.Input.Set(t.TempDir() + "/definitely-no-such-prefix-xyz/")
 	before := m.Form.FieldFocus
@@ -1138,7 +1150,7 @@ func TestPathPopupForwardAndReverseCycle(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerExportForm(m)
 	dst := m.Form.Get(fieldDestinationPath)
-	m.Form.MoveSlot(1)
+	m.Form.MoveField(1)
 	dir := t.TempDir()
 	for _, name := range []string{"alpha.tar", "alpine.tar", "argon.tar"} {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte("x"), 0o644); err != nil {
@@ -1166,7 +1178,7 @@ func TestPathPopupLeftRightNavigatesDirectories(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerExportForm(m)
 	dst := m.Form.Get(fieldDestinationPath)
-	m.Form.MoveSlot(1)
+	m.Form.MoveField(1)
 	dir := t.TempDir()
 	if err := os.Mkdir(filepath.Join(dir, "alpha"), 0o755); err != nil {
 		t.Fatal(err)
@@ -1196,7 +1208,7 @@ func TestPathPopupLeftRightNavigatesDirectories(t *testing.T) {
 func TestFormTextCursorLeftRightHomeEnd(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerUpdateForm(m)
-	m.Form.MoveSlot(1) // 0 (memory)
+	m.Form.MoveField(1) // 0 (memory)
 	mem := m.Form.Get(fieldMemory)
 	mem.Input.Set("256")
 	mem.Input.Cursor = 3
@@ -1221,7 +1233,7 @@ func TestFormTextCursorLeftRightHomeEnd(t *testing.T) {
 func TestFormSelectPopupHomeEndPgUpPgDn(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerUpdateForm(m)
-	m.Form.MoveSlot(3)
+	m.Form.MoveField(3)
 	if f := m.Form.Field(); f == nil || f.Key != fieldRestartPolicy {
 		t.Fatalf("focus = %#v, want restart select", m.Form.Field())
 	}
@@ -1274,7 +1286,7 @@ func TestTabDoesNotMoveSelectPopup(t *testing.T) {
 func TestFormSelectEscCancelsPopup(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerUpdateForm(m)
-	m.Form.MoveSlot(3)
+	m.Form.MoveField(3)
 	startIdx := m.Form.Get(fieldRestartPolicy).Index
 	handleContainerFormKey(keys.KeyEnter, m)
 	handleContainerFormKey(keys.KeyDown, m)
@@ -1292,7 +1304,7 @@ func TestPathPopupEnterOnDirectoryVsFile(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerExportForm(m)
 	dst := m.Form.Get(fieldDestinationPath)
-	m.Form.MoveSlot(1)
+	m.Form.MoveField(1)
 	dir := t.TempDir()
 	// Create a directory with a file inside, plus a file at the top level.
 	if err := os.Mkdir(filepath.Join(dir, "subdir"), 0o755); err != nil {
@@ -1326,16 +1338,18 @@ func TestFormLeftRightInButtonsToggles(t *testing.T) {
 	if m.Form.FocusedButton() != "cancel" {
 		t.Fatalf("default focus = %q, want cancel", m.Form.FocusedButton())
 	}
-	handleContainerFormKey(keys.KeyRight, m)
-	if m.Form.FocusedButton() != "confirm" {
-		t.Fatalf("Right on Cancel = %q, want confirm", m.Form.FocusedButton())
-	}
+	// Up/Left on Cancel → Confirm (BR-043 §3.3 linear model).
 	handleContainerFormKey(keys.KeyLeft, m)
+	if m.Form.FocusedButton() != "confirm" {
+		t.Fatalf("Left on Cancel = %q, want confirm", m.Form.FocusedButton())
+	}
+	// Down/Right on Confirm → Cancel.
+	handleContainerFormKey(keys.KeyRight, m)
 	if m.Form.FocusedButton() != "cancel" {
-		t.Fatalf("Left on Confirm = %q, want cancel", m.Form.FocusedButton())
+		t.Fatalf("Right on Confirm = %q, want cancel", m.Form.FocusedButton())
 	}
 	// From a field: Left/Right must NOT toggle button focus.
-	m.Form.MoveField(-1) // Up from Cancel → last field
+	m.Form.FieldFocus = 0 // land on first field directly
 	handleContainerFormKey(keys.KeyLeft, m)
 	if m.Form.FocusedButton() != "" {
 		t.Fatalf("Left on a field must not enter button area: %q", m.Form.FocusedButton())

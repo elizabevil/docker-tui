@@ -132,13 +132,13 @@ func TestFocusedButtonReportsSlot(t *testing.T) {
 	if got := s.FocusedButton(); got != "" {
 		t.Fatalf("field focus must not be a button: %q", got)
 	}
-	s.FieldFocus = -1
+	s.FieldFocus = s.CancelSlot()
 	if got := s.FocusedButton(); got != "cancel" {
-		t.Fatalf("default button = %q, want cancel", got)
+		t.Fatalf("CancelSlot button = %q, want cancel", got)
 	}
-	s.OnConfirm = true
+	s.FieldFocus = s.ConfirmSlot()
 	if got := s.FocusedButton(); got != "confirm" {
-		t.Fatalf("OnConfirm button = %q, want confirm", got)
+		t.Fatalf("ConfirmSlot button = %q, want confirm", got)
 	}
 }
 
@@ -147,71 +147,44 @@ func TestMoveFieldTraversesFieldsAndButtons(t *testing.T) {
 		{Key: "a", Kind: FormText},
 		{Key: "b", Kind: FormText},
 		{Key: "c", Kind: FormText},
-	}, FieldFocus: -1, OnConfirm: false}
-	s.MoveField(-1) // Up from default Cancel → last field (index 2)
+	}}
+	s.FieldFocus = s.CancelSlot() // default Cancel
+	s.MoveField(-1) // Up from Cancel → Confirm
+	if s.FocusedButton() != "confirm" {
+		t.Fatalf("Up from Cancel = %s, want confirm", s.FocusedButton())
+	}
+	s.MoveField(-1) // Up from Confirm → last field (c)
 	if s.FieldFocus != 2 {
-		t.Fatalf("Up from Cancel = %d, want 2", s.FieldFocus)
+		t.Fatalf("Up from Confirm = %d, want 2", s.FieldFocus)
 	}
-	s.MoveField(-1)
-	if s.FieldFocus != 1 {
-		t.Fatalf("Up from 2 = %d, want 1", s.FieldFocus)
+	s.MoveField(1) // Down from c → Confirm
+	if s.FocusedButton() != "confirm" {
+		t.Fatalf("Down from last = %s, want confirm", s.FocusedButton())
 	}
-	s.MoveField(1)
-	if s.FieldFocus != 2 {
-		t.Fatalf("Down to last = %d, want 2", s.FieldFocus)
+	s.MoveField(1) // Down from Confirm → Cancel
+	if s.FocusedButton() != "cancel" {
+		t.Fatalf("Down from Confirm = %s, want cancel", s.FocusedButton())
 	}
-	s.MoveField(1) // last → button area, default Cancel
-	if s.FieldFocus != -1 || s.OnConfirm {
-		t.Fatalf("Down from last = focus=%d onConfirm=%v, want -1/false", s.FieldFocus, s.OnConfirm)
+	s.MoveField(1) // Down from Cancel wraps to field 0
+	if s.FieldFocus != 0 {
+		t.Fatalf("Down from Cancel wraps = %d, want 0", s.FieldFocus)
 	}
-	s.MoveField(1) // Down in button area stays
-	if s.FieldFocus != -1 || s.OnConfirm {
-		t.Fatalf("Down in buttons must stay: focus=%d onConfirm=%v", s.FieldFocus, s.OnConfirm)
-	}
-	s.MoveField(-1) // Up from buttons → last field
-	if s.FieldFocus != 2 {
-		t.Fatalf("Up from buttons = %d, want last field 2", s.FieldFocus)
-	}
-	s.FieldFocus = 0
-	s.MoveField(-1) // Up from first → button area
-	if s.FieldFocus != -1 || s.OnConfirm {
-		t.Fatalf("Up from first = focus=%d onConfirm=%v, want -1/false", s.FieldFocus, s.OnConfirm)
+	s.MoveField(-1) // Up from field 0 wraps to Cancel
+	if s.FocusedButton() != "cancel" {
+		t.Fatalf("Up from first wraps = %s, want cancel", s.FocusedButton())
 	}
 }
 
-func TestMoveButtonTogglesCancelConfirm(t *testing.T) {
+func TestMoveButtonIsNoOp(t *testing.T) {
 	s := &FormState{Fields: []FormField{{Kind: FormText}}}
-	s.FieldFocus = -1
-	if s.OnConfirm {
-		t.Fatal("default must be Cancel")
-	}
-	s.MoveButton(1) // Right
-	if !s.OnConfirm {
-		t.Fatal("Right from Cancel must select Confirm")
-	}
-	s.MoveButton(-1) // Left
-	if s.OnConfirm {
-		t.Fatal("Left from Confirm must select Cancel")
+	s.FieldFocus = s.ConfirmSlot()
+	s.MoveButton(1)
+	if s.FieldFocus != s.ConfirmSlot() {
+		t.Fatalf("MoveButton must not change focus, got %d", s.FieldFocus)
 	}
 	s.MoveButton(-1)
-	if s.OnConfirm {
-		t.Fatal("Left at Cancel must stay on Cancel")
-	}
-	s.MoveButton(1)
-	s.MoveButton(1)
-	if !s.OnConfirm {
-		t.Fatal("Right at Confirm must stay on Confirm")
-	}
-	s.MoveButton(0) // no-op
-	if !s.OnConfirm {
-		t.Fatal("zero delta must preserve selection")
-	}
-	// Field focus: MoveButton is a no-op.
-	s.FieldFocus = 0
-	s.OnConfirm = false
-	s.MoveButton(1)
-	if s.OnConfirm {
-		t.Fatal("MoveButton on a field focus must not toggle")
+	if s.FieldFocus != s.ConfirmSlot() {
+		t.Fatalf("MoveButton must not change focus, got %d", s.FieldFocus)
 	}
 }
 
@@ -226,5 +199,70 @@ func TestToggleBoolIsSharedAndKindSafe(t *testing.T) {
 	text := FormField{Kind: FormText}
 	if text.ToggleBool() || text.Toggle || text.Touched {
 		t.Fatalf("non-Bool field changed: %#v", text)
+	}
+}
+
+func TestRecomputeVisibilityHidesFieldUntilDependencyMatches(t *testing.T) {
+	s := &FormState{}
+	s.Open(FormSpec{
+		Kind: FormContainerCommit,
+		Fields: []FormField{
+			{Key: "repo", Kind: FormText},
+			{Key: "tar", Kind: FormBool},
+			{Key: "archive", Kind: FormPath, DependsOn: "tar", DependsEq: true},
+		},
+	})
+	if !s.Fields[2].Hidden {
+		t.Fatal("archive must start hidden when tar=false")
+	}
+	s.Fields[1].Toggle = true
+	s.RecomputeVisibility()
+	if s.Fields[2].Hidden {
+		t.Fatal("archive must become visible when tar=true")
+	}
+	s.Fields[1].Toggle = false
+	s.RecomputeVisibility()
+	if !s.Fields[2].Hidden {
+		t.Fatal("archive must hide again when tar=false")
+	}
+}
+
+func TestRecomputeVisibilityMovesFocusWhenFocusedFieldHides(t *testing.T) {
+	s := &FormState{}
+	s.Open(FormSpec{
+		Kind: FormContainerCommit,
+		Fields: []FormField{
+			{Key: "repo", Kind: FormText},
+			{Key: "tar", Kind: FormBool, Toggle: true},
+			{Key: "archive", Kind: FormPath, DependsOn: "tar", DependsEq: true},
+		},
+	})
+	s.FieldFocus = 2 // archive (currently visible)
+	if s.Fields[2].Hidden {
+		t.Fatal("setup: archive must be visible")
+	}
+	s.Fields[1].Toggle = false
+	s.RecomputeVisibility()
+	if s.FieldFocus == 2 {
+		t.Fatal("focus must move off archive after it hides")
+	}
+	if s.FieldFocus >= 0 && s.FieldFocus < len(s.Fields) && s.Fields[s.FieldFocus].Hidden {
+		t.Fatalf("focus landed on hidden field %d", s.FieldFocus)
+	}
+}
+
+func TestMoveFieldSkipsHiddenFields(t *testing.T) {
+	s := &FormState{Fields: []FormField{
+		{Key: "a", Kind: FormText},
+		{Key: "hidden", Kind: FormText, Hidden: true},
+		{Key: "c", Kind: FormText},
+	}, FieldFocus: 0}
+	s.MoveField(1)
+	if s.FieldFocus != 2 {
+		t.Fatalf("Down from 0 must skip hidden idx=1, got %d", s.FieldFocus)
+	}
+	s.MoveField(-1)
+	if s.FieldFocus != 0 {
+		t.Fatalf("Up from 2 must skip hidden idx=1, got %d", s.FieldFocus)
 	}
 }

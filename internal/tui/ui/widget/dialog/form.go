@@ -16,12 +16,26 @@ import (
 // FormDialog renders the container-action form as a two-column layout: a
 // right-aligned label column and a shared value column (BR-041 §9). The
 // Confirm / Cancel pair stays in the same Tab loop as the fields.
-func FormDialog(m *state.AppModel, overlayColor string, cfg dialogConfig) string {
+//
+// When bodyW > 0 and bodyH > 0, dialog sizing follows the active panel body
+// (BR-043 §3.2: width = bodyW*3/4, height = bodyH, clamped to cfg). Otherwise
+// it falls back to viewport-percentage sizing (dialogWidth/dialogHeight).
+func FormDialog(m *state.AppModel, overlayColor string, cfg dialogConfig, bodyW, bodyH int) string {
 	form := m.Form
-	dialogW := dialogWidth(m.Viewport.Width, cfg)
-	dialogH := dialogHeight(m.Viewport.Height, cfg)
-	requiredH := len(form.Fields) + 10
+	var dialogW, dialogH int
+	if bodyW > 0 && bodyH > 0 {
+		dialogW = panelDialogWidth(bodyW, cfg)
+		dialogH = panelDialogHeight(bodyH, cfg)
+	} else {
+		dialogW = dialogWidth(m.Viewport.Width, cfg)
+		dialogH = dialogHeight(m.Viewport.Height, cfg)
+	}
+	requiredH := 10
 	for i := range form.Fields {
+		if form.Fields[i].Hidden {
+			continue
+		}
+		requiredH++
 		if form.Fields[i].Error != "" {
 			requiredH++
 		}
@@ -42,8 +56,6 @@ func FormDialog(m *state.AppModel, overlayColor string, cfg dialogConfig) string
 
 	enterKey := i18n.T("key.sym_enter")
 	escKey := i18n.T("key.sym_esc")
-	confirmLabel := i18n.T("key.confirm")
-	cancelLabel := i18n.T("key.cancel")
 
 	parts := []string{
 		lipgloss.NewStyle().Width(innerWidth).Align(lipgloss.Left).Render(component.GetStyle("panelTitle").Render(form.Title)),
@@ -54,29 +66,27 @@ func FormDialog(m *state.AppModel, overlayColor string, cfg dialogConfig) string
 		parts = append(parts, component.GetStyle("dim").Render(i18n.T("container.update.form.loading")))
 	}
 	for i := range form.Fields {
+		if form.Fields[i].Hidden {
+			continue
+		}
 		parts = append(parts, renderFormField(form, &form.Fields[i], i, labelWidth, valueWidth, !m.CursorBlinkHidden))
 	}
 	parts = append(parts, "")
 
-	buttonsFocused := form.FieldFocus < 0 && !form.Popup.Open
-	onConfirm := buttonsFocused && form.OnConfirm
-	var confirmBtn, cancelBtn string
-	if onConfirm {
-		confirmBtn = lipgloss.NewStyle().Foreground(style.Colors.Green).Bold(true).Render(enterKey + " \u25b6 " + confirmLabel)
-		cancelBtn = lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(escKey + " " + cancelLabel)
-	} else if buttonsFocused {
-		confirmBtn = lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(enterKey + " " + confirmLabel)
-		cancelBtn = lipgloss.NewStyle().Foreground(style.Colors.Green).Bold(true).Render(escKey + " \u25b6 " + cancelLabel)
-	} else {
-		confirmBtn = lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(enterKey + " " + confirmLabel)
-		cancelBtn = lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(escKey + " " + cancelLabel)
+	// Confirm/Cancel as the last two list rows (BR-043 §3.3 scheme B).
+	renderBtnRow := func(key, label string, focused bool) string {
+		var rendered string
+		if focused {
+			rendered = lipgloss.NewStyle().Foreground(style.Colors.Green).Bold(true).Render(key + " \u25b6 " + label)
+		} else {
+			rendered = lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(key + " " + label)
+		}
+		return lipgloss.NewStyle().Width(innerWidth).Align(lipgloss.Center).Render(rendered)
 	}
-	// Cancel on the left, Confirm on the right; the group is centered.
-	buttons := lipgloss.NewStyle().Width(innerWidth).Align(lipgloss.Center).Render(
-		cancelBtn + "   " + confirmBtn,
-	)
-
-	parts = append(parts, buttons)
+	confirmFocused := form.FieldFocus == form.ConfirmSlot() && !form.Popup.Open
+	cancelFocused := form.FieldFocus == form.CancelSlot() && !form.Popup.Open
+	parts = append(parts, renderBtnRow(enterKey, form.ConfirmLabel, confirmFocused))
+	parts = append(parts, renderBtnRow(escKey, form.CancelLabel, cancelFocused))
 	parts = append(parts, "")
 	hintKey := "form.hint.navigation"
 	if form.Kind == state.FormContainerUpdate {

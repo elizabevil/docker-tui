@@ -237,7 +237,7 @@ func openContainerCommitForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		{Key: fieldComment, Label: i18n.T("container.commit.form.comment"), Kind: state.FormText},
 		{Key: fieldPause, Label: i18n.T("container.commit.form.pause"), Kind: state.FormBool, Toggle: true},
 		{Key: fieldExportTar, Label: i18n.T("container.commit.form.export_tar"), Kind: state.FormBool},
-		{Key: fieldArchivePath, Label: i18n.T("container.commit.form.archive"), Kind: state.FormPath, PathSource: state.PathLocal, PathMode: state.PathSaveFile},
+		{Key: fieldArchivePath, Label: i18n.T("container.commit.form.archive"), Kind: state.FormPath, PathSource: state.PathLocal, PathMode: state.PathSaveFile, DependsOn: fieldExportTar, DependsEq: true},
 	}
 	fields[0].Input.Set(repository)
 	fields[1].Input.Set(tag)
@@ -285,27 +285,26 @@ func handleContainerFormKey(key string, m *state.AppModel) (*state.AppModel, tea
 		return handleFormPopupKey(key, m)
 	}
 
-	// Button area: focus is on Cancel (default) or Confirm.
+	// Button row: focus is on Cancel (default) or Confirm (BR-043 §3.3).
 	if m.Form.FocusedButton() != "" {
 		switch key {
 		case keys.KeyTab:
 			if m.Form.Kind == state.FormContainerUpdate {
-				m.Form.MoveSlot(1)
+				m.Form.MoveField(1)
 			}
 		case keys.KeyShiftTab:
 			if m.Form.Kind == state.FormContainerUpdate {
-				m.Form.MoveSlot(-1)
+				m.Form.MoveField(-1)
 			}
-		case keys.KeyUp:
+		case keys.KeyUp, keys.KeyLeft:
 			m.Form.MoveField(-1)
-		case keys.KeyDown:
-			// Stay on buttons (Down does not cycle or execute).
-		case keys.KeyLeft:
-			m.Form.MoveButton(-1)
-		case keys.KeyRight:
-			m.Form.MoveButton(1)
+		case keys.KeyDown, keys.KeyRight:
+			m.Form.MoveField(1)
 		case keys.KeyEnter:
-			return submitContainerForm(m)
+			if m.Form.FocusedButton() == "confirm" {
+				return submitContainerForm(m)
+			}
+			clearContainerForm(m)
 		case keys.KeyEsc:
 			clearContainerForm(m)
 		}
@@ -313,6 +312,7 @@ func handleContainerFormKey(key string, m *state.AppModel) (*state.AppModel, tea
 	}
 
 	f := m.Form.Field()
+	prevFocus := m.Form.FieldFocus // captured for blur-time path absolutization (BR-043 §3.1)
 
 	if handled := handleFormFieldEditKey(key, m, f); handled {
 		return m, nil
@@ -325,13 +325,13 @@ func handleContainerFormKey(key string, m *state.AppModel) (*state.AppModel, tea
 		m.Form.MoveField(1)
 	case keys.KeyTab:
 		if m.Form.Kind == state.FormContainerUpdate {
-			m.Form.MoveSlot(1)
+			m.Form.MoveField(1)
 		} else if f != nil && f.Kind == state.FormPath {
 			return m, pathTabCycle(m, f)
 		}
 	case keys.KeyShiftTab:
 		if m.Form.Kind == state.FormContainerUpdate {
-			m.Form.MoveSlot(-1)
+			m.Form.MoveField(-1)
 		}
 	case keys.KeyCtrlSpace:
 		if f != nil && f.Kind == state.FormPath {
@@ -372,6 +372,13 @@ func handleContainerFormKey(key string, m *state.AppModel) (*state.AppModel, tea
 			}
 		}
 	}
+
+	// BR-043 §3.1: on field-exit, rewrite a FormPath field's text to its
+	// absolute form so the display always shows the path that will be used
+	// on submit. Cursor is clamped to the new rune length.
+	if prevFocus != m.Form.FieldFocus && prevFocus >= 0 && prevFocus < len(m.Form.Fields) {
+		absolutizePathFieldOnBlur(&m.Form.Fields[prevFocus], m.Form.CWD)
+	}
 	return m, nil
 }
 
@@ -386,6 +393,7 @@ func handleFormFieldEditKey(key string, m *state.AppModel, f *state.FormField) b
 	case state.FormBool:
 		if keys.IsSpace(key) {
 			f.ToggleBool()
+			m.Form.RecomputeVisibility()
 			return true
 		}
 		// Bool never treats Left/Right or printable input as an edit.
@@ -418,6 +426,35 @@ func handleFormFieldChanged(m *state.AppModel, f *state.FormField) {
 	if m.Form.Kind == state.FormContainerCopy && f.Key == fieldSourcePath {
 		prefillDefaultDestination(m, m.Form.CWD, shortContainerID(m.Form.TargetID))
 	}
+}
+
+// absolutizePathFieldOnBlur rewrites a FormPath field's text to its absolute
+// form when focus moves away. Expands `~` and `$VAR`, then joins with cwd if
+// still relative. Cursor is clamped to the new rune length. No-op if the
+// field is empty, not a FormPath, or already absolute.
+func absolutizePathFieldOnBlur(f *state.FormField, cwd string) {
+	if f == nil || f.Kind != state.FormPath || f.Input.Text == "" {
+		return
+	}
+	home, _ := os.UserHomeDir()
+	expanded, err := state.ExpandPath(f.Input.Text, home)
+	if err != nil {
+		return
+	}
+	abs := state.Absolute(expanded, cwd)
+	if abs == f.Input.Text {
+		return
+	}
+	cursor := f.Input.Cursor
+	f.Input.Set(abs)
+	runes := []rune(abs)
+	if cursor < 0 {
+		cursor = 0
+	}
+	if cursor > len(runes) {
+		cursor = len(runes)
+	}
+	f.Input.Cursor = cursor
 }
 
 // pathTabCycle implements the path-field Tab state machine (BR-041 §3.3):
@@ -736,7 +773,7 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if m.Connection.Engine == nil {
 		return m, nil
 	}
-	if !m.Form.OnConfirm {
+	if m.Form.FocusedButton() != "confirm" {
 		clearContainerForm(m)
 		return m, nil
 	}

@@ -27,7 +27,7 @@ func TestImageSaveInputStartsCancellableWorkflow(t *testing.T) {
 	dir := t.TempDir()
 	model.Form.Get(fieldImagePath).Input.Set("archive.tar")
 	model.Form.CWD = dir
-	model.Form.OnConfirm = true
+	model.Form.FieldFocus = model.Form.ConfirmSlot()
 	updated, command := handleContainerFormKey(keys.KeyEnter, model)
 	if command == nil || updated.Navigation.Mode != state.ModeImageTransfer {
 		t.Fatalf("workflow did not start: mode=%v command=%v", updated.Navigation.Mode, command)
@@ -63,7 +63,7 @@ func TestImageLoadFormStartsTransferWithExistingFile(t *testing.T) {
 	openImageWorkflow(model, runtimeapi.ImageTransferLoad)
 	model.Form.Get(fieldImagePath).Input.Set("image.tar")
 	model.Form.CWD = dir
-	model.Form.OnConfirm = true
+	model.Form.FieldFocus = model.Form.ConfirmSlot()
 	updated, command := submitContainerForm(model)
 	if command == nil || updated.Navigation.Mode != state.ModeImageTransfer {
 		t.Fatalf("load did not start: mode=%v command=%v", updated.Navigation.Mode, command)
@@ -86,7 +86,7 @@ func TestImageSaveOverwriteRequiresForce(t *testing.T) {
 		t.Fatal(err)
 	}
 	model.Form.Get(fieldImagePath).Input.Set(target)
-	model.Form.OnConfirm = true
+	model.Form.FieldFocus = model.Form.ConfirmSlot()
 	updated, command := submitContainerForm(model)
 	if command != nil || updated.Navigation.Mode != state.ModeConfirm || updated.Confirm.Focus != 0 {
 		t.Fatalf("overwrite confirmation = %#v, command=%v", updated.Confirm, command)

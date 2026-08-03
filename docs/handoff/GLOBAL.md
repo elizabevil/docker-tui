@@ -5,6 +5,18 @@
 
 ## 决策日志(主模型 → 全体)
 
+### 2026-08-03 — BR-043 批次 A-D 实施完成
+
+- **决策**:R2 批次按 GLOBAL.md § 2026-08-03 BR-043 六个问题决策实施
+- **交付**:4 个 feat commits
+  - `1731789` 批次 A:路径绝对化(blur-time) + 面板尺寸统一(3/4 宽 + 等高)
+  - `8ec0e4d` 批次 B:Commit form 条件字段(DependsOn/DependsEq/Hidden)
+  - `9e0078f` 批次 C:Action 页面布局重构(方案 B + 共享焦点 + 列表行渲染)
+  - `29d8cfe` 批次 D:C 键连接信息迁 `:conn-info` command palette
+- **范围**:12 个文件改动(+/- ~440 行)
+- **未实施 followup**:3.4 配置拆分、per-form DefaultFocus 配置、DependsValue 枚举扩展
+- **验证**:`go vet` + `go test` state/keyboard/keys/dialog 全过;`git diff --check` 通过
+
 ### 2026-08-03 — BR-043 六个问题决策
 
 **范围**:`docs/task/br-043-form-action-bar-redesign.md` §7 五项待确认项;3.4 配置拆分不在本轮,后续另起任务卡。

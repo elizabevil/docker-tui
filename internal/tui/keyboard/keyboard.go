@@ -250,9 +250,6 @@ func handleShortcuts(key string, m *state.AppModel, cmds []tea.Cmd) (*state.AppM
 		return mm, batchWith(cmds, RecordKeyStroke(m, key, keys.ActionLabelMark), cmd)
 	}
 	switch key {
-	case keys.KeyC:
-		mm, cmd := showConnectionInfo(m)
-		return mm, batchWith(cmds, RecordKeyStroke(m, key, keys.ActionLabelConn), cmd)
 	case keys.KeyO:
 		if m.Navigation.Mode == state.ModeMark {
 			return m, tea.Batch(cmds...)

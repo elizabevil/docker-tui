@@ -33,7 +33,7 @@ func TestFormDialogTwoColumnLayout(t *testing.T) {
 			{Key: "destination", Label: "Local destination (tar)", Kind: state.FormPath, Input: state.QueryInputState{Text: "/tmp/backup.tar"}},
 		},
 	})
-	out := FormDialog(m, "", defaultDialogConfig())
+	out := FormDialog(m, "", defaultDialogConfig(), 0, 0)
 	lines := strings.Split(out, "\n")
 
 	titleSeen := false
@@ -67,7 +67,7 @@ func TestFormDialogSelectCollapsedWithMarker(t *testing.T) {
 			},
 		},
 	})
-	out := FormDialog(m, "", defaultDialogConfig())
+	out := FormDialog(m, "", defaultDialogConfig(), 0, 0)
 	if !strings.Contains(out, "always") {
 		t.Fatal("collapsed select must show the selected option")
 	}
@@ -84,7 +84,7 @@ func TestFormDialogFieldErrorAligned(t *testing.T) {
 			{Key: "destination", Label: "Local destination", Kind: state.FormPath},
 		},
 	})
-	out := FormDialog(m, "", defaultDialogConfig())
+	out := FormDialog(m, "", defaultDialogConfig(), 0, 0)
 	if !strings.Contains(out, "required") {
 		t.Fatal("field error must be rendered below the field row")
 	}
@@ -96,7 +96,7 @@ func TestFormDialogDoesNotHighlightButtonsWhileFieldFocused(t *testing.T) {
 		Fields: []state.FormField{{Key: "repository", Label: "Repository", Kind: state.FormText}},
 	})
 	m.Form.FieldFocus = 0
-	out := stripANSI(FormDialog(m, "", defaultDialogConfig()))
+	out := stripANSI(FormDialog(m, "", defaultDialogConfig(), 0, 0))
 	if strings.Contains(out, "\u25b6") {
 		t.Fatalf("field focus leaked into button selection: %q", out)
 	}
@@ -228,7 +228,7 @@ func TestFormDialogNoPopupWhenClosed(t *testing.T) {
 		Kind:   state.FormContainerExport,
 		Fields: []state.FormField{{Key: "destination", Label: "Local destination", Kind: state.FormPath}},
 	})
-	out := FormDialog(m, "", defaultDialogConfig())
+	out := FormDialog(m, "", defaultDialogConfig(), 0, 0)
 	if strings.Contains(out, ">") && !strings.Contains(out, "\u25b6") {
 		t.Fatal("closed popup must not render cursor rows")
 	}
@@ -324,7 +324,7 @@ func TestLongPathCursorStaysVisible(t *testing.T) {
 		},
 	})
 	m.Form.FieldFocus = 0
-	out := FormDialog(m, "", defaultDialogConfig())
+	out := FormDialog(m, "", defaultDialogConfig(), 0, 0)
 	clean := stripANSI(out)
 	if !strings.Contains(clean, "\u258f") {
 		t.Fatal("focused long path must still show an end caret")
@@ -381,7 +381,7 @@ func TestFormRendersInSmallViewports(t *testing.T) {
 		})
 		m.Viewport.Width = s.w
 		m.Viewport.Height = s.h
-		out := FormDialog(m, "", defaultDialogConfig())
+		out := FormDialog(m, "", defaultDialogConfig(), 0, 0)
 		lines := strings.Split(out, "\n")
 		if len(lines) > s.h+2 {
 			t.Fatalf("viewport %dx%d produced %d lines, expected at most %d", s.w, s.h, len(lines), s.h+2)

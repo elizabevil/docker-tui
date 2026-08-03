@@ -139,6 +139,32 @@ func dialogHeight(termH int, cfg dialogConfig) int {
 	return h
 }
 
+// panelDialogWidth computes dialog width from a panel body using a fixed
+// 3/4 ratio, clamped to cfg.MinWidth / cfg.MaxWidth (BR-043 §3.2).
+func panelDialogWidth(bodyW int, cfg dialogConfig) int {
+	w := bodyW * 3 / 4
+	if cfg.MinWidth > 0 && w < cfg.MinWidth {
+		w = cfg.MinWidth
+	}
+	if cfg.MaxWidth > 0 && w > cfg.MaxWidth {
+		w = cfg.MaxWidth
+	}
+	return w
+}
+
+// panelDialogHeight computes dialog height from a panel body using the
+// full panel height, clamped to cfg.MinHeight / cfg.MaxHeight (BR-043 §3.2).
+func panelDialogHeight(bodyH int, cfg dialogConfig) int {
+	h := bodyH
+	if cfg.MinHeight > 0 && h < cfg.MinHeight {
+		h = cfg.MinHeight
+	}
+	if cfg.MaxHeight > 0 && h > cfg.MaxHeight {
+		h = cfg.MaxHeight
+	}
+	return h
+}
+
 // dialogPosition computes the (x, y) top-left position for a dialog of size
 // (dlgW, dlgH) within a terminal of size (termW, termH) using config percentages.
 func dialogPosition(termW, termH, dlgW, dlgH int, cfg dialogConfig) (x, y int) {
@@ -216,7 +242,7 @@ func Render(m *state.AppModel) string {
 
 	dialogBox := SelectionDialog(
 		m.Dialog.Title, m.Dialog.Body, m.Dialog.Preview,
-		actionLabelForKind(m.Dialog.Kind), m.Dialog.Focus, m.Viewport.Width, m.Viewport.Height, tc, oc, dlgCfg,
+		actionLabelForKind(m.Dialog.Kind), m.Dialog.Focus, m.Viewport.Width, m.Viewport.Height, 0, 0, tc, oc, dlgCfg,
 	)
 	return lipgloss.Place(m.Viewport.Width, m.Viewport.Height,
 		lipgloss.Center, lipgloss.Center, dialogBox,
@@ -232,7 +258,7 @@ func RenderOverlay(content string, m *state.AppModel) string {
 
 	dialogBox := SelectionDialog(
 		m.Dialog.Title, m.Dialog.Body, m.Dialog.Preview,
-		actionLabelForKind(m.Dialog.Kind), m.Dialog.Focus, m.Viewport.Width, m.Viewport.Height, tc, oc, dlgCfg,
+		actionLabelForKind(m.Dialog.Kind), m.Dialog.Focus, m.Viewport.Width, m.Viewport.Height, 0, 0, tc, oc, dlgCfg,
 	)
 
 	return PlaceDialog(content, dialogBox, m.Viewport.Width, m.Viewport.Height, oc, dlgCfg)
@@ -271,7 +297,7 @@ func RenderExecOverlay(content string, m *state.AppModel) string {
 	dlgCfg := LoadDialogConfig()
 	oc := resolveOverlay(m.Dependencies.Config.UI.DialogOverlayColor, dlgCfg)
 
-	dialogBox := ExecDialog(m, oc, dlgCfg)
+	dialogBox := ExecDialog(m, oc, dlgCfg, 0, 0)
 	return PlaceDialog(content, dialogBox, m.Viewport.Width, m.Viewport.Height, oc, dlgCfg)
 }
 
@@ -312,7 +338,7 @@ func RenderOverlayInPanel(content string, m *state.AppModel, body PanelBody) str
 
 	dialogBox := SelectionDialog(
 		m.Dialog.Title, m.Dialog.Body, m.Dialog.Preview,
-		actionLabelForKind(m.Dialog.Kind), m.Dialog.Focus, body.Width, body.Rows, tc, oc, dlgCfg,
+		actionLabelForKind(m.Dialog.Kind), m.Dialog.Focus, body.Width, body.Rows, body.Width, body.Rows, tc, oc, dlgCfg,
 	)
 	return PlaceDialogInPanel(content, dialogBox, body, dlgCfg)
 }
@@ -323,7 +349,7 @@ func RenderExecOverlayInPanel(content string, m *state.AppModel, body PanelBody)
 	dlgCfg := LoadDialogConfig()
 	oc := resolveOverlay(m.Dependencies.Config.UI.DialogOverlayColor, dlgCfg)
 
-	dialogBox := ExecDialog(m, oc, dlgCfg)
+	dialogBox := ExecDialog(m, oc, dlgCfg, body.Width, body.Rows)
 	return PlaceDialogInPanel(content, dialogBox, body, dlgCfg)
 }
 
@@ -333,6 +359,6 @@ func RenderContainerFormOverlayInPanel(content string, m *state.AppModel, body P
 	dlgCfg := LoadDialogConfig()
 	oc := resolveOverlay(m.Dependencies.Config.UI.DialogOverlayColor, dlgCfg)
 
-	dialogBox := FormDialog(m, oc, dlgCfg)
+	dialogBox := FormDialog(m, oc, dlgCfg, body.Width, body.Rows)
 	return PlaceDialogInPanel(content, dialogBox, body, dlgCfg)
 }

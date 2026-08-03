@@ -42,13 +42,47 @@
 - 审查发现与修复记录:见上 R1.3;决策记录见 [GLOBAL.md § 2026-08-03 R1 批次审查与 commit](./GLOBAL.md#2026-08-03--r1-批次主模型审查与-commit)
 - R04-01 状态 `implementing` 偏乐观,待 R4 批次实施时再校准(不阻塞 R1)
 
-## 批次 R2:待启动
+## 批次 R2:BR-043 Form / Action Bar 优化
 
-### R2.1 — 候选:BR-041 followup 实施(6 项未实施项)
+### R2.1 — 批次元信息
 
-- 详见 [task/br-043-form-action-bar-redesign.md](../task/br-043-form-action-bar-redesign.md)
-- 路径绝对化 / 尺寸统一 / 条件字段 / Action 展示框重构 / 配置拆分 / R/C 链接键决议
-- 子模型待命前需主模型决策:哪些批次进 R2,优先级如何
+- **状态**:done + 已 commit(主模型决策 + 实施完成,2026-08-03)
+- **日期**:2026-08-03
+- **范围**:`internal/tui/keyboard/container_form.go` + `internal/tui/ui/widget/dialog/{view,form,exec,selection}.go` + `internal/tui/state/form.go` + `internal/tui/keys/{commands,display}.go`
+- **不可触碰边界**:`internal/data/i18n/lang/*`、`internal/data/config/*`、`internal/tui/keyboard` 之外的键盘处理
+- **主模型决策**:见 [GLOBAL.md § 2026-08-03 BR-043 六个问题决策](./GLOBAL.md#2026-08-03--br-043-六个问题决策)
+
+### R2.2 — 子任务清单
+
+| 子任务 | 状态 | 范围文件 | commit |
+|---|---|---|---|
+| 批次 A:3.1 路径绝对化(blur-time) | done | `keyboard/container_form.go` + `state/path.go`(只读) | `1731789` |
+| 批次 A:3.2 面板尺寸统一(3/4 宽 + 等高) | done | `dialog/{view,form,exec,selection}.go` + `dialog/form_test.go` | `1731789` |
+| 批次 B:3.5 Commit form 条件字段 | done | `state/form.go` + `state/form_test.go` + `keyboard/container_form.go` + `dialog/form.go` | `8ec0e4d` |
+| 批次 C:3.3 Action 页面布局重构(方案 B) | done | `state/form.go` + `keyboard/container_form.go` + `dialog/form.go` + 多个测试 | `9e0078f` |
+| 批次 D:3.6 C 键连接信息迁 command palette | done | `keyboard/keyboard.go` + `keyboard/command.go` + `keys/{commands,display}.go` | `29d8cfe` |
+
+### R2.3 — 验证
+
+- `go vet ./internal/tui/state/... ./internal/tui/keyboard/... ./internal/tui/keys/... ./internal/tui/ui/widget/dialog/...`:通过
+- `go test` 上述包:全过(state/keyboard/keys/dialog + 全包测试 cached)
+- `git diff --check`:通过
+- 真实断链扫描:0(链接校验 479 个内部链接全部可解析)
+- 旧 task 文件保留:21 个(去 6 后)
+
+### R2.4 — 未实施项(后续 followup)
+
+- **3.4 配置拆分**:不本轮,后续另起任务卡(`internal/ui/styles/*.jsonc` 多文件 + 用户目录覆盖)
+- **per-form DefaultFocus 配置**:本轮不实施(默认 Cancel 已满足 BR-043 §7.3)
+- **DependsValue 枚举扩展**:本轮仅支持 bool(DependsEq bool),枚举/字符串比较留待 `DependsValue any` 扩展
+- **3.6 R 键归宿**:已决策保留为全局 refresh,无代码变更
+
+## 批次 R3:待启动
+
+### R3.1 — 候选
+
+- `docs/pending-bugs.md` 18 项 open BUG(详见 pending-bugs.md)
+- 3.4 配置拆分(若主模型决定启动)
 
 ## 公共范围边界(所有子任务不可触碰)
 
