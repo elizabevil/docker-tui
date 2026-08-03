@@ -428,12 +428,12 @@ func handleFormFieldChanged(m *state.AppModel, f *state.FormField) {
 	}
 }
 
-// absolutizePathFieldOnBlur rewrites a FormPath field's text to its absolute
-// form when focus moves away. Expands `~` and `$VAR`, then joins with cwd if
-// still relative. Cursor is clamped to the new rune length. No-op if the
-// field is empty, not a FormPath, or already absolute.
+// absolutizePathFieldOnBlur rewrites a local FormPath field's text to its
+// absolute form when focus moves away. Expands `~` and `$VAR`, then joins with
+// cwd if still relative. Cursor is clamped to the new rune length. No-op if
+// the field is empty, not a local FormPath, or already absolute.
 func absolutizePathFieldOnBlur(f *state.FormField, cwd string) {
-	if f == nil || f.Kind != state.FormPath || f.Input.Text == "" {
+	if f == nil || f.Kind != state.FormPath || f.PathSource != state.PathLocal || f.Input.Text == "" {
 		return
 	}
 	home, _ := os.UserHomeDir()

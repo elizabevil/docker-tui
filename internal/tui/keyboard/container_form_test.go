@@ -831,6 +831,22 @@ func TestCopySourceBackspaceRegeneratesUntouchedDestination(t *testing.T) {
 	}
 }
 
+func TestCopySourceBlurDoesNotAbsolutizeContainerPath(t *testing.T) {
+	m := formModel(t, &stubContainerService{})
+	openContainerCopyForm(m)
+	m.Form.FieldFocus = 0 // source, a container path field.
+	src := m.Form.Get(fieldSourcePath)
+	src.Input.Set("etc/app.conf")
+
+	updated, _ := handleContainerFormKey(keys.KeyDown, m)
+	if updated.Form.FieldFocus != 1 {
+		t.Fatalf("focus = %d, want destination field", updated.Form.FieldFocus)
+	}
+	if got := src.Text(); got != "etc/app.conf" {
+		t.Fatalf("container source path was rewritten on blur: got %q", got)
+	}
+}
+
 func TestPathBackspaceRefreshesCompletionState(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerExportForm(m)
