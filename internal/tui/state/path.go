@@ -35,18 +35,45 @@ const (
 	PathSaveFile
 )
 
-// PathEntry 是路径补全的单个候选（BR-041 §6）。
+// PathEntryType marks the kind of a path candidate for popup display (F/D/L
+// prefix in the eza-l style listing).
+type PathEntryType rune
+
+const (
+	PathEntryFile PathEntryType = 'F'
+	PathEntryDir  PathEntryType = 'D'
+	PathEntryLink PathEntryType = 'L'
+)
+
+// PathEntry is a single completion candidate. Detail fields (Mode/Owner/
+// Group/Size/Mtime/LinkTarget) are populated by LocalPathProvider (via
+// os.Lstat) and container completion (via ls -la); the popup shows them in
+// eza-l column alignment.
 type PathEntry struct {
-	Name  string
-	Path  string
-	IsDir bool
+	Name       string
+	Path       string
+	IsDir      bool
+	Type       PathEntryType
+	Mode       string // e.g. "drwxr-xr-x"
+	Owner      string
+	Group      string
+	Size       int64
+	Mtime      time.Time
+	LinkTarget string // populated for symlinks (Type == L)
 }
 
-// PathCompletionRequest 描述一次路径补全请求（BR-041 §6）。
+// IsHidden reports whether the entry is a dotfile/dotdir.
+func (e PathEntry) IsHidden() bool {
+	return strings.HasPrefix(e.Name, ".")
+}
+
+// PathCompletionRequest describes one completion request. ShowHidden opts in
+// dotfiles regardless of the typed prefix.
 type PathCompletionRequest struct {
 	Path        string
 	ContainerID string
 	Mode        PathMode
+	ShowHidden  bool
 }
 
 // ContainerPathCompleted returns an asynchronous container directory listing
@@ -75,7 +102,9 @@ type LocalPathProvider struct {
 }
 
 // Complete 读取目录并返回候选项。目录优先、文件其次，同组按名称排序；
-// 隐藏文件仅在 basename 以 '.' 开头时显示；文件系统错误返回 nil 以便手工输入。
+// 隐藏文件仅在 basename 以 '.' 开头或 request.ShowHidden 时显示；
+// 每个条目通过 os.Lstat 填充 Mode/Owner/Group/Size/Mtime/Type；
+// 文件系统错误返回 nil 以便手工输入。
 func (p LocalPathProvider) Complete(request PathCompletionRequest) ([]PathEntry, error) {
 	input := request.Path
 	switch request.Mode {
@@ -112,7 +141,7 @@ func (p LocalPathProvider) Complete(request PathCompletionRequest) ([]PathEntry,
 	if err != nil {
 		return nil, err
 	}
-	needHidden := strings.HasPrefix(prefixFile, ".")
+	needHidden := strings.HasPrefix(prefixFile, ".") || request.ShowHidden
 
 	candidates := make([]PathEntry, 0, len(entries))
 	for _, de := range entries {
@@ -130,7 +159,7 @@ func (p LocalPathProvider) Complete(request PathCompletionRequest) ([]PathEntry,
 		if prefixFile != "" && !PrefixMatch(name, prefixFile) {
 			continue
 		}
-		candidates = append(candidates, PathEntry{Name: name, Path: filepath.Join(dir, name), IsDir: isDir})
+		candidates = append(candidates, enrichLocalEntry(filepath.Join(dir, name), name, isDir))
 	}
 
 	sort.Slice(candidates, func(i, j int) bool {
@@ -145,6 +174,39 @@ func (p LocalPathProvider) Complete(request PathCompletionRequest) ([]PathEntry,
 // PrefixMatch 判断 candidate 是否以 prefix 为前缀（忽略大小写，跨平台）。
 func PrefixMatch(candidate, prefix string) bool {
 	return strings.HasPrefix(strings.ToLower(candidate), strings.ToLower(prefix))
+}
+
+// enrichLocalEntry populates Mode/Owner/Group/Size/Mtime/Type for a local
+// path entry using os.Lstat. Symlinks are detected via mode bits and their
+// target is resolved via os.Readlink.
+func enrichLocalEntry(full, name string, isDir bool) PathEntry {
+	entry := PathEntry{Name: name, Path: full, IsDir: isDir}
+	info, err := os.Lstat(full)
+	if err != nil {
+		entry.Type = dirOrFileType(isDir)
+		return entry
+	}
+	mode := info.Mode()
+	entry.Mode = mode.String()
+	entry.Size = info.Size()
+	entry.Mtime = info.ModTime()
+	isLink := mode&os.ModeSymlink != 0
+	if isLink {
+		if target, err := os.Readlink(full); err == nil {
+			entry.LinkTarget = target
+		}
+		entry.Type = PathEntryLink
+	} else {
+		entry.Type = dirOrFileType(isDir)
+	}
+	return entry
+}
+
+func dirOrFileType(isDir bool) PathEntryType {
+	if isDir {
+		return PathEntryDir
+	}
+	return PathEntryFile
 }
 
 // JoinPath 规范化路径分隔符，兼容 Linux/macOS/Windows（BR-041 §6.1）。

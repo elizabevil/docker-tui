@@ -100,6 +100,15 @@ type FormField struct {
 	// Hidden is set by RecomputeVisibility and read by the renderer and
 	// MoveField to skip this field. Mutating it directly is unsupported.
 	Hidden bool
+
+	// ShowHidden toggles dotfile visibility in path completion popups
+	// (Ctrl+H inside the field).
+	ShowHidden bool
+
+	// PathError holds the last completion error message (e.g. permission
+	// denied). The popup renders this verbatim when Suggestions is empty
+	// and PathLoading is false.
+	PathError string
 }
 
 // Text returns the trimmed value of a text/Int field.

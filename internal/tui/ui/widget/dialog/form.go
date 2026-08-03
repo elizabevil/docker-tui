@@ -1,6 +1,7 @@
 package dialog
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
@@ -59,8 +60,16 @@ func FormDialog(m *state.AppModel, overlayColor string, cfg dialogConfig, bodyW,
 
 	parts := []string{
 		lipgloss.NewStyle().Width(innerWidth).Align(lipgloss.Left).Render(component.GetStyle("panelTitle").Render(form.Title)),
-		"",
 	}
+	if form.TargetName != "" {
+		target := form.TargetName
+		if form.TargetID != "" && form.TargetID != target {
+			target = fmt.Sprintf("%s (%s)", target, form.TargetID)
+		}
+		parts = append(parts, component.GetStyle("dim").Render(
+			fmt.Sprintf("%s: %s", targetLabelForForm(form.Kind), target)))
+	}
+	parts = append(parts, "")
 	labelWidth, valueWidth := formLayout(form.Fields, innerWidth)
 	if form.Loading {
 		parts = append(parts, component.GetStyle("dim").Render(i18n.T("container.update.form.loading")))
@@ -111,6 +120,21 @@ func formInnerWidth(dialogW int) int {
 		return 1
 	}
 	return dialogW - 4
+}
+
+// targetLabelForForm returns the human-readable target label for the form kind
+// (BR-043 §8.3: dialog header must show which container/image the operation
+// targets).
+func targetLabelForForm(kind state.FormKind) string {
+	switch kind {
+	case state.FormContainerCopy, state.FormContainerUpdate,
+		state.FormContainerExport, state.FormContainerCommit:
+		return "Container"
+	case state.FormImageSave, state.FormImageLoad:
+		return "Image"
+	default:
+		return ""
+	}
 }
 
 // formLayout computes the label and value column widths for the given fields

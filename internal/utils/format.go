@@ -85,6 +85,35 @@ func FormatCreated(unix int64) string {
 	return time.Unix(unix, 0).Format(time.DateTime)
 }
 
+// FormatShortDate renders a time in eza-l "Jan 01 14:30" style. Zero time
+// returns an empty string (caller can substitute placeholder).
+func FormatShortDate(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.Format("Jan 02 15:04")
+}
+
+// HumanSizeBytes formats an int64 byte count in ls -h style (e.g. "4.0K").
+// Uses 1024-base single-letter units (K/M/G/T) matching ls -h output.
+// Returns "0" for non-positive input.
+func HumanSizeBytes(n int64) string {
+	if n <= 0 {
+		return "0"
+	}
+	units := []string{"K", "M", "G", "T"}
+	val := float64(n)
+	idx := -1
+	for val >= 1024 && idx < len(units)-1 {
+		val /= 1024
+		idx++
+	}
+	if idx < 0 {
+		return fmt.Sprintf("%d", n)
+	}
+	return fmt.Sprintf("%.1f%s", val, units[idx])
+}
+
 // Truncate cuts a string to maxLen characters, appending "..." if truncated.
 func Truncate(s string, maxLen int) string {
 	if maxLen <= 0 {

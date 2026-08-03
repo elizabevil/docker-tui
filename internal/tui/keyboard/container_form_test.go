@@ -926,7 +926,7 @@ func TestContainerPathCompletionFallsBackToManualInput(t *testing.T) {
 }
 
 func TestContainerPathTabCompletesSingleDirectory(t *testing.T) {
-	m := formModelWithPathExec(t, "d\tetc\r\nf\tentrypoint.sh\r\n")
+	m := formModelWithPathExec(t, "d|etc|drwxr-xr-x|root|root|4096|1700000000|\r\nf|entrypoint.sh|-rw-r--r--|root|root|100|1700000000|\r\n")
 	openContainerCopyForm(m)
 	m.Form.MoveField(1)
 	source := m.Form.Get(fieldSourcePath)
@@ -947,7 +947,7 @@ func TestContainerPathTabCompletesSingleDirectory(t *testing.T) {
 }
 
 func TestContainerPathCtrlSpaceOpensDirectoryPopup(t *testing.T) {
-	m := formModelWithPathExec(t, "d\tnginx\nf\thosts\nf\tresolv.conf\n")
+	m := formModelWithPathExec(t, "d|nginx|drwxr-xr-x|root|root|4096|1700000000|\nf|hosts|-rw-r--r--|root|root|200|1700000000|\nf|resolv.conf|-rw-r--r--|root|root|100|1700000000|\n")
 	openContainerCopyForm(m)
 	m.Form.MoveField(1)
 	source := m.Form.Get(fieldSourcePath)

@@ -178,15 +178,15 @@ func TestRenderFormPopupPathRows(t *testing.T) {
 				Kind:    state.FormPath,
 				Options: nil,
 				Suggestions: []state.PathEntry{
-					{Name: "backup.tar", Path: "/tmp/backup.tar", IsDir: false},
-					{Name: "sub", Path: "/tmp/sub", IsDir: true},
+					{Name: "backup.tar", Path: "/tmp/backup.tar", IsDir: false, Type: state.PathEntryFile},
+					{Name: "sub", Path: "/tmp/sub", IsDir: true, Type: state.PathEntryDir},
 				},
 			},
 		},
 	})
 	m.Form.FieldFocus = 0
 	m.Form.OpenPopup()
-	out := renderFormPopup(m.Form, "box", 60, 20)
+	out := renderFormPopup(m.Form, "box", 100, 20)
 	if !strings.Contains(out, "backup.tar") {
 		t.Fatal("popup must list path candidates")
 	}
@@ -203,12 +203,14 @@ func TestPathPopupGeometryStaysFixedAcrossDirectoryLoads(t *testing.T) {
 		}}})
 		m.Form.FieldFocus = 0
 		m.Form.OpenPopup()
-		return renderFormPopup(m.Form, "box", 60, 20)
+		return renderFormPopup(m.Form, "box", 100, 20)
 	}
-	one := render([]state.PathEntry{{Name: "apk", Path: "/etc/apk", IsDir: true}}, false)
+	one := render([]state.PathEntry{{Name: "apk", Path: "/etc/apk", IsDir: true, Type: state.PathEntryDir}}, false)
 	many := render([]state.PathEntry{
-		{Name: "a", Path: "/etc/a", IsDir: true}, {Name: "b", Path: "/etc/b", IsDir: true},
-		{Name: "c", Path: "/etc/c"}, {Name: "d", Path: "/etc/d"},
+		{Name: "a", Path: "/etc/a", IsDir: true, Type: state.PathEntryDir},
+		{Name: "b", Path: "/etc/b", IsDir: true, Type: state.PathEntryDir},
+		{Name: "c", Path: "/etc/c", Type: state.PathEntryFile},
+		{Name: "d", Path: "/etc/d", Type: state.PathEntryFile},
 	}, false)
 	loading := render(nil, true)
 	wantLines := len(strings.Split(one, "\n"))
@@ -245,41 +247,45 @@ func TestPathPopupTypeColumnAligned(t *testing.T) {
 				Key:  "destination",
 				Kind: state.FormPath,
 				Suggestions: []state.PathEntry{
-					{Name: "alpha.tar", Path: "/tmp/alpha.tar", IsDir: false},
-					{Name: "beta", Path: "/tmp/beta", IsDir: true},
-					{Name: "gamma", Path: "/tmp/gamma", IsDir: true},
-					{Name: "delta.tar", Path: "/tmp/delta.tar", IsDir: false},
+					{Name: "alpha.tar", Path: "/tmp/alpha.tar", IsDir: false, Type: state.PathEntryFile},
+					{Name: "beta", Path: "/tmp/beta", IsDir: true, Type: state.PathEntryDir},
+					{Name: "gamma", Path: "/tmp/gamma", IsDir: true, Type: state.PathEntryDir},
+					{Name: "delta.tar", Path: "/tmp/delta.tar", IsDir: false, Type: state.PathEntryFile},
 				},
 			},
 		},
 	})
 	m.Form.FieldFocus = 0
 	m.Form.OpenPopup()
-	out := renderFormPopup(m.Form, "box", 80, 20)
+	out := renderFormPopup(m.Form, "box", 100, 20)
 	clean := stripANSI(out)
 	lines := strings.Split(clean, "\n")
 	typePos := -1
 	for _, line := range lines {
-		if strings.Contains(line, "[DIR]") || strings.Contains(line, "[FILE]") {
-			idx := strings.Index(line, "[")
-			if idx < 0 {
-				continue
+		idx := -1
+		for _, marker := range []string{"D ", "F ", "L "} {
+			if i := strings.Index(line, marker); i >= 0 {
+				idx = i
+				break
 			}
-			if typePos == -1 {
-				typePos = idx
-			} else if idx != typePos {
-				t.Fatalf("type column misaligned: line %q at %d, expected %d", line, idx, typePos)
-			}
+		}
+		if idx < 0 {
+			continue
+		}
+		if typePos == -1 {
+			typePos = idx
+		} else if idx != typePos {
+			t.Fatalf("type column misaligned: line %q at %d, expected %d", line, idx, typePos)
 		}
 	}
 	if typePos < 0 {
-		t.Fatal("popup must contain at least one [DIR]/[FILE] row")
+		t.Fatal("popup must contain at least one D/F/L row")
 	}
-	if !strings.Contains(out, "[DIR]") {
-		t.Fatal("popup must mark directories with [DIR]")
+	if !strings.Contains(out, "D ") {
+		t.Fatal("popup must mark directories with D")
 	}
-	if !strings.Contains(out, "[FILE]") {
-		t.Fatal("popup must mark files with [FILE]")
+	if !strings.Contains(out, "F ") {
+		t.Fatal("popup must mark files with F")
 	}
 }
 

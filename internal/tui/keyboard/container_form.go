@@ -407,6 +407,15 @@ func handleFormFieldEditKey(key string, m *state.AppModel, f *state.FormField) b
 				handleFormFieldChanged(m, f)
 			}
 			return true
+		case keys.KeyCtrlH:
+			if f.Kind != state.FormPath {
+				return false
+			}
+			f.ShowHidden = !f.ShowHidden
+			f.Suggestions = nil
+			f.PathError = ""
+			f.PathLoading = false
+			return true
 		}
 	}
 	return false
@@ -516,30 +525,46 @@ func requestContainerPathCompletion(m *state.AppModel, f *state.FormField, openP
 	}
 	f.PathLoading = true
 	f.Suggestions = nil
-	return containerPathCompletionCmd(m.Connection.Engine.Exec(), m.Form.TargetID, f.Key, f.Input.Text, f.PathMode, openPopup)
+	return containerPathCompletionCmd(m.Connection.Engine.Exec(), m.Form.TargetID, f.Key, f.Input.Text, f.PathMode, f.ShowHidden, openPopup)
 }
 
-func containerPathCompletionCmd(service runtimeapi.ExecService, containerID, fieldKey, input string, mode state.PathMode, openPopup bool) tea.Cmd {
+func containerPathCompletionCmd(service runtimeapi.ExecService, containerID, fieldKey, input string, mode state.PathMode, showHidden, openPopup bool) tea.Cmd {
 	return func() tea.Msg {
-		entries, err := listContainerPath(context.Background(), service, containerID, input, mode)
+		entries, err := listContainerPath(context.Background(), service, containerID, input, mode, showHidden)
 		return state.ContainerPathCompleted{ContainerID: containerID, FieldKey: fieldKey, Input: input, Entries: entries, OpenPopup: openPopup, Error: err}
 	}
 }
 
+// containerPathListScript emits one tab-separated line per directory entry:
+// kind|name|mode|owner|group|size|mtime_unix|link_target
+// kind: d (dir) / f (file) / l (symlink). showhidden=1 also lists dotfiles.
 const containerPathListScript = `dir=$1
-for entry in "$dir"/* "$dir"/.[!.]* "$dir"/..?*; do
+showhidden=$2
+hidden_glob=
+if [ "$showhidden" = "1" ]; then hidden_glob='.[!.]* ..?*'; fi
+for entry in "$dir"/* $hidden_glob; do
   [ -e "$entry" ] || [ -L "$entry" ] || continue
   name=${entry##*/}
-  if [ -d "$entry" ]; then kind=d; else kind=f; fi
-  printf '%s\t%s\n' "$kind" "$name"
+  if [ -L "$entry" ]; then
+    kind=l; target=$(readlink "$entry" 2>/dev/null)
+  elif [ -d "$entry" ]; then
+    kind=d; target=
+  else
+    kind=f; target=
+  fi
+  stat -c "$kind|$name|%A|%U|%G|%s|%Y|$target" "$entry" 2>/dev/null
 done`
 
-func listContainerPath(ctx context.Context, service runtimeapi.ExecService, containerID, input string, mode state.PathMode) ([]state.PathEntry, error) {
+func listContainerPath(ctx context.Context, service runtimeapi.ExecService, containerID, input string, mode state.PathMode, showHidden bool) ([]state.PathEntry, error) {
 	dir, prefix := splitContainerPath(input)
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
+	hiddenArg := "0"
+	if showHidden {
+		hiddenArg = "1"
+	}
 	session, err := service.Open(ctx, containerID, runtimeapi.ExecOptions{
-		Command: []string{"/bin/sh", "-c", containerPathListScript, "dtui-path", dir},
+		Command: []string{"/bin/sh", "-c", containerPathListScript, "dtui-path", dir, hiddenArg},
 		TTY:     true, AttachStdout: true,
 	})
 	if err != nil {
@@ -568,15 +593,45 @@ func splitContainerPath(input string) (dir, prefix string) {
 func parseContainerPathEntries(output, dir, prefix string, mode state.PathMode) []state.PathEntry {
 	entries := make([]state.PathEntry, 0)
 	for _, line := range strings.Split(strings.ReplaceAll(output, "\r", ""), "\n") {
-		kind, name, ok := strings.Cut(line, "\t")
-		if !ok || name == "" || !state.PrefixMatch(name, prefix) {
+		if line == "" {
 			continue
 		}
-		isDir := kind == "d"
-		if mode == state.PathDirectory && !isDir {
+		// Format: kind|name|mode|owner|group|size|mtime|link_target
+		parts := strings.SplitN(line, "|", 8)
+		if len(parts) < 7 || parts[1] == "" {
 			continue
 		}
-		entries = append(entries, state.PathEntry{Name: name, Path: path.Join(dir, name), IsDir: isDir})
+		kind, name := parts[0], parts[1]
+		if !state.PrefixMatch(name, prefix) {
+			continue
+		}
+		entry := state.PathEntry{
+			Name:  name,
+			Path:  path.Join(dir, name),
+			IsDir: kind == "d",
+			Mode:  parts[2],
+			Owner: parts[3],
+			Group: parts[4],
+		}
+		entry.Size, _ = strconv.ParseInt(parts[5], 10, 64)
+		if ts, err := strconv.ParseInt(parts[6], 10, 64); err == nil {
+			entry.Mtime = time.Unix(ts, 0)
+		}
+		switch kind {
+		case "d":
+			entry.Type = state.PathEntryDir
+		case "l":
+			entry.Type = state.PathEntryLink
+			if len(parts) == 8 {
+				entry.LinkTarget = parts[7]
+			}
+		default:
+			entry.Type = state.PathEntryFile
+		}
+		if mode == state.PathDirectory && !entry.IsDir {
+			continue
+		}
+		entries = append(entries, entry)
 		if len(entries) >= 4096 {
 			break
 		}
@@ -602,9 +657,11 @@ func HandleContainerPathCompleted(m *state.AppModel, msg state.ContainerPathComp
 	f.PathLoading = false
 	if msg.Error != nil {
 		f.Suggestions = nil
+		f.PathError = msg.Error.Error()
 		ShowToastWarn(m, i18n.T("form.path.container_failed", msg.Error.Error()))
 		return m, nil
 	}
+	f.PathError = ""
 	f.Suggestions = msg.Entries
 	applyPathSuggestions(m, f, msg.OpenPopup)
 	return m, nil
@@ -613,7 +670,8 @@ func HandleContainerPathCompleted(m *state.AppModel, msg state.ContainerPathComp
 // handleFormPopupKey routes keys while a selection or path popup is open:
 // Esc closes, Up/Down/Home/End/PgUp/PgDn navigate, Enter commits, Space
 // toggles multi / commits select, Tab and Shift+Tab cycle the cursor
-// (BR-041 §3.4, §3.5, §3.3).
+// (BR-041 §3.4, §3.5, §3.3). For FormPath the default branch lets the user
+// keep typing to filter (shell-like BrowseMode) and triggers completion.
 func handleFormPopupKey(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	switch key {
 	case keys.KeyEsc:
@@ -666,8 +724,47 @@ func handleFormPopupKey(key string, m *state.AppModel) (*state.AppModel, tea.Cmd
 				}
 			}
 		}
+	default:
+		if m.Form.Popup.Kind == state.PopupPath {
+			if f := m.Form.PopupField(); f != nil && f.Kind == state.FormPath {
+				if isPathEditKey(key) {
+					_, changed := editQueryInput(key, &f.Input)
+					if changed {
+						f.PathError = ""
+						return m, triggerPathBrowseCompletion(m, f)
+					}
+				}
+			}
+		}
 	}
 	return m, nil
+}
+
+// isPathEditKey reports whether key is a printable char, Backspace, or Delete
+// (chars the user can type to filter the path field while the popup is open).
+func isPathEditKey(key string) bool {
+	switch key {
+	case keys.KeyBackspace, keys.KeyDelete:
+		return true
+	}
+	if len([]rune(key)) == 1 {
+		return true
+	}
+	return false
+}
+
+// triggerPathBrowseCompletion refreshes the candidate list after the user
+// edits the path field while the popup is open. Container paths fire an async
+// request; Local paths run synchronously. openPopup=true keeps the popup
+// visible (or opens it if not yet).
+func triggerPathBrowseCompletion(m *state.AppModel, f *state.FormField) tea.Cmd {
+	if f.PathSource == state.PathContainer {
+		return requestContainerPathCompletion(m, f, true)
+	}
+	completeForField(m, f)
+	applyPathSuggestions(m, f, true)
+	m.Form.Popup.Cursor = 0
+	return nil
 }
 
 // popupVisibleRows matches the visible-row cap used by renderFormPopup so
@@ -676,7 +773,9 @@ const popupVisibleRows = state.FormPopupVisibleRows
 
 // confirmFormPopup commits the popup selection onto its field and closes the
 // popup. For FormPath the candidate is applied; for Select/MultiSelect the
-// selection/focus updates before closing.
+// selection/focus updates before closing. Directory entries trigger a
+// drill-down: the field text becomes "<parent>/<name>/" and a fresh
+// completion is requested, so the popup stays open showing the subdir.
 func confirmFormPopup(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	f := m.Form.PopupField()
 	if f == nil {
@@ -693,9 +792,22 @@ func confirmFormPopup(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case state.FormMultiSelect:
 		m.Form.CommitPopupMulti()
 	case state.FormPath:
-		if idx := m.Form.Popup.Cursor; idx >= 0 && idx < len(f.Suggestions) {
-			entry := f.Suggestions[idx]
-			applyPathEntry(f, entry)
+		idx := m.Form.Popup.Cursor
+		if idx < 0 || idx >= len(f.Suggestions) {
+			m.Form.ClosePopup()
+			return m, nil
+		}
+		entry := f.Suggestions[idx]
+		applyPathEntry(f, entry)
+		if entry.IsDir {
+			if !strings.HasSuffix(f.Input.Text, "/") {
+				f.Input.Text += "/"
+			}
+			f.Input.Cursor = len([]rune(f.Input.Text))
+			f.Suggestions = nil
+			m.Form.Popup.Cursor = 0
+			m.Form.ClosePopup()
+			return m, requestContainerPathCompletion(m, f, true)
 		}
 		m.Form.ClosePopup()
 	}
