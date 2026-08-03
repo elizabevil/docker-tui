@@ -1,0 +1,259 @@
+# musl-gpgme/justfile — Build a fully static dtui binary with musl + gpgme linked in.
+#
+# This module is loaded by the root justfile via:
+#     mod musl-gpgme "scripts/musl-gpgme/justfile"
+#
+# Invoke through the root justfile (paths are anchored to the repo root):
+#     just musl-gpgme::build-musl-static          # full pipeline (arch from DTUI_ARCH, default amd64)
+#     just musl-gpgme::clean                      # wipe the work dir + output binary
+#
+# The pipeline is split into small step recipes that just wires together
+# via recipe dependencies:
+#
+#   build-musl-static
+#   ├─ _c-libs              step 1: cross-compile the gpgme chain
+#   │   ├─ _toolchain             locate musl gcc + derive sysroot prefix
+#   │   └─ _c-lib ×3              libgpg-error, libassuan, gpgme
+#   ├─ _go-build            step 2: go build with -static + gpgme link flags
+#   ├─ _verify              step 3: file / ldd / readelf static-linkage gate
+#   └─ _smoke               step 4: runtime smoke test
+#
+# Each step is an independent private recipe, so the pipeline can be
+# re-run, debugged, or re-executed one step at a time:
+#     just musl-gpgme::_c-libs                    # step 1 only
+#     just musl-gpgme::_go-build                  # step 2 only (implies step 1)
+#
+# All build side-effects (configure probes like conftest.c, extracted
+# sources, build trees, tarball cache) live under scripts/musl-gpgme/work/
+# — never in the repo root. `set working-directory` pins every recipe
+# there; the directory is kept in git via .gitkeep and ignored by git.
+#
+# State of play (see scripts/musl-gpgme/ISSUE-lock-obj-size.md):
+#   - Link stage: PASSES — binary is statically linked, 0 DT_NEEDED entries.
+#   - Smoke test: FAILS at runtime with `gpgrt fatal: sizeof lock obj` /
+#                 SIGABRT — root cause is in libgpg-error's `gen-lock-obj.sh`
+#                 producing an empty `_priv[0]` because it cannot determine
+#                 pthread_mutex_t size on the musl-cross target (no
+#                 host-prefixed objdump, host-prefixed cc emits an empty
+#                 AC_MTX_SIZE under the bundled mawk).
+
+set shell := ["bash", "-uc"]
+set working-directory := "work"
+
+# ---------------------------------------------------------------------------
+# Configuration (env-overridable, matching the README knob table)
+# ---------------------------------------------------------------------------
+
+# Target arch: amd64 (x86_64-linux-musl) or arm64 (aarch64-linux-musl).
+arch := env("DTUI_ARCH", "amd64")
+version := env("DTUI_VERSION", "0.2.0")
+
+# C library versions — bump here to update the gpgme chain.
+libgpg_error_version := "1.55"
+libassuan_version := "3.0.2"
+gpgme_version := "1.24.2"
+
+# Primary + mirror base URLs for the source tarballs.
+base_url := env("GPGME_SRC_URL", "https://gnupg.org/ftp/gcrypt")
+mirror_url := env("GPGME_MIRROR_URL", "https://www.mirrorservice.org/sites/ftp.gnupg.org/gcrypt")
+
+# Module directory (this justfile's location). `root` is kept as an
+# alias for readability in cross-module path expressions.
+root := justfile_directory()
+
+# Dedicated scratch area for this module: every recipe runs here via
+# `set working-directory`, so no build junk ever lands in the repo root.
+work_dir := root + "/work"
+
+# Tarball cache (re-used across runs so re-builds skip the network step).
+src_cache := env("SRC_CACHE", work_dir + "/src-cache")
+
+# Final binary — the only artifact that escapes the work dir (goes to dist/).
+out := root + "/dist/dtui-musl-static-" + arch
+
+# ---------------------------------------------------------------------------
+# Derived values (evaluated lazily, on first recipe run)
+# ---------------------------------------------------------------------------
+
+# Musl host triple for the requested arch.
+triple := if arch == "amd64" { "x86_64-linux-musl" } else if arch == "arm64" { "aarch64-linux-musl" } else { "unsupported" }
+_chk := assert(triple != "unsupported", "unsupported arch '" + arch + "' (want amd64 or arm64)")
+
+# First gcc on $PATH matching the target triple, else generic fallbacks.
+musl_cc := shell("for c in " + triple + "-gcc x86_64-linux-musl-gcc musl-gcc; do command -v \"$c\" 2>/dev/null && break; done; true")
+
+# Sysroot prefix: $MUSL_PREFIX wins; else derive from the found gcc (musl-cross
+# layout: <prefix>/bin/<triple>-gcc, sysroot at <prefix>/<triple>); else default.
+musl_prefix := if env_var_or_default("MUSL_PREFIX", "") != "" {
+    env_var("MUSL_PREFIX")
+} else if file_name(musl_cc) == triple + "-gcc" {
+    parent_directory(parent_directory(musl_cc)) + "/" + triple
+} else if file_name(musl_cc) == "x86_64-linux-musl-gcc" {
+    parent_directory(parent_directory(musl_cc)) + "/x86_64-linux-musl"
+} else {
+    "/opt/musl/x86_64-linux-musl-cross/x86_64-linux-musl"
+}
+
+# Extra configure flags for gpgme (depends on the resolved sysroot prefix).
+gpgme_configure_flags := "--enable-threads=posix " + \
+    "--with-libgpg-error-prefix=" + musl_prefix + "/usr " + \
+    "--with-libassuan-prefix=" + musl_prefix + "/usr " + \
+    "--disable-gpg-test --disable-gpgsm-test --disable-g13-test " + \
+    "--enable-languages=cl"
+
+# ---------------------------------------------------------------------------
+# Public entry points
+# ---------------------------------------------------------------------------
+
+[group('musl-gpgme')]
+build-musl-static: _c-libs _go-build _verify _smoke
+
+# Wipe all build state: downloaded sources, build trees, tarball cache,
+# and the output binary. Keeps the work dir itself (it is the recipe cwd).
+clean:
+    rm -rf "{{ work_dir }}"/* "{{ out }}"
+    @echo "removed build state ({{ work_dir }}) and {{ out }}"
+
+# ---------------------------------------------------------------------------
+# Step 1 — cross-compile the gpgme chain into the musl sysroot
+# ---------------------------------------------------------------------------
+
+[private]
+_c-libs: _toolchain \
+    (_c-lib "libgpg-error" libgpg_error_version "--enable-threads=posix") \
+    (_c-lib "libassuan" libassuan_version "--enable-threads=posix") \
+    (_c-lib "gpgme" gpgme_version gpgme_configure_flags)
+
+# Locate the musl toolchain and fail fast with a clear message.
+[private]
+_toolchain:
+    @test -n "{{ musl_cc }}" || { echo "error: musl toolchain not found (need {{ triple }}-gcc on \$PATH)" >&2; exit 1; }
+    @echo "==> toolchain: {{ musl_cc }} (sysroot: {{ musl_prefix }})"
+
+# Download (once, cached), extract, configure, build and install one C
+# library. Sources and build trees persist under work/ so re-runs are
+# incremental; `clean` wipes them.
+[private]
+_c-lib name ver extra:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    src_dir="{{ work_dir }}/src/{{ name }}-{{ ver }}"
+    # Arch-suffixed build dir: autoconf's LIBOBJS (e.g. funopen.o in
+    # libassuan) is compiled directly by the host compiler without going
+    # through libtool. When switching arches, `make` only checks source
+    # timestamps — it does NOT detect the compiler change — so a stale
+    # x86-64 object would otherwise leak into the arm64 .a and break the
+    # cross-link with "file in wrong format". Keep src/ and src-cache/
+    # shared (source is arch-independent); only the build tree is per-arch.
+    build_dir="{{ work_dir }}/build/{{ name }}-{{ ver }}-{{ arch }}"
+    tarball="{{ src_cache }}/{{ name }}-{{ ver }}.tar.bz2"
+    mkdir -p "{{ src_cache }}" "{{ work_dir }}/src" "{{ work_dir }}/build"
+    if [[ ! -f "$tarball" ]]; then
+        echo "  - [step 1] download {{ name }}-{{ ver }}"
+        ok=0
+        for url in "{{ base_url }}/{{ name }}/{{ name }}-{{ ver }}.tar.bz2" \
+                   "{{ mirror_url }}/{{ name }}/{{ name }}-{{ ver }}.tar.bz2"; do
+            if curl -fsSL --retry 2 --retry-delay 2 --max-time 120 \
+                   "$url" -o "$tarball" 2>/dev/null; then
+                ok=1
+                break
+            fi
+        done
+        (( ok )) || { echo "error: failed to download {{ name }}-{{ ver }}" >&2; exit 1; }
+    else
+        echo "  - [step 1] {{ name }}-{{ ver }} (cached tarball)"
+    fi
+    if [[ ! -d "$src_dir" ]]; then
+        tar -xjf "$tarball" -C "{{ work_dir }}/src"
+    fi
+    mkdir -p "$build_dir"
+    ( cd "$build_dir" \
+      && "$src_dir/configure" --host="{{ triple }}" --prefix="{{ musl_prefix }}/usr" \
+             --disable-shared --enable-static --disable-doc --disable-nls \
+             {{ extra }} >/dev/null \
+      && if [[ "{{ name }}" == "libgpg-error" ]]; then
+             # libgpg-error's own gen-lock-obj.sh cannot determine the
+             # pthread_mutex_t size on a musl-cross target and emits a
+             # broken `_priv[0]` lock template (gpgrt fatal: sizeof lock
+             # obj at runtime). mkheader prefers ./lock-obj-pub.native.h
+             # in non-cross mode, so overwrite the configure-generated
+             # file with the correct `_priv[40]` template. The layout
+             # only depends on sizeof(pthread_mutex_t) == 40, which is
+             # the same on musl amd64 and arm64 (the upstream syscfg
+             # file is therefore reused for both).
+             cp "$src_dir/src/syscfg/lock-obj-pub.x86_64-unknown-linux-musl.h" \
+                "$build_dir/src/lock-obj-pub.native.h"
+         fi \
+      && make -j"$(nproc)" >/dev/null \
+      && make install >/dev/null )
+    echo "  - installed {{ name }}-{{ ver }} -> {{ musl_prefix }}/usr"
+
+# ---------------------------------------------------------------------------
+# Step 2 — go build (musl, static, gpgme linked in)
+# ---------------------------------------------------------------------------
+
+[private]
+_go-build: _c-libs
+    #!/usr/bin/env bash
+    set -euo pipefail
+    test -f "{{ musl_prefix }}/usr/lib/pkgconfig/gpgme.pc" || {
+        echo "error: gpgme.pc not found in {{ musl_prefix }}/usr/lib/pkgconfig" >&2
+        exit 1
+    }
+    GPGME_LIBS="$(PKG_CONFIG_PATH="{{ musl_prefix }}/usr/lib/pkgconfig" \
+                  pkg-config --libs --static gpgme)"
+    echo "==> [step 2] go build (musl, static, gpgme linked in)"
+    mkdir -p "{{ parent_directory(out) }}"
+    # Constraint #2: arm64 musl sysroot lacks libbtrfs-dev userspace
+    # headers (btrfs/*.h). Inject local copies from <module>/include via
+    # CGO_CFLAGS so cgo resolves them without sudo-installing libbtrfs-dev.
+    # The headers are userspace library headers (architecture-independent
+    # structure/ioctl definitions) — for amd64 gcc finds our copy before
+    # the musl sysroot's identical copy, so no behavioural difference.
+    CGO_ENABLED=1 GOOS=linux GOARCH={{ arch }} CC="{{ musl_cc }}" \
+    CGO_CFLAGS="-Os -fno-stack-protector -I/home/debi/IdeaProjects/docker-tui/scripts/musl-gpgme/include" \
+    CGO_LDFLAGS="-static $GPGME_LIBS" \
+    CGO_LDFLAGS="-static $GPGME_LIBS" \
+    CGO_LDFLAGS="-static $GPGME_LIBS" \
+    go build -trimpath \
+        -ldflags "-s -w -linkmode external -extldflags '-static' \
+                  -X internal/buildinfo.version={{ version }}" \
+        -o "{{ out }}" \
+        {{ root }}/cmd/docker-tui
+
+# ---------------------------------------------------------------------------
+# Step 3 — verify static linkage (file type + dynamic dependencies)
+# ---------------------------------------------------------------------------
+
+[private]
+_verify: _go-build
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "==> [step 3] verify: file type + dynamic linking"
+    file "{{ out }}"
+    ldd "{{ out }}" 2>&1 | head -3 || true
+    NEEDED="$(readelf -d "{{ out }}" 2>/dev/null | grep -c NEEDED || true)"
+    if [[ "$NEEDED" -ne 0 ]]; then
+        echo "FAIL: {{ out }} has $NEEDED DT_NEEDED entries (expected 0 for fully static)" >&2
+        exit 1
+    fi
+    echo "  ok: 0 dynamic dependencies (statically linked)"
+
+# ---------------------------------------------------------------------------
+# Step 4 — runtime smoke test
+# ---------------------------------------------------------------------------
+
+[private]
+_smoke: _verify
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "==> [step 4] smoke test"
+    if "{{ out }}" --version 2>&1 | head -3; then
+        echo
+        echo "build OK: {{ out }}"
+    else
+        echo
+        echo "build linked OK but smoke test FAILED at runtime." >&2
+        echo "see scripts/musl-gpgme/ISSUE-lock-obj-size.md" >&2
+        exit 2
+    fi
