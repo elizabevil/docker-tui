@@ -53,6 +53,7 @@ func TestRenderImageRegistryWrapsWithoutTruncation(t *testing.T) {
 	const registry = "docker-bkrepo.internal.example.com:5000"
 	app := &state.AppModel{}
 	app.Detail.OpenImage("image", "Image Detail", &runtimeapi.ImageDetail{ID: "image", Registry: registry})
+	app.Detail.DetailSourceType = state.DetailSourceSection
 
 	plain := component.StripANSI(RenderView(app, 12, 28))
 	joined := strings.ReplaceAll(strings.ReplaceAll(plain, "\n", ""), " ", "")
@@ -76,6 +77,7 @@ func TestRenderViewReusesDocumentWhileScrolling(t *testing.T) {
 			Environment: environment,
 		},
 	})
+	app.Detail.DetailSourceType = state.DetailSourceSection
 
 	RenderView(app, 8, 80)
 	document := app.Detail.Documents[state.DetailSourceSection]
@@ -94,7 +96,6 @@ func TestRenderViewReusesDocumentWhileScrolling(t *testing.T) {
 func TestSourceDocumentIsCachedAndNeverBlank(t *testing.T) {
 	app := &state.AppModel{}
 	app.Detail.OpenImage("image", "Image Detail", &runtimeapi.ImageDetail{ID: "image", Name: "demo"})
-	app.Detail.CycleSource()
 
 	RenderView(app, 8, 80)
 	yamlDocument := app.Detail.Documents[state.DetailSourceYAML]
@@ -115,7 +116,6 @@ func TestSourceDocumentIsCachedAndNeverBlank(t *testing.T) {
 
 	app.Detail.CycleSource()
 	RenderView(app, 8, 80)
-	app.Detail.CycleSource()
 	app.Detail.CycleSource()
 	RenderView(app, 8, 80)
 	yamlDocument = app.Detail.Documents[state.DetailSourceYAML]

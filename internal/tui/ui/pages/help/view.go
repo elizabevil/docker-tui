@@ -7,6 +7,7 @@ import (
 
 	"charm.land/lipgloss/v2"
 
+	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/action"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 
@@ -94,12 +95,12 @@ func (r *Renderer) Render(width int, app *state.AppModel) string {
 	rightSb.WriteString("\n")
 	closeKeys := "Esc"
 	for _, shortcut := range action.ForMode(app) {
-		if shortcut.Description == "Close" {
+		if shortcut.Description == "Close" || shortcut.Description == i18n.T("key.close_help") {
 			closeKeys = shortcut.Key
 			break
 		}
 	}
-	rightSb.WriteString(component.GetStyle("dim").Render("Press " + closeKeys + " to close help"))
+	rightSb.WriteString(component.GetStyle("dim").Render(i18n.T("help.press_close", closeKeys)))
 
 	leftBox := lipgloss.NewStyle().Width(leftW).Render(leftSb.String())
 	rightBox := lipgloss.NewStyle().Width(rightW).Render(rightSb.String())

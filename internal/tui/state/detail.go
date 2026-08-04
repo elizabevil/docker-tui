@@ -91,6 +91,7 @@ func (s *DetailState) OpenImage(id, title string, data *runtimeapi.ImageDetail) 
 	if data != nil {
 		s.DetailResourceType = ResourceImage
 		s.DetailRawJSON, _ = sonic.Marshal(data) //nolint:errcheck // marshalling typed structs; cannot fail in practice.
+		s.DetailSourceType = DetailSourceYAML
 	}
 }
 
@@ -150,6 +151,7 @@ func (s *DetailState) SetContainerDetail(detail *runtimeapi.ContainerDetail) {
 	s.DetailResourceType = ResourceContainer
 	if detail != nil {
 		s.DetailRawJSON, _ = sonic.Marshal(detail) //nolint:errcheck // marshalling typed structs; cannot fail in practice.
+		s.DetailSourceType = DetailSourceYAML
 	}
 	s.invalidateDocument()
 }
@@ -159,6 +161,7 @@ func (s *DetailState) SetVolumeDetail(detail *runtimeapi.VolumeDetail) {
 	s.DetailResourceType = ResourceVolume
 	if detail != nil {
 		s.DetailRawJSON, _ = sonic.Marshal(detail) //nolint:errcheck // marshalling typed structs; cannot fail in practice.
+		s.DetailSourceType = DetailSourceYAML
 	}
 	s.invalidateDocument()
 }
@@ -168,6 +171,7 @@ func (s *DetailState) SetNetworkDetail(detail *runtimeapi.NetworkDetail) {
 	s.DetailResourceType = ResourceNetwork
 	if detail != nil {
 		s.DetailRawJSON, _ = sonic.Marshal(detail) //nolint:errcheck // marshalling typed structs; cannot fail in practice.
+		s.DetailSourceType = DetailSourceYAML
 	}
 	s.invalidateDocument()
 }
@@ -180,6 +184,7 @@ func (s *DetailState) ApplyImage(id string, data *runtimeapi.ImageDetail) bool {
 	s.DetailResourceType = ResourceImage
 	if data != nil {
 		s.DetailRawJSON, _ = sonic.Marshal(data) //nolint:errcheck // marshalling typed structs; cannot fail in practice.
+		s.DetailSourceType = DetailSourceYAML
 	} else {
 		s.DetailRawJSON = nil
 	}

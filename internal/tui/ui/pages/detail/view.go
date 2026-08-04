@@ -74,7 +74,7 @@ func buildSectionDocument(m *state.AppModel) []state.DetailDocumentLine {
 		sections = buildDetailSections(content)
 	}
 	if len(sections) == 0 {
-		sections = []detailSection{{Title: "Details", Lines: []string{content}}}
+		sections = []detailSection{{Title: i18n.T("inspect.image.details"), Lines: []string{content}}}
 	}
 
 	return flattenSections(sections)
@@ -237,14 +237,14 @@ func buildDetailSections(content string) []detailSection {
 
 	lines := strings.Split(content, "\n")
 	sections := make([]detailSection, 0, 8)
-	current := detailSection{Title: "Summary", Lines: make([]string, 0, 16)}
+	current := detailSection{Title: i18n.T("inspect.image.summary"), Lines: make([]string, 0, 16)}
 
 	flush := func() {
 		if current.Title == "" && len(current.Lines) == 0 {
 			return
 		}
 		if current.Title == "" {
-			current.Title = "Summary"
+			current.Title = i18n.T("inspect.image.summary")
 		}
 		sections = append(sections, current)
 	}

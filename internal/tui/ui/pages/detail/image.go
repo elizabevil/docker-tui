@@ -36,8 +36,8 @@ func buildImageDetailDataSections(data *runtimeapi.ImageDetail) []detailSection 
 
 	system := detailSection{Title: i18n.T("inspect.section_system")}
 	appendValue(&system.Lines, i18n.T("inspect.arch"), data.Architecture)
-	appendValue(&system.Lines, "OS", data.OS)
-	appendValue(&system.Lines, "OS Version", data.OSVersion)
+	appendValue(&system.Lines, i18n.T("inspect.image.os"), data.OS)
+	appendValue(&system.Lines, i18n.T("inspect.image.os_version"), data.OSVersion)
 	appendValue(&system.Lines, i18n.T("inspect.author"), data.Author)
 	appendValue(&system.Lines, i18n.T("inspect.comment"), data.Comment)
 	if len(system.Lines) > 0 {
@@ -207,8 +207,8 @@ func buildImageDetailSections(content string) []detailSection {
 	appendKV(&sections[0], "Size", i18n.T("inspect.size"))
 
 	appendKV(&sections[1], "Architecture", i18n.T("inspect.arch"))
-	appendKV(&sections[1], "OS", "OS")
-	appendKV(&sections[1], "OS Version", "OS Version")
+	appendKV(&sections[1], "OS", i18n.T("inspect.image.os"))
+	appendKV(&sections[1], "OS Version", i18n.T("inspect.image.os_version"))
 
 	appendKV(&sections[2], "Author", i18n.T("inspect.author"))
 	appendKV(&sections[2], "Comment", i18n.T("inspect.comment"))
@@ -246,7 +246,7 @@ func buildImageDetailSections(content string) []detailSection {
 
 	sections[5].Lines = append(sections[5].Lines,
 		i18n.T("inspect.source"),
-		fmt.Sprintf("Fields parsed: %d", len(kv)),
+		i18n.T("inspect.fields_parsed", len(kv)),
 	)
 
 	if len(sections[5].Lines) == 0 {
@@ -255,7 +255,7 @@ func buildImageDetailSections(content string) []detailSection {
 
 	for i := range sections {
 		if len(sections[i].Lines) == 0 {
-			sections[i].Lines = []string{"—"}
+			sections[i].Lines = []string{i18n.T("inspect.image.empty_dash")}
 		}
 	}
 

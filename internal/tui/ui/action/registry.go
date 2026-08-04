@@ -25,13 +25,13 @@ func Global(app ...*state.AppModel) []Shortcut {
 		{bindingLabel(model, keys.ActionDown, keys.KJDown), i18n.T("key.down")},
 		{bindingLabel(model, keys.ActionUp, keys.KKUp), i18n.T("key.up")},
 		{bindingLabel(model, keys.ActionTabNext, keys.KTab), i18n.T("key.panel")},
-		{bindingLabel(model, keys.ActionEnter, keys.KEnter), "Enter"},
+		{bindingLabel(model, keys.ActionEnter, keys.KEnter), i18n.T("key.sym_enter")},
 		{bindingLabel(model, keys.ActionBack, keys.KEsc), i18n.T("key.back")},
 		{bindingLabel(model, keys.ActionFilter, keys.KeySlash), i18n.T("key.filter")},
-		{bindingLabel(model, keys.ActionRefresh, keys.KeyR), "Refresh"},
-		{bindingLabel(model, keys.ActionCommand, ":"), "Command"},
-		{bindingLabel(model, keys.ActionActionBar, keys.KeySemicolon), "Action Bar"},
-		{bindingLabel(model, keys.ActionSwitchRuntime, keys.KeyF2), "Runtime"},
+		{bindingLabel(model, keys.ActionRefresh, keys.KeyR), i18n.T("key.refresh")},
+		{bindingLabel(model, keys.ActionCommand, ":"), i18n.T("key.command")},
+		{bindingLabel(model, keys.ActionActionBar, keys.KeySemicolon), i18n.T("key.action_bar")},
+		{bindingLabel(model, keys.ActionSwitchRuntime, keys.KeyF2), i18n.T("key.runtime")},
 		{bindingLabel(model, keys.ActionEvents, keys.KeyF3), i18n.T("events.title")},
 		{bindingLabel(model, keys.ActionHelp, keys.KeyQmark), i18n.T("key.help")},
 		{keys.KeyCUpper, i18n.T("key.connect")},
@@ -44,19 +44,19 @@ func ForMode(app *state.AppModel) []Shortcut {
 	}
 	switch app.Navigation.Mode {
 	case state.ModeFilter:
-		return shortcuts("Enter", "Keep", "Esc Esc", "Clear & exit", "Ctrl+A/E", "Home/End", "Ctrl+W/U/K", "Edit")
+		return shortcuts("Enter", i18n.T("key.keep"), "Esc Esc", i18n.T("key.clear_exit"), "Ctrl+A/E", i18n.T("key.home_end"), "Ctrl+W/U/K", i18n.T("key.edit"))
 	case state.ModeSearch:
-		return shortcuts("Enter", "Search", "Esc", "Cancel", "Ctrl+A/E", "Home/End", "Ctrl+W/U/K", "Edit")
+		return shortcuts("Enter", i18n.T("key.search"), "Esc", i18n.T("key.cancel"), "Ctrl+A/E", i18n.T("key.home_end"), "Ctrl+W/U/K", i18n.T("key.edit"))
 	case state.ModeImagePull:
-		return shortcuts("Enter", "Pull", "Esc", "Cancel", "Ctrl+A/E", "Home/End", "Ctrl+W/U/K", "Edit")
+		return shortcuts("Enter", i18n.T("key.pull"), "Esc", i18n.T("key.cancel"), "Ctrl+A/E", i18n.T("key.home_end"), "Ctrl+W/U/K", i18n.T("key.edit"))
 	case state.ModeImageWorkflow:
-		return shortcuts("Enter", "Start", "Esc", "Cancel", "Ctrl+A/E", "Home/End", "Ctrl+W/U/K", "Edit")
+		return shortcuts("Enter", i18n.T("key.image_start"), "Esc", i18n.T("key.cancel"), "Ctrl+A/E", i18n.T("key.home_end"), "Ctrl+W/U/K", i18n.T("key.edit"))
 	case state.ModeImageTransfer:
-		return shortcuts("Esc", "Cancel")
+		return shortcuts("Esc", i18n.T("key.cancel"))
 	case state.ModeCommand:
-		return shortcuts("Enter", "Run", "Tab", "Complete", "Esc", "Exit", "Ctrl+A/E", "Home/End", "Ctrl+W/U/K", "Edit")
+		return shortcuts("Enter", i18n.T("key.run"), "Tab", i18n.T("key.complete"), "Esc", i18n.T("key.exit"), "Ctrl+A/E", i18n.T("key.home_end"), "Ctrl+W/U/K", i18n.T("key.edit"))
 	case state.ModeActionBar:
-		return shortcuts("j/k", "Move", "Enter", "Run", "/", "Filter", "1-9", "Jump", "Esc", "Close")
+		return shortcuts("j/k", i18n.T("key.move"), "Enter", i18n.T("key.run"), "/", i18n.T("key.filter"), "1-9", i18n.T("key.jump"), "Esc", i18n.T("key.close"))
 	case state.ModeHistory:
 		if app.History.Filtering {
 			return shortcuts("Enter/Esc", i18n.T("history.filter_done"), "Backspace", i18n.T("history.filter_delete"))
@@ -69,30 +69,30 @@ func ForMode(app *state.AppModel) []Shortcut {
 		return shortcuts("Esc", i18n.T("key.back"), "j/k", i18n.T("key.scroll"), "PgUp/Dn", i18n.T("history.page"), "Space", i18n.T("events.pause"), "/", i18n.T("key.filter"), "Ctrl+D", i18n.T("events.clear"))
 	case state.ModeMark:
 		return []Shortcut{
-			{bindingLabel(app, keys.ActionBack, keys.KEsc), "Cancel"},
-			{fmt.Sprintf("Space/%s", bindingLabel(app, keys.ActionEnter, keys.KEnter)), "Toggle"},
-			{bindingLabel(app, removeAction(app.Navigation.ActivePanel), keys.KCtrlD), "Delete marked"},
+			{bindingLabel(app, keys.ActionBack, keys.KEsc), i18n.T("key.cancel")},
+			{fmt.Sprintf("Space/%s", bindingLabel(app, keys.ActionEnter, keys.KEnter)), i18n.T("key.toggle_mark")},
+			{bindingLabel(app, removeAction(app.Navigation.ActivePanel), keys.KCtrlD), i18n.T("key.delete_marked")},
 		}
 	case state.ModeConfirm:
-		return shortcuts("Tab", "Switch", "Enter", "Confirm", "Esc", "Cancel")
+		return shortcuts("Tab", i18n.T("key.tab_switch"), "Enter", i18n.T("key.confirm"), "Esc", i18n.T("key.cancel"))
 	case state.ModeLogView:
-		return shortcuts(bindingLabel(app, keys.ActionBack, keys.KEsc), "Back", navigationLabel(app), "Scroll", "PgUp/Dn", "Page", "g/Ctrl+G", "Top/Bot", "n/Ctrl+N", "Match", "w", "Wrap")
+		return shortcuts(bindingLabel(app, keys.ActionBack, keys.KEsc), i18n.T("key.back"), navigationLabel(app), i18n.T("key.scroll"), "PgUp/Dn", i18n.T("key.page_down"), "g/Ctrl+G", i18n.T("key.top_bot"), "n/Ctrl+N", i18n.T("key.match"), "w", i18n.T("key.wrap"))
 	case state.ModeDetail:
-		result := shortcuts(bindingLabel(app, keys.ActionBack, keys.KEsc)+"/"+bindingLabel(app, keys.ActionEnter, keys.KEnter), "Back", navigationLabel(app), "Scroll", "Space/PgDn", "Page", "PgUp", "Page up", "g", "Top")
+		result := shortcuts(bindingLabel(app, keys.ActionBack, keys.KEsc)+"/"+bindingLabel(app, keys.ActionEnter, keys.KEnter), i18n.T("key.back"), navigationLabel(app), i18n.T("key.scroll"), "Space/PgDn", i18n.T("key.page_down"), "PgUp", i18n.T("key.page_up"), "g", i18n.T("key.detail_top"))
 		if app.Detail.HasRawSource() {
-			result = append(result, Shortcut{Key: keys.KeyS, Description: i18n.T("key.source")})
+			result = append(result, Shortcut{Key: keys.KeyS, Description: i18n.T("key.switch")})
 		}
 		return result
 	case state.ModeTop:
-		return shortcuts("Esc", "Back", "j/k", "Move", "r", "Refresh")
+		return shortcuts("Esc", i18n.T("key.back"), "j/k", i18n.T("key.move"), "r", i18n.T("key.refresh_short"))
 	case state.ModeAuditDetail:
-		return shortcuts("Esc/Enter", "Back")
+		return shortcuts("Esc/Enter", i18n.T("key.back"))
 	case state.ModeRename:
-		return shortcuts("Enter", "Rename", "Esc", "Cancel")
+		return shortcuts("Enter", i18n.T("key.rename"), "Esc", i18n.T("key.cancel"))
 	case state.ModeResourceCreate:
-		return shortcuts("Enter", i18n.T("key.create"), "Esc", "Cancel")
+		return shortcuts("Enter", i18n.T("key.create"), "Esc", i18n.T("key.cancel"))
 	case state.ModeHelp:
-		return shortcuts(bindingLabel(app, keys.ActionHelp, keys.KeyQmark)+"/"+bindingLabel(app, keys.ActionBack, keys.KEsc), "Close")
+		return shortcuts(bindingLabel(app, keys.ActionHelp, keys.KeyQmark)+"/"+bindingLabel(app, keys.ActionBack, keys.KEsc), i18n.T("key.close_help"))
 	default:
 		return nil
 	}
@@ -164,7 +164,7 @@ func ForPanel(panel state.PanelType, marked int, app ...*state.AppModel) []Short
 			{bindingLabel(model, keys.ActionContainerLogs, keys.KeyL), i18n.T("key.logs")},
 			{bindingLabel(model, keys.ActionDetail, keys.KeyD), i18n.T("key.detail")},
 			{bindingLabel(model, keys.ActionContainerExec, keys.KeyE), i18n.T("key.exec")},
-			{bindingLabel(model, keys.ActionContainerInspect, keys.KeyI), "Inspect"},
+			{bindingLabel(model, keys.ActionContainerInspect, keys.KeyI), i18n.T("key.inspect")},
 			{bindingLabel(model, keys.ActionContainerStats, keys.KeyM), i18n.T("key.stats")},
 			{bindingLabel(model, keys.ActionContainerPause, keys.KeyP), pauseLabel(model)},
 			{bindingLabel(model, keys.ActionContainerRemove, keys.KCtrlD), i18n.T("key.delete")},
@@ -210,7 +210,7 @@ func ForPanel(panel state.PanelType, marked int, app ...*state.AppModel) []Short
 		}
 	case state.PanelAudit:
 		return []Shortcut{
-			{keys.KEnter, "Detail"}, {keys.KeyE, "Filter level"},
+			{keys.KEnter, i18n.T("key.audit_detail")}, {keys.KeyE, i18n.T("key.filter_level")},
 			{keys.KeySlash, i18n.T("key.filter")},
 		}
 	default:
@@ -244,12 +244,12 @@ func pauseLabel(model *state.AppModel) string {
 func Sections(app ...*state.AppModel) []Section {
 	model := firstModel(app)
 	imageShortcuts := ForPanel(state.PanelImages, 0, model)
-	imageShortcuts = append(imageShortcuts, Shortcut{Key: "Action Bar", Description: i18n.T("history.title")})
+	imageShortcuts = append(imageShortcuts, Shortcut{Key: i18n.T("key.action_bar"), Description: i18n.T("history.title")})
 	return []Section{
 		{Title: i18n.T("help.global"), Shortcuts: Global(model)},
 		{Title: i18n.T("help.containers"), Shortcuts: ForPanel(state.PanelContainers, 0, model)},
 		{Title: i18n.T("help.images"), Shortcuts: imageShortcuts},
-		{Title: "Compose", Shortcuts: ForPanel(state.PanelCompose, 0, model)},
+		{Title: i18n.T("compose.title"), Shortcuts: ForPanel(state.PanelCompose, 0, model)},
 		{Title: i18n.T("help.volumes_networks"), Shortcuts: ForPanel(state.PanelVolumes, 0, model)},
 	}
 }

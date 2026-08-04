@@ -86,9 +86,9 @@ func RenderPanel(m *state.AppModel, panelWidth int, panelHeight int) string {
 	ordered = filterProjects(ordered, m.Compose.ComposeProjectFilter)
 	if len(ordered) == 0 {
 		if m.Compose.ComposeProjectFilter != "" {
-			return component.GetStyle("dim").Render("(no compose projects match filter)")
+			return component.GetStyle("dim").Render(i18n.T("compose.empty_projects_filter"))
 		}
-		return component.GetStyle("dim").Render("(no compose projects found)")
+		return component.GetStyle("dim").Render(i18n.T("compose.empty_projects"))
 	}
 	projectCursor := m.Compose.ProjectCursor(len(ordered))
 
@@ -201,7 +201,7 @@ func renderProjectList(m *state.AppModel, ordered []composeProj, w, panelHeight 
 		BodyHeight: panelHeight,
 		Banner:     banner,
 		BannerW:    bannerW,
-		FooterHint: fmt.Sprintf("%d projects", total),
+		FooterHint: i18n.T("compose.footer_projects", total),
 		ColStyles:  colStyles,
 	})
 }
@@ -215,7 +215,7 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 		sts = state.ContainerStateStopped
 	}
 	rawTitle := state.PanelLabel(state.PanelCompose) + " > " + proj.name + " > " + i18n.T("key.services")
-	rawSummary := fmt.Sprintf("Status: %s  Services: %d  Pods: %d", sts, len(proj.svcs), proj.total)
+	rawSummary := i18n.T("compose.summary", sts, len(proj.svcs), proj.total)
 	title := component.GetStyle("panelTitle").Render(component.TruncateVisible(rawTitle, w))
 	summary := component.GetStyle("dim").Render(component.TruncateVisible(rawSummary, w))
 
@@ -228,9 +228,9 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 	}
 	sort.Strings(svcNames)
 	if len(svcNames) == 0 {
-		msg := "(no services found)"
+		msg := i18n.T("compose.empty_services")
 		if m.Compose.ComposeServiceFilter != "" {
-			msg = "(no services match filter)"
+			msg = i18n.T("compose.empty_services_filter")
 		}
 		return lipgloss.JoinVertical(lipgloss.Top,
 			title,
@@ -272,7 +272,7 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 		Limit:      rowHeight,
 		BodyHeight: panelHeight - 3,
 		BannerW:    bannerW,
-		FooterHint: "s:start S:stop l:logs",
+		FooterHint: i18n.T("compose.footer_hint"),
 		ColStyles:  colStyles,
 	})
 
@@ -289,7 +289,7 @@ func RenderProjectDetailTable(m *state.AppModel, width, panelHeight int) string 
 	ordered, _ := gatherComposeProjects(m)
 	ordered = filterProjects(ordered, m.Compose.ComposeProjectFilter)
 	if len(ordered) == 0 {
-		return component.GetStyle("dim").Render("(no compose project data)")
+		return component.GetStyle("dim").Render(i18n.T("compose.empty_detail"))
 	}
 	proj := ordered[m.Compose.ProjectCursor(len(ordered))]
 	svcNames := make([]string, 0, len(proj.svcs))
@@ -298,13 +298,13 @@ func RenderProjectDetailTable(m *state.AppModel, width, panelHeight int) string 
 	}
 	sort.Strings(svcNames)
 	if len(svcNames) == 0 {
-		return component.GetStyle("dim").Render("(no services found)")
+		return component.GetStyle("dim").Render(i18n.T("compose.empty_services"))
 	}
 
 	w := max(40, width-4)
 	colsDef := tc.Columns.Get("detail")
 	if len(colsDef) == 0 {
-		return component.GetStyle("dim").Render("(compose detail columns unavailable)")
+		return component.GetStyle("dim").Render(i18n.T("compose.empty_detail_columns"))
 	}
 	rowHeight := component.CalcTableRowHeight(panelHeight, false)
 	offset := m.Detail.ClampVisibleOffset(len(svcNames), rowHeight)
@@ -341,7 +341,7 @@ func RenderProjectDetailTable(m *state.AppModel, width, panelHeight int) string 
 		Offset:     offset,
 		Limit:      rowHeight,
 		BannerW:    w,
-		FooterHint: fmt.Sprintf("%d/%d running \u2502 %d services", proj.running, proj.total, len(proj.svcs)),
+		FooterHint: i18n.T("compose.detail_footer", proj.running, proj.total, len(proj.svcs)),
 		ColStyles:  component.GetColumnStyles(colsDef),
 	})
 }
@@ -350,7 +350,7 @@ func RenderProjectDetailTable(m *state.AppModel, width, panelHeight int) string 
 func renderComposeContainers(m *state.AppModel, panelWidth int, panelHeight int) string {
 	colsDef := tc.Columns.Get("pods_sub")
 	if len(colsDef) == 0 {
-		return component.GetStyle("dim").Render("(no container data)")
+		return component.GetStyle("dim").Render(i18n.T("compose.empty_container_columns"))
 	}
 
 	// 收集该服务的容器
@@ -365,7 +365,7 @@ func renderComposeContainers(m *state.AppModel, panelWidth int, panelHeight int)
 
 	total := len(matched)
 	if total == 0 {
-		return component.GetStyle("dim").Render("(no containers for " + service + ")")
+		return component.GetStyle("dim").Render(i18n.T("compose.empty_containers_for", service))
 	}
 
 	rowHeight := component.CalcRowHeight(panelHeight - 2) // title + breadcrumb
@@ -406,7 +406,7 @@ func renderComposeContainers(m *state.AppModel, panelWidth int, panelHeight int)
 			BodyHeight: panelHeight - 2,
 			BannerW:    tableBannerWidth(panelWidth),
 			ColStyles:  component.GetColumnStyles(colsDef),
-			FooterHint: "Esc back  |  l:logs  d:detail",
+			FooterHint: i18n.T("compose.footer_hint_containers"),
 		}),
 		"",
 		bc,
