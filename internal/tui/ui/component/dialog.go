@@ -25,7 +25,7 @@ func RenderShellDialogBox(shell string, termW int, overlayColor string, cursorVi
 		cursor = " "
 	}
 	inner := lipgloss.JoinVertical(lipgloss.Top,
-		lipgloss.NewStyle().Foreground(style.Color(constants.ColorYellow)).Render("Enter container shell"),
+		lipgloss.NewStyle().Foreground(style.Color(constants.ColorWarning)).Render("Enter container shell"),
 		"",
 		lipgloss.NewStyle().Faint(true).Render("  Shell: "+shell+cursor),
 		"",
@@ -33,7 +33,7 @@ func RenderShellDialogBox(shell string, termW int, overlayColor string, cursorVi
 	)
 	dialog := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		Foreground(style.Color(constants.ColorYellow)).
+		Foreground(style.Color(constants.ColorWarning)).
 		Background(style.Color(overlayColor)).
 		Padding(1, 2).
 		Width(dialogW).
@@ -52,7 +52,7 @@ func RenderTextInputBox(title, value string, cursor, termW int, overlayColor str
 	input := string(runes[:cursor]) + mark + string(runes[cursor:])
 	dialogW := min(60, max(40, termW*25/100))
 	inner := lipgloss.JoinVertical(lipgloss.Top,
-		lipgloss.NewStyle().Foreground(style.Color(constants.ColorCyan)).Render(title),
+		lipgloss.NewStyle().Foreground(style.Color(constants.ColorPrimary)).Render(title),
 		"",
 		lipgloss.NewStyle().Render(input),
 		"",
@@ -69,7 +69,7 @@ func RenderProgressDialogBox(title, target, status string, current, total int64,
 		progress = fmt.Sprintf("%s  %d bytes", status, current)
 	}
 	inner := lipgloss.JoinVertical(lipgloss.Top,
-		lipgloss.NewStyle().Foreground(style.Color(constants.ColorCyan)).Render(title),
+		lipgloss.NewStyle().Foreground(style.Color(constants.ColorPrimary)).Render(title),
 		"", target, "", progress, "",
 		lipgloss.NewStyle().Faint(true).Render("[Esc] "+i18n.T("key.cancel")),
 	)

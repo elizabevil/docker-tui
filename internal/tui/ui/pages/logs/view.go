@@ -8,6 +8,7 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
+	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 )
 
 // RenderView renders the log streaming view with search highlight and word wrap.
@@ -113,7 +114,7 @@ func renderLogPanel(header string, bodyLines []string, footer string, bodyHeight
 	if len(bodyLines) > bodyHeight {
 		bodyLines = bodyLines[:bodyHeight]
 	}
-	body := lipgloss.NewStyle().Height(bodyHeight).MaxHeight(bodyHeight).Render(strings.Join(bodyLines, "\n"))
+	body := lipgloss.NewStyle().Height(bodyHeight).MaxHeight(bodyHeight).Background(style.Colors.BG).Render(strings.Join(bodyLines, "\n"))
 	return lipgloss.JoinVertical(lipgloss.Top, header, body, footer)
 }
 

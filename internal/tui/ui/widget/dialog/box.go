@@ -4,6 +4,7 @@ import (
 	"image/color"
 	"strings"
 
+	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 	sty "github.com/elizabevil/docker-tui/internal/tui/ui/style"
 
 	"charm.land/lipgloss/v2"
@@ -26,7 +27,7 @@ func DialogBox(style DialogStyle, parts ...string) string {
 	}
 	titleColor := style.TitleColor
 	if titleColor == nil {
-		titleColor = sty.Colors.Cyan
+		titleColor = sty.Colors.Primary
 	}
 
 	inner := lipgloss.JoinVertical(lipgloss.Top, parts...)
@@ -36,8 +37,9 @@ func DialogBox(style DialogStyle, parts ...string) string {
 		Foreground(titleColor).
 		Padding(1, 2).
 		Width(style.Width)
-	if background := opaqueDialogColor(style.OverlayColor); background != "" {
-		s = s.Background(lipgloss.Color(background))
+	bodyBg := component.GetStyle("dialogBodyBackground").GetBackground()
+	if bodyBg != nil {
+		s = s.Background(bodyBg)
 	}
 
 	if style.Height > 0 {

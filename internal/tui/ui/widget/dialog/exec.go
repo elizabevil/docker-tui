@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 
 	"charm.land/lipgloss/v2"
 
@@ -43,9 +42,9 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg dialogConfig, bodyW,
 	var optionBtns []string
 	for i, opt := range execShellOptions {
 		if m.Dialog.Focus == i {
-			optionBtns = append(optionBtns, lipgloss.NewStyle().Foreground(style.Colors.Green).Bold(true).Render("\u25b6 "+opt))
+			optionBtns = append(optionBtns, lipgloss.NewStyle().Foreground(component.GetStyle("dialogConfirm").GetForeground()).Bold(true).Render("\u25b6 "+opt))
 		} else {
-			optionBtns = append(optionBtns, lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(opt))
+			optionBtns = append(optionBtns, lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(opt))
 		}
 	}
 	optionsRow := lipgloss.NewStyle().Width(dialogW - 4).Align(lipgloss.Center).Render(
@@ -79,14 +78,14 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg dialogConfig, bodyW,
 	var confirmBtn, cancelBtn string
 	switch {
 	case m.Dialog.Focus == 4:
-		confirmBtn = lipgloss.NewStyle().Foreground(style.Colors.Green).Bold(true).Render(enterKey + " \u25b6 " + confirmLabel)
-		cancelBtn = lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(escKey + " " + cancelLabel)
+		confirmBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dialogConfirm").GetForeground()).Bold(true).Render(enterKey + " \u25b6 " + confirmLabel)
+		cancelBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(escKey + " " + cancelLabel)
 	case m.Dialog.Focus == 5:
-		confirmBtn = lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(enterKey + " " + confirmLabel)
-		cancelBtn = lipgloss.NewStyle().Foreground(style.Colors.Green).Bold(true).Render(escKey + " \u25b6 " + cancelLabel)
+		confirmBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(enterKey + " " + confirmLabel)
+		cancelBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dialogConfirm").GetForeground()).Bold(true).Render(escKey + " \u25b6 " + cancelLabel)
 	default:
-		confirmBtn = lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(enterKey + " " + confirmLabel)
-		cancelBtn = lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(escKey + " " + cancelLabel)
+		confirmBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(enterKey + " " + confirmLabel)
+		cancelBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(escKey + " " + cancelLabel)
 	}
 	buttons := lipgloss.NewStyle().Width(dialogW - 4).Align(lipgloss.Center).Render(
 		confirmBtn + "   " + cancelBtn,
@@ -106,7 +105,7 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg dialogConfig, bodyW,
 	parts = append(parts, "")
 	parts = append(parts, component.GetStyle("dim").Render(hint))
 
-	return DialogBox(DialogStyle{Width: dialogW, Height: dialogH, TitleColor: style.Colors.Green, OverlayColor: overlayColor}, parts...)
+	return DialogBox(DialogStyle{Width: dialogW, Height: dialogH, TitleColor: component.GetStyle("dialogConfirm").GetForeground(), OverlayColor: overlayColor}, parts...)
 }
 
 // execFocusInput is the focus position for the custom input field.

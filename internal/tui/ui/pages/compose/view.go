@@ -147,9 +147,9 @@ func RenderPanel(m *state.AppModel, panelWidth int, panelHeight int) string {
 	sep := component.GetStyle("panelTitle").Render("\u2502")
 
 	return lipgloss.JoinHorizontal(lipgloss.Top,
-		lipgloss.NewStyle().Width(leftW).Render(left),
-		lipgloss.NewStyle().Width(1).Render(sep),
-		lipgloss.NewStyle().Width(rightW).Render(right),
+		lipgloss.NewStyle().Width(leftW).Background(style.Colors.BG).Render(left),
+		lipgloss.NewStyle().Width(1).Background(style.Colors.BG).Render(sep),
+		lipgloss.NewStyle().Width(rightW).Background(style.Colors.BG).Render(right),
 	)
 }
 

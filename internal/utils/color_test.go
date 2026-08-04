@@ -32,9 +32,9 @@ func TestParseColorCommonFormats(t *testing.T) {
 func TestParseColorPaletteAndANSI(t *testing.T) {
 	// Palette names only resolve once registered (the style package registers
 	// them at startup; tests register the names they exercise here).
-	SetPaletteColor(constants.ColorWhite, color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff})
-	SetPaletteColor(constants.ColorGrey, color.NRGBA{R: 0x80, G: 0x80, B: 0x80, A: 0xff})
-	for _, input := range []string{"white", " WHITE ", "grey", "63", "255"} {
+	SetPaletteColor(constants.ColorForeground, color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff})
+	SetPaletteColor(constants.ColorForegroundMuted, color.NRGBA{R: 0x80, G: 0x80, B: 0x80, A: 0xff})
+	for _, input := range []string{"foreground", " FOREGROUND ", "foregroundMuted", "63", "255"} {
 		if parsed, ok := ParseColor(input); !ok || parsed == nil {
 			t.Errorf("ParseColor(%q) failed", input)
 		}

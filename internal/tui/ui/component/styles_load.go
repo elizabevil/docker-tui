@@ -25,6 +25,7 @@ type globalStyleRefs struct {
 	DialogBody           styleRef `json:"dialogBody"`
 	DialogOption         styleRef `json:"dialogOption"`
 	DialogOptionDisabled styleRef `json:"dialogOptionDisabled"`
+	DialogBodyBackground styleRef `json:"dialogBodyBackground"`
 	PanelTitle           styleRef `json:"panelTitle"`
 	Dim                  styleRef `json:"dim"`
 	HelpKey              styleRef `json:"helpKey"`
@@ -44,7 +45,11 @@ type globalStyleRefs struct {
 	KeyBadge             styleRef `json:"keyBadge"`
 	KeyLast              styleRef `json:"keyLast"`
 	Footer               styleRef `json:"footer"`
+	ShortcutBar          styleRef `json:"shortcutBar"`
 	SelectedRow          styleRef `json:"selectedRow"`
+	DialogConfirm        styleRef `json:"dialogConfirm"`
+	DialogError          styleRef `json:"dialogError"`
+	DialogWarning        styleRef `json:"dialogWarning"`
 }
 
 // styleRef 定义 JSONC 中单一样式条目的属性。
@@ -105,6 +110,7 @@ func ApplyThemeStyles(theme *config.Theme) {
 	rawStyles.HintSeparator.Color = resolve(theme.Footer.Separator)
 	rawStyles.DialogTitle.Color = resolve(theme.Dialog.Title)
 	rawStyles.DialogBody.Color = resolve(theme.Dialog.Body)
+	rawStyles.DialogBodyBackground = styleRef{Background: resolve(theme.Dialog.BodyBackground)}
 	rawStyles.DialogOption.Color = resolve(theme.Dialog.OptionActive)
 	rawStyles.DialogOptionDisabled.Color = resolve(theme.Dialog.OptionInactive)
 	rawStyles.PanelTitle.Color = resolve(theme.Main.Title)
@@ -126,7 +132,11 @@ func ApplyThemeStyles(theme *config.Theme) {
 	rawStyles.KeyBadge = styleRef{Color: resolve(theme.Header.Value), Bold: true}
 	rawStyles.KeyLast = styleRef{Color: resolve(theme.Text.Dim)}
 	rawStyles.Footer = styleRef{Color: resolve(theme.Main.Footer)}
+	rawStyles.ShortcutBar = styleRef{Background: resolve(theme.Footer.ShortcutBackground)}
 	rawStyles.SelectedRow = styleRef{Color: resolve(theme.Main.RowText), Background: resolve(theme.Main.RowSelected), Bold: true}
+	rawStyles.DialogConfirm = styleRef{Color: resolve(theme.Text.Success), Background: resolve(theme.Toast.Background), Bold: true}
+	rawStyles.DialogError = styleRef{Color: resolve(theme.Text.Error), Background: resolve(theme.Toast.Background)}
+	rawStyles.DialogWarning = styleRef{Color: resolve(theme.Text.Warning), Background: resolve(theme.Toast.Background)}
 
 	tableCfg.RowStyles.Selected.Color = resolve(theme.Main.RowText)
 	tableCfg.RowStyles.Selected.Background = resolve(theme.Main.RowSelected)
@@ -211,6 +221,8 @@ func (s globalStyleRefs) lookup(name string) (styleRef, bool) {
 		return s.DialogTitle, true
 	case "dialogBody":
 		return s.DialogBody, true
+	case "dialogBodyBackground":
+		return s.DialogBodyBackground, true
 	case "dialogOption":
 		return s.DialogOption, true
 	case "dialogOptionDisabled":
@@ -253,8 +265,16 @@ func (s globalStyleRefs) lookup(name string) (styleRef, bool) {
 		return s.KeyLast, true
 	case "footer":
 		return s.Footer, true
+	case "shortcutBar":
+		return s.ShortcutBar, true
 	case "selectedRow":
 		return s.SelectedRow, true
+	case "dialogConfirm":
+		return s.DialogConfirm, true
+	case "dialogError":
+		return s.DialogError, true
+	case "dialogWarning":
+		return s.DialogWarning, true
 	default:
 		return styleRef{}, false
 	}

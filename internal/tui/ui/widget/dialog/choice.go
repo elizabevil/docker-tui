@@ -7,7 +7,6 @@ import (
 	"charm.land/lipgloss/v2"
 
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 )
 
 type ChoiceOption struct {
@@ -19,7 +18,7 @@ type ChoiceOption struct {
 func ChoiceDialog(title, body string, options []ChoiceOption, focus, termW, termH int, titleColor color.Color, overlayColor string, cfg dialogConfig) string {
 	dialogW, dialogH := choiceDialogSize(termW, termH, cfg)
 	if titleColor == nil {
-		titleColor = style.Colors.Cyan
+		titleColor = component.GetStyle("panelTitle").GetForeground()
 	}
 	innerW := max(1, dialogW-6)
 	body = lipgloss.NewStyle().Width(innerW).Render(body)
@@ -30,7 +29,7 @@ func ChoiceDialog(title, body string, options []ChoiceOption, focus, termW, term
 		if option.Description != "" {
 			label += "  " + option.Description
 		}
-		optionStyle := lipgloss.NewStyle().Foreground(style.Colors.Gray)
+		optionStyle := lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground())
 		if option.Disabled {
 			optionStyle = optionStyle.Faint(true)
 		} else if i == focus {

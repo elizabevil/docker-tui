@@ -72,7 +72,7 @@ appearance:
   overrides:
     dialog:
       border:
-        token: cyan
+        token: primary
 `)
 	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
@@ -94,11 +94,11 @@ appearance:
 	if resolved.App.Runtime.Health.IntervalSec != 5 || resolved.App.Runtime.Health.TimeoutSec != 2 {
 		t.Fatalf("nested patch lost defaults: %#v", resolved.App.Runtime.Health)
 	}
-	if resolved.ThemeName != ThemeName("nord") || resolved.Theme.Dialog.Border != TokenRef(ColorTokenCyan) {
+	if resolved.ThemeName != ThemeName("nord") || resolved.Theme.Dialog.Border != TokenRef(ColorTokenPrimary) {
 		t.Fatalf("theme cascade failed: name=%q dialog=%#v", resolved.ThemeName, resolved.Theme.Dialog)
 	}
-	if resolved.Theme.Palette.Cyan != "#81a1c1" {
-		t.Fatalf("selected theme palette not applied: %q", resolved.Theme.Palette.Cyan)
+	if resolved.Theme.Palette.Primary != "#81a1c1" {
+		t.Fatalf("selected theme palette not applied: %q", resolved.Theme.Palette.Primary)
 	}
 }
 
@@ -110,7 +110,7 @@ appearance:
   overrides:
     dialog:
       border:
-        token: purple
+        token: accentSecondary
 `)
 	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
@@ -122,7 +122,7 @@ appearance:
 	if resolved.ThemeName != "nord" || resolved.Theme.Palette.Background != "#242933" {
 		t.Fatalf("CLI theme did not select nord: %#v", resolved.Theme.Palette)
 	}
-	if resolved.Theme.Dialog.Border != TokenRef(ColorTokenPurple) {
+	if resolved.Theme.Dialog.Border != TokenRef(ColorTokenAccentSecondary) {
 		t.Fatalf("user property override did not remain highest: %q", resolved.Theme.Dialog.Border)
 	}
 }
@@ -167,7 +167,7 @@ func TestLoadResolvedRejectsUnknownThemeScope(t *testing.T) {
 
 func TestThemePatchRejectsStringColorReference(t *testing.T) {
 	var patch ThemePatch
-	err := decodeJSONCStrict([]byte(`{"dialog":{"border":"cyan"}}`), &patch)
+	err := decodeJSONCStrict([]byte(`{"dialog":{"border":"primary"}}`), &patch)
 	if err == nil {
 		t.Fatal("expected string color reference to be rejected")
 	}

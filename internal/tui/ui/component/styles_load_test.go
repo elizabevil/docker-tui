@@ -17,29 +17,30 @@ func TestApplyThemeStylesProjectsFixedScopes(t *testing.T) {
 	}()
 
 	theme := config.DefaultTheme()
-	theme.Header.Label = config.TokenRef(config.ColorTokenPurple)
-	theme.Dialog.Title = config.TokenRef(config.ColorTokenOrange)
-	theme.Toast.Success = config.TokenRef(config.ColorTokenCyan)
-	theme.Main.RowSelected = config.TokenRef(config.ColorTokenSurface)
-	theme.SafeFallback.Normal = config.TokenRef(config.ColorTokenWhite)
-	theme.SafeFallback.Accent = config.TokenRef(config.ColorTokenCyan)
-	theme.SafeFallback.Error = config.TokenRef(config.ColorTokenRed)
+	theme.Header.Label = config.TokenRef(config.ColorTokenAccentSecondary)
+	theme.Dialog.Title = config.TokenRef(config.ColorTokenAccent)
+	theme.Toast.Success = config.TokenRef(config.ColorTokenPrimary)
+	theme.Main.RowSelected = config.TokenRef(config.ColorTokenBackgroundDeep)
+	theme.SafeFallback.Normal = config.TokenRef(config.ColorTokenForeground)
+	theme.SafeFallback.Accent = config.TokenRef(config.ColorTokenPrimary)
+	theme.SafeFallback.Error = config.TokenRef(config.ColorTokenDanger)
 	theme.Table.MarkedBackground = config.ValueRef(config.FallbackColorTableMarkedBackground)
 	theme.Table.NameForeground = config.ValueRef(config.FallbackColorTableNameForeground)
 	theme.Table.ColumnForeground = config.ValueRef(config.FallbackColorTableColumnForeground)
+	theme.Footer.ShortcutBackground = config.TokenRef(config.ColorTokenBackgroundDeep)
 
 	ApplyThemeStyles(theme)
 
-	if rawStyles.HeaderLabel.Color != string(config.FallbackColorPurple) {
+	if rawStyles.HeaderLabel.Color != string(config.FallbackColorAccentSecondary) {
 		t.Fatalf("header label = %q", rawStyles.HeaderLabel.Color)
 	}
-	if rawStyles.DialogTitle.Color != string(config.FallbackColorOrange) {
+	if rawStyles.DialogTitle.Color != string(config.FallbackColorAccent) {
 		t.Fatalf("dialog title = %q", rawStyles.DialogTitle.Color)
 	}
-	if rawStyles.ToastSuccess.Color != string(config.FallbackColorCyan) {
+	if rawStyles.ToastSuccess.Color != string(config.FallbackColorPrimary) {
 		t.Fatalf("toast success = %q", rawStyles.ToastSuccess.Color)
 	}
-	if tableCfg.RowStyles.Selected.Background != string(config.FallbackColorSurface) {
+	if tableCfg.RowStyles.Selected.Background != string(config.FallbackColorBackgroundDeep) {
 		t.Fatalf("selected row background = %q", tableCfg.RowStyles.Selected.Background)
 	}
 	if tableCfg.RowStyles.Marked.Background != string(config.FallbackColorTableMarkedBackground) {
@@ -47,6 +48,12 @@ func TestApplyThemeStylesProjectsFixedScopes(t *testing.T) {
 	}
 	if tableCfg.ColumnStyles.Name.Color != string(config.FallbackColorTableNameForeground) {
 		t.Fatalf("name column foreground = %q, want %q", tableCfg.ColumnStyles.Name.Color, config.FallbackColorTableNameForeground)
+	}
+	if rawStyles.ShortcutBar.Background != string(config.FallbackColorBackgroundDeep) {
+		t.Fatalf("shortcut bar background = %q, want %q", rawStyles.ShortcutBar.Background, config.FallbackColorBackgroundDeep)
+	}
+	if rawStyles.DialogBodyBackground.Background == "" {
+		t.Fatal("dialog body background is empty after ApplyThemeStyles")
 	}
 	if safeFallbackRef.Normal.GetForeground() == nil {
 		t.Fatal("safe fallback normal style has no foreground")

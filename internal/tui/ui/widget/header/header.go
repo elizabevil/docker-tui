@@ -160,7 +160,8 @@ func renderKeyStrokeColumn(app *state.AppModel, colW, ratio int) string {
 	switch {
 	case len(app.Feedback.KeyStrokeBuffer) > 0:
 		content = joinKeyBadges(app.Feedback.KeyStrokeBuffer)
-		content = component.GetStyle("keyBadge").Background(style.Colors.Blue).Padding(0, 1).Bold(true).Render(content)
+		kbBg := component.GetStyle("headerBar").GetBackground()
+		content = component.GetStyle("keyBadge").Background(kbBg).Padding(0, 1).Bold(true).Render(content)
 	case len(app.Feedback.LastKeyStroke) > 0:
 		content = joinKeyBadges(app.Feedback.LastKeyStroke)
 		content = component.GetStyle("keyLast").Render(content)
@@ -175,7 +176,7 @@ func renderKeyStrokeColumn(app *state.AppModel, colW, ratio int) string {
 
 	boxed := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder(), true, true, true, true).
-		BorderForeground(style.Colors.Blue).
+		BorderForeground(component.GetStyle("panelTitle").GetForeground()).
 		Padding(0, padH).
 		Render(content)
 	boxLines := strings.Count(boxed, "\n") + 1
@@ -198,11 +199,11 @@ func joinKeyBadges(events []state.KeyStrokeEvent) string {
 func cpuLoadColor(pct float64) color.Color {
 	switch {
 	case pct > 80:
-		return style.Colors.Red
+		return style.Colors.Danger
 	case pct > 50:
-		return style.Colors.Yellow
+		return style.Colors.Warning
 	default:
-		return style.Colors.Green
+		return style.Colors.Success
 	}
 }
 

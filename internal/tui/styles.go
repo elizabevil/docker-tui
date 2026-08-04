@@ -16,25 +16,26 @@ var (
 
 func ApplyTheme(theme *config.Theme) {
 	c := theme.Palette
-	style.Colors.Green = style.Color(string(c.Green))
-	style.Colors.Cyan = style.Color(string(c.Cyan))
-	style.Colors.Blue = style.Color(string(c.Blue))
-	style.Colors.Red = style.Color(string(c.Red))
-	style.Colors.Yellow = style.Color(string(c.Yellow))
-	style.Colors.Orange = style.Color(string(c.Orange))
-	style.Colors.Purple = style.Color(string(c.Purple))
-	style.Colors.White = style.Color(string(c.White))
-	style.Colors.Gray = style.Color(string(c.Gray))
-	style.Colors.Dark = style.Color(string(c.Dark))
-	style.Colors.Surface = style.Color(string(c.Surface))
+	style.Colors.Success = style.Color(string(c.Success))
+	style.Colors.Primary = style.Color(string(c.Primary))
+	style.Colors.Info = style.Color(string(c.Info))
+	style.Colors.Danger = style.Color(string(c.Danger))
+	style.Colors.Warning = style.Color(string(c.Warning))
+	style.Colors.Accent = style.Color(string(c.Accent))
+	style.Colors.AccentSecondary = style.Color(string(c.AccentSecondary))
+	style.Colors.Foreground = style.Color(string(c.Foreground))
+	style.Colors.ForegroundMuted = style.Color(string(c.ForegroundMuted))
+	style.Colors.BackgroundSubtle = style.Color(string(c.BackgroundSubtle))
+	style.Colors.BackgroundDeep = style.Color(string(c.BackgroundDeep))
 	style.Colors.BG = style.Color(string(c.Background))
 	style.SyncPalette()
 	component.ApplyThemeStyles(theme)
 
 	br := component.ResolveBorder(theme.Border.Kind)
-	ActiveBorderStyle = lipgloss.NewStyle().Border(br).Foreground(style.Color(theme.ResolveColor(theme.Main.BorderActive))).Padding(0)
-	InactiveBorderStyle = lipgloss.NewStyle().Foreground(style.Color(theme.ResolveColor(theme.Main.BorderInactive))).Padding(0)
-	FocusedBorderStyle = lipgloss.NewStyle().Border(br).Foreground(style.Color(theme.ResolveColor(theme.Border.Focused))).Padding(0)
+	bgColor := style.Colors.BG
+	ActiveBorderStyle = lipgloss.NewStyle().Border(br).Foreground(style.Color(theme.ResolveColor(theme.Main.BorderActive))).Background(bgColor).Padding(0)
+	InactiveBorderStyle = lipgloss.NewStyle().Foreground(style.Color(theme.ResolveColor(theme.Main.BorderInactive))).Background(bgColor).Padding(0)
+	FocusedBorderStyle = lipgloss.NewStyle().Border(br).Foreground(style.Color(theme.ResolveColor(theme.Border.Focused))).Background(bgColor).Padding(0)
 }
 
 // ApplyLayoutConfig clears border backgrounds when image/fallthrough backgrounds

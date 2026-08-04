@@ -22,13 +22,13 @@ func TestEmbeddedThemesCascadeFromDefault(t *testing.T) {
 func TestThemePatchPreservesOmittedProperties(t *testing.T) {
 	theme := DefaultTheme()
 	cyan := Color("#00ffff")
-	falseColor := TokenRef(ColorTokenPurple)
-	patch := ThemePatch{Palette: &PalettePatch{Cyan: &cyan}, Dialog: &DialogStylesPatch{Border: &falseColor}}
+	falseColor := TokenRef(ColorTokenAccentSecondary)
+	patch := ThemePatch{Palette: &PalettePatch{Primary: &cyan}, Dialog: &DialogStylesPatch{Border: &falseColor}}
 	patch.Apply(theme)
-	if theme.Palette.Cyan != cyan || theme.Palette.Green == "" {
+	if theme.Palette.Primary != cyan || theme.Palette.Success == "" {
 		t.Fatalf("palette patch failed: %#v", theme.Palette)
 	}
-	if theme.Dialog.Border != TokenRef(ColorTokenPurple) || !isColorRef(theme.Dialog.Body) {
+	if theme.Dialog.Border != TokenRef(ColorTokenAccentSecondary) || !isColorRef(theme.Dialog.Body) {
 		t.Fatalf("dialog patch failed: %#v", theme.Dialog)
 	}
 }
@@ -43,8 +43,33 @@ func TestValidateThemeRejectsUnknownColorReference(t *testing.T) {
 
 func TestValidateThemeRejectsAmbiguousColorReference(t *testing.T) {
 	theme := DefaultTheme()
-	theme.Dialog.Border = ColorRef{Token: ColorTokenRed, Value: FallbackColorRed}
+	theme.Dialog.Border = ColorRef{Token: ColorTokenDanger, Value: FallbackColorDanger}
 	if err := ValidateTheme(theme); err == nil {
 		t.Fatal("expected token plus value to fail")
+	}
+}
+
+func TestResolveColorTransparentReturnsLiteralTransparent(t *testing.T) {
+	theme := DefaultTheme()
+	got := theme.ResolveColor(TokenRef(ColorTokenTransparent))
+	if got != "transparent" {
+		t.Fatalf("transparent token resolved to %q, want %q", got, "transparent")
+	}
+}
+
+func TestDialogStylesHasBodyBackground(t *testing.T) {
+	theme := DefaultTheme()
+	if theme.Dialog.BodyBackground.Token == "" {
+		t.Fatal("DefaultTheme().Dialog.BodyBackground is empty; want TokenRef(ColorTokenBackground)")
+	}
+	if !isColorRef(theme.Dialog.BodyBackground) {
+		t.Fatalf("BodyBackground %+v failed isColorRef", theme.Dialog.BodyBackground)
+	}
+}
+
+func TestIsColorRefAcceptsTransparent(t *testing.T) {
+	ref := TokenRef(ColorTokenTransparent)
+	if !isColorRef(ref) {
+		t.Fatalf("transparent token should be accepted by isColorRef")
 	}
 }

@@ -11,19 +11,19 @@ import (
 func StateColor(containerState string) color.Color {
 	switch containerState {
 	case state.ContainerStateRunning:
-		return GetColor(constants.ColorGreen)
+		return GetColor(constants.ColorSuccess)
 	case state.ContainerStateStopping:
-		return GetColor(constants.ColorYellow)
+		return GetColor(constants.ColorWarning)
 	case state.ContainerStateStopped, state.ContainerStateExited, state.ContainerStateDead:
-		return GetColor(constants.ColorGray)
+		return GetColor(constants.ColorForegroundMuted)
 	case state.ContainerStatePaused:
-		return GetColor(constants.ColorYellow)
+		return GetColor(constants.ColorWarning)
 	case state.ContainerStateCreated:
-		return GetColor(constants.ColorBlue)
+		return GetColor(constants.ColorInfo)
 	case state.ContainerStateRestarting:
-		return GetColor(constants.ColorOrange)
+		return GetColor(constants.ColorAccent)
 	default:
-		return GetColor(constants.ColorGray)
+		return GetColor(constants.ColorForegroundMuted)
 	}
 }
 

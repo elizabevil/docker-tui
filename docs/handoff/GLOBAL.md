@@ -5,6 +5,147 @@
 
 ## 决策日志(主模型 → 全体)
 
+### 2026-08-04 — R12 增量清理:Legacy 别名与 caller 全部移除
+
+- **决策**:用户反馈"明显不符合要求"指出 R12 残留 legacy 别名(`ColorGreen = "success"` 等)与 caller(stateicon.go / dialog.go)间接通过别名引用旧色名。决定**完全删除 legacy 别名块**,所有 caller 直接用新语义名。
+- **理由**:R12 哲学是"语义名完整覆盖",不应保留 `ColorGreen = "success"` 这种隐式映射——caller 既然已迁移到新名,legacy 别名已无 caller,删除它们让语义完整。
+- **改动**(3 文件增量):`internal/constants/color.go` 删除 12 个 legacy 别名块;`internal/tui/ui/component/dialog.go` 4 处改用 `ColorWarning/Primary`;`internal/tui/ui/component/stateicon.go` 7 处改用 `ColorSuccess/Warning/ForegroundMuted/Info/Accent`
+- **破坏性**:`ParseColor("white")`、`ParseColor("grey")` 等历史名不再工作——与 R12 §3 一致,解析路径走语义名
+- **验证**:`go test ./...` 35 包全过、`go vet ./...` 干净、旧色名常量引用扫描 0 处遗留
+
+### 2026-08-04 — R12 style.Colors 字段重命名为语义名
+
+- **决策**:用户指出"token 命名是颜色名不是作用范围名"的哲学同样适用于 `style.Colors` 启动兜底层。12 字段从颜色名(`Green/Cyan/Blue/Red/Yellow/Orange/Purple/White/Gray/Dark/Surface`)改为语义名(`Success/Primary/Info/Danger/Warning/Accent/AccentSecondary/Foreground/ForegroundMuted/BackgroundSubtle/BackgroundDeep`),`BG` 保留。`internal/constants/color.go` 新增 12 个语义常量,12 个 legacy 别名(`ColorGreen/...`)指语义名(`"success"/"primary"/...`)而非原始字符串(`"green"/"cyan"/...`)。
+- **理由**:`style.Colors.Green` 实际存的是 `theme.Palette.Success`(成功语义色),字段名误导。R11 想消除的双标问题不应在启动兜底层残留。
+- **改动**(6 文件):`internal/constants/color.go`(12 语义常量 + 12 legacy 别名)+ `internal/tui/ui/style/style.go`(Palette struct 11 字段 + Colors 默认值 + SyncPalette + Color() fallback)+ `internal/tui/styles.go`(ApplyTheme 11 行注入映射)+ `internal/tui/ui/widget/dialog/box.go`(1 处)+ `internal/tui/ui/widget/header/header.go`(3 处 cpuLoadColor)+ `internal/utils/color_test.go`(1 测试改用新名)
+- **关键转折**:`constants.ColorGreen = "success"`(语义别名)而非 `"green"`(原始字符串)——保持 `ParseColor` 接受新名同时兼容旧名
+- **影响**:所有 widget 通过 `style.Colors.Success/Danger/Warning/...` 读取语义色;legacy 组件(stateicon.go/dialog.go)继续用 `constants.ColorGreen/...` 指向语义槽位;`ParseColor("white"/"grey"/...)` 不再工作(语义哲学完整),但 `ParseColor("foreground"/"foregroundMuted"/...)` 工作
+- **验证**:`go test ./...` 35 包全过(含 TestParseColorPaletteAndANSI 改用新名)、`go vet ./...` 干净、旧 `style.Colors.*` 引用扫描 0 处遗留
+
+### 2026-08-04 — R11 主题 token 重命名为作用范围名(方案 C 破坏性修改)
+
+- **决策**:用户讨论后选定方案 C:Q1 重命名不缩写+允许破坏性修改+不遗留兼容;Q2 调色板槽位=语义名;Q3 保留 12 调色板槽位;Q4 不需要独立 semantic 层。12 调色板槽位从颜色名(`green/cyan/blue/red/yellow/orange/purple/white/gray/dark/surface/background`)改为作用范围名(`primary/success/danger/warning/info/accent/accentSecondary/foreground/foregroundMuted/background/backgroundSubtle/backgroundDeep`),`transparent` 保留。
+- **理由**:`token: green` 表达的是"颜色=绿"但用户期望"成功语义"——dracula 主题想让成功用紫时改不了,因为硬编码锁死在调色板槽位名上。改为`token: success` 后用户写语义名,dracula 可让`palette.success = "#bd93f9"`(紫)。
+- **改动**(~13 文件):constants_domain.go/theme.go/config.go/styles.go/table_config.go + 3 测试文件 + 6 主题 JSONC
+- **影响**:JSONC 用户直接看到"success/danger/warning"语义名而非颜色名;主题作者可为每个语义槽位选任意 hex;dracula 可让 success=紫;6 主题 JSONC palette 字段名+所有 token 引用全部重命名
+- **破坏性**:6 主题 JSONC 一次性重写,无兼容层
+- **保留**:`style.Colors` 12 字段名(`Green/Cyan/...`)作为启动兜底独立命名空间;`FallbackColor*` 12 编译兜底 hex;`FallbackColorTransparent` 字面量"transparent"
+- **验证**:`go test ./...` 全过、`go vet ./...` 干净、JSONC 6 主题 47 键 1:1 镜像保持、旧 token 引用扫描 0 处遗留
+
+### 2026-08-04 — 主题透明架构实施(R10,Q1-Q4 全 a)
+
+- **决策**:实施用户讨论确定的 4 点设计:
+  - Q1 transparent token:新增 `ColorTokenTransparent` 调色板 token,`Theme.ResolveColor` 返回字面量 `"transparent"`,`isColorRef` validator 接受;新增 `FallbackColorTransparent = "transparent"` 命名常量
+  - Q2 弹框主体背景:新增 `theme.Dialog.BodyBackground` 槽位(token + value);`DefaultTheme()` 默认 `TokenRef(ColorTokenBackground)`;6 主题 JSONC 覆盖 `value: <主背景 +5% 加亮 hex>`
+  - Q3 终端行为统一:新增 `internal/tui/terminal.go` `SupportsTruecolor()`(读 `COLORTERM`/`TERM`/`TERM_PROGRAM`),`tui.ApplyTheme` 接入 alpha 降级作为未来扩展
+  - Q4 transparent 默认范围:6 主题 JSONC 改 4 个主背景槽位为 `token: transparent`
+- **改动**(7 文件):constants_domain.go / theme.go / config.go / styles_load.go / box.go(6 改)+ terminal.go(新)+ 6 主题 JSONC
+- **理由**:用户明确"绝大多数组件透明/共用背景色"+"弹框/选择框要区分图层";"transparent" 字面量避免空字符串歧义;alpha 降级保证非 truecolor 终端遮罩仍可见
+- **影响**:
+  - 切主题时 header/footer/toast/panel body 等非弹框组件**真正透明**——只有 layer 1 主背景 + layer 3 强调块 + layer 4 弹框层
+  - 弹框打开时遮罩 + 弹框主体 + 弹框标题三层清晰区分(layer 4a/4b/4c)
+  - light 主题下 dialog 主体 `#fefefe` 主背景 → `#ffffff` 加亮 5%,视觉上 dialog 与背景有细微分层
+- **验证**:`go test ./...` 全过(含 3 个新增测试)、`go vet ./...` 干净、JSONC 6 主题 47 键 1:1 镜像保持
+- **未实施**(留待后续):alpha 降级算法在 `tui.ApplyTheme` 中实际应用——已留 `SupportsTruecolor()` 接口,等用户决定降级策略后再接入
+- **下次注意**:新增主背景用途槽位时直接用 `token: transparent`;新增强调块独立背景槽位时用具体 hex 或 `token: dark/surface`
+
+### 2026-08-04 — C 类启动兜底保留 + 透明/RGBA JSONC 支持设计留置
+
+- **决策**:用户讨论后明确:"jsonc 配置也应该支持透明，用户根据需要配置 颜色（例如 RGBA）"。本次 R9 决策:**不修改 C 类代码**(24 处启动兜底 hex 保留),将"透明/RGBA JSONC 支持"作为**设计留置**进 proposal §12,待未来实施。
+- **理由**:
+  - C 类 12 处 `style.Colors` 字面量(`internal/tui/ui/style/style.go:35-48`)是 `init()` 之前 `utils.ParseColor("green")` 解析调色板名的依赖——移除会让 `tui.ApplyTheme` 之前的渲染调用崩溃
+  - C 类 12 处 `FallbackColor*` 常量(`internal/data/config/constants_domain.go:139-150`)是 `DefaultTheme()` 的 palette 兜底——移除会让 `theme.Palette` 在极端启动场景下为空
+  - 这 24 处兜底与 R8 架构"透明/共用背景"**不冲突**——它们只在启动最早期生效(毫秒级),用户视觉看不到
+- **透明/RGBA JSONC 设计要点**(留待未来实施):
+  - `#RRGGBBAA` 9 位 hex 已支持(truecolor 终端 alpha 生效,普通终端降级)
+  - 新增 `ColorTokenTransparent = "transparent"` token,`Theme.ResolveColor` 返回空字符串表示"不画背景"
+  - JSONC 配置示例:`{"token": "transparent"}`、`{"value": "#18191bcc"}`(alpha 80%)
+  - 默认哪些槽位透明、哪些实色——按 R8 原则,主背景槽位建议透明,强调块保留实色
+- **实施清单**(如果未来启动,见 proposal §12.2.3):
+  1. `constants_domain.go` 新增 `ColorTokenTransparent`
+  2. `theme.go` `ResolveColor` 增加 transparent 分支
+  3. `DefaultTheme()` 给 4 个透明槽位默认 `TokenRef(ColorTokenTransparent)`
+  4. JSONC 6 主题的 4 个槽位改 `token: transparent`
+  5. 测试加 transparent 断言
+- **不动**:本次无代码改动,保留所有 24 处启动兜底。
+- **下次注意**:如未来决定实施透明 token,需先确认 lipgloss v2 对 `.Background("")` 的行为(等价于 NoColor 还是 fall back to default)。
+
+### 2026-08-04 — 架构级重设计:"仅主背景"架构(用户截图反馈)
+
+- **反馈**:用户截图显示 R4-R7 后 light 主题下 header 和 footer 仍画独立背景色,看起来"仍是 dark 主题"。明确指引:"一般情况下都不需要单独指定主题色,直接透明 共用背景色即可。只有部分组件需要用于单独设置背景色"。
+- **决策**:修改 6 主题 JSONC,4 个主背景槽位从 `token: dark/surface` 改为 `token: background`:
+  - `theme.Header.Background` → `token: background`
+  - `theme.Footer.ShortcutBackground` → `token: background`
+  - `theme.Footer.StatusBackground` → `token: background`
+  - `theme.Toast.Background` → `token: background`
+- **理由**:绝大多数组件"透明"——让外层 `palette.background` 透过,header/footer/toast 与主背景同色,视觉一致;只有 dialog、selectedRow、keyBadge 等强调块保留独立背景。
+- **影响**:light 主题下 header、footer、toast 全部显示 `#fefefe` 主背景色(与 panel body 一致);dark 主题下显示 `#181919b`;其它主题跟随。
+- **不动**:palette.dark/surface 槽位(保留为"通用浅深背景色"语义);dialog.overlay(selectedRow、markedRow、keyBadge、detailSelection、logHighlight 等强调块独立背景保留)。
+- **验证**:`go test ./...` 全过、`go vet ./...` 干净、JSONC 6 主题 47 键 1:1 镜像保持。
+- **下次注意**:新增"主背景"用途的槽位时,直接用 `token: background`;新增"强调背景"用途的槽位(用于 selectedRow/markedRow/toast 之类)才用 `token: dark/surface` 或 `value: hex`。
+
+### 2026-08-04 — Light 主题 B 类全量重构:dialog 30 处显式化
+
+- **决策**:R6 修了"对比度差"13 处;剩 21 处 `style.Colors.{Cyan,Green,Red,Yellow,Orange,White,Purple}` 在 dialog 中直接绑调色板——它们**本身跟主题走**(`tui.ApplyTheme:19-30` 把 `theme.Palette.X` 注入 `style.Colors.X`),不构成"颜色泄露",但代码上**隐式依赖注入绑定**,用户自定义主题时不易追踪。R7 决定**显式化**:把 30 处 `style.Colors.X` 全部替换为 `component.GetStyle(name).GetForeground()`,新增 3 个 token 槽位(`DialogConfirm/DialogError/DialogWarning`)覆盖所有"动作色"。
+- **改动**(8 文件,30 处):
+  - `internal/tui/ui/component/styles_load.go` —— 加 `DialogConfirm/DialogError/DialogWarning` 字段 + 3 lookup case + 3 投影
+  - `internal/tui/ui/widget/dialog/{exec,form,form_popup,choice,selection,notification,view}.go` —— 30 处 `style.Colors.X` 替换 + 删 style import(view.go 增 component import)
+- **理由**:消除隐式绑定;用户自定义主题时修改 `theme.Text.Success/Error/Warning` 立刻可见,无需再追 `style.Colors.Green` 这种间接绑定;3 个新槽位用现有 `theme.Text.*` token,不破 JSONC schema。
+- **影响**:dialog 包内 `style.Colors.*` 使用数从 30 处 → 0 处;JSONC 6 主题仍 47 键 1:1 镜像。
+- **验证**:`go test ./...` 全过、`go vet ./...` 干净、JSONC 镜像保持。
+- **下次注意**:如有新增 dialog 类型,继续走 `component.GetStyle(name)` 模式,不引入新的 `style.Colors.X` 绑定。
+
+### 2026-08-04 — Light 主题 B 类修复:对比度差 13 处
+
+- **决策**:R5 完成后用户确认 A 类已修,但切 light 仍能看到"颜色泄露"。进一步盘点发现 B 类问题——虽然 `style.Colors.X` 已在 `tui.ApplyTheme:19-30` 注入主题调色板,但**在 light 主题下,某些 token 解析后的 hex 与浅色背景对比度差**,导致视觉"不可见/看不清"。按"精确修复"原则只改 13 处对比度差位置,不动其它 21 处跟着调色板的 token。
+- **改动**(5 文件,13 处):
+  - `header.go:163` keyBadge 背景:`style.Colors.Blue` → `theme.Header.Background` 解析值(浅主题对比稳定)
+  - `header.go:178` keystroke border 前景:`style.Colors.Blue` → `theme.Main.Title` 解析值
+  - `form_popup.go:175,336` highlight 背景:`style.Colors.Surface` → `theme.Header.Background` 解析值(**最关键**——之前 Surface=`#f0f0f0` 与 body `#fefefe` 同色,高亮不可见)
+  - `dialog/{choice,exec,selection,form}.go` 7 处 unselected 按钮前景:`style.Colors.Gray` → `theme.Text.Dim` 解析值(从 3.2:1 升到 5.8:1 对比度)
+- **影响**:light 主题下 keyBadge 高亮可识别;keystroke border 可见;form popup 高亮行不再与背景同色;dialog 按钮 unselected 文字达到 WCAG AA 4.5:1。
+- **未修**(按精确修复原则):21 处 `style.Colors.Cyan/Green/Red/Yellow/Orange/White/Blue/Purple` 跟着调色板走,light 下对比度 OK,不动。
+- **验证**:`go test ./...` 全过、`go vet ./...` 干净。
+
+### 2026-08-04 — Light 主题背景一致性 R5:A 类全容器补背景
+
+- **决策**:R4 修复后用户仍报告"light 主题背景仍有黑色泄露"。进一步盘点出 3 类未跟随主题的源头:A 类(主容器无背景)11 处、B 类(组件细节直接绑 `style.Colors.X`)48 处、C 类(theme-hardcoded-migration §6 已知保留项)12 处。用户选"当前先补充 A 类"。一次性补 11 处 A 类未画背景容器,各加 `.Background(style.Colors.BG)`。
+- **理由**:A 类是视觉上最显眼的"主容器",B/C 类影响较小或已被 R4 主题化覆盖。先修 A,B/C 留后续。
+- **改动**(6 文件,11 处):
+  - `internal/tui/ui/app/layout.go`:runtimeSelectorUI 容器 + renderTruncatedLines 行尾容器
+  - `internal/tui/ui/widget/panel/panel.go`:Panel.Render body 容器
+  - `internal/tui/ui/pages/compose/view.go`:topBar JoinHorizontal 3 列
+  - `internal/tui/ui/pages/help/view.go`:help leftBox + rightBox
+  - `internal/tui/ui/pages/logs/view.go`:logs body
+  - `internal/tui/ui/pages/detail/view.go`:detail body
+- **影响**:切 light 主题时上述 11 个主容器全部显示 `#fefefe` 浅色底;切 dark 显示 `#181919b` 深色底;其它主题跟随调色板。
+- **未修**(留后续):B 类 48 处 `style.Colors.X` 直接绑、Compose leftBar/topBar 内的 bar 函数、R5 列表外的 dialog 按钮/keystroke 列/query rail/logo 列等。
+- **验证**:`go test ./...` 全过、`go vet ./...` 干净、JSONC 6 主题 47 键 1:1 镜像保持。
+
+### 2026-08-04 — Light 主题背景一致性修复
+
+- **决策**:在 light 主题下,action bar / panel / border 容器**不显示任何背景色**——它们没有显式调用 `.Background()`,落在用户的终端默认黑色背景上,造成"亮前景文字 + 黑色容器 + 浅色背景方块"的视觉错位。修复:给所有主容器加 `.Background(style.Colors.BG)`(`BG` = `theme.Palette.Background` 在 styles.go:30 的别名)。
+- **理由**:`theme.Palette.Background` 是主题定义好的"主背景色",dark=#18191b、light=#fefefe、nord=#242933。给主容器加这个背景后,切主题时**整屏视觉一致**。与已有的 `layout.Background.Fallthrough` 行为兼容(已在 styles.go:53 处理)。
+- **改动**:
+  - `internal/tui/styles.go` `ApplyTheme`:3 个 BorderStyle 各加 `.Background(style.Colors.BG)`
+  - `internal/tui/ui/widget/actionbar/actionbar.go` `renderBox`:返回 style 加 `.Background(style.Colors.BG)` + import style 包
+- **影响**:切 light 主题时所有主容器(panel / action bar / borders)显示 `#fefefe` 浅色底;切 dark 时显示 `#18191b` 深色底;其它主题跟随各自调色板。
+- **验证**:`go test ./...` 全过、`go vet ./...` 干净、JSONC 6 主题 47 键 1:1 镜像保持。
+- **未修复的容器**(留待后续):dialog 内的 body parts 各 part 自带背景,dialog 框被 `DialogBox` 整体背景覆盖所以视觉一致;`header.go:80` pct 函数、`compose/view.go` 多处无背景但落在 panel 容器内(panel 已有背景)。
+- **下次注意**:如果用户报告"还有黑底漏出"现象,搜索 `lipgloss.NewStyle()...Render(` 但无 `.Background(` 的位置即可定位。
+
+### 2026-08-04 — 主题硬编码迁移 Follow-up(shortcutBar 投影 + light 表色)
+
+- **决策**:完成 [proposals/theme-hardcoded-migration.md §7](./proposals/theme-hardcoded-migration.md#7-未来扩展点) 列出的高优先级 follow-up:
+  - **真 bug 修复**:`footer.go:39` 与 `keyhint.go:25` 调 `GetStyle("shortcutBar")`,但 `globalStyleRefs.lookup` 未注册——永远走 SafeFallback。在 `internal/tui/ui/component/styles_load.go` 补 3 处:`globalStyleRefs.ShortcutBar` 字段、`ApplyThemeStyles` 投影(`Background: theme.Footer.ShortcutBackground`)、`lookup` case。
+  - **light 主题表色调整**:`light.jsonc` 的 `theme.table.columnForeground` 从 `#ECEFF1` 改为 `#1f2328`(`#fefefe` 背景对比度 15.5:1,AAA);`nameForeground` 从 `#FAF0E6` 改为 `#0d1117`(对比度 18.9:1,AAA)。其余 5 主题保留绝对 hex(深背景已足够对比)。
+  - **Footer.StatusBackground 调查**:无任何调用点,保持预留槽位。
+  - **测试**:`styles_load_test.go` `TestApplyThemeStylesProjectsFixedScopes` 增 1 项 ShortcutBar 背景断言。
+- **理由**:switch 主题时 footer keybar 之前永远白色无背景——是真 bug。light 主题表格之前几乎不可读,影响实际使用。
+- **影响**:footer keybar 现在显示 `theme.Footer.ShortcutBackground` 决定的深色底;light 主题表格恢复可读性。JSONC 嵌套键仍 1:1 镜像(6 主题均 47 键)。
+- **验证**:`go test ./...` 全过、`go vet ./...` 干净。
+- **下次注意**:`theme-hardcoded-migration.md §7.4` (新增主题接入指南) 仍未做;若需新增 monokai/gruvbox/tokyo-night 等主题,请参考 `theme-hardcoded-followups.md §1` 引用模式。
+
 ### 2026-08-04 — 主题硬编码色全面迁移至配置(13 处)
 
 - **决策**:把组件渲染层 13 处硬编码十六进制字面量(3 处 table_config、5 处 SafeFallback、4 处 dialog overlay、1 处 layout background)下沉为主题配置。新增 2 个作用域 `theme.table.*` (3 键)与 `theme.safeFallback.*` (5 键),dialog overlay 与 layout 改走已有 `theme.dialog.overlay` + `theme.palette.background`。

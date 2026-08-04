@@ -5,7 +5,7 @@ import (
 	"image/color"
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
+	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 	"github.com/elizabevil/docker-tui/internal/utils"
 
 	"charm.land/lipgloss/v2"
@@ -135,11 +135,11 @@ func OverlayColor(m *state.AppModel) string {
 func titleColorForKind(kind state.DialogKind) color.Color {
 	switch kind {
 	case state.DialogImageDebug:
-		return style.Colors.Orange
+		return component.GetStyle("dialogWarning").GetForeground()
 	case state.DialogExec:
-		return style.Colors.Green
+		return component.GetStyle("dialogConfirm").GetForeground()
 	default:
-		return style.Colors.Cyan
+		return component.GetStyle("panelTitle").GetForeground()
 	}
 }
 
@@ -204,7 +204,7 @@ func RenderChoiceOverlay(content string, m *state.AppModel) string {
 		m.Confirm.Focus,
 		m.Viewport.Width,
 		m.Viewport.Height,
-		style.Colors.Yellow,
+		component.GetStyle("dialogWarning").GetForeground(),
 		overlay,
 		cfg,
 	)
@@ -242,7 +242,7 @@ func RenderChoiceOverlayInPanel(content string, m *state.AppModel, body PanelBod
 		m.Confirm.Focus,
 		body.Width,
 		body.Rows,
-		style.Colors.Yellow,
+		component.GetStyle("dialogWarning").GetForeground(),
 		overlay,
 		cfg,
 	)

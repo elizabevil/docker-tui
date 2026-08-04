@@ -3,7 +3,6 @@ package dialog
 import (
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 )
 
 // NotificationDialog renders a simple informational dialog with a dismiss hint.
@@ -21,5 +20,5 @@ func NotificationDialog(title, body string, termW, termH int, overlayColor strin
 	parts = append(parts, "")
 	parts = append(parts, component.GetStyle("dim").Render(i18n.T("hint.esc_cancel")))
 
-	return DialogBox(DialogStyle{Width: dialogW, Height: dialogH, TitleColor: style.Colors.Cyan, OverlayColor: overlayColor}, parts...)
+	return DialogBox(DialogStyle{Width: dialogW, Height: dialogH, TitleColor: component.GetStyle("panelTitle").GetForeground(), OverlayColor: overlayColor}, parts...)
 }

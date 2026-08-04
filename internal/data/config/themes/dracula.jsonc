@@ -5,69 +5,69 @@
   },
   "theme": {
     "palette": {
-      "green": "#50fa7b",
-      "cyan": "#8be9fd",
-      "blue": "#6272a4",
-      "red": "#ff5555",
-      "yellow": "#f1fa8c",
-      "orange": "#ffb86c",
-      "purple": "#bd93f9",
-      "white": "#f8f8f2",
-      "gray": "#44475a",
-      "dark": "#1e1f29",
-      "surface": "#282a36",
+      "success": "#50fa7b",
+      "primary": "#8be9fd",
+      "info": "#6272a4",
+      "danger": "#ff5555",
+      "warning": "#f1fa8c",
+      "accent": "#ffb86c",
+      "accentSecondary": "#bd93f9",
+      "foreground": "#f8f8f2",
+      "foregroundMuted": "#44475a",
+      "backgroundSubtle": "#1e1f29",
+      "backgroundDeep": "#282a36",
       "background": "#21222c"
     },
     "border": {
-      "active": { "token": "purple" },
-      "inactive": { "token": "gray" },
-      "focused": { "token": "green" },
+      "active": { "token": "accentSecondary" },
+      "inactive": { "token": "foregroundMuted" },
+      "focused": { "token": "success" },
       "kind": "rounded"
     },
     "header": {
-      "background": { "token": "dark" },
-      "label": { "token": "gray" },
-      "value": { "token": "white" },
-      "logo": { "token": "purple" }
+      "background": { "token": "transparent" },
+      "label": { "token": "foregroundMuted" },
+      "value": { "token": "foreground" },
+      "logo": { "token": "accentSecondary" }
     },
     "main": {
-      "borderActive": { "token": "purple" },
-      "borderInactive": { "token": "gray" },
-      "title": { "token": "purple" },
-      "tableHeader": { "token": "cyan" },
-      "rowSelected": { "token": "purple" },
-      "rowText": { "token": "white" },
-      "footer": { "token": "gray" }
+      "borderActive": { "token": "accentSecondary" },
+      "borderInactive": { "token": "foregroundMuted" },
+      "title": { "token": "accentSecondary" },
+      "tableHeader": { "token": "primary" },
+      "rowSelected": { "token": "accentSecondary" },
+      "rowText": { "token": "foreground" },
+      "footer": { "token": "foregroundMuted" }
     },
     "footer": {
-      "statusBackground": { "token": "surface" },
-      "shortcutBackground": { "token": "dark" },
-      "key": { "token": "white" },
-      "description": { "token": "gray" },
-      "separator": { "token": "gray" }
+      "statusBackground": { "token": "transparent" },
+      "shortcutBackground": { "token": "transparent" },
+      "key": { "token": "foreground" },
+      "description": { "token": "foregroundMuted" },
+      "separator": { "token": "foregroundMuted" }
     },
     "dialog": {
-      "border": { "token": "red" },
-      "title": { "token": "red" },
-      "body": { "token": "white" },
-      "optionActive": { "token": "cyan" },
-      "optionInactive": { "token": "gray" },
+      "border": { "token": "danger" },
+      "title": { "token": "danger" },
+      "body": { "token": "foreground" },
+      "optionActive": { "token": "primary" },
+      "optionInactive": { "token": "foregroundMuted" },
       "overlay": { "token": "background" },
       "overlayOpacity": 80
     },
     "toast": {
-      "success": { "token": "green" },
-      "error": { "token": "red" },
-      "background": { "token": "dark" }
+      "success": { "token": "success" },
+      "error": { "token": "danger" },
+      "background": { "token": "background" }
     },
     "text": {
-      "info": { "token": "cyan" },
-      "error": { "token": "red" },
-      "success": { "token": "green" },
-      "warning": { "token": "yellow" },
-      "dim": { "token": "gray" },
-      "helpKey": { "token": "cyan" },
-      "helpDescription": { "token": "white" }
+      "info": { "token": "primary" },
+      "error": { "token": "danger" },
+      "success": { "token": "success" },
+      "warning": { "token": "warning" },
+      "dim": { "token": "foregroundMuted" },
+      "helpKey": { "token": "primary" },
+      "helpDescription": { "token": "foreground" }
     },
     "table": {
       "markedBackground": { "value": "#463f16" },
@@ -75,11 +75,11 @@
       "nameForeground": { "value": "#FAF0E6" }
     },
     "safeFallback": {
-      "normal": { "token": "white" },
-      "bold": { "token": "white" },
-      "dim": { "token": "gray" },
-      "accent": { "token": "cyan" },
-      "error": { "token": "red" }
+      "normal": { "token": "foreground" },
+      "bold": { "token": "foreground" },
+      "dim": { "token": "foregroundMuted" },
+      "accent": { "token": "primary" },
+      "error": { "token": "danger" }
     }
   }
 }

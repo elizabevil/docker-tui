@@ -256,7 +256,7 @@ func ValidateTheme(theme *Theme) error {
 	if theme == nil {
 		return errors.New(errThemeNil)
 	}
-	colors := []Color{theme.Palette.Green, theme.Palette.Cyan, theme.Palette.Blue, theme.Palette.Red, theme.Palette.Yellow, theme.Palette.Orange, theme.Palette.Purple, theme.Palette.White, theme.Palette.Gray, theme.Palette.Dark, theme.Palette.Surface, theme.Palette.Background}
+	colors := []Color{theme.Palette.Primary, theme.Palette.Success, theme.Palette.Warning, theme.Palette.Danger, theme.Palette.Info, theme.Palette.Accent, theme.Palette.AccentSecondary, theme.Palette.Foreground, theme.Palette.ForegroundMuted, theme.Palette.BackgroundSubtle, theme.Palette.BackgroundDeep, theme.Palette.Background}
 	for _, color := range colors {
 		if !isHexColor(string(color)) {
 			return fmt.Errorf(errThemePaletteColorFormat, color)
@@ -270,7 +270,7 @@ func ValidateTheme(theme *Theme) error {
 	if theme.Dialog.OverlayOpacity > 100 {
 		return errors.New(errThemeOverlayOpacityInvalid)
 	}
-	refs := []ColorRef{theme.Border.Active, theme.Border.Inactive, theme.Border.Focused, theme.Header.Background, theme.Header.Label, theme.Header.Value, theme.Header.Logo, theme.Main.BorderActive, theme.Main.BorderInactive, theme.Main.Title, theme.Main.TableHeader, theme.Main.RowSelected, theme.Main.RowText, theme.Main.Footer, theme.Footer.StatusBackground, theme.Footer.ShortcutBackground, theme.Footer.Key, theme.Footer.Description, theme.Footer.Separator, theme.Dialog.Border, theme.Dialog.Title, theme.Dialog.Body, theme.Dialog.OptionActive, theme.Dialog.OptionInactive, theme.Dialog.Overlay, theme.Toast.Success, theme.Toast.Error, theme.Toast.Background, theme.Text.Info, theme.Text.Error, theme.Text.Success, theme.Text.Warning, theme.Text.Dim, theme.Text.HelpKey, theme.Text.HelpDescription}
+	refs := []ColorRef{theme.Border.Active, theme.Border.Inactive, theme.Border.Focused, theme.Header.Background, theme.Header.Label, theme.Header.Value, theme.Header.Logo, theme.Main.BorderActive, theme.Main.BorderInactive, theme.Main.Title, theme.Main.TableHeader, theme.Main.RowSelected, theme.Main.RowText, theme.Main.Footer, theme.Footer.StatusBackground, theme.Footer.ShortcutBackground, theme.Footer.Key, theme.Footer.Description, theme.Footer.Separator, theme.Dialog.Border, theme.Dialog.Title, theme.Dialog.Body, theme.Dialog.BodyBackground, theme.Dialog.OptionActive, theme.Dialog.OptionInactive, theme.Dialog.Overlay, theme.Toast.Success, theme.Toast.Error, theme.Toast.Background, theme.Text.Info, theme.Text.Error, theme.Text.Success, theme.Text.Warning, theme.Text.Dim, theme.Text.HelpKey, theme.Text.HelpDescription}
 	for _, ref := range refs {
 		if !isColorRef(ref) {
 			return fmt.Errorf(errThemeColorReferenceFormat, ref)
@@ -286,8 +286,8 @@ func isColorRef(ref ColorRef) bool {
 	if ref.Value != Color(emptyValue) {
 		return isHexColor(string(ref.Value))
 	}
-	switch ref.Token {
-	case ColorTokenGreen, ColorTokenCyan, ColorTokenBlue, ColorTokenRed, ColorTokenYellow, ColorTokenOrange, ColorTokenPurple, ColorTokenWhite, ColorTokenGray, ColorTokenDark, ColorTokenSurface, ColorTokenBackground:
+switch ref.Token {
+	case ColorTokenPrimary, ColorTokenSuccess, ColorTokenWarning, ColorTokenDanger, ColorTokenInfo, ColorTokenAccent, ColorTokenAccentSecondary, ColorTokenForeground, ColorTokenForegroundMuted, ColorTokenBackground, ColorTokenBackgroundSubtle, ColorTokenBackgroundDeep, ColorTokenTransparent:
 		return true
 	default:
 		return false

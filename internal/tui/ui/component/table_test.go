@@ -53,8 +53,8 @@ func TestTableConfigOwnsSharedLayoutAndSemanticColumnStyles(t *testing.T) {
 	if !styles[1].Style.Faint {
 		t.Fatal("semantic id style is not faint")
 	}
-	if styles[2].Style.Color != "cyan" {
-		t.Fatalf("semantic tag color = %q, want cyan", styles[2].Style.Color)
+	if styles[2].Style.Color != "primary" {
+		t.Fatalf("semantic tag color = %q, want primary", styles[2].Style.Color)
 	}
 	if styles[3].Style != (styleRef{}) {
 		t.Fatalf("unknown column should use empty style: %+v", styles[3].Style)

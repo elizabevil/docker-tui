@@ -37,18 +37,18 @@ const (
 )
 
 type Palette struct {
-	Green      Color `json:"green" yaml:"green"`
-	Cyan       Color `json:"cyan" yaml:"cyan"`
-	Blue       Color `json:"blue" yaml:"blue"`
-	Red        Color `json:"red" yaml:"red"`
-	Yellow     Color `json:"yellow" yaml:"yellow"`
-	Orange     Color `json:"orange" yaml:"orange"`
-	Purple     Color `json:"purple" yaml:"purple"`
-	White      Color `json:"white" yaml:"white"`
-	Gray       Color `json:"gray" yaml:"gray"`
-	Dark       Color `json:"dark" yaml:"dark"`
-	Surface    Color `json:"surface" yaml:"surface"`
-	Background Color `json:"background" yaml:"background"`
+	Primary          Color `json:"primary" yaml:"primary"`
+	Success          Color `json:"success" yaml:"success"`
+	Warning          Color `json:"warning" yaml:"warning"`
+	Danger           Color `json:"danger" yaml:"danger"`
+	Info             Color `json:"info" yaml:"info"`
+	Accent           Color `json:"accent" yaml:"accent"`
+	AccentSecondary  Color `json:"accentSecondary" yaml:"accentSecondary"`
+	Foreground       Color `json:"foreground" yaml:"foreground"`
+	ForegroundMuted  Color `json:"foregroundMuted" yaml:"foregroundMuted"`
+	Background       Color `json:"background" yaml:"background"`
+	BackgroundSubtle Color `json:"backgroundSubtle" yaml:"backgroundSubtle"`
+	BackgroundDeep   Color `json:"backgroundDeep" yaml:"backgroundDeep"`
 }
 
 type BorderStyles struct {
@@ -87,6 +87,7 @@ type DialogStyles struct {
 	Border         ColorRef `json:"border" yaml:"border"`
 	Title          ColorRef `json:"title" yaml:"title"`
 	Body           ColorRef `json:"body" yaml:"body"`
+	BodyBackground ColorRef `json:"bodyBackground" yaml:"bodyBackground"`
 	OptionActive   ColorRef `json:"optionActive" yaml:"optionActive"`
 	OptionInactive ColorRef `json:"optionInactive" yaml:"optionInactive"`
 	Overlay        ColorRef `json:"overlay" yaml:"overlay"`
@@ -148,18 +149,18 @@ type ThemeDocument struct {
 }
 
 type PalettePatch struct {
-	Green      *Color `json:"green,omitempty" yaml:"green,omitempty"`
-	Cyan       *Color `json:"cyan,omitempty" yaml:"cyan,omitempty"`
-	Blue       *Color `json:"blue,omitempty" yaml:"blue,omitempty"`
-	Red        *Color `json:"red,omitempty" yaml:"red,omitempty"`
-	Yellow     *Color `json:"yellow,omitempty" yaml:"yellow,omitempty"`
-	Orange     *Color `json:"orange,omitempty" yaml:"orange,omitempty"`
-	Purple     *Color `json:"purple,omitempty" yaml:"purple,omitempty"`
-	White      *Color `json:"white,omitempty" yaml:"white,omitempty"`
-	Gray       *Color `json:"gray,omitempty" yaml:"gray,omitempty"`
-	Dark       *Color `json:"dark,omitempty" yaml:"dark,omitempty"`
-	Surface    *Color `json:"surface,omitempty" yaml:"surface,omitempty"`
-	Background *Color `json:"background,omitempty" yaml:"background,omitempty"`
+	Primary          *Color `json:"primary,omitempty" yaml:"primary,omitempty"`
+	Success          *Color `json:"success,omitempty" yaml:"success,omitempty"`
+	Warning          *Color `json:"warning,omitempty" yaml:"warning,omitempty"`
+	Danger           *Color `json:"danger,omitempty" yaml:"danger,omitempty"`
+	Info             *Color `json:"info,omitempty" yaml:"info,omitempty"`
+	Accent           *Color `json:"accent,omitempty" yaml:"accent,omitempty"`
+	AccentSecondary  *Color `json:"accentSecondary,omitempty" yaml:"accentSecondary,omitempty"`
+	Foreground       *Color `json:"foreground,omitempty" yaml:"foreground,omitempty"`
+	ForegroundMuted  *Color `json:"foregroundMuted,omitempty" yaml:"foregroundMuted,omitempty"`
+	Background       *Color `json:"background,omitempty" yaml:"background,omitempty"`
+	BackgroundSubtle *Color `json:"backgroundSubtle,omitempty" yaml:"backgroundSubtle,omitempty"`
+	BackgroundDeep   *Color `json:"backgroundDeep,omitempty" yaml:"backgroundDeep,omitempty"`
 }
 
 type BorderStylesPatch struct {
@@ -194,6 +195,7 @@ type DialogStylesPatch struct {
 	Border         *ColorRef `json:"border,omitempty" yaml:"border,omitempty"`
 	Title          *ColorRef `json:"title,omitempty" yaml:"title,omitempty"`
 	Body           *ColorRef `json:"body,omitempty" yaml:"body,omitempty"`
+	BodyBackground *ColorRef `json:"bodyBackground,omitempty" yaml:"bodyBackground,omitempty"`
 	OptionActive   *ColorRef `json:"optionActive,omitempty" yaml:"optionActive,omitempty"`
 	OptionInactive *ColorRef `json:"optionInactive,omitempty" yaml:"optionInactive,omitempty"`
 	Overlay        *ColorRef `json:"overlay,omitempty" yaml:"overlay,omitempty"`
@@ -243,16 +245,16 @@ type ThemePatch struct {
 
 func DefaultTheme() *Theme {
 	return &Theme{
-		Palette:      Palette{Green: FallbackColorGreen, Cyan: FallbackColorCyan, Blue: FallbackColorBlue, Red: FallbackColorRed, Yellow: FallbackColorYellow, Orange: FallbackColorOrange, Purple: FallbackColorPurple, White: FallbackColorWhite, Gray: FallbackColorGray, Dark: FallbackColorDark, Surface: FallbackColorSurface, Background: FallbackColorBackground},
-		Border:       BorderStyles{Active: TokenRef(ColorTokenCyan), Inactive: TokenRef(ColorTokenGray), Focused: TokenRef(ColorTokenGreen), Kind: BorderRounded},
-		Header:       HeaderStyles{Background: TokenRef(ColorTokenDark), Label: TokenRef(ColorTokenGray), Value: TokenRef(ColorTokenWhite), Logo: TokenRef(ColorTokenCyan)},
-		Main:         MainStyles{BorderActive: TokenRef(ColorTokenCyan), BorderInactive: TokenRef(ColorTokenGray), Title: TokenRef(ColorTokenCyan), TableHeader: TokenRef(ColorTokenBlue), RowSelected: TokenRef(ColorTokenBlue), RowText: TokenRef(ColorTokenWhite), Footer: TokenRef(ColorTokenGray)},
-		Footer:       FooterStyles{StatusBackground: TokenRef(ColorTokenSurface), ShortcutBackground: TokenRef(ColorTokenDark), Key: TokenRef(ColorTokenWhite), Description: TokenRef(ColorTokenGray), Separator: TokenRef(ColorTokenSurface)},
-		Dialog:       DialogStyles{Border: TokenRef(ColorTokenRed), Title: TokenRef(ColorTokenRed), Body: TokenRef(ColorTokenWhite), OptionActive: TokenRef(ColorTokenCyan), OptionInactive: TokenRef(ColorTokenGray), Overlay: TokenRef(ColorTokenBackground), OverlayOpacity: 80},
-		Toast:        ToastStyles{Success: TokenRef(ColorTokenGreen), Error: TokenRef(ColorTokenRed), Background: TokenRef(ColorTokenDark)},
-		Text:         TextStyles{Info: TokenRef(ColorTokenCyan), Error: TokenRef(ColorTokenRed), Success: TokenRef(ColorTokenGreen), Warning: TokenRef(ColorTokenYellow), Dim: TokenRef(ColorTokenGray), HelpKey: TokenRef(ColorTokenCyan), HelpDescription: TokenRef(ColorTokenWhite)},
-		Table:        TableStyles{MarkedBackground: ValueRef(FallbackColorTableMarkedBackground), ColumnForeground: ValueRef(FallbackColorTableColumnForeground), NameForeground: ValueRef(FallbackColorTableNameForeground)},
-		SafeFallback: SafeFallbackStyles{Normal: TokenRef(ColorTokenWhite), Bold: TokenRef(ColorTokenWhite), Dim: TokenRef(ColorTokenGray), Accent: TokenRef(ColorTokenCyan), Error: TokenRef(ColorTokenRed)},
+		Palette: Palette{Primary: FallbackColorPrimary, Success: FallbackColorSuccess, Warning: FallbackColorWarning, Danger: FallbackColorDanger, Info: FallbackColorInfo, Accent: FallbackColorAccent, AccentSecondary: FallbackColorAccentSecondary, Foreground: FallbackColorForeground, ForegroundMuted: FallbackColorForegroundMuted, Background: FallbackColorBackground, BackgroundSubtle: FallbackColorBackgroundSubtle, BackgroundDeep: FallbackColorBackgroundDeep},
+		Border:  BorderStyles{Active: TokenRef(ColorTokenPrimary), Inactive: TokenRef(ColorTokenForegroundMuted), Focused: TokenRef(ColorTokenSuccess), Kind: BorderRounded},
+		Header:  HeaderStyles{Background: TokenRef(ColorTokenTransparent), Label: TokenRef(ColorTokenForegroundMuted), Value: TokenRef(ColorTokenForeground), Logo: TokenRef(ColorTokenInfo)},
+		Main:    MainStyles{BorderActive: TokenRef(ColorTokenPrimary), BorderInactive: TokenRef(ColorTokenForegroundMuted), Title: TokenRef(ColorTokenPrimary), TableHeader: TokenRef(ColorTokenInfo), RowSelected: TokenRef(ColorTokenInfo), RowText: TokenRef(ColorTokenForeground), Footer: TokenRef(ColorTokenForegroundMuted)},
+		Footer:  FooterStyles{StatusBackground: TokenRef(ColorTokenTransparent), ShortcutBackground: TokenRef(ColorTokenTransparent), Key: TokenRef(ColorTokenForeground), Description: TokenRef(ColorTokenForegroundMuted), Separator: TokenRef(ColorTokenBackgroundDeep)},
+		Dialog:  DialogStyles{Border: TokenRef(ColorTokenDanger), Title: TokenRef(ColorTokenDanger), Body: TokenRef(ColorTokenForeground), BodyBackground: TokenRef(ColorTokenBackground), OptionActive: TokenRef(ColorTokenPrimary), OptionInactive: TokenRef(ColorTokenForegroundMuted), Overlay: TokenRef(ColorTokenBackground), OverlayOpacity: 80},
+		Toast:   ToastStyles{Success: TokenRef(ColorTokenSuccess), Error: TokenRef(ColorTokenDanger), Background: TokenRef(ColorTokenTransparent)},
+		Text:    TextStyles{Info: TokenRef(ColorTokenInfo), Error: TokenRef(ColorTokenDanger), Success: TokenRef(ColorTokenSuccess), Warning: TokenRef(ColorTokenWarning), Dim: TokenRef(ColorTokenForegroundMuted), HelpKey: TokenRef(ColorTokenPrimary), HelpDescription: TokenRef(ColorTokenForeground)},
+		Table:   TableStyles{MarkedBackground: ValueRef(FallbackColorTableMarkedBackground), ColumnForeground: ValueRef(FallbackColorTableColumnForeground), NameForeground: ValueRef(FallbackColorTableNameForeground)},
+		SafeFallback: SafeFallbackStyles{Normal: TokenRef(ColorTokenForeground), Bold: TokenRef(ColorTokenForeground), Dim: TokenRef(ColorTokenForegroundMuted), Accent: TokenRef(ColorTokenPrimary), Error: TokenRef(ColorTokenDanger)},
 	}
 }
 
@@ -261,30 +263,32 @@ func (t *Theme) ResolveColor(ref ColorRef) string {
 		return string(ref.Value)
 	}
 	switch ref.Token {
-	case ColorTokenGreen:
-		return string(t.Palette.Green)
-	case ColorTokenCyan:
-		return string(t.Palette.Cyan)
-	case ColorTokenBlue:
-		return string(t.Palette.Blue)
-	case ColorTokenRed:
-		return string(t.Palette.Red)
-	case ColorTokenYellow:
-		return string(t.Palette.Yellow)
-	case ColorTokenOrange:
-		return string(t.Palette.Orange)
-	case ColorTokenPurple:
-		return string(t.Palette.Purple)
-	case ColorTokenWhite:
-		return string(t.Palette.White)
-	case ColorTokenGray:
-		return string(t.Palette.Gray)
-	case ColorTokenDark:
-		return string(t.Palette.Dark)
-	case ColorTokenSurface:
-		return string(t.Palette.Surface)
+	case ColorTokenPrimary:
+		return string(t.Palette.Primary)
+	case ColorTokenSuccess:
+		return string(t.Palette.Success)
+	case ColorTokenWarning:
+		return string(t.Palette.Warning)
+	case ColorTokenDanger:
+		return string(t.Palette.Danger)
+	case ColorTokenInfo:
+		return string(t.Palette.Info)
+	case ColorTokenAccent:
+		return string(t.Palette.Accent)
+	case ColorTokenAccentSecondary:
+		return string(t.Palette.AccentSecondary)
+	case ColorTokenForeground:
+		return string(t.Palette.Foreground)
+	case ColorTokenForegroundMuted:
+		return string(t.Palette.ForegroundMuted)
 	case ColorTokenBackground:
 		return string(t.Palette.Background)
+	case ColorTokenBackgroundSubtle:
+		return string(t.Palette.BackgroundSubtle)
+	case ColorTokenBackgroundDeep:
+		return string(t.Palette.BackgroundDeep)
+	case ColorTokenTransparent:
+		return string(FallbackColorTransparent)
 	default:
 		return string(ref.Value)
 	}
@@ -295,18 +299,18 @@ func (p ThemePatch) Apply(target *Theme) {
 		return
 	}
 	if p.Palette != nil {
-		assign(&target.Palette.Green, p.Palette.Green)
-		assign(&target.Palette.Cyan, p.Palette.Cyan)
-		assign(&target.Palette.Blue, p.Palette.Blue)
-		assign(&target.Palette.Red, p.Palette.Red)
-		assign(&target.Palette.Yellow, p.Palette.Yellow)
-		assign(&target.Palette.Orange, p.Palette.Orange)
-		assign(&target.Palette.Purple, p.Palette.Purple)
-		assign(&target.Palette.White, p.Palette.White)
-		assign(&target.Palette.Gray, p.Palette.Gray)
-		assign(&target.Palette.Dark, p.Palette.Dark)
-		assign(&target.Palette.Surface, p.Palette.Surface)
+		assign(&target.Palette.Primary, p.Palette.Primary)
+		assign(&target.Palette.Success, p.Palette.Success)
+		assign(&target.Palette.Warning, p.Palette.Warning)
+		assign(&target.Palette.Danger, p.Palette.Danger)
+		assign(&target.Palette.Info, p.Palette.Info)
+		assign(&target.Palette.Accent, p.Palette.Accent)
+		assign(&target.Palette.AccentSecondary, p.Palette.AccentSecondary)
+		assign(&target.Palette.Foreground, p.Palette.Foreground)
+		assign(&target.Palette.ForegroundMuted, p.Palette.ForegroundMuted)
 		assign(&target.Palette.Background, p.Palette.Background)
+		assign(&target.Palette.BackgroundSubtle, p.Palette.BackgroundSubtle)
+		assign(&target.Palette.BackgroundDeep, p.Palette.BackgroundDeep)
 	}
 	if p.Border != nil {
 		assign(&target.Border.Active, p.Border.Active)
@@ -340,6 +344,7 @@ func (p ThemePatch) Apply(target *Theme) {
 		assign(&target.Dialog.Border, p.Dialog.Border)
 		assign(&target.Dialog.Title, p.Dialog.Title)
 		assign(&target.Dialog.Body, p.Dialog.Body)
+		assign(&target.Dialog.BodyBackground, p.Dialog.BodyBackground)
 		assign(&target.Dialog.OptionActive, p.Dialog.OptionActive)
 		assign(&target.Dialog.OptionInactive, p.Dialog.OptionInactive)
 		assign(&target.Dialog.Overlay, p.Dialog.Overlay)

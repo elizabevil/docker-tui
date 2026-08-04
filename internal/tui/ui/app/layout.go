@@ -16,6 +16,7 @@ import (
 	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
+	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/actionbar"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/dialog"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/footer"
@@ -291,7 +292,7 @@ func (ui runtimeSelectorUI) Render() string {
 		rows = append(rows, e.Info)
 	}
 	rows = append(rows, "", ui.Footer)
-	return lipgloss.NewStyle().Border(ui.Border).Padding(ui.Padding[0], ui.Padding[1]).Width(ui.Width).Render(strings.Join(rows, "\n"))
+	return lipgloss.NewStyle().Border(ui.Border).Padding(ui.Padding[0], ui.Padding[1]).Width(ui.Width).Background(style.Colors.BG).Render(strings.Join(rows, "\n"))
 }
 
 func renderRuntimeSelector(m *state.AppModel) string {
@@ -431,7 +432,7 @@ func renderExecPassthroughPanel(m *state.AppModel, bodyH int) string {
 			lines[i] = line[:panelW]
 		}
 	}
-	return lipgloss.NewStyle().Width(panelW).Render(strings.Join(lines, "\n"))
+	return lipgloss.NewStyle().Width(panelW).Background(style.Colors.BG).Render(strings.Join(lines, "\n"))
 }
 
 // sliceColors safely slices a colors array. Returns nil if colors is nil or bounds are invalid.

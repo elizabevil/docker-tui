@@ -8,7 +8,6 @@ import (
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 	"github.com/elizabevil/docker-tui/internal/utils"
 
 	"charm.land/lipgloss/v2"
@@ -47,7 +46,7 @@ func renderPathPopup(form state.FormState, _ string, dialogW, _ int) string {
 		var message string
 		switch {
 		case field.PathError != "":
-			message = lipgloss.NewStyle().Foreground(style.Colors.Red).Render("⚠ " + field.PathError)
+			message = lipgloss.NewStyle().Foreground(component.GetStyle("dialogError").GetForeground()).Render("⚠ " + field.PathError)
 		case field.PathLoading:
 			message = i18n.T("form.path.loading")
 		default:
@@ -55,7 +54,7 @@ func renderPathPopup(form state.FormState, _ string, dialogW, _ int) string {
 		}
 		lines := []string{
 			component.FormRow("", 0, innerW, field.Label),
-			component.FormRow("", 0, innerW, lipgloss.NewStyle().Foreground(style.Colors.Cyan).Render(field.Input.Text)),
+			component.FormRow("", 0, innerW, lipgloss.NewStyle().Foreground(component.GetStyle("panelTitle").GetForeground()).Render(field.Input.Text)),
 			component.FormRow("", 0, innerW, ""),
 			component.FormRow("", 0, innerW, ""),
 			component.FormRow("", 0, innerW, message),
@@ -63,7 +62,7 @@ func renderPathPopup(form state.FormState, _ string, dialogW, _ int) string {
 		for len(lines) < state.FormPopupVisibleRows+3 {
 			lines = append(lines, component.FormRow("", 0, innerW, ""))
 		}
-		return DialogBox(DialogStyle{Width: popupW, TitleColor: style.Colors.Cyan, LeftAligned: true}, lines...)
+		return DialogBox(DialogStyle{Width: popupW, TitleColor: component.GetStyle("panelTitle").GetForeground(), LeftAligned: true}, lines...)
 	}
 
 	rows, idxMap := renderPathRows(entries, bodyW)
@@ -72,7 +71,7 @@ func renderPathPopup(form state.FormState, _ string, dialogW, _ int) string {
 
 	header := []string{
 		component.FormRow("", 0, innerW, field.Label),
-		component.FormRow("", 0, innerW, lipgloss.NewStyle().Foreground(style.Colors.Cyan).Render(utils.FitVisible(field.Input.Text, innerW))),
+		component.FormRow("", 0, innerW, lipgloss.NewStyle().Foreground(component.GetStyle("panelTitle").GetForeground()).Render(utils.FitVisible(field.Input.Text, innerW))),
 		component.FormRow("", 0, innerW, pathColumnHeader()),
 	}
 	lines = append(header, lines...)
@@ -82,7 +81,7 @@ func renderPathPopup(form state.FormState, _ string, dialogW, _ int) string {
 		lines = append(lines, detail...)
 	}
 
-	return DialogBox(DialogStyle{Width: popupW, TitleColor: style.Colors.Cyan, LeftAligned: true}, lines...)
+	return DialogBox(DialogStyle{Width: popupW, TitleColor: component.GetStyle("panelTitle").GetForeground(), LeftAligned: true}, lines...)
 }
 
 // pathEntries returns the entry list shown in the popup: ./ and ../ pinned at
@@ -169,10 +168,8 @@ func visiblePopupIndices(total, cursor, limit int) (int, int) {
 	return start, start + limit
 }
 
-// shadePathRows renders the visible window. The cursor row is highlighted and
-// prefixed with "> "; others get "  ".
 func shadePathRows(rows []string, idxMap []int, start, end, cursor, innerW, bodyW int) []string {
-	highlight := lipgloss.NewStyle().Foreground(style.Colors.Cyan).Bold(true).Background(style.Colors.Surface).Width(innerW)
+	highlight := lipgloss.NewStyle().Foreground(component.GetStyle("panelTitle").GetForeground()).Bold(true).Background(component.GetStyle("headerBar").GetBackground()).Width(innerW)
 	normal := lipgloss.NewStyle().Width(innerW).Align(lipgloss.Left)
 	out := make([]string, 0, end-start)
 	for i := start; i < end; i++ {
@@ -272,7 +269,7 @@ func renderSelectPopup(form state.FormState, _ string, dialogW, _ int) string {
 	}
 	lines = append([]string{component.FormRow("", 0, innerW, field.Label), component.FormRow("", 0, innerW, "")}, lines...)
 
-	return DialogBox(DialogStyle{Width: popupW, TitleColor: style.Colors.Cyan, LeftAligned: true}, lines...)
+	return DialogBox(DialogStyle{Width: popupW, TitleColor: component.GetStyle("panelTitle").GetForeground(), LeftAligned: true}, lines...)
 }
 
 func visiblePopupRows(form state.FormState, field *state.FormField, rows []string, innerW, limit int) []string {
@@ -335,7 +332,7 @@ func entryLabel(e *state.PathEntry) string {
 func shadePopup(form state.FormState, field *state.FormField, rows []string, innerW, offset int) []string {
 	out := make([]string, 0, len(rows))
 	cursor := form.Popup.Cursor
-	highlight := lipgloss.NewStyle().Foreground(style.Colors.Cyan).Bold(true).Background(style.Colors.Surface).Width(innerW)
+	highlight := lipgloss.NewStyle().Foreground(component.GetStyle("panelTitle").GetForeground()).Bold(true).Background(component.GetStyle("headerBar").GetBackground()).Width(innerW)
 	normal := lipgloss.NewStyle().Width(innerW).Align(lipgloss.Left)
 	for i, row := range rows {
 		index := i + offset

@@ -8,7 +8,6 @@ import (
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 	"github.com/elizabevil/docker-tui/internal/utils"
 
 	"charm.land/lipgloss/v2"
@@ -87,9 +86,9 @@ func FormDialog(m *state.AppModel, overlayColor string, cfg dialogConfig, bodyW,
 	// (Enter). Focus stays linear: Cancel = n+1, Confirm = n.
 	renderBtn := func(key, label string, focused bool) string {
 		if focused {
-			return lipgloss.NewStyle().Foreground(style.Colors.Green).Bold(true).Render(key + " \u25b6 " + label)
+			return lipgloss.NewStyle().Foreground(component.GetStyle("dialogConfirm").GetForeground()).Bold(true).Render(key + " \u25b6 " + label)
 		}
-		return lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(key + " " + label)
+		return lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(key + " " + label)
 	}
 	confirmFocused := form.FieldFocus == form.ConfirmSlot() && !form.Popup.Open
 	cancelFocused := form.FieldFocus == form.CancelSlot() && !form.Popup.Open
@@ -106,7 +105,7 @@ func FormDialog(m *state.AppModel, overlayColor string, cfg dialogConfig, bodyW,
 	}
 	parts = append(parts, component.GetStyle("dim").Render(i18n.T(hintKey)))
 
-	box := DialogBox(DialogStyle{Width: dialogW, Height: dialogH, TitleColor: style.Colors.Cyan, OverlayColor: overlayColor, LeftAligned: true}, parts...)
+	box := DialogBox(DialogStyle{Width: dialogW, Height: dialogH, TitleColor: component.GetStyle("panelTitle").GetForeground(), OverlayColor: overlayColor, LeftAligned: true}, parts...)
 	if form.Popup.Open {
 		box = renderFormPopup(form, box, dialogW, dialogH)
 	}
@@ -160,7 +159,7 @@ func renderFormField(form state.FormState, f *state.FormField, index, labelWidth
 
 	label := component.FormRow(f.Label, labelWidth, -1, "")
 	if focused {
-		label = lipgloss.NewStyle().Foreground(style.Colors.Cyan).Bold(true).Render(label)
+		label = lipgloss.NewStyle().Foreground(component.GetStyle("panelTitle").GetForeground()).Bold(true).Render(label)
 	}
 
 	var value, marker string
@@ -178,7 +177,7 @@ func renderFormField(form state.FormState, f *state.FormField, index, labelWidth
 	row := label + " " + value
 	if f.Error != "" {
 		pad := utils.PadVisible("", labelWidth+1)
-		row += "\n" + pad + lipgloss.NewStyle().Foreground(style.Colors.Red).Render(f.Error)
+		row += "\n" + pad + lipgloss.NewStyle().Foreground(component.GetStyle("dialogError").GetForeground()).Render(f.Error)
 	}
 	return row
 }
@@ -193,9 +192,9 @@ func renderFormValue(f *state.FormField, focused bool, valueWidth int, cursorVis
 		}
 		cell := "[" + mark + "]"
 		if focused {
-			return lipgloss.NewStyle().Foreground(style.Colors.Green).Bold(true).Render(cell)
+			return lipgloss.NewStyle().Foreground(component.GetStyle("dialogConfirm").GetForeground()).Bold(true).Render(cell)
 		}
-		return lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(cell)
+		return lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(cell)
 	default: // FormText, FormInt, FormPath
 		return renderEditableValue(f, focused, valueWidth, cursorVisible...)
 	}
@@ -222,20 +221,20 @@ func renderEditableValue(f *state.FormField, focused bool, valueWidth int, curso
 	for end < len(runes) && utils.DisplayWidth(string(runes[start:end+1])) <= valueWidth {
 		end++
 	}
-	base := lipgloss.NewStyle().Foreground(style.Colors.Gray)
+	base := lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground())
 	if !focused {
 		return utils.TruncateVisible(base.Render(string(runes[start:end])), valueWidth)
 	}
 
-	before := lipgloss.NewStyle().Foreground(style.Colors.White).Render(string(runes[start:cursor]))
+	before := lipgloss.NewStyle().Foreground(component.GetStyle("helpDesc").GetForeground()).Render(string(runes[start:cursor]))
 	visible := len(cursorVisible) == 0 || cursorVisible[0]
-	caret := lipgloss.NewStyle().Foreground(style.Colors.Cyan).Bold(true).Underline(true)
+	caret := lipgloss.NewStyle().Foreground(component.GetStyle("panelTitle").GetForeground()).Bold(true).Underline(true)
 	current := "\u258f"
 	if cursor < len(runes) {
 		current = string(runes[cursor])
 	}
 	if !visible {
-		caret = lipgloss.NewStyle().Foreground(style.Colors.White)
+		caret = lipgloss.NewStyle().Foreground(component.GetStyle("helpDesc").GetForeground())
 		if cursor == len(runes) {
 			current = " "
 		}
@@ -244,7 +243,7 @@ func renderEditableValue(f *state.FormField, focused bool, valueWidth int, curso
 	if cursor < len(runes) {
 		afterStart++
 	}
-	after := lipgloss.NewStyle().Foreground(style.Colors.White).Render(string(runes[afterStart:end]))
+	after := lipgloss.NewStyle().Foreground(component.GetStyle("helpDesc").GetForeground()).Render(string(runes[afterStart:end]))
 	return utils.TruncateVisible(before+caret.Render(current)+after, valueWidth)
 }
 
@@ -270,9 +269,9 @@ func renderSelectCell(f *state.FormField, focused bool, valueWidth int) (value, 
 	}
 	value = utils.TruncateVisible(text, valueWidth)
 	if focused {
-		value = lipgloss.NewStyle().Foreground(style.Colors.Cyan).Bold(true).Render(value)
+		value = lipgloss.NewStyle().Foreground(component.GetStyle("panelTitle").GetForeground()).Bold(true).Render(value)
 	} else {
-		value = lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(value)
+		value = lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(value)
 	}
 	return value, marker
 }

@@ -9,6 +9,7 @@ import (
 	actionmodel "github.com/elizabevil/docker-tui/internal/tui/actionbar"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
+	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/dialog"
 )
 
@@ -75,5 +76,6 @@ func renderBox(items []actionmodel.ActionItem, selected int, filtering bool, fil
 		Border(lipgloss.RoundedBorder()).
 		Padding(0, 1).
 		Width(boxWidth - 4).
+		Background(style.Colors.BG).
 		Render(strings.Join(lines, "\n"))
 }

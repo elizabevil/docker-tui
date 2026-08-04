@@ -66,15 +66,15 @@ func defaultTableConfig() TableStyleConfig {
 		Table: config.DefaultAppConfig().UI.Table,
 		RowStyles: RowStyleRefs{
 			Selected: styleRef{Bold: true},
-			Normal:   styleRef{Color: string(config.ColorTokenOrange)},
-			Alt:      styleRef{Faint: true, Background: string(config.ColorTokenDark)},
+			Normal:   styleRef{Color: string(config.ColorTokenAccent)},
+			Alt:      styleRef{Faint: true, Background: string(config.ColorTokenBackgroundSubtle)},
 			Marked:   styleRef{Color: string(config.FallbackColorTableNameForeground), Background: string(config.FallbackColorTableMarkedBackground), Bold: true},
 		},
 		StateStyles: StateStyleRefs{
-			Running: styleRef{Color: string(config.ColorTokenGreen)}, Stopping: styleRef{Color: string(config.ColorTokenYellow)},
-			Stopped: styleRef{Color: string(config.ColorTokenWhite), Faint: true}, Exited: styleRef{Color: string(config.ColorTokenWhite), Faint: true},
-			Paused: styleRef{Color: string(config.ColorTokenYellow)}, Created: styleRef{Color: string(config.ColorTokenBlue)},
-			Restarting: styleRef{Color: string(config.ColorTokenOrange)}, Dead: styleRef{Color: string(config.ColorTokenRed)},
+			Running: styleRef{Color: string(config.ColorTokenSuccess)}, Stopping: styleRef{Color: string(config.ColorTokenWarning)},
+			Stopped: styleRef{Color: string(config.ColorTokenForeground), Faint: true}, Exited: styleRef{Color: string(config.ColorTokenForeground), Faint: true},
+			Paused: styleRef{Color: string(config.ColorTokenWarning)}, Created: styleRef{Color: string(config.ColorTokenInfo)},
+			Restarting: styleRef{Color: string(config.ColorTokenAccent)}, Dead: styleRef{Color: string(config.ColorTokenDanger)},
 		},
 		ColumnStyles: defaultColumnStyles(string(config.FallbackColorTableColumnForeground), string(config.FallbackColorTableNameForeground)),
 	}
@@ -86,7 +86,7 @@ func defaultColumnStyles(columnForeground, nameForeground string) ColumnStyleRef
 	bold := styleRef{Color: columnForeground, Bold: true}
 	return ColumnStyleRefs{
 		ID: dimmed, Name: styleRef{Color: nameForeground, Bold: true}, Project: bold, Service: bold,
-		Registry: dimmed, Tag: styleRef{Color: string(config.ColorTokenCyan)}, Platform: dimmed,
+		Registry: dimmed, Tag: styleRef{Color: string(config.ColorTokenPrimary)}, Platform: dimmed,
 		State: standard, Status: standard, Created: dimmed, Time: dimmed, Ports: standard, Subnet: standard,
 	}
 }

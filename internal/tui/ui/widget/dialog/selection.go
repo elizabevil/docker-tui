@@ -4,7 +4,6 @@ import (
 	"image/color"
 
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 
 	"charm.land/lipgloss/v2"
 
@@ -20,7 +19,7 @@ import (
 // it falls back to termW/termH-percentage sizing.
 func SelectionDialog(title, body, preview, action string, focus int, termW, termH int, bodyW, bodyH int, titleColor color.Color, overlayColor string, cfg dialogConfig) string {
 	if titleColor == nil {
-		titleColor = style.Colors.Cyan
+		titleColor = component.GetStyle("panelTitle").GetForeground()
 	}
 	if overlayColor == "" {
 		overlayColor = OverlayColor(nil)
@@ -42,9 +41,9 @@ func SelectionDialog(title, body, preview, action string, focus int, termW, term
 	var confirmBtn, cancelBtn string
 	if focus == 0 {
 		confirmBtn = lipgloss.NewStyle().Foreground(titleColor).Bold(true).Render(enterKey + " \u25b6 " + confirmLabel)
-		cancelBtn = lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(escKey + " " + cancelLabel)
+		cancelBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(escKey + " " + cancelLabel)
 	} else {
-		confirmBtn = lipgloss.NewStyle().Foreground(style.Colors.Gray).Render(enterKey + " " + confirmLabel)
+		confirmBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(enterKey + " " + confirmLabel)
 		cancelBtn = lipgloss.NewStyle().Foreground(titleColor).Bold(true).Render(escKey + " \u25b6 " + cancelLabel)
 	}
 	buttons := lipgloss.NewStyle().Width(dialogW - 4).Align(lipgloss.Center).Render(

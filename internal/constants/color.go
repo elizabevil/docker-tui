@@ -6,19 +6,19 @@ package constants
 // internal/utils.ParseColor resolves them at runtime through the palette
 // registered by the style package.
 const (
-	ColorGreen   = "green"
-	ColorCyan    = "cyan"
-	ColorBlue    = "blue"
-	ColorRed     = "red"
-	ColorYellow  = "yellow"
-	ColorOrange  = "orange"
-	ColorPurple  = "purple"
-	ColorWhite   = "white"
-	ColorGray    = "gray"
-	ColorGrey    = "grey"
-	ColorDark    = "dark"
-	ColorSurface = "surface"
-	ColorBG      = "bg"
+	ColorSuccess          = "success"
+	ColorPrimary          = "primary"
+	ColorInfo             = "info"
+	ColorDanger           = "danger"
+	ColorWarning          = "warning"
+	ColorAccent           = "accent"
+	ColorAccentSecondary  = "accentSecondary"
+	ColorForeground       = "foreground"
+	ColorForegroundMuted  = "foregroundMuted"
+	ColorBackground       = "background"
+	ColorBackgroundSubtle = "backgroundSubtle"
+	ColorBackgroundDeep   = "backgroundDeep"
+	ColorBG               = "bg"
 )
 
 // Standard CSS color names supported by color parsing (internal/utils).
