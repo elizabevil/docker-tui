@@ -32,7 +32,7 @@
     "table": {
       "columnSpacing": 2,
       "rowPrefix": "  ",
-      "rowPrefixSelected": "┃ ",
+      "rowPrefixSelected": "> ",
       "rowSpacing": 0,
       "selectionInfo": {
         "enabled": true,

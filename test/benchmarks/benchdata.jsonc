@@ -75,9 +75,9 @@
   },
   /* status indicators */
   "status": {
-    "connected": "\u25cf connected",
-    "disconnected": "\u25cb disconnected",
-    "running": "\u25cf {0} running",
+    "connected": "● connected",
+    "disconnected": "○ disconnected",
+    "running": "● {0} running",
     "error": "Error: {0}",
     "loading": "Loading..."
   },
