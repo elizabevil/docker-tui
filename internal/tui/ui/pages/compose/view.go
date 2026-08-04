@@ -154,7 +154,7 @@ func RenderPanel(m *state.AppModel, panelWidth int, panelHeight int) string {
 }
 
 func renderProjectList(m *state.AppModel, ordered []composeProj, w, panelHeight int) string {
-	colsDef := tc.Columns["default"]
+	colsDef := tc.Columns.Get("default")
 	if len(colsDef) == 0 {
 		return ""
 	}
@@ -241,7 +241,7 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 	}
 	serviceCursor := m.Compose.ServiceCursor(len(svcNames))
 
-	colsDef := tc.Columns["services_sub"]
+	colsDef := tc.Columns.Get("services_sub")
 	total := len(svcNames)
 	rowHeight := component.CalcRowHeight(panelHeight - 3)
 	rows := make([][]string, 0, rowHeight)
@@ -302,7 +302,7 @@ func RenderProjectDetailTable(m *state.AppModel, width, panelHeight int) string 
 	}
 
 	w := max(40, width-4)
-	colsDef := tc.Columns["detail"]
+	colsDef := tc.Columns.Get("detail")
 	if len(colsDef) == 0 {
 		return component.GetStyle("dim").Render("(compose detail columns unavailable)")
 	}
@@ -348,7 +348,7 @@ func RenderProjectDetailTable(m *state.AppModel, width, panelHeight int) string 
 
 // renderComposeContainers 渲染 compose 服务下的容器子视图。
 func renderComposeContainers(m *state.AppModel, panelWidth int, panelHeight int) string {
-	colsDef := tc.Columns["pods_sub"]
+	colsDef := tc.Columns.Get("pods_sub")
 	if len(colsDef) == 0 {
 		return component.GetStyle("dim").Render("(no container data)")
 	}

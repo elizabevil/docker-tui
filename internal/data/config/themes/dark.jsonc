@@ -1,64 +1,12 @@
 {
-  "name": "Dark",
-  "description": "High contrast Rider-inspired dark theme",
-  "colors": {
-    "green": "#6a8759",
-    "cyan": "#6897bb",
-    "blue": "#589df6",
-    "red": "#db5a5a",
-    "yellow": "#bbb529",
-    "orange": "#cc7832",
-    "purple": "#a962b5",
-    "white": "#e6e6e6",
-    "gray": "#6e6e6e",
-    "dark": "#1a1a1a",
-    "surface": "#252525",
-    "background": "#121212"
-  },
-  "border": {
-    "active": "cyan",
-    "inactive": "gray",
-    "focused": "blue",
-    "style": "rounded"
-  },
-  "header": {
-    "bar_bg": "#1a1a1a",
-    "label": "#6e6e6e",
-    "value": "#e6e6e6",
-    "logo": "#589df6"
-  },
-  "main": {
-    "border_active": "cyan",
-    "border_inactive": "gray",
-    "title": "cyan",
-    "header_fg": "blue",
-    "row_selected": "blue",
-    "footer": "gray"
-  },
-  "footer": {
-    "status_bar_bg": "#252525",
-    "shortcuts_bar_bg": "#1a1a1a",
-    "key": "white",
-    "desc": "gray",
-    "separator": "gray"
-  },
-  "dialog": {
-    "border": "red",
-    "title": "red",
-    "body": "white",
-    "overlay": "#121212"
-  },
-  "toast": {
-    "success": "green",
-    "error": "red",
-    "bg": "#1a1a1a"
-  },
-  "text": {
-    "info": "cyan",
-    "error": "red",
-    "success": "green",
-    "warning": "yellow",
-    "help_key": "cyan",
-    "help_desc": "white"
+  "meta": { "name": "Dark", "description": "High contrast Rider-inspired dark theme" },
+  "theme": {
+    "palette": {
+      "green": "#6a8759", "cyan": "#6897bb", "blue": "#589df6",
+      "red": "#db5a5a", "yellow": "#bbb529", "orange": "#cc7832",
+      "purple": "#a962b5", "white": "#e6e6e6", "gray": "#6e6e6e",
+      "dark": "#1a1a1a", "surface": "#252525", "background": "#121212"
+    },
+    "border": { "focused": { "token": "blue" } }
   }
 }

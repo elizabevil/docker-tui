@@ -11,7 +11,7 @@ import (
 )
 
 func TestRenderProjectDetailUsesTableLayout(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "")
 	app.Resources.Containers.Items = []runtimeapi.ContainerSummary{
 		{ID: "one", ComposeProject: "proj-a", ComposeService: "api", Image: "nginx:latest", State: state.ContainerStateRunning},
 		{ID: "two", ComposeProject: "proj-a", ComposeService: "worker", Image: "worker:latest", State: state.ContainerStateStopped},
@@ -28,7 +28,7 @@ func TestRenderProjectDetailUsesTableLayout(t *testing.T) {
 }
 
 func TestServicePanelUsesBreadcrumbOrder(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "")
 	got := component.StripANSI(renderServicePanel(app, composeProj{
 		name: "integration",
 		svcs: map[string]composeSvc{

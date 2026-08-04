@@ -1,152 +1,250 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"sort"
-	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/utils"
+	"gopkg.in/yaml.v3"
 )
 
-// LoadSplit produces a Config by merging the embedded split defaults, then
-// any user override files in userDir (defaults to ~/.config/docker-tui/styles
-// when empty). The merged map is unmarshaled into the Config struct.
-//
-// Merge order (later overrides earlier):
-//  1. embedded split files in styles/*.jsonc
-//  2. user override files in userDir/*.jsonc (alphabetical)
-//  3. CLI YAML config (applied by callers via Load)
-//
-// User overrides use the same schema as the split files (each file is
-// `{"section_name": {...}}`); missing sections fall back to defaults.
-// Returns an error only on parse failure (missing dir is not an error).
-func LoadSplit(userDir string) (*Config, error) {
-	merged, err := loadEmbeddedStyles()
-	if err != nil {
-		return nil, fmt.Errorf("load embedded defaults: %w", err)
-	}
-
-	if userDir == "" {
-		userDir = defaultStylesDir()
-	}
-	if entries, err := os.ReadDir(userDir); err == nil {
-		paths := make([]string, 0, len(entries))
-		for _, e := range entries {
-			if e.IsDir() {
-				continue
-			}
-			name := e.Name()
-			if !strings.HasSuffix(name, ".jsonc") {
-				continue
-			}
-			paths = append(paths, filepath.Join(userDir, name))
-		}
-		sort.Strings(paths) // deterministic order for tests + predictable layering
-		for _, p := range paths {
-			data, rerr := os.ReadFile(p)
-			if rerr != nil {
-				return nil, fmt.Errorf("read %s: %w", p, rerr)
-			}
-			if merr := mergeJSONCSection(merged, data); merr != nil {
-				return nil, fmt.Errorf("parse %s: %w", p, merr)
-			}
-		}
-	} else if !os.IsNotExist(err) {
-		return nil, fmt.Errorf("read user styles dir %s: %w", userDir, err)
-	}
-
-	cfg, err := mergedToConfig(merged)
-	if err != nil {
-		return nil, fmt.Errorf("build config: %w", err)
-	}
-	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("validate merged config: %w", err)
-	}
-	return cfg, nil
+type AppearanceConfig struct {
+	Theme     ThemeName  `json:"theme" yaml:"theme"`
+	Overrides ThemePatch `json:"overrides" yaml:"overrides"`
 }
 
-// loadEmbeddedStyles reads every *.jsonc under the embedded styles dir and
-// merges its top-level keys into a single map[string]json.RawMessage.
-func loadEmbeddedStyles() (map[string]json.RawMessage, error) {
-	merged := map[string]json.RawMessage{}
-	entries, err := fs.ReadDir(StylesFS(), ".")
+type UserConfig struct {
+	Version    int              `json:"version" yaml:"version"`
+	App        AppPatch         `json:"app" yaml:"app"`
+	Appearance AppearanceConfig `json:"appearance" yaml:"appearance"`
+}
+
+type LoadOptions struct {
+	ConfigPath string
+	ThemeName  ThemeName
+	Lang       Language
+}
+
+type Resolved struct {
+	App       *AppConfig
+	Theme     *Theme
+	ThemeName ThemeName
+}
+
+var embeddedDefaultFiles = [...]string{
+	defaultGeneralFile, defaultUIFile, defaultDockerFile, defaultRuntimeFile,
+	defaultLogsFile, defaultLayoutFile, defaultCommandsFile, defaultKeymapFile,
+}
+
+func LoadResolved(options LoadOptions) (*Resolved, error) {
+	app := DefaultAppConfig()
+	for _, name := range embeddedDefaultFiles {
+		data, err := fs.ReadFile(DefaultsFS(), name)
+		if err != nil {
+			return nil, fmt.Errorf(errReadEmbeddedDefaultFormat, name, err)
+		}
+		var patch AppPatch
+		if err := decodeJSONCStrict(data, &patch); err != nil {
+			return nil, fmt.Errorf(errParseEmbeddedDefaultFormat, name, err)
+		}
+		if err := validateEmbeddedDefaultScope(name, patch); err != nil {
+			return nil, err
+		}
+		patch.Apply(app)
+	}
+
+	user, configPath, err := loadUserConfig(options.ConfigPath)
 	if err != nil {
 		return nil, err
 	}
-	names := make([]string, 0, len(entries))
-	for _, e := range entries {
-		if !e.IsDir() && strings.HasSuffix(e.Name(), ".jsonc") {
-			names = append(names, e.Name())
+	if user != nil {
+		if user.Version != CurrentConfigVersion {
+			return nil, fmt.Errorf(errConfigVersionFormat, configPath, CurrentConfigVersion)
+		}
+		user.App.Apply(app)
+	}
+	if options.Lang != Language(emptyValue) {
+		app.General.Lang = options.Lang
+	}
+	if err := ValidateApp(app); err != nil {
+		return nil, fmt.Errorf(errValidateAppFormat, err)
+	}
+
+	theme := DefaultTheme()
+	base, err := loadNamedTheme(ThemeName(themeDefaultName), emptyValue, theme)
+	if err != nil {
+		return nil, err
+	}
+	theme = base.Theme
+	themeName := ThemeName(themeDefaultName)
+	if user != nil && user.Appearance.Theme != ThemeName(emptyValue) {
+		themeName = user.Appearance.Theme
+	}
+	if options.ThemeName != ThemeName(emptyValue) {
+		themeName = options.ThemeName
+	}
+	themeDir := emptyValue
+	if configPath != emptyValue {
+		themeDir = filepath.Join(filepath.Dir(configPath), userThemesDirName)
+	}
+	if themeName != ThemeName(themeDefaultName) {
+		selected, loadErr := loadNamedTheme(themeName, themeDir, theme)
+		if loadErr != nil {
+			return nil, loadErr
+		}
+		theme = selected.Theme
+	} else if themeDir != emptyValue {
+		path := filepath.Join(themeDir, themeDefaultName+jsoncExtension)
+		if data, readErr := os.ReadFile(path); readErr == nil {
+			selected, parseErr := loadThemeDocument(data, path, theme)
+			if parseErr != nil {
+				return nil, parseErr
+			}
+			theme = selected.Theme
+		} else if !os.IsNotExist(readErr) {
+			return nil, fmt.Errorf(errReadThemeFormat, path, readErr)
 		}
 	}
-	sort.Strings(names) // stable order regardless of embed.FS traversal
-	for _, name := range names {
-		data, err := fs.ReadFile(StylesFS(), name)
-		if err != nil {
-			return nil, fmt.Errorf("read embedded %s: %w", name, err)
-		}
-		if err := mergeJSONCSection(merged, data); err != nil {
-			return nil, fmt.Errorf("parse embedded %s: %w", name, err)
-		}
+	if user != nil {
+		user.Appearance.Overrides.Apply(theme)
 	}
-	return merged, nil
+	if err := ValidateTheme(theme); err != nil {
+		return nil, fmt.Errorf(errValidateResolvedThemeFormat, err)
+	}
+	return &Resolved{App: app, Theme: theme, ThemeName: themeName}, nil
 }
 
-// mergeJSONCSection unmarshals data as a top-level JSON object and merges each
-// key into dst. Later writes win (same behavior as `defaults | user`).
-func mergeJSONCSection(dst map[string]json.RawMessage, data []byte) error {
-	var section map[string]json.RawMessage
-	if err := utils.UnmarshalJSONCSonic(data, &section); err != nil {
-		return err
+func validateEmbeddedDefaultScope(name string, patch AppPatch) error {
+	matches := false
+	switch name {
+	case defaultGeneralFile:
+		matches = patch.General != nil
+		patch.General = nil
+	case defaultUIFile:
+		matches = patch.UI != nil
+		patch.UI = nil
+	case defaultDockerFile:
+		matches = patch.Docker != nil
+		patch.Docker = nil
+	case defaultRuntimeFile:
+		matches = patch.Runtime != nil
+		patch.Runtime = nil
+	case defaultLogsFile:
+		matches = patch.Logs != nil
+		patch.Logs = nil
+	case defaultLayoutFile:
+		matches = patch.Layout != nil
+		patch.Layout = nil
+	case defaultCommandsFile:
+		matches = patch.Commands != nil
+		patch.Commands = nil
+	case defaultKeymapFile:
+		matches = patch.Keymap != nil
+		patch.Keymap = nil
+	default:
+		return fmt.Errorf(errEmbeddedScopeUnknownFormat, name)
 	}
-	for k, v := range section {
-		dst[k] = v
+	if !matches {
+		return fmt.Errorf(errEmbeddedScopeMissingFormat, name)
+	}
+	if patch.General != nil || patch.UI != nil || patch.Docker != nil || patch.Runtime != nil ||
+		patch.Keymap != nil || patch.Logs != nil || patch.Layout != nil || patch.Commands != nil {
+		return fmt.Errorf(errEmbeddedScopeExtraFormat, name)
 	}
 	return nil
 }
 
-// mergedToConfig marshals the merged map and unmarshals into Config so the
-// YAML/JSON tags drive field assignment (deep nested merge without reflection).
-func mergedToConfig(merged map[string]json.RawMessage) (*Config, error) {
-	if len(merged) == 0 {
-		return DefaultConfig(), nil
-	}
-	// Ensure configVersion is set before unmarshaling (defaults assume it).
-	if _, ok := merged["configVersion"]; !ok {
-		merged["configVersion"] = json.RawMessage(fmt.Sprintf("%d", CurrentConfigVersion))
-	}
-	keys := make([]string, 0, len(merged))
-	for k := range merged {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	var buf strings.Builder
-	buf.WriteByte('{')
-	for i, k := range keys {
-		if i > 0 {
-			buf.WriteByte(',')
+func loadUserConfig(path string) (*UserConfig, string, error) {
+	if path == emptyValue {
+		var err error
+		path, err = ConfigFile()
+		if err != nil {
+			return nil, emptyValue, nil
 		}
-		kb, _ := json.Marshal(k)
-		buf.Write(kb)
-		buf.WriteByte(':')
-		buf.Write(merged[k])
 	}
-	buf.WriteByte('}')
-	cfg := DefaultConfig() // seed with theme defaults; merged JSON overrides
-	if err := utils.UnmarshalJSONCSonic([]byte(buf.String()), cfg); err != nil {
-		return nil, err
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, path, nil
+		}
+		return nil, path, fmt.Errorf(errReadConfigFormat, path, err)
 	}
-	return cfg, nil
+	var document yaml.Node
+	if err := yaml.Unmarshal(data, &document); err != nil {
+		return nil, path, fmt.Errorf(errParseConfigFormat, path, err)
+	}
+	if err := rejectYAMLNulls(&document); err != nil {
+		return nil, path, fmt.Errorf(errParseConfigFormat, path, err)
+	}
+	var user UserConfig
+	decoder := yaml.NewDecoder(bytes.NewReader(data))
+	decoder.KnownFields(true)
+	if err := decoder.Decode(&user); err != nil {
+		return nil, path, fmt.Errorf(errParseConfigFormat, path, err)
+	}
+	var extra any
+	if err := decoder.Decode(&extra); err != io.EOF {
+		if err == nil {
+			err = errors.New(errMultipleYAMLDocuments)
+		}
+		return nil, path, fmt.Errorf(errParseConfigFormat, path, err)
+	}
+	return &user, path, nil
 }
 
-// defaultStylesDir returns ~/.config/docker-tui/styles for user overrides.
-func defaultStylesDir() string {
-	if d, err := ConfigDir(); err == nil {
-		return filepath.Join(d, "styles")
+func decodeJSONCStrict(data []byte, target any) error {
+	clean := utils.StripJSONCComments(data)
+	if err := rejectJSONNulls(clean); err != nil {
+		return err
 	}
-	return ""
+	decoder := json.NewDecoder(bytes.NewReader(clean))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(target); err != nil {
+		return err
+	}
+	var extra any
+	if err := decoder.Decode(&extra); err != io.EOF {
+		if err == nil {
+			return errors.New(errMultipleJSONDocuments)
+		}
+		return err
+	}
+	return nil
+}
+
+func rejectJSONNulls(data []byte) error {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	for {
+		token, err := decoder.Token()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if token == nil {
+			return errors.New(errNullNotAllowed)
+		}
+	}
+}
+
+func rejectYAMLNulls(node *yaml.Node) error {
+	if node == nil {
+		return nil
+	}
+	if node.Tag == yamlNullTag {
+		return fmt.Errorf(errNullAtLineFormat, node.Line)
+	}
+	for _, child := range node.Content {
+		if err := rejectYAMLNulls(child); err != nil {
+			return err
+		}
+	}
+	return nil
 }

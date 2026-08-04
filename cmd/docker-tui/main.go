@@ -66,26 +66,20 @@ func runTUI(ctx *orpheus.Context) error {
 	podmanMode := ctx.GetGlobalFlagBool("podman")
 	langFlag := ctx.GetGlobalFlagString("lang")
 
-	cfg, err := config.Load(cfgFile)
+	resolved, err := config.LoadResolved(config.LoadOptions{
+		ConfigPath: cfgFile,
+		ThemeName:  config.ThemeName(themeName),
+		Lang:       config.Language(langFlag),
+	})
 	if err != nil {
 		return err
 	}
-	lang := langFlag
-	if lang == "" {
-		lang = cfg.General.Lang
-	}
-	i18n.SetLang(lang)
-	utils.SetSizeFormat(cfg.General.SizeFormat)
-
-	if themeName == "" {
-		themeName = cfg.Theme
-	}
-	theme, err := config.LoadTheme(themeName)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: %v (using default)\n", err)
-		theme = config.DefaultTheme()
-	}
+	cfg := resolved.App
+	theme := resolved.Theme
+	i18n.SetLang(string(cfg.General.Lang))
+	utils.SetSizeFormat(string(cfg.General.SizeFormat))
 	tui.ApplyTheme(theme)
+	tui.ApplyUIConfig(&cfg.UI)
 	tui.ApplyLayoutConfig(&cfg.Layout)
 
 	pool := runtimeapi.NewPool(runtimeinit.NewEngineFactory())

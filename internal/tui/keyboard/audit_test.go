@@ -13,7 +13,7 @@ import (
 
 func TestBeginAuditUsesStableViewAndConnectionName(t *testing.T) {
 	i18n.SetLang("zh")
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Dependencies.Audit = audit.NewService(nil)
 	app.Navigation.ActivePanel = state.PanelContainers
 	app.Connection.RuntimeType = "docker"
@@ -31,7 +31,7 @@ func TestBeginAuditUsesStableViewAndConnectionName(t *testing.T) {
 }
 
 func TestImagePullInputCreatesAuditTrace(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Dependencies.Audit = audit.NewService(nil)
 	app.Navigation.Mode = state.ModeImagePull
 	app.Dialog.Input.Set("nginx:alpine")
@@ -47,7 +47,7 @@ func TestImagePullInputCreatesAuditTrace(t *testing.T) {
 }
 
 func TestConfirmCancelCompletesAuditTrace(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Dependencies.Audit = audit.NewService(nil)
 	app.Navigation.Mode = state.ModeConfirm
 	app.Confirm.ConfirmAction = keys.ShowContainerStop
@@ -64,7 +64,7 @@ func TestConfirmCancelCompletesAuditTrace(t *testing.T) {
 }
 
 func TestConfirmTabAndEnterCancelChoice(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Dependencies.Audit = audit.NewService(nil)
 	app.Navigation.Mode = state.ModeConfirm
 	app.Confirm.Open(keys.ShowContainerStop, "api", "Stop api?", audit.Trace{})
@@ -80,7 +80,7 @@ func TestConfirmTabAndEnterCancelChoice(t *testing.T) {
 }
 
 func TestUIMessageUsesNotificationWithoutAuditHistory(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Dependencies.Audit = audit.NewService(nil)
 	ShowToastWarn(app, "check input")
 	if app.Feedback.ToastMessage != "check input" {

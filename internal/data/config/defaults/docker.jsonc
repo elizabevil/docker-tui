@@ -1,0 +1,6 @@
+{
+  "docker": {
+    "timeout": 30000000000,
+    "statsPollSec": 3
+  }
+}

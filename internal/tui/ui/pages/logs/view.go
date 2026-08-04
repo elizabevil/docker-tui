@@ -1,7 +1,6 @@
 package logs
 
 import (
-	_ "embed"
 	"fmt"
 	"strings"
 
@@ -10,41 +9,6 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 )
-
-//go:embed logs.jsonc
-var logsDefaultData []byte
-
-// logsConfig maps the JSONC structure for log view defaults.
-type logsConfig struct {
-	DefaultSince   string `json:"defaultSince"`
-	DefaultTail    string `json:"defaultTail"`
-	ShowTimestamps bool   `json:"showTimestamps"`
-}
-
-func (c *logsConfig) normalize() {
-	if c.DefaultSince == "" {
-		c.DefaultSince = "1h"
-	}
-	if c.DefaultTail == "" {
-		c.DefaultTail = "200"
-	}
-}
-
-// DefaultLogsConfig returns default values parsed from the embedded logs.jsonc.
-func DefaultLogsConfig() logsConfig {
-	loader := component.ConfigLoader[logsConfig]{
-		RawData: logsDefaultData,
-		Fallback: logsConfig{
-			DefaultSince:   "1h",
-			DefaultTail:    "200",
-			ShowTimestamps: false,
-		},
-		Normalize: func(c *logsConfig) {
-			c.normalize()
-		},
-	}
-	return loader.Load()
-}
 
 // RenderView renders the log streaming view with search highlight and word wrap.
 func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {

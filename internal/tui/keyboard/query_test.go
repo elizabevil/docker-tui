@@ -10,7 +10,7 @@ import (
 )
 
 func TestFilterInputAppliesImmediately(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Resources.Containers.Items = []dockerclient.ContainerSummary{{Name: "api"}, {Name: "worker"}}
 	ToFilter(app)
 
@@ -21,7 +21,7 @@ func TestFilterInputAppliesImmediately(t *testing.T) {
 }
 
 func TestFilterRequiresDoubleEscToClearAndExit(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Navigation.FilterInput = state.QueryInputState{Text: "api", Cursor: 3}
 	app.Navigation.Mode = state.ModeFilter
 	ApplyFilter(app)
@@ -38,7 +38,7 @@ func TestFilterRequiresDoubleEscToClearAndExit(t *testing.T) {
 }
 
 func TestLogSearchAppliesOnEnterAndCancelPreservesCurrentQuery(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Navigation.Mode = state.ModeLogView
 	app.Log.LogContainerID = "container"
 	app.Log.LogContent = []string{"ready", "request failed", "failed again"}
@@ -59,7 +59,7 @@ func TestLogSearchAppliesOnEnterAndCancelPreservesCurrentQuery(t *testing.T) {
 }
 
 func TestLogFilterBindingOpensSearchMode(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Navigation.Mode = state.ModeLogView
 	app.Log.LogContainerID = "container"
 

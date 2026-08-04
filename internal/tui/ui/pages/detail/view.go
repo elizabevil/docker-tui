@@ -1,7 +1,6 @@
 package detail
 
 import (
-	_ "embed"
 	"fmt"
 	"strings"
 
@@ -13,32 +12,6 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
-
-//go:embed detail.jsonc
-var detailDefaultData []byte
-
-// detailConfig maps the JSONC structure for detail view defaults.
-type detailConfig struct {
-	FoldKey string `json:"foldKey"`
-}
-
-func (c *detailConfig) normalize() {
-	if c.FoldKey == "" {
-		c.FoldKey = "space"
-	}
-}
-
-// DefaultDetailConfig returns default values parsed from the embedded detail.jsonc.
-func DefaultDetailConfig() detailConfig {
-	loader := component.ConfigLoader[detailConfig]{
-		RawData:  detailDefaultData,
-		Fallback: detailConfig{FoldKey: "space"},
-		Normalize: func(c *detailConfig) {
-			c.normalize()
-		},
-	}
-	return loader.Load()
-}
 
 // detailSection represents a collapsible section in the detail view.
 type detailSection struct {

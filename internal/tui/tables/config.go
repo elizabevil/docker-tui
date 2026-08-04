@@ -1,8 +1,11 @@
 package tables
 
 import (
+	"bytes"
 	"embed"
+	"encoding/json"
 	"fmt"
+	"io"
 
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
@@ -24,9 +27,90 @@ type ColumnDef struct {
 const DefaultColumnGap = 2
 
 type StatsConfig struct {
-	Enabled  bool     `json:"enabled"`
-	Interval int      `json:"interval"`
-	Fields   []string `json:"fields"`
+	Enabled  bool         `json:"enabled"`
+	Interval int          `json:"interval"`
+	Fields   []StatsField `json:"fields"`
+}
+
+type StatsField string
+
+type ColumnProfiles struct {
+	Default       []ColumnDef `json:"default"`
+	More          []ColumnDef `json:"more"`
+	Compact       []ColumnDef `json:"compact"`
+	Wide          []ColumnDef `json:"wide"`
+	DefaultStats  []ColumnDef `json:"default_stats"`
+	MoreStats     []ColumnDef `json:"more_stats"`
+	ContainersSub []ColumnDef `json:"containers_sub"`
+	ServicesSub   []ColumnDef `json:"services_sub"`
+	PodsSub       []ColumnDef `json:"pods_sub"`
+	Detail        []ColumnDef `json:"detail"`
+}
+
+type NamedColumnProfile struct {
+	Name    string
+	Columns []ColumnDef
+}
+
+func (p ColumnProfiles) All() []NamedColumnProfile {
+	profiles := []NamedColumnProfile{
+		{"default", p.Default}, {"more", p.More}, {"compact", p.Compact}, {"wide", p.Wide},
+		{"default_stats", p.DefaultStats}, {"more_stats", p.MoreStats}, {"containers_sub", p.ContainersSub},
+		{"services_sub", p.ServicesSub}, {"pods_sub", p.PodsSub}, {"detail", p.Detail},
+	}
+	result := profiles[:0]
+	for _, profile := range profiles {
+		if len(profile.Columns) > 0 {
+			result = append(result, profile)
+		}
+	}
+	return result
+}
+
+func (p ColumnProfiles) Get(profile string) []ColumnDef {
+	switch profile {
+	case "default":
+		return p.Default
+	case "more":
+		return p.More
+	case "compact":
+		return p.Compact
+	case "wide":
+		return p.Wide
+	case "default_stats":
+		return p.DefaultStats
+	case "more_stats":
+		return p.MoreStats
+	case "containers_sub":
+		return p.ContainersSub
+	case "services_sub":
+		return p.ServicesSub
+	case "pods_sub":
+		return p.PodsSub
+	case "detail":
+		return p.Detail
+	default:
+		return nil
+	}
+}
+
+type ShowBreakpoints struct {
+	More    int `json:"more"`
+	Compact int `json:"compact"`
+	Wide    int `json:"wide"`
+}
+
+func (b ShowBreakpoints) Get(profile string) int {
+	switch profile {
+	case "more":
+		return b.More
+	case "compact":
+		return b.Compact
+	case "wide":
+		return b.Wide
+	default:
+		return 0
+	}
 }
 
 type LayoutRatio struct {
@@ -48,10 +132,10 @@ type FocusConfig struct {
 }
 
 type TableConfig struct {
-	Columns map[string][]ColumnDef `json:"columns"`
-	Stats   StatsConfig            `json:"stats"`
-	Show    map[string]int         `json:"show"`
-	Layout  *ComposeLayout         `json:"layout,omitempty"`
+	Columns ColumnProfiles  `json:"columns"`
+	Stats   StatsConfig     `json:"stats"`
+	Show    ShowBreakpoints `json:"show"`
+	Layout  *ComposeLayout  `json:"layout,omitempty"`
 }
 
 //go:embed *.jsonc
@@ -72,8 +156,14 @@ func Load(name string) (*TableConfig, error) {
 		return nil, fmt.Errorf("table config %q not found: %w", name, err)
 	}
 	var tc TableConfig
-	if err := utils.UnmarshalJSONCSonic(data, &tc); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(utils.StripJSONCComments(data)))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&tc); err != nil {
 		return nil, fmt.Errorf("parse table config %q: %w", name, err)
+	}
+	var extra any
+	if err := decoder.Decode(&extra); err != io.EOF {
+		return nil, fmt.Errorf("parse table config %q: trailing content", name)
 	}
 	if tc.Stats.Interval <= 0 {
 		tc.Stats.Interval = 1
@@ -92,8 +182,8 @@ func MustLoad(name string) *TableConfig {
 
 // ColumnWidths distributes totalWidth among columns using the table's fixed gap.
 func (tc *TableConfig) ColumnWidths(profile string, totalWidth int) []int {
-	cols, ok := tc.Columns[profile]
-	if !ok || len(cols) == 0 {
+	cols := tc.Columns.Get(profile)
+	if len(cols) == 0 {
 		return nil
 	}
 	return ResolveColumnWidths(cols, totalWidth, DefaultColumnGap)
@@ -306,8 +396,5 @@ func shrinkColumns(widths []int, specs []columnSizing, deficit int) {
 }
 
 func (tc *TableConfig) ShowBreak(name string) int {
-	if tc.Show == nil {
-		return 0
-	}
-	return tc.Show[name]
+	return tc.Show.Get(name)
 }

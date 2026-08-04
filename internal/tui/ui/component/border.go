@@ -1,19 +1,34 @@
 package component
 
 import (
-	_ "embed"
-	"strings"
-	"sync"
-
 	"charm.land/lipgloss/v2"
+	"github.com/elizabevil/docker-tui/internal/data/config"
 )
 
-//go:embed borders.jsonc
-var bordersData []byte
-
-var (
-	bordersOnce  sync.Once
-	bordersCache bordersConfig
+const (
+	borderLineHorizontal     = "─"
+	borderLineVertical       = "│"
+	borderRoundedTopLeft     = "╭"
+	borderRoundedTopRight    = "╮"
+	borderRoundedBottomLeft  = "╰"
+	borderRoundedBottomRight = "╯"
+	borderDoubleHorizontal   = "═"
+	borderDoubleVertical     = "║"
+	borderDoubleTopLeft      = "╔"
+	borderDoubleTopRight     = "╗"
+	borderDoubleBottomLeft   = "╚"
+	borderDoubleBottomRight  = "╝"
+	borderThickHorizontal    = "━"
+	borderThickVertical      = "┃"
+	borderThickTopLeft       = "┏"
+	borderThickTopRight      = "┓"
+	borderThickBottomLeft    = "┗"
+	borderThickBottomRight   = "┛"
+	borderSingleTopLeft      = "┌"
+	borderSingleTopRight     = "┐"
+	borderSingleBottomLeft   = "└"
+	borderSingleBottomRight  = "┘"
+	borderHiddenGlyph        = " "
 )
 
 // BorderDef defines the 8 characters that make up a complete box-drawing border.
@@ -28,41 +43,34 @@ type BorderDef struct {
 	BottomRight string `json:"bottomRight"`
 }
 
-// bordersConfig maps border style names to their character definitions.
-type bordersConfig struct {
-	Borders map[string]BorderDef `json:"borders"`
-}
-
-func (c *bordersConfig) normalize() {
-	if c.Borders == nil {
-		c.Borders = defaultBorderDefs()
-	}
-}
-
-func loadBordersConfig() bordersConfig {
-	loader := ConfigLoader[bordersConfig]{
-		RawData:  bordersData,
-		Fallback: bordersConfig{Borders: defaultBorderDefs()},
-		Normalize: func(c *bordersConfig) {
-			c.normalize()
-		},
-	}
-	return loader.Load()
+type BorderDefinitions struct {
+	Rounded BorderDef `json:"rounded"`
+	Double  BorderDef `json:"double"`
+	Thick   BorderDef `json:"thick"`
+	Single  BorderDef `json:"single"`
+	Hidden  BorderDef `json:"hidden"`
 }
 
 // ResolveBorder resolves a border style name (e.g. "rounded", "double") to a
 // lipgloss.Border. Returns the rounded border as fallback if the style is
 // unknown or empty. This is used by the top-level theme to select the outer
 // window border character set.
-func ResolveBorder(name string) lipgloss.Border {
-	bordersOnce.Do(func() { bordersCache = loadBordersConfig() })
-	if name == "" {
-		name = "rounded"
-	}
-	name = strings.ToLower(strings.TrimSpace(name))
-	def, ok := bordersCache.Borders[name]
-	if !ok {
-		def = bordersCache.Borders["rounded"]
+func ResolveBorder(kind config.BorderKind) lipgloss.Border {
+	borders := defaultBorderDefs()
+	var def BorderDef
+	switch kind {
+	case config.BorderDouble:
+		def = borders.Double
+	case config.BorderThick:
+		def = borders.Thick
+	case config.BorderSingle:
+		def = borders.Single
+	case config.BorderHidden:
+		def = borders.Hidden
+	case config.BorderRounded:
+		def = borders.Rounded
+	default:
+		def = defaultBorderDefs().Rounded
 	}
 	return lipgloss.Border{
 		Top:         def.Top,
@@ -76,29 +84,27 @@ func ResolveBorder(name string) lipgloss.Border {
 	}
 }
 
-// defaultBorderDefs returns a map with the "rounded" border.
-// Used as fallback when the JSONC file fails to load.
-func defaultBorderDefs() map[string]BorderDef {
-	return map[string]BorderDef{
-		"rounded": {
-			Top: "─", Bottom: "─", Left: "│", Right: "│",
-			TopLeft: "╭", TopRight: "╮", BottomLeft: "╰", BottomRight: "╯",
+func defaultBorderDefs() BorderDefinitions {
+	return BorderDefinitions{
+		Rounded: BorderDef{
+			Top: borderLineHorizontal, Bottom: borderLineHorizontal, Left: borderLineVertical, Right: borderLineVertical,
+			TopLeft: borderRoundedTopLeft, TopRight: borderRoundedTopRight, BottomLeft: borderRoundedBottomLeft, BottomRight: borderRoundedBottomRight,
 		},
-		"double": {
-			Top: "═", Bottom: "═", Left: "║", Right: "║",
-			TopLeft: "╔", TopRight: "╗", BottomLeft: "╚", BottomRight: "╝",
+		Double: BorderDef{
+			Top: borderDoubleHorizontal, Bottom: borderDoubleHorizontal, Left: borderDoubleVertical, Right: borderDoubleVertical,
+			TopLeft: borderDoubleTopLeft, TopRight: borderDoubleTopRight, BottomLeft: borderDoubleBottomLeft, BottomRight: borderDoubleBottomRight,
 		},
-		"thick": {
-			Top: "━", Bottom: "━", Left: "┃", Right: "┃",
-			TopLeft: "┏", TopRight: "┓", BottomLeft: "┗", BottomRight: "┛",
+		Thick: BorderDef{
+			Top: borderThickHorizontal, Bottom: borderThickHorizontal, Left: borderThickVertical, Right: borderThickVertical,
+			TopLeft: borderThickTopLeft, TopRight: borderThickTopRight, BottomLeft: borderThickBottomLeft, BottomRight: borderThickBottomRight,
 		},
-		"single": {
-			Top: "─", Bottom: "─", Left: "│", Right: "│",
-			TopLeft: "┌", TopRight: "┐", BottomLeft: "└", BottomRight: "┘",
+		Single: BorderDef{
+			Top: borderLineHorizontal, Bottom: borderLineHorizontal, Left: borderLineVertical, Right: borderLineVertical,
+			TopLeft: borderSingleTopLeft, TopRight: borderSingleTopRight, BottomLeft: borderSingleBottomLeft, BottomRight: borderSingleBottomRight,
 		},
-		"hidden": {
-			Top: " ", Bottom: " ", Left: " ", Right: " ",
-			TopLeft: " ", TopRight: " ", BottomLeft: " ", BottomRight: " ",
+		Hidden: BorderDef{
+			Top: borderHiddenGlyph, Bottom: borderHiddenGlyph, Left: borderHiddenGlyph, Right: borderHiddenGlyph,
+			TopLeft: borderHiddenGlyph, TopRight: borderHiddenGlyph, BottomLeft: borderHiddenGlyph, BottomRight: borderHiddenGlyph,
 		},
 	}
 }

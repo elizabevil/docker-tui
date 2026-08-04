@@ -34,7 +34,7 @@ func TestResolveContentLayoutPrioritizesTruncatedCells(t *testing.T) {
 
 func TestColumnWidthsUsesSharedGridResolver(t *testing.T) {
 	config := MustLoad("containers")
-	columns := config.Columns["more_stats"]
+	columns := config.Columns.Get("more_stats")
 	direct := ResolveColumnWidths(columns, 158, DefaultColumnGap)
 	profile := config.ColumnWidths("more_stats", 158)
 	if len(direct) != len(profile) {
@@ -50,7 +50,8 @@ func TestColumnWidthsUsesSharedGridResolver(t *testing.T) {
 func TestEveryTableProfileRespectsGridConstraints(t *testing.T) {
 	for _, table := range []string{"containers", "images", "volumes", "networks", "compose", "audit"} {
 		config := MustLoad(table)
-		for profile, columns := range config.Columns {
+		for _, profile := range config.Columns.All() {
+			columns := profile.Columns
 			minimumWidth := DefaultColumnGap * max(0, len(columns)-1)
 			preferredWidth := minimumWidth
 			for _, column := range columns {
@@ -62,21 +63,21 @@ func TestEveryTableProfileRespectsGridConstraints(t *testing.T) {
 			for _, viewportWidth := range []int{minimumWidth, preferredWidth, preferredWidth + 80} {
 				layout := ResolveLayout(columns, viewportWidth, DefaultColumnGap)
 				if layout.ContentWidth+layout.TrailingWidth != viewportWidth {
-					t.Errorf("%s/%s viewport=%d content=%d trailing=%d", table, profile, viewportWidth, layout.ContentWidth, layout.TrailingWidth)
+					t.Errorf("%s/%s viewport=%d content=%d trailing=%d", table, profile.Name, viewportWidth, layout.ContentWidth, layout.TrailingWidth)
 				}
 				unboundedFlexible := false
 				for i, columnWidth := range layout.Widths {
 					spec := resolveColumnSizing(columns[i])
 					if columnWidth < spec.min {
-						t.Errorf("%s/%s column %s width %d below min %d", table, profile, columns[i].Key, columnWidth, spec.min)
+						t.Errorf("%s/%s column %s width %d below min %d", table, profile.Name, columns[i].Key, columnWidth, spec.min)
 					}
 					if spec.max > 0 && columnWidth > spec.max {
-						t.Errorf("%s/%s column %s width %d above max %d", table, profile, columns[i].Key, columnWidth, spec.max)
+						t.Errorf("%s/%s column %s width %d above max %d", table, profile.Name, columns[i].Key, columnWidth, spec.max)
 					}
 					unboundedFlexible = unboundedFlexible || spec.fill > 0 && spec.max == 0
 				}
 				if viewportWidth > preferredWidth && unboundedFlexible && layout.TrailingWidth != 0 {
-					t.Errorf("%s/%s left %d cells unused in wide viewport", table, profile, layout.TrailingWidth)
+					t.Errorf("%s/%s left %d cells unused in wide viewport", table, profile.Name, layout.TrailingWidth)
 				}
 			}
 		}

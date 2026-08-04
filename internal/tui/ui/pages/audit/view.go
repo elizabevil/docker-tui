@@ -41,7 +41,7 @@ func RenderList(auditState *state.AuditState, width int, panelHeight int) string
 	}
 
 	availW := max(50, width)
-	colsDef := tc.Columns["default"]
+	colsDef := tc.Columns.Get("default")
 	rowHeight := component.CalcTableRowHeight(panelHeight, false)
 	component.EnsureVisible(&auditState.ViewOffset, auditState.Cursor, rowHeight, total)
 	viewOffset := auditState.ViewOffset

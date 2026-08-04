@@ -1,6 +1,0 @@
-{
-  // BR-043 §3.4 — commandTemplates section
-  "commandTemplates": {
-    "dockerCompose": "docker compose"
-  }
-}

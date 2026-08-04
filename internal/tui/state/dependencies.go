@@ -6,7 +6,7 @@ import (
 )
 
 type Dependencies struct {
-	Config     *config.Config
+	Config     *config.AppConfig
 	Theme      *config.Theme
 	AppVersion string
 	Audit      *audit.Service

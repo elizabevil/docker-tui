@@ -46,8 +46,8 @@ func TestSectionsUseRegistryActions(t *testing.T) {
 }
 
 func TestGlobalProjectsConfiguredBindings(t *testing.T) {
-	app := &state.AppModel{Dependencies: state.Dependencies{Config: config.DefaultConfig()}}
-	app.Dependencies.Config.Keymap.Help = []string{"f3"}
+	app := &state.AppModel{Dependencies: state.Dependencies{Config: config.DefaultAppConfig()}}
+	app.Dependencies.Config.Keymap.Global.Help = config.KeyBinding{Primary: "f3"}
 	shortcuts := Global(app)
 	for _, shortcut := range shortcuts {
 		if shortcut.Description == i18n.T("key.help") && shortcut.Key == "F3" {

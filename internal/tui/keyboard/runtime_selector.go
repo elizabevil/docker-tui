@@ -50,7 +50,7 @@ func runtimeHealthTimeout(m *state.AppModel) time.Duration {
 	if m.Dependencies.Config != nil {
 		return m.Dependencies.Config.Runtime.Health.Timeout()
 	}
-	return config.DefaultConfig().Runtime.Health.Timeout()
+	return config.DefaultAppConfig().Runtime.Health.Timeout()
 }
 
 func handleRuntimeSelectorKey(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {

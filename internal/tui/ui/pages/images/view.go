@@ -33,7 +33,7 @@ func RenderList(im *state.ImageListModel, cm *state.ContainerListModel, width in
 	w := width
 
 	profile := profileSelector.Select(w)
-	colsDef := tc.Columns[profile]
+	colsDef := tc.Columns.Get(profile)
 	if len(colsDef) == 0 {
 		return i18n.T("msg.loading")
 	}
@@ -188,7 +188,7 @@ func renderContainers(im *state.ImageListModel, cm *state.ContainerListModel, wi
 	}
 	w := width
 
-	colsDef := tc.Columns["containers_sub"]
+	colsDef := tc.Columns.Get("containers_sub")
 	if len(colsDef) == 0 {
 		return i18n.T("msg.loading")
 	}

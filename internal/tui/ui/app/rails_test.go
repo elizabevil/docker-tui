@@ -108,7 +108,7 @@ func TestRenderMessageRailCapsErrorAtTwoRows(t *testing.T) {
 }
 
 func TestRenderAppHeightDoesNotChangeWithQueryOrMessage(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Viewport.Width = 120
 	app.Viewport.Height = 32
 
@@ -150,7 +150,7 @@ func TestRenderAppRegressionMatrix(t *testing.T) {
 		var expectedRows int
 		for _, view := range views {
 			t.Run(view.name, func(t *testing.T) {
-				app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+				app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 				app.Viewport.Width, app.Viewport.Height = size.width, size.height
 				app.Navigation.ActivePanel, app.Navigation.Mode = view.panel, view.mode
 				app.Navigation.CommandInput.Set("query")
@@ -218,7 +218,7 @@ func TestRenderAppDialogOverlaysPreservePageChrome(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+			app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 			app.Viewport.Width, app.Viewport.Height = 120, 32
 			app.Navigation.ActivePanel = state.PanelContainers
 			app.Resources.Containers.Items = []runtime.ContainerSummary{{ID: "abc", Name: "api", Image: "nginx", State: state.ContainerStateRunning}}
@@ -240,7 +240,7 @@ func TestRenderAppDialogOverlaysPreservePageChrome(t *testing.T) {
 }
 
 func TestRenderAppRejectsUnsupportedTerminal(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Viewport.Width, app.Viewport.Height = 40, 10
 	if got := RenderApp(app); !strings.Contains(got, "Terminal too small") {
 		t.Fatalf("unexpected degradation message: %q", got)
@@ -248,7 +248,7 @@ func TestRenderAppRejectsUnsupportedTerminal(t *testing.T) {
 }
 
 func TestRenderAppCompactTierKeepsCoreActionsReachable(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Viewport.Width, app.Viewport.Height = 79, 19
 	rendered := RenderApp(app)
 	if strings.Contains(rendered, "Terminal too small") {
@@ -303,7 +303,7 @@ func TestPlanForAllocatesAllRows(t *testing.T) {
 }
 
 func TestRenderAppCompactDoesNotDropToast(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Viewport.Width, app.Viewport.Height = 79, 19
 	app.Feedback.ToastMessage = "container started"
 	app.Feedback.ToastLevel = state.NotificationSuccess
@@ -314,7 +314,7 @@ func TestRenderAppCompactDoesNotDropToast(t *testing.T) {
 }
 
 func TestRenderAppCompactHandlesQueryInput(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Viewport.Width, app.Viewport.Height = 79, 19
 	app.Navigation.Mode = state.ModeFilter
 	app.Navigation.FilterInput = state.QueryInputState{Text: "nginx", Cursor: 5}

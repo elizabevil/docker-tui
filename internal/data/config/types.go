@@ -1,12 +1,6 @@
 package config
 
-import (
-	"time"
-
-	"github.com/elizabevil/docker-tui/internal/utils"
-)
-
-const CurrentConfigVersion = 1
+import "time"
 
 // RuntimeTLSConfig defines TLS client authentication for one runtime endpoint.
 type RuntimeTLSConfig struct {
@@ -19,10 +13,10 @@ type RuntimeTLSConfig struct {
 	ServerName         string `json:"serverName" yaml:"serverName"`
 }
 
-// RuntimeConn defines a named container runtime connection.
-type RuntimeConn struct {
+// RuntimeConnection defines a named container runtime connection.
+type RuntimeConnection struct {
 	Name       string           `json:"name" yaml:"name"`
-	Driver     string           `json:"driver" yaml:"driver"`
+	Driver     RuntimeDriver    `json:"driver" yaml:"driver"`
 	Endpoint   string           `json:"endpoint" yaml:"endpoint"`
 	APIVersion string           `json:"apiVersion" yaml:"apiVersion"`
 	TLS        RuntimeTLSConfig `json:"tls" yaml:"tls"`
@@ -54,54 +48,94 @@ type RuntimeConfig struct {
 	Default     string                 `json:"default" yaml:"default"`
 	Discovery   RuntimeDiscoveryConfig `json:"discovery" yaml:"discovery"`
 	Health      RuntimeHealthConfig    `json:"health" yaml:"health"`
-	Connections []RuntimeConn          `json:"connections" yaml:"connections"`
+	Connections []RuntimeConnection    `json:"connections" yaml:"connections"`
 }
 
-// Config represents the application configuration.
-type Config struct {
-	ConfigVersion    int               `json:"configVersion" yaml:"configVersion"`
-	General          GeneralConfig     `json:"general" yaml:"general"`
-	UI               UIConfig          `json:"ui" yaml:"ui"`
-	Docker           DockerConfig      `json:"docker" yaml:"docker"`
-	Runtime          RuntimeConfig     `json:"runtime" yaml:"runtime"`
-	Keymap           KeymapConfig      `json:"keymap" yaml:"keymap"`
-	Logs             LogsConfig        `json:"logs" yaml:"logs"`
-	Layout           LayoutConfig      `json:"layout" yaml:"layout"`
-	CommandTemplates map[string]string `json:"commandTemplates" yaml:"commandTemplates"`
-	Theme            string            `json:"theme" yaml:"theme"`
+// AppConfig is the complete, validated application behavior configuration.
+// Visual properties are intentionally absent; they belong to Theme.
+type AppConfig struct {
+	Version  int           `json:"version" yaml:"version"`
+	General  GeneralConfig `json:"general" yaml:"general"`
+	UI       UIConfig      `json:"ui" yaml:"ui"`
+	Docker   DockerConfig  `json:"docker" yaml:"docker"`
+	Runtime  RuntimeConfig `json:"runtime" yaml:"runtime"`
+	Keymap   KeymapConfig  `json:"keymap" yaml:"keymap"`
+	Logs     LogsConfig    `json:"logs" yaml:"logs"`
+	Layout   LayoutConfig  `json:"layout" yaml:"layout"`
+	Commands CommandConfig `json:"commands" yaml:"commands"`
 }
 
 // GeneralConfig holds general application settings.
 type GeneralConfig struct {
-	ScrollHeight int    `json:"scrollHeight" yaml:"scrollHeight"`
-	Reporting    string `json:"reporting" yaml:"reporting"`
-	Lang         string `json:"lang" yaml:"lang"`
-	SizeFormat   string `json:"sizeFormat" yaml:"sizeFormat"` // "binary" (1024-base, default) or "si" (1000-base)
+	ScrollHeight int           `json:"scrollHeight" yaml:"scrollHeight"`
+	Reporting    ReportingMode `json:"reporting" yaml:"reporting"`
+	Lang         Language      `json:"lang" yaml:"lang"`
+	SizeFormat   SizeFormat    `json:"sizeFormat" yaml:"sizeFormat"`
 }
 
 // UIConfig holds UI-related settings.
 type UIConfig struct {
-	Theme              ThemeConfig `json:"theme" yaml:"theme"`
-	WrapMainPanel      bool        `json:"wrapMainPanel" yaml:"wrapMainPanel"`
-	ReturnImmediately  bool        `json:"returnImmediately" yaml:"returnImmediately"`
-	BorderStyle        string      `json:"borderStyle" yaml:"borderStyle"`
-	ShowHelp           bool        `json:"showHelp" yaml:"showHelp"`
-	HintTimeout        int         `json:"hintTimeout" yaml:"hintTimeout"`               // seconds, default 3
-	DialogOverlayColor string      `json:"dialogOverlayColor" yaml:"dialogOverlayColor"` // hex, e.g. "#0d1117"
+	WrapMainPanel     bool               `json:"wrapMainPanel" yaml:"wrapMainPanel"`
+	ReturnImmediately bool               `json:"returnImmediately" yaml:"returnImmediately"`
+	ShowHelp          bool               `json:"showHelp" yaml:"showHelp"`
+	HintTimeout       int                `json:"hintTimeout" yaml:"hintTimeout"`
+	Dialog            DialogLayoutConfig `json:"dialog" yaml:"dialog"`
+	Window            WindowLayoutConfig `json:"window" yaml:"window"`
+	Header            HeaderLayoutConfig `json:"header" yaml:"header"`
+	Table             TableLayoutConfig  `json:"table" yaml:"table"`
 	// EnableMouse toggles the bubbletea MouseMode; mouse clicks move
 	// the cursor and scroll, keyboard input remains the primary path.
 	EnableMouse bool `json:"enableMouse" yaml:"enableMouse"`
 }
 
-// ThemeConfig defines the color theme.
-type ThemeConfig struct {
-	ActiveBorderColor   []string `json:"activeBorderColor" yaml:"activeBorderColor"`
-	InactiveBorderColor []string `json:"inactiveBorderColor" yaml:"inactiveBorderColor"`
-	TableHeaderColor    []string `json:"tableHeaderColor" yaml:"tableHeaderColor"`
-	SelectedRowColor    []string `json:"selectedRowColor" yaml:"selectedRowColor"`
-	StatusBarColor      []string `json:"statusBarColor" yaml:"statusBarColor"`
-	InfoColor           []string `json:"infoColor" yaml:"infoColor"`
-	ErrorColor          []string `json:"errorColor" yaml:"errorColor"`
+type WindowLayoutConfig struct {
+	MarginTopPercent    int `json:"marginTopPercent" yaml:"marginTopPercent"`
+	MarginBottomPercent int `json:"marginBottomPercent" yaml:"marginBottomPercent"`
+	ContentWidthPercent int `json:"contentWidthPercent" yaml:"contentWidthPercent"`
+}
+
+type HeaderColumnWeights struct {
+	Host       int `json:"host" yaml:"host"`
+	Connection int `json:"connection" yaml:"connection"`
+	Keystroke  int `json:"keystroke" yaml:"keystroke"`
+	Logo       int `json:"logo" yaml:"logo"`
+}
+
+type HeaderLayoutConfig struct {
+	Columns               HeaderColumnWeights `json:"columns" yaml:"columns"`
+	KeystrokeContentRatio int                 `json:"keystrokeContentRatio" yaml:"keystrokeContentRatio"`
+}
+
+type TableLayoutConfig struct {
+	ColumnSpacing     int                 `json:"columnSpacing" yaml:"columnSpacing"`
+	RowPrefix         string              `json:"rowPrefix" yaml:"rowPrefix"`
+	RowPrefixSelected string              `json:"rowPrefixSelected" yaml:"rowPrefixSelected"`
+	RowSpacing        int                 `json:"rowSpacing" yaml:"rowSpacing"`
+	SelectionInfo     SelectionInfoConfig `json:"selectionInfo" yaml:"selectionInfo"`
+}
+
+type SelectionInfoConfig struct {
+	Enabled  bool `json:"enabled" yaml:"enabled"`
+	PadLines int  `json:"padLines" yaml:"padLines"`
+}
+
+type ResponsiveSize struct {
+	Percent int `json:"percent" yaml:"percent"`
+	Min     int `json:"min" yaml:"min"`
+	Max     int `json:"max" yaml:"max"`
+}
+
+type DialogPosition struct {
+	Horizontal HorizontalAlignment `json:"horizontal" yaml:"horizontal"`
+	Vertical   VerticalAlignment   `json:"vertical" yaml:"vertical"`
+	OffsetX    int                 `json:"offsetX" yaml:"offsetX"`
+	OffsetY    int                 `json:"offsetY" yaml:"offsetY"`
+}
+
+type DialogLayoutConfig struct {
+	Width    ResponsiveSize `json:"width" yaml:"width"`
+	Height   ResponsiveSize `json:"height" yaml:"height"`
+	Position DialogPosition `json:"position" yaml:"position"`
 }
 
 // DockerConfig holds Docker connection settings.
@@ -110,65 +144,101 @@ type DockerConfig struct {
 	StatsPollSec int           `json:"statsPollSec" yaml:"statsPollSec"`
 }
 
-// KeymapConfig defines keyboard shortcuts.
-type KeymapConfig struct {
-	Quit      []string `json:"quit" yaml:"quit"`
-	ActionBar []string `json:"actionBar" yaml:"actionBar"`
-	Help      []string `json:"help" yaml:"help"`
-	Filter    []string `json:"filter" yaml:"filter"`
-	Refresh   []string `json:"refresh" yaml:"refresh"`
+type Key string
 
-	ContainerStart   []string `json:"containerStart" yaml:"containerStart"`
-	ContainerStop    []string `json:"containerStop" yaml:"containerStop"`
-	ContainerRestart []string `json:"containerRestart" yaml:"containerRestart"`
-	ContainerKill    []string `json:"containerKill" yaml:"containerKill"`
-	ContainerRemove  []string `json:"containerRemove" yaml:"containerRemove"`
-	ContainerLogs    []string `json:"containerLogs" yaml:"containerLogs"`
-	ContainerExec    []string `json:"containerExec" yaml:"containerExec"`
-	ContainerInspect []string `json:"containerInspect" yaml:"containerInspect"`
-	ContainerStats   []string `json:"containerStats" yaml:"containerStats"`
-	ContainerPause   []string `json:"containerPause" yaml:"containerPause"`
-	// TASK-019: advanced container actions.
-	ContainerUpdate []string `json:"containerUpdate" yaml:"containerUpdate"`
-	ContainerDiff   []string `json:"containerDiff" yaml:"containerDiff"`
-	ContainerExport []string `json:"containerExport" yaml:"containerExport"`
-	ContainerCommit []string `json:"containerCommit" yaml:"containerCommit"`
-	ContainerWait   []string `json:"containerWait" yaml:"containerWait"`
-	ContainerCopy   []string `json:"containerCopy" yaml:"containerCopy"`
-
-	ImagePull    []string `json:"imagePull" yaml:"imagePull"`
-	ImageRemove  []string `json:"imageRemove" yaml:"imageRemove"`
-	ImagePrune   []string `json:"imagePrune" yaml:"imagePrune"`
-	ImageTag     []string `json:"imageTag" yaml:"imageTag"`
-	ImagePush    []string `json:"imagePush" yaml:"imagePush"`
-	ImageSave    []string `json:"imageSave" yaml:"imageSave"`
-	ImageLoad    []string `json:"imageLoad" yaml:"imageLoad"`
-	ImageHistory []string `json:"imageHistory" yaml:"imageHistory"`
-
-	VolumeCreate  []string `json:"volumeCreate" yaml:"volumeCreate"`
-	VolumePrune   []string `json:"volumePrune" yaml:"volumePrune"`
-	VolumeRemove  []string `json:"volumeRemove" yaml:"volumeRemove"`
-	NetworkCreate []string `json:"networkCreate" yaml:"networkCreate"`
-	NetworkPrune  []string `json:"networkPrune" yaml:"networkPrune"`
-	NetworkRemove []string `json:"networkRemove" yaml:"networkRemove"`
-
-	TabNext []string `json:"tabNext" yaml:"tabNext"`
-	TabPrev []string `json:"tabPrev" yaml:"tabPrev"`
-
-	Up     []string `json:"up" yaml:"up"`
-	Down   []string `json:"down" yaml:"down"`
-	Enter  []string `json:"enter" yaml:"enter"`
-	Back   []string `json:"back" yaml:"back"`
-	Delete []string `json:"delete" yaml:"delete"`
+type KeyBinding struct {
+	Primary   Key `json:"primary" yaml:"primary"`
+	Secondary Key `json:"secondary,omitempty" yaml:"secondary,omitempty"`
 }
 
-// BackgroundType defines how a background is rendered.
-type BackgroundType string
+func (b KeyBinding) Values() []string {
+	values := make([]string, 0, 2)
+	if b.Primary != KeyEmpty {
+		values = append(values, string(b.Primary))
+	}
+	if b.Secondary != KeyEmpty {
+		values = append(values, string(b.Secondary))
+	}
+	return values
+}
 
-const (
-	BackgroundSolid    BackgroundType = "solid"
-	BackgroundGradient BackgroundType = "gradient"
-)
+type GlobalKeymap struct {
+	Quit      KeyBinding `json:"quit" yaml:"quit"`
+	ActionBar KeyBinding `json:"actionBar" yaml:"actionBar"`
+	Help      KeyBinding `json:"help" yaml:"help"`
+	Filter    KeyBinding `json:"filter" yaml:"filter"`
+	Refresh   KeyBinding `json:"refresh" yaml:"refresh"`
+}
+
+type ContainerKeymap struct {
+	Start   KeyBinding `json:"start" yaml:"start"`
+	Stop    KeyBinding `json:"stop" yaml:"stop"`
+	Restart KeyBinding `json:"restart" yaml:"restart"`
+	Kill    KeyBinding `json:"kill" yaml:"kill"`
+	Remove  KeyBinding `json:"remove" yaml:"remove"`
+	Logs    KeyBinding `json:"logs" yaml:"logs"`
+	Exec    KeyBinding `json:"exec" yaml:"exec"`
+	Inspect KeyBinding `json:"inspect" yaml:"inspect"`
+	Stats   KeyBinding `json:"stats" yaml:"stats"`
+	Pause   KeyBinding `json:"pause" yaml:"pause"`
+	Update  KeyBinding `json:"update" yaml:"update"`
+	Diff    KeyBinding `json:"diff" yaml:"diff"`
+	Export  KeyBinding `json:"export" yaml:"export"`
+	Commit  KeyBinding `json:"commit" yaml:"commit"`
+	Wait    KeyBinding `json:"wait" yaml:"wait"`
+	Copy    KeyBinding `json:"copy" yaml:"copy"`
+}
+
+type ImageKeymap struct {
+	Pull    KeyBinding `json:"pull" yaml:"pull"`
+	Remove  KeyBinding `json:"remove" yaml:"remove"`
+	Prune   KeyBinding `json:"prune" yaml:"prune"`
+	Tag     KeyBinding `json:"tag" yaml:"tag"`
+	Push    KeyBinding `json:"push" yaml:"push"`
+	Save    KeyBinding `json:"save" yaml:"save"`
+	Load    KeyBinding `json:"load" yaml:"load"`
+	History KeyBinding `json:"history" yaml:"history"`
+}
+
+type ResourceKeymap struct {
+	Create KeyBinding `json:"create" yaml:"create"`
+	Prune  KeyBinding `json:"prune" yaml:"prune"`
+	Remove KeyBinding `json:"remove" yaml:"remove"`
+}
+
+type NavigationKeymap struct {
+	TabNext KeyBinding `json:"tabNext" yaml:"tabNext"`
+	TabPrev KeyBinding `json:"tabPrev" yaml:"tabPrev"`
+	Up      KeyBinding `json:"up" yaml:"up"`
+	Down    KeyBinding `json:"down" yaml:"down"`
+	Enter   KeyBinding `json:"enter" yaml:"enter"`
+	Back    KeyBinding `json:"back" yaml:"back"`
+	Delete  KeyBinding `json:"delete" yaml:"delete"`
+}
+
+type DialogKeymap struct {
+	Confirm KeyBinding `json:"confirm" yaml:"confirm"`
+	Cancel  KeyBinding `json:"cancel" yaml:"cancel"`
+}
+
+type KeymapConfig struct {
+	Global     GlobalKeymap     `json:"global" yaml:"global"`
+	Container  ContainerKeymap  `json:"container" yaml:"container"`
+	Image      ImageKeymap      `json:"image" yaml:"image"`
+	Volume     ResourceKeymap   `json:"volume" yaml:"volume"`
+	Network    ResourceKeymap   `json:"network" yaml:"network"`
+	Navigation NavigationKeymap `json:"navigation" yaml:"navigation"`
+	Dialog     DialogKeymap     `json:"dialog" yaml:"dialog"`
+}
+
+type DockerComposeCommand struct {
+	Executable string `json:"executable" yaml:"executable"`
+	Subcommand string `json:"subcommand" yaml:"subcommand"`
+}
+
+type CommandConfig struct {
+	DockerCompose DockerComposeCommand `json:"dockerCompose" yaml:"dockerCompose"`
+}
 
 // BackgroundImage defines image background settings (CSS-inspired).
 type BackgroundImage struct {
@@ -182,10 +252,10 @@ type BackgroundImage struct {
 	SampleRate int `json:"sampleRate" yaml:"sampleRate"`
 
 	// ImageSizing: "cover" (default, fill & crop) or "contain" (fit & letterbox).
-	Sizing string `json:"sizing" yaml:"sizing"`
+	Sizing BackgroundSizing `json:"sizing" yaml:"sizing"`
 
 	// ImagePosition: vertical alignment for sampling. "center", "top", "bottom".
-	Position string `json:"position" yaml:"position"`
+	Position BackgroundPosition `json:"position" yaml:"position"`
 
 	// Opacity: 0-100. 100 = fully opaque (default). Lower = more transparent,
 	// letting terminal background show through for better text readability.
@@ -281,41 +351,73 @@ type LogsConfig struct {
 	Timestamps bool   `json:"timestamps" yaml:"timestamps"`
 }
 
-// DefaultConfig returns a configuration with sensible defaults,
-// loaded from the embedded default.jsonc and merged with Go-level defaults.
-func DefaultConfig() *Config {
-	var cfg Config
-	if err := utils.UnmarshalJSONCSonic([]byte(defaultConfigJSON), &cfg); err != nil {
-		// Embedded JSONC should always parse; fallback if something goes wrong.
-		return fallbackConfig()
-	}
-	// Ensure UI theme colors have defaults (too complex for JSONC).
-	if len(cfg.UI.Theme.ActiveBorderColor) == 0 {
-		cfg.UI.Theme = ThemeConfig{
-			ActiveBorderColor:   []string{"green", "bold"},
-			InactiveBorderColor: []string{"default"},
-			TableHeaderColor:    []string{"cyan", "bold"},
-			SelectedRowColor:    []string{"blue", "bold"},
-			StatusBarColor:      []string{"green", "bold"},
-			InfoColor:           []string{"cyan"},
-			ErrorColor:          []string{"red", "bold"},
-		}
-	}
-	return &cfg
-}
-
-// fallbackConfig returns a minimal hardcoded config if the embedded JSONC fails to parse.
-func fallbackConfig() *Config {
-	return &Config{
-		ConfigVersion: CurrentConfigVersion,
-		General:       GeneralConfig{ScrollHeight: 2, Reporting: "off", Lang: "en"},
-		Docker:        DockerConfig{Timeout: 30 * time.Second, StatsPollSec: 3},
+// DefaultAppConfig returns the compiled fallback. Embedded defaults are
+// applied by LoadResolved and intentionally remain a higher-priority layer.
+func DefaultAppConfig() *AppConfig {
+	return &AppConfig{
+		Version: CurrentConfigVersion,
+		General: GeneralConfig{
+			ScrollHeight: 2, Reporting: ReportingOff, Lang: LanguageEnglish, SizeFormat: SizeFormatBinary,
+		},
+		UI: UIConfig{
+			ShowHelp: true, HintTimeout: 3, EnableMouse: true,
+			Dialog: DialogLayoutConfig{
+				Width:    ResponsiveSize{Percent: 25, Min: 40, Max: 80},
+				Height:   ResponsiveSize{Percent: 30, Min: 10, Max: 40},
+				Position: DialogPosition{Horizontal: HorizontalCenter, Vertical: VerticalCenter},
+			},
+			Window: WindowLayoutConfig{MarginTopPercent: 2, MarginBottomPercent: 2, ContentWidthPercent: 99},
+			Header: HeaderLayoutConfig{
+				Columns:               HeaderColumnWeights{Host: 3, Connection: 5, Keystroke: 7, Logo: 3},
+				KeystrokeContentRatio: 80,
+			},
+			Table: TableLayoutConfig{
+				ColumnSpacing: 2, RowPrefix: DefaultTableRowPrefix, RowPrefixSelected: DefaultTableSelectedPrefix,
+				SelectionInfo: SelectionInfoConfig{Enabled: true, PadLines: 1},
+			},
+		},
+		Docker: DockerConfig{Timeout: DefaultDockerTimeout, StatsPollSec: 3},
 		Runtime: RuntimeConfig{
-			Default:   "local-docker",
+			Default:   DefaultConnectionLocalDocker,
 			Discovery: RuntimeDiscoveryConfig{LocalDocker: true, LocalPodman: true},
 			Health:    RuntimeHealthConfig{IntervalSec: 3, TimeoutSec: 2, FailureThreshold: 2},
 		},
-		Layout: LayoutConfig{SectionWeights: SectionWeights{Top: 2, Content: 7, Bottom: 1}},
-		Keymap: KeymapConfig{Quit: []string{"ctrl+c"}, ActionBar: []string{";"}, Up: []string{"up", "k"}, Down: []string{"down", "j"}},
+		Logs: LogsConfig{Since: DefaultLogsSince, Tail: DefaultLogsTail},
+		Layout: LayoutConfig{
+			SectionWeights: SectionWeights{Top: 2, Content: 7, Bottom: 1},
+			Background:     LayoutBackgroundFallback(),
+		},
+		Commands: CommandConfig{DockerCompose: DockerComposeCommand{Executable: DefaultDockerExecutable, Subcommand: DefaultDockerSubcommand}},
+		Keymap:   defaultKeymap(),
+	}
+}
+
+func LayoutBackgroundFallback() BackgroundConfig {
+	return BackgroundConfig{
+		Type: BackgroundSolid,
+		Image: BackgroundImage{
+			Sizing:   BackgroundSizingCover,
+			Position: BackgroundPositionCenter,
+			Opacity:  100,
+		},
+	}
+}
+
+func defaultKeymap() KeymapConfig {
+	b := func(primary Key, secondary ...Key) KeyBinding {
+		binding := KeyBinding{Primary: primary}
+		if len(secondary) > 0 {
+			binding.Secondary = secondary[0]
+		}
+		return binding
+	}
+	return KeymapConfig{
+		Global:     GlobalKeymap{Quit: b(KeyCtrlC), ActionBar: b(KeySemicolon), Help: b(KeyQuestion, KeyF1), Filter: b(KeySlash), Refresh: b(KeyR)},
+		Container:  ContainerKeymap{Start: b(KeyS), Stop: b(KeyCtrlS), Restart: b(KeyCtrlR), Kill: b(KeyCtrlK), Remove: b(KeyCtrlD), Logs: b(KeyL), Exec: b(KeyE), Inspect: b(KeyI), Stats: b(KeyM), Pause: b(KeyP)},
+		Image:      ImageKeymap{Pull: b(KeyCtrlP), Remove: b(KeyCtrlD), Prune: b(KeyP), Tag: b(KeyCtrlT), Push: b(KeyCtrlU), Save: b(KeyCtrlE), Load: b(KeyCtrlL), History: b(KeyH)},
+		Volume:     ResourceKeymap{Create: b(KeyC), Prune: b(KeyP), Remove: b(KeyCtrlD)},
+		Network:    ResourceKeymap{Create: b(KeyC), Prune: b(KeyP), Remove: b(KeyCtrlD)},
+		Navigation: NavigationKeymap{TabNext: b(KeyTab), TabPrev: b(KeyShiftTab), Up: b(KeyUp, KeyK), Down: b(KeyDown, KeyJ), Enter: b(KeyEnter), Back: b(KeyEscape), Delete: b(KeyCtrlD)},
+		Dialog:     DialogKeymap{Confirm: b(KeyEnter), Cancel: b(KeyEscape)},
 	}
 }

@@ -9,7 +9,7 @@ import (
 )
 
 func TestContainerRefreshRestoresSelectionAnchor(t *testing.T) {
-	m := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	m.Resources.Containers.SelectionAnchorID = "two"
 	updated, _ := handleContainersLoaded(m, state.ContainersLoaded{Containers: []dockerclient.ContainerSummary{
 		{ID: "one", Name: "a"},

@@ -19,7 +19,7 @@ func TestRuntimeSelectorShowsSafeTLSStateAndFailure(t *testing.T) {
 		Host: "tcp://runtime.example:2376",
 		TLS:  utils.TLSConfig{Enabled: true, Verify: true},
 	})
-	m := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	m.Connection.Pool = pool
 	m.Connection.RuntimeSelectorError = map[string]dockerclient.ConnectionFailure{
 		"remote": {Kind: dockerclient.ConnectionErrorClientCert},

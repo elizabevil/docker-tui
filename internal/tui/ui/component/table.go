@@ -8,7 +8,6 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
@@ -249,17 +248,5 @@ func RenderTableFooter(offset, end, total int, hint string) string {
 
 // renderSelectionInfo 按配置样式渲染选中项预览信息。
 func renderSelectionInfo(text string) string {
-	cfg := tableCfg.Table.SelectionInfo
-	s := lipgloss.NewStyle()
-	if cfg.Color != "" {
-		if c := style.Color(cfg.Color); c != nil {
-			s = s.Foreground(c)
-		}
-	}
-	if cfg.Background != "" {
-		if c := style.Color(cfg.Background); c != nil {
-			s = s.Background(c)
-		}
-	}
-	return s.Render(text)
+	return GetStyle("detailSelection").Render(text)
 }

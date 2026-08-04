@@ -35,7 +35,7 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 
 	profile := profileSelector.Select(w)
 
-	colsDef := tc.Columns[profile]
+	colsDef := tc.Columns.Get(profile)
 	if len(colsDef) == 0 {
 		return i18n.T("msg.loading")
 	}

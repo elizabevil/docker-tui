@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/x/ansi"
+	"github.com/elizabevil/docker-tui/internal/data/config"
 )
 
 func TestPlaceDialogPreservesContentOutsideDialog(t *testing.T) {
-	cfg := dialogConfig{XOffset: 50, YOffset: 50}
+	cfg := LoadDialogConfig()
 	content := strings.Join([]string{"ABCDEFGHIJ", "ABCDEFGHIJ", "ABCDEFGHIJ"}, "\n")
 	got := PlaceDialog(content, "XX", 10, 3, "", cfg)
 	lines := strings.Split(got, "\n")
@@ -23,8 +24,25 @@ func TestPlaceDialogPreservesContentOutsideDialog(t *testing.T) {
 	}
 }
 
+func TestResolveOverlayValidatesAndNormalizesColor(t *testing.T) {
+	theme := config.DefaultTheme()
+	theme.Dialog.Overlay = config.ValueRef(config.Color("#abc"))
+	theme.Dialog.OverlayOpacity = 50
+	if got := resolveOverlay(theme); got != "#aabbcc7f" {
+		t.Fatalf("resolved overlay = %q", got)
+	}
+}
+
+func TestResolveOverlayFallsBackFromInvalidColor(t *testing.T) {
+	theme := config.DefaultTheme()
+	theme.Dialog.Overlay = config.ValueRef(config.Color("not-a-color"))
+	if got := resolveOverlay(theme); got != "#0d1117cc" {
+		t.Fatalf("fallback overlay = %q", got)
+	}
+}
+
 func TestPlaceDialogResetsStylesAtSpliceBoundaries(t *testing.T) {
-	cfg := dialogConfig{XOffset: 50, YOffset: 50}
+	cfg := LoadDialogConfig()
 	content := strings.Join([]string{"ABCDEFGHIJ", "\x1b[48;5;1mABCDEFGHIJ", "ABCDEFGHIJ"}, "\n")
 	got := PlaceDialog(content, "XX", 10, 3, "", cfg)
 	line := strings.Split(got, "\n")[1]

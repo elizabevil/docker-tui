@@ -1,7 +1,6 @@
 package header
 
 import (
-	_ "embed"
 	"fmt"
 	"image/color"
 	"strings"
@@ -12,98 +11,31 @@ import (
 
 	"charm.land/lipgloss/v2"
 
+	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
-//go:embed header.jsonc
-var headerDefaultData []byte
-
-// ColumnDef defines one column in the header bar.
-type ColumnDef struct {
-	ID     string `json:"id"`
-	Weight int    `json:"weight"`
+type headerWidths struct {
+	host       int
+	connection int
+	keystroke  int
+	logo       int
 }
 
-// keystrokeSubConfig holds keystroke-column-specific settings.
-type keystrokeSubConfig struct {
-	ContentRatio    int `json:"contentRatio"`    // percentage of column width for content (default 80)
-	DisplayDuration int `json:"displayDuration"` // 显示时长 (ticks, 默认 30 = 3s)
-	AnimDuration    int `json:"animDuration"`    // 动画时长 (ticks, 默认 5 = 500ms)
-}
-
-// headerConfig maps the JSONC structure for header defaults.
-type headerConfig struct {
-	DefaultTitle string              `json:"defaultTitle"`
-	Columns      []ColumnDef         `json:"columns"`
-	Keystroke    *keystrokeSubConfig `json:"keystroke,omitempty"`
-}
-
-func (c *headerConfig) normalize() {
-	if c.DefaultTitle == "" {
-		c.DefaultTitle = "dtui"
+func resolveHeaderWidths(avail int, weights config.HeaderColumnWeights) headerWidths {
+	total := weights.Host + weights.Connection + weights.Keystroke + weights.Logo
+	host := avail * weights.Host / total
+	connection := avail * weights.Connection / total
+	keystroke := avail * weights.Keystroke / total
+	return headerWidths{
+		host:       host,
+		connection: connection,
+		keystroke:  keystroke,
+		logo:       avail - host - connection - keystroke,
 	}
-	if len(c.Columns) == 0 {
-		c.Columns = []ColumnDef{
-			{ID: "host", Weight: 3},
-			{ID: "connection", Weight: 5},
-			{ID: "keystroke", Weight: 7},
-			{ID: "logo", Weight: 3},
-		}
-	}
-	if c.Keystroke == nil {
-		c.Keystroke = &keystrokeSubConfig{ContentRatio: 80, DisplayDuration: 30, AnimDuration: 5}
-	}
-	if c.Keystroke.ContentRatio <= 0 || c.Keystroke.ContentRatio > 100 {
-		c.Keystroke.ContentRatio = 80
-	}
-	if c.Keystroke.DisplayDuration <= 0 {
-		c.Keystroke.DisplayDuration = 30
-	}
-	if c.Keystroke.AnimDuration <= 0 {
-		c.Keystroke.AnimDuration = 5
-	}
-}
-
-// DefaultHeaderConfig returns default values parsed from the embedded header.jsonc.
-func DefaultHeaderConfig() headerConfig {
-	loader := component.ConfigLoader[headerConfig]{
-		RawData: headerDefaultData,
-		Fallback: headerConfig{
-			DefaultTitle: "dtui",
-			Columns: []ColumnDef{
-				{ID: "host", Weight: 3},
-				{ID: "connection", Weight: 5},
-				{ID: "keystroke", Weight: 7},
-				{ID: "logo", Weight: 3},
-			},
-		},
-		Normalize: func(c *headerConfig) {
-			c.normalize()
-		},
-	}
-	return loader.Load()
-}
-
-// widthByID computes column widths from config weights.
-func widthByID(avail int, cols []ColumnDef) map[string]int {
-	totalW := 0
-	for _, c := range cols {
-		totalW += c.Weight
-	}
-	out := make(map[string]int, len(cols))
-	used := 0
-	for i, c := range cols {
-		w := avail * c.Weight / totalW
-		if i == len(cols)-1 {
-			w = avail - used // remainder absorbs rounding
-		}
-		out[c.ID] = w
-		used += w
-	}
-	return out
 }
 
 // RenderHeight returns the number of terminal rows the header occupies.
@@ -179,18 +111,18 @@ func Render(app *state.AppModel, usableW int) string {
 	if avail < 10 {
 		avail = app.Viewport.Width - 4
 	}
-	hCfg := DefaultHeaderConfig()
-	widths := widthByID(avail, hCfg.Columns)
-	dynW := widths["host"]
-	connW := widths["connection"]
-	keyW := widths["keystroke"]
-	logoW := widths["logo"]
+	hCfg := app.Dependencies.Config.UI.Header
+	widths := resolveHeaderWidths(avail, hCfg.Columns)
+	dynW := widths.host
+	connW := widths.connection
+	keyW := widths.keystroke
+	logoW := widths.logo
 	if logoW < 10 {
 		logoW = 10
 	}
 
 	// ── Col 3: Keystroke display (简化版，仅显示按键日志，无动画) ──
-	colKeys := renderKeyStrokeColumn(app, keyW)
+	colKeys := renderKeyStrokeColumn(app, keyW, hCfg.KeystrokeContentRatio)
 
 	// ── Col 4: Logo ───────────────────────────────────────────
 	verStr := app.Dependencies.AppVersion
@@ -222,7 +154,7 @@ func Render(app *state.AppModel, usableW int) string {
 }
 
 // renderKeyStrokeColumn 显示快捷键日志（简化版，仅收集期间显示）。
-func renderKeyStrokeColumn(app *state.AppModel, colW int) string {
+func renderKeyStrokeColumn(app *state.AppModel, colW, ratio int) string {
 	var content string
 
 	switch {
@@ -236,13 +168,6 @@ func renderKeyStrokeColumn(app *state.AppModel, colW int) string {
 		return "" // 无按键时不留空白
 	}
 
-	ratio := 80
-	if hCfg := DefaultHeaderConfig(); hCfg.Keystroke != nil {
-		ratio = hCfg.Keystroke.ContentRatio
-	}
-	if ratio <= 0 || ratio > 100 {
-		ratio = 80
-	}
 	padH := (colW - 2) * (100 - ratio) / 200
 	if padH < 0 {
 		padH = 0

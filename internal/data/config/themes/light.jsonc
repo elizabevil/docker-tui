@@ -1,64 +1,12 @@
 {
-  "name": "Light",
-  "description": "Rider-inspired light theme",
-  "colors": {
-    "green": "#6a8759",
-    "cyan": "#067dcd",
-    "blue": "#3875d7",
-    "red": "#db5a5a",
-    "yellow": "#bbb529",
-    "orange": "#cc7832",
-    "purple": "#a962b5",
-    "white": "#2b2b2b",
-    "gray": "#9b9b9b",
-    "dark": "#e8e8e8",
-    "surface": "#f0f0f0",
-    "background": "#fefefe"
-  },
-  "border": {
-    "active": "cyan",
-    "inactive": "gray",
-    "focused": "blue",
-    "style": "rounded"
-  },
-  "header": {
-    "bar_bg": "#e8e8e8",
-    "label": "#9b9b9b",
-    "value": "#2b2b2b",
-    "logo": "#3875d7"
-  },
-  "main": {
-    "border_active": "cyan",
-    "border_inactive": "gray",
-    "title": "cyan",
-    "header_fg": "blue",
-    "row_selected": "blue",
-    "footer": "gray"
-  },
-  "footer": {
-    "status_bar_bg": "#f0f0f0",
-    "shortcuts_bar_bg": "#e8e8e8",
-    "key": "white",
-    "desc": "gray",
-    "separator": "gray"
-  },
-  "dialog": {
-    "border": "red",
-    "title": "red",
-    "body": "white",
-    "overlay": "#fefefe"
-  },
-  "toast": {
-    "success": "green",
-    "error": "red",
-    "bg": "#e8e8e8"
-  },
-  "text": {
-    "info": "cyan",
-    "error": "red",
-    "success": "green",
-    "warning": "yellow",
-    "help_key": "cyan",
-    "help_desc": "white"
+  "meta": { "name": "Light", "description": "Rider-inspired light theme" },
+  "theme": {
+    "palette": {
+      "green": "#6a8759", "cyan": "#067dcd", "blue": "#3875d7",
+      "red": "#db5a5a", "yellow": "#bbb529", "orange": "#cc7832",
+      "purple": "#a962b5", "white": "#2b2b2b", "gray": "#9b9b9b",
+      "dark": "#e8e8e8", "surface": "#f0f0f0", "background": "#fefefe"
+    },
+    "border": { "focused": { "token": "blue" } }
   }
 }

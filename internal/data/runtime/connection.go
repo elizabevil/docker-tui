@@ -127,7 +127,7 @@ func BuildConnections(cfg *config.RuntimeConfig, opts ...ConnectionOption) ([]Co
 	add(ConnectionSpec{Name: "local-docker", Host: utils.SocketURI(DefaultDockerSocket), Runtime: RuntimeDocker}, false)
 	add(ConnectionSpec{Name: "local-podman", Host: b.podmanUserFn(b.getuidFn()), Runtime: RuntimePodman}, false)
 	for _, conn := range cfg.Connections {
-		add(FromRuntimeConn(conn), true)
+		add(FromRuntimeConnection(conn), true)
 	}
 
 	initial := b.defaultName
@@ -149,13 +149,13 @@ func defaultPodmanUserEndpoint(uid int) string {
 	return utils.SocketURI(fmt.Sprintf("/run/user/%d/podman/podman.sock", uid))
 }
 
-// FromRuntimeConn converts the config model into the normalized runtime model.
-func FromRuntimeConn(conn config.RuntimeConn) ConnectionSpec {
+// FromRuntimeConnection converts the config model into the normalized runtime model.
+func FromRuntimeConnection(conn config.RuntimeConnection) ConnectionSpec {
 	return ConnectionSpec{
 		Name:       conn.Name,
 		Host:       conn.Endpoint,
 		APIVersion: conn.APIVersion,
-		Runtime:    NormalizeRuntimeType(RuntimeType(conn.Driver)),
+		Runtime:    NormalizeRuntimeType(RuntimeType(string(conn.Driver))),
 		TLS: utils.TLSConfig{
 			Enabled:            conn.TLS.Enabled,
 			Verify:             conn.TLS.Verify,

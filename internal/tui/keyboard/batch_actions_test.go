@@ -35,7 +35,7 @@ func newMockEngine() *mockengine.Engine { return mockengine.New() }
 // newAppModelWithEngine builds a state.AppModel wired to a runtime.Engine
 // stub.
 func newAppModelWithEngine(eng runtimeapi.Engine) *state.AppModel {
-	m := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	m.Connection.Engine = eng
 	return m
 }

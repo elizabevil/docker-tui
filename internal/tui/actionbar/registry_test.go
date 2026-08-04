@@ -11,7 +11,7 @@ import (
 )
 
 func TestContainersExposeOnlyComplexActions(t *testing.T) {
-	m := state.NewAppModel(config.DefaultConfig(), &dockerclient.Client{}, "test")
+	m := state.NewAppModel(config.DefaultAppConfig(), &dockerclient.Client{}, "test")
 	m.Resources.Containers.Items = []runtimeapi.ContainerSummary{{ID: "one", Name: "api", State: state.ContainerStateRunning}}
 	items := VisibleItems(m)
 	want := []keys.KeyAction{keys.ActionContainerRename, keys.ActionContainerTop, keys.ActionContainerPort, keys.ActionContainerDiff, keys.ActionContainerWait, keys.ActionContainerCopy, keys.ActionContainerUpdate, keys.ActionContainerExport, keys.ActionContainerCommit}
@@ -26,7 +26,7 @@ func TestContainersExposeOnlyComplexActions(t *testing.T) {
 }
 
 func TestDirectAndGlobalActionsAreExcluded(t *testing.T) {
-	m := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	// Image History is a no-shortcut complex action; other panels have
 	// no Action Bar items until a per-panel set is added.
 	for _, panel := range []state.PanelType{state.PanelVolumes, state.PanelNetworks, state.PanelCompose, state.PanelAudit} {
@@ -38,7 +38,7 @@ func TestDirectAndGlobalActionsAreExcluded(t *testing.T) {
 }
 
 func TestContainerActionAvailabilityAndFiltering(t *testing.T) {
-	m := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	items := VisibleItems(m)
 	for _, item := range items {
 		if !item.Disabled {
@@ -53,7 +53,7 @@ func TestContainerActionAvailabilityAndFiltering(t *testing.T) {
 }
 
 func TestImagesExposeHistoryWhenEligible(t *testing.T) {
-	m := state.NewAppModel(config.DefaultConfig(), &dockerclient.Client{}, "test")
+	m := state.NewAppModel(config.DefaultAppConfig(), &dockerclient.Client{}, "test")
 	m.Navigation.ActivePanel = state.PanelImages
 	m.Resources.Images.Items = []runtimeapi.ImageSummary{{ID: "sha256:one", RepoTags: []string{"nginx:latest"}}}
 	items := VisibleItems(m)

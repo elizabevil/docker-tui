@@ -16,7 +16,7 @@ import (
 // advancedApp returns an AppModel with an audit service wired so handlers can
 // begin/finish traces, mirroring the pattern in update_actions_test.go.
 func advancedApp() *state.AppModel {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Dependencies.Audit = audit.NewService(nil)
 	return app
 }

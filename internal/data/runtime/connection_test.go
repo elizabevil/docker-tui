@@ -7,8 +7,8 @@ import (
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
-func TestFromRuntimeConnPreservesTLSFields(t *testing.T) {
-	spec := FromRuntimeConn(config.RuntimeConn{
+func TestFromRuntimeConnectionPreservesTLSFields(t *testing.T) {
+	spec := FromRuntimeConnection(config.RuntimeConnection{
 		Name:       "remote",
 		Driver:     "podman",
 		Endpoint:   "tcp://example:2376",

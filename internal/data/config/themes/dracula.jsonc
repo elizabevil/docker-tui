@@ -1,64 +1,18 @@
 {
-  "name": "Dracula",
-  "description": "Purple Rider-inspired theme",
-  "colors": {
-    "green": "#50fa7b",
-    "cyan": "#8be9fd",
-    "blue": "#6272a4",
-    "red": "#ff5555",
-    "yellow": "#f1fa8c",
-    "orange": "#ffb86c",
-    "purple": "#bd93f9",
-    "white": "#f8f8f2",
-    "gray": "#44475a",
-    "dark": "#1e1f29",
-    "surface": "#282a36",
-    "background": "#21222c"
-  },
-  "border": {
-    "active": "purple",
-    "inactive": "gray",
-    "focused": "cyan",
-    "style": "rounded"
-  },
-  "header": {
-    "bar_bg": "#1e1f29",
-    "label": "#44475a",
-    "value": "#f8f8f2",
-    "logo": "#bd93f9"
-  },
-  "main": {
-    "border_active": "purple",
-    "border_inactive": "gray",
-    "title": "purple",
-    "header_fg": "cyan",
-    "row_selected": "purple",
-    "footer": "gray"
-  },
-  "footer": {
-    "status_bar_bg": "#282a36",
-    "shortcuts_bar_bg": "#1e1f29",
-    "key": "white",
-    "desc": "gray",
-    "separator": "gray"
-  },
-  "dialog": {
-    "border": "red",
-    "title": "red",
-    "body": "white",
-    "overlay": "#21222c"
-  },
-  "toast": {
-    "success": "green",
-    "error": "red",
-    "bg": "#1e1f29"
-  },
-  "text": {
-    "info": "cyan",
-    "error": "red",
-    "success": "green",
-    "warning": "yellow",
-    "help_key": "cyan",
-    "help_desc": "white"
+  "meta": { "name": "Dracula", "description": "Purple Rider-inspired theme" },
+  "theme": {
+    "palette": {
+      "green": "#50fa7b", "cyan": "#8be9fd", "blue": "#6272a4",
+      "red": "#ff5555", "yellow": "#f1fa8c", "orange": "#ffb86c",
+      "purple": "#bd93f9", "white": "#f8f8f2", "gray": "#44475a",
+      "dark": "#1e1f29", "surface": "#282a36", "background": "#21222c"
+    },
+    "border": { "active": { "token": "purple" }, "focused": { "token": "cyan" } },
+    "main": {
+      "borderActive": { "token": "purple" },
+      "title": { "token": "purple" },
+      "rowSelected": { "token": "purple" },
+      "tableHeader": { "token": "cyan" }
+    }
   }
 }

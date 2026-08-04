@@ -15,7 +15,7 @@ import (
 func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
 	h := &m.History
 	tc := tables.MustLoad("history")
-	cols := tc.Columns["default"]
+	cols := tc.Columns.Get("default")
 	if panelWidth < 30 {
 		panelWidth = 30
 	}

@@ -10,8 +10,8 @@ import (
 )
 
 func TestHandleKeyPressUsesConfiguredBinding(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
-	app.Dependencies.Config.Keymap.Help = []string{"z"}
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	app.Dependencies.Config.Keymap.Global.Help = config.KeyBinding{Primary: "z"}
 
 	updated, _ := HandleKeyPress(keyMessage("z"), app)
 	if updated.Navigation.Mode != state.ModeHelp {
@@ -20,8 +20,8 @@ func TestHandleKeyPressUsesConfiguredBinding(t *testing.T) {
 }
 
 func TestHandleKeyPressUsesConfiguredNavigationBinding(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
-	app.Dependencies.Config.Keymap.Down = []string{"z"}
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	app.Dependencies.Config.Keymap.Navigation.Down = config.KeyBinding{Primary: "z"}
 	app.Resources.Containers.Items = []dockerclient.ContainerSummary{{ID: "one"}, {ID: "two"}}
 
 	updated, _ := HandleKeyPress(keyMessage("z"), app)
@@ -36,8 +36,8 @@ func TestHandleKeyPressUsesConfiguredNavigationBinding(t *testing.T) {
 }
 
 func TestHandleKeyPressRemovesOverriddenDefaultBinding(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
-	app.Dependencies.Config.Keymap.Help = []string{"z"}
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	app.Dependencies.Config.Keymap.Global.Help = config.KeyBinding{Primary: "z"}
 
 	updated, _ := HandleKeyPress(keyMessage("?"), app)
 	if updated.Navigation.Mode == state.ModeHelp {
@@ -46,9 +46,9 @@ func TestHandleKeyPressRemovesOverriddenDefaultBinding(t *testing.T) {
 }
 
 func TestConfiguredBindingsApplyInDetailMode(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
-	app.Dependencies.Config.Keymap.Down = []string{"z"}
-	app.Dependencies.Config.Keymap.Back = []string{"x"}
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	app.Dependencies.Config.Keymap.Navigation.Down = config.KeyBinding{Primary: "z"}
+	app.Dependencies.Config.Keymap.Navigation.Back = config.KeyBinding{Primary: "x"}
 	app.Navigation.Mode = state.ModeDetail
 
 	updated, _ := HandleKeyPress(keyMessage("z"), app)
@@ -62,7 +62,7 @@ func TestConfiguredBindingsApplyInDetailMode(t *testing.T) {
 }
 
 func TestDetailSourceKeyRequiresRawSource(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Navigation.Mode = state.ModeDetail
 	app.Detail.Open("Compose Project", "Project: demo")
 
@@ -79,7 +79,7 @@ func TestDetailSourceKeyRequiresRawSource(t *testing.T) {
 }
 
 func TestDetailSourceSelectAllAndCopy(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Navigation.Mode = state.ModeDetail
 	app.Detail.Open("Image Detail", "")
 	app.Detail.SetRaw(state.ResourceImage, []byte(`{"registry":"docker-bkrepo.internal"}`))
@@ -96,9 +96,9 @@ func TestDetailSourceSelectAllAndCopy(t *testing.T) {
 }
 
 func TestConfiguredBindingsApplyInLogMode(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
-	app.Dependencies.Config.Keymap.Down = []string{"z"}
-	app.Dependencies.Config.Keymap.Back = []string{"x"}
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	app.Dependencies.Config.Keymap.Navigation.Down = config.KeyBinding{Primary: "z"}
+	app.Dependencies.Config.Keymap.Navigation.Back = config.KeyBinding{Primary: "x"}
 	app.Navigation.Mode = state.ModeLogView
 
 	updated, _ := HandleKeyPress(keyMessage("z"), app)
@@ -112,8 +112,8 @@ func TestConfiguredBindingsApplyInLogMode(t *testing.T) {
 }
 
 func TestConfiguredBackBindingExitsMarkMode(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
-	app.Dependencies.Config.Keymap.Back = []string{"x"}
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	app.Dependencies.Config.Keymap.Navigation.Back = config.KeyBinding{Primary: "x"}
 	app.Navigation.Mode = state.ModeMark
 	app.Selection.MarkedIDs = make(map[string]bool)
 	app.Selection.MarkedIDs["one"] = true
@@ -125,8 +125,8 @@ func TestConfiguredBackBindingExitsMarkMode(t *testing.T) {
 }
 
 func TestConfiguredHelpBindingClosesHelp(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
-	app.Dependencies.Config.Keymap.Help = []string{"z"}
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	app.Dependencies.Config.Keymap.Global.Help = config.KeyBinding{Primary: "z"}
 	app.Navigation.Mode = state.ModeHelp
 
 	updated, _ := HandleKeyPress(keyMessage("?"), app)
@@ -140,7 +140,7 @@ func TestConfiguredHelpBindingClosesHelp(t *testing.T) {
 }
 
 func TestCommandInputPreservesPrintableKeyCase(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Navigation.Mode = state.ModeCommand
 
 	updated, _ := HandleKeyPress(keyMessage("A"), app)

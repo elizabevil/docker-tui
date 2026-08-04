@@ -1,14 +1,10 @@
 package component
 
 import (
-	"embed"
 	"image/color"
 
 	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 )
-
-//go:embed styles.jsonc
-var embeddedConfig embed.FS
 
 func init() {
 	loadComponentStyles()

@@ -113,14 +113,15 @@ func resolveStandardLayout(m *state.AppModel) LayoutReport {
 	// Replicate the standard layout's margin + rail math so the mouse
 	// hit-test stays in sync with what RenderApp draws. The values here
 	// intentionally mirror the variable names in layout.go.
-	mt := appCfg.MarginTopPct
+	windowCfg := m.Dependencies.Config.UI.Window
+	mt := windowCfg.MarginTopPercent
 	if mt < 0 {
 		mt = 0
 	}
 	if mt > 15 {
 		mt = 15
 	}
-	mb := appCfg.MarginBottomPct
+	mb := windowCfg.MarginBottomPercent
 	if mb < 0 {
 		mb = 0
 	}
@@ -135,7 +136,7 @@ func resolveStandardLayout(m *state.AppModel) LayoutReport {
 		marginTop = 0
 		marginBot = 0
 	}
-	contentWidthPct := appCfg.ContentWidthPct
+	contentWidthPct := windowCfg.ContentWidthPercent
 	if contentWidthPct <= 0 || contentWidthPct > 100 {
 		contentWidthPct = 90
 	}

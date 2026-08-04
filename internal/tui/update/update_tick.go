@@ -140,7 +140,7 @@ func handleHostStatsTick(m *state.AppModel, _ state.HostStatsTick) (*state.AppMo
 }
 
 func handleRuntimeHealthTick(m *state.AppModel, _ state.RuntimeHealthTick) (*state.AppModel, tea.Cmd) {
-	health := config.DefaultConfig().Runtime.Health
+	health := config.DefaultAppConfig().Runtime.Health
 	if m.Dependencies.Config != nil {
 		health = m.Dependencies.Config.Runtime.Health
 	}
@@ -159,7 +159,7 @@ func handleRuntimeHealthTick(m *state.AppModel, _ state.RuntimeHealthTick) (*sta
 }
 
 func handleRuntimeHealthResult(m *state.AppModel, msg state.RuntimeHealthResult) (*state.AppModel, tea.Cmd) {
-	threshold := config.DefaultConfig().Runtime.Health.FailureThreshold
+	threshold := config.DefaultAppConfig().Runtime.Health.FailureThreshold
 	if m.Dependencies.Config != nil {
 		threshold = m.Dependencies.Config.Runtime.Health.FailureThreshold
 	}

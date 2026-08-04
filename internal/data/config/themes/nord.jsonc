@@ -1,64 +1,12 @@
 {
-  "name": "Nord",
-  "description": "Arctic blue Rider-inspired theme",
-  "colors": {
-    "green": "#8fbc8f",
-    "cyan": "#81a1c1",
-    "blue": "#5e81ac",
-    "red": "#bf616a",
-    "yellow": "#ebcb8b",
-    "orange": "#d08770",
-    "purple": "#b48ead",
-    "white": "#d8dee9",
-    "gray": "#4c566a",
-    "dark": "#2e3440",
-    "surface": "#3b4252",
-    "background": "#242933"
-  },
-  "border": {
-    "active": "cyan",
-    "inactive": "gray",
-    "focused": "blue",
-    "style": "rounded"
-  },
-  "header": {
-    "bar_bg": "#2e3440",
-    "label": "#4c566a",
-    "value": "#d8dee9",
-    "logo": "#5e81ac"
-  },
-  "main": {
-    "border_active": "cyan",
-    "border_inactive": "gray",
-    "title": "cyan",
-    "header_fg": "blue",
-    "row_selected": "blue",
-    "footer": "gray"
-  },
-  "footer": {
-    "status_bar_bg": "#3b4252",
-    "shortcuts_bar_bg": "#2e3440",
-    "key": "white",
-    "desc": "gray",
-    "separator": "gray"
-  },
-  "dialog": {
-    "border": "red",
-    "title": "red",
-    "body": "white",
-    "overlay": "#242933"
-  },
-  "toast": {
-    "success": "green",
-    "error": "red",
-    "bg": "#2e3440"
-  },
-  "text": {
-    "info": "cyan",
-    "error": "red",
-    "success": "green",
-    "warning": "yellow",
-    "help_key": "cyan",
-    "help_desc": "white"
+  "meta": { "name": "Nord", "description": "Arctic blue Rider-inspired theme" },
+  "theme": {
+    "palette": {
+      "green": "#8fbc8f", "cyan": "#81a1c1", "blue": "#5e81ac",
+      "red": "#bf616a", "yellow": "#ebcb8b", "orange": "#d08770",
+      "purple": "#b48ead", "white": "#d8dee9", "gray": "#4c566a",
+      "dark": "#2e3440", "surface": "#3b4252", "background": "#242933"
+    },
+    "border": { "focused": { "token": "blue" } }
   }
 }

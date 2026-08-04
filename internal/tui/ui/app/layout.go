@@ -1,7 +1,6 @@
 package view
 
 import (
-	_ "embed"
 	"fmt"
 	"image"
 	"image/color"
@@ -24,29 +23,6 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/panel"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
-
-//go:embed app.jsonc
-var appConfigData []byte
-
-type appWindowConfig struct {
-	MarginTopPct    int `json:"marginTopPct"`
-	MarginBottomPct int `json:"marginBottomPct"`
-	ContentWidthPct int `json:"contentWidthPct"`
-}
-
-var appCfg appWindowConfig
-
-func init() {
-	loader := component.ConfigLoader[appWindowConfig]{
-		RawData: appConfigData,
-		Fallback: appWindowConfig{
-			MarginTopPct:    5,
-			MarginBottomPct: 5,
-			ContentWidthPct: 90,
-		},
-	}
-	appCfg = loader.Load()
-}
 
 // imageColorCache caches per-row colors extracted from image files.
 // Key is struct{path string; rows int} to avoid returning wrong-sized slices after resize.
@@ -111,14 +87,15 @@ func RenderApp(m *state.AppModel) string {
 	}
 
 	// Window margin: percentage of terminal height for top/bottom spacing
-	mt := appCfg.MarginTopPct
+	windowCfg := m.Dependencies.Config.UI.Window
+	mt := windowCfg.MarginTopPercent
 	if mt < 0 {
 		mt = 0
 	}
 	if mt > 15 {
 		mt = 15
 	}
-	mb := appCfg.MarginBottomPct
+	mb := windowCfg.MarginBottomPercent
 	if mb < 0 {
 		mb = 0
 	}
@@ -133,7 +110,7 @@ func RenderApp(m *state.AppModel) string {
 		marginTop = 0
 	}
 
-	contentWidthPct := appCfg.ContentWidthPct
+	contentWidthPct := windowCfg.ContentWidthPercent
 	if contentWidthPct <= 0 || contentWidthPct > 100 {
 		contentWidthPct = 90
 	}
@@ -223,10 +200,7 @@ func RenderApp(m *state.AppModel) string {
 		wrap(panelRendered, panelColors),
 		wrap(footerRendered, footerColors)))
 
-	overlayColor := m.Dependencies.Config.UI.DialogOverlayColor
-	if overlayColor == "" {
-		overlayColor = "#0d1117cc"
-	}
+	overlayColor := dialog.OverlayColor(m)
 	rep := ResolveLayout(m)
 	panelBody := dialog.PanelBody{
 		Left:  rep.Panel.bodyLeft,
@@ -606,19 +580,19 @@ func loadImageRowColors(path string, targetRows int, sampleRate int, position st
 // hex colors for ALL terminal rows. Sections slice into this array for continuity.
 func precomputeGlobalImageColors(m *state.AppModel, totalRows int) []string {
 	bg := m.Dependencies.Config.Layout.Background
-	if bg.Type != "image" || bg.Image.Src == "" {
+	if bg.Type != config.BackgroundImageType || bg.Image.Src == "" {
 		return nil
 	}
 	imgPath := bg.Image.Src
 	pos := bg.Image.Position
 	if pos == "" {
-		pos = "center"
+		pos = config.BackgroundPositionCenter
 	}
 	sampleRate := bg.Image.SampleRate
 	if sampleRate <= 0 {
 		sampleRate = 80 // high default for smooth gradient
 	}
-	imgColors, err := loadImageRowColors(imgPath, totalRows, sampleRate, pos)
+	imgColors, err := loadImageRowColors(imgPath, totalRows, sampleRate, string(pos))
 	if err != nil {
 		return nil
 	}

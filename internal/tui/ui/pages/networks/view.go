@@ -1,7 +1,6 @@
 package networks
 
 import (
-	_ "embed"
 	"fmt"
 
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
@@ -11,32 +10,6 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
-
-//go:embed networks.jsonc
-var networksDefaultData []byte
-
-// networksConfig maps the JSONC structure for networks panel defaults.
-type networksConfig struct {
-	DefaultSort string `json:"defaultSort"`
-}
-
-func (c *networksConfig) normalize() {
-	if c.DefaultSort == "" {
-		c.DefaultSort = "name"
-	}
-}
-
-// DefaultNetworksConfig returns default values parsed from the embedded networks.jsonc.
-func DefaultNetworksConfig() networksConfig {
-	loader := component.ConfigLoader[networksConfig]{
-		RawData:  networksDefaultData,
-		Fallback: networksConfig{DefaultSort: "name"},
-		Normalize: func(c *networksConfig) {
-			c.normalize()
-		},
-	}
-	return loader.Load()
-}
 
 var tc = tables.MustLoad("networks")
 
@@ -57,7 +30,7 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 	}
 
 	profile := profileSelector.Select(w)
-	colsDef := tc.Columns[profile]
+	colsDef := tc.Columns.Get(profile)
 	if len(colsDef) == 0 {
 		return component.StrLoading
 	}

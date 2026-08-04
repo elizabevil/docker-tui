@@ -1,140 +1,53 @@
 package dialog
 
 import (
-	_ "embed"
 	"fmt"
 	"image/color"
 
+	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
+	"github.com/elizabevil/docker-tui/internal/utils"
 
 	"charm.land/lipgloss/v2"
 
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 )
 
-//go:embed dialog.jsonc
-var dialogDefaultData []byte
+type dialogConfig = config.DialogLayoutConfig
 
-// dialogConfig maps the JSONC structure for dialog appearance defaults.
-type dialogConfig struct {
-	WidthPercent   int    `json:"widthPercent"`
-	MinWidth       int    `json:"minWidth"`
-	MaxWidth       int    `json:"maxWidth"`
-	HeightPercent  int    `json:"heightPercent"`
-	MinHeight      int    `json:"minHeight"`
-	MaxHeight      int    `json:"maxHeight"`
-	XOffset        int    `json:"xOffset"`
-	YOffset        int    `json:"yOffset"`
-	OverlayColor   string `json:"overlayColor"`
-	OverlayOpacity int    `json:"overlayOpacity"`
-	ConfirmKey     string `json:"confirmKey"`
-	CancelKey      string `json:"cancelKey"`
-}
-
-func defaultDialogConfig() dialogConfig {
-	return dialogConfig{
-		WidthPercent:   25,
-		MinWidth:       40,
-		MaxWidth:       80,
-		HeightPercent:  30,
-		MinHeight:      10,
-		MaxHeight:      40,
-		XOffset:        50,
-		YOffset:        50,
-		OverlayColor:   "#0d1117",
-		OverlayOpacity: 80,
-		ConfirmKey:     "Enter",
-		CancelKey:      "Esc",
-	}
-}
-
-func (c *dialogConfig) normalize() {
-	def := defaultDialogConfig()
-	if c.WidthPercent <= 0 {
-		c.WidthPercent = def.WidthPercent
-	}
-	if c.MinWidth <= 0 {
-		c.MinWidth = def.MinWidth
-	}
-	if c.MaxWidth <= 0 {
-		c.MaxWidth = def.MaxWidth
-	}
-	if c.HeightPercent <= 0 {
-		c.HeightPercent = def.HeightPercent
-	}
-	if c.MinHeight <= 0 {
-		c.MinHeight = def.MinHeight
-	}
-	if c.MaxHeight <= 0 {
-		c.MaxHeight = def.MaxHeight
-	}
-	if c.XOffset < 0 {
-		c.XOffset = def.XOffset
-	}
-	if c.YOffset < 0 {
-		c.YOffset = def.YOffset
-	}
-	if c.OverlayColor == "" {
-		c.OverlayColor = def.OverlayColor
-	}
-	if c.OverlayOpacity < 0 {
-		c.OverlayOpacity = def.OverlayOpacity
-	}
-	if c.ConfirmKey == "" {
-		c.ConfirmKey = def.ConfirmKey
-	}
-	if c.CancelKey == "" {
-		c.CancelKey = def.CancelKey
-	}
-}
-
-// DefaultDialogViewConfig returns default values parsed from the embedded dialog.jsonc.
-func DefaultDialogViewConfig() dialogConfig {
-	loader := component.ConfigLoader[dialogConfig]{
-		RawData:  dialogDefaultData,
-		Fallback: defaultDialogConfig(),
-		Normalize: func(c *dialogConfig) {
-			c.normalize()
-		},
-	}
-	return loader.Load()
-}
-
-// LoadDialogConfig loads the embedded dialog config.
 func LoadDialogConfig() dialogConfig {
-	return DefaultDialogViewConfig()
+	return config.DefaultAppConfig().UI.Dialog
 }
 
 // dialogWidth computes dialog width from terminal width using config percentages.
 func dialogWidth(termW int, cfg dialogConfig) int {
-	pct := cfg.WidthPercent
+	pct := cfg.Width.Percent
 	if pct <= 0 {
 		pct = 25
 	}
 	w := termW * pct / 100
-	if w < cfg.MinWidth {
-		w = cfg.MinWidth
+	if w < cfg.Width.Min {
+		w = cfg.Width.Min
 	}
-	if w > cfg.MaxWidth {
-		w = cfg.MaxWidth
+	if w > cfg.Width.Max {
+		w = cfg.Width.Max
 	}
 	return w
 }
 
 // dialogHeight computes dialog height from terminal height using config percentages.
 func dialogHeight(termH int, cfg dialogConfig) int {
-	pct := cfg.HeightPercent
+	pct := cfg.Height.Percent
 	if pct <= 0 {
 		pct = 30
 	}
 	h := termH * pct / 100
-	if h < cfg.MinHeight {
-		h = cfg.MinHeight
+	if h < cfg.Height.Min {
+		h = cfg.Height.Min
 	}
-	if h > cfg.MaxHeight {
-		h = cfg.MaxHeight
+	if h > cfg.Height.Max {
+		h = cfg.Height.Max
 	}
 	return h
 }
@@ -143,11 +56,11 @@ func dialogHeight(termH int, cfg dialogConfig) int {
 // 3/4 ratio, clamped to cfg.MinWidth / cfg.MaxWidth (BR-043 §3.2).
 func panelDialogWidth(bodyW int, cfg dialogConfig) int {
 	w := bodyW * 3 / 4
-	if cfg.MinWidth > 0 && w < cfg.MinWidth {
-		w = cfg.MinWidth
+	if cfg.Width.Min > 0 && w < cfg.Width.Min {
+		w = cfg.Width.Min
 	}
-	if cfg.MaxWidth > 0 && w > cfg.MaxWidth {
-		w = cfg.MaxWidth
+	if cfg.Width.Max > 0 && w > cfg.Width.Max {
+		w = cfg.Width.Max
 	}
 	return w
 }
@@ -157,11 +70,11 @@ func panelDialogWidth(bodyW int, cfg dialogConfig) int {
 // revision: dialog 宽 3/4、高 3/4,均为 panel 比例).
 func panelDialogHeight(bodyH int, cfg dialogConfig) int {
 	h := bodyH * 3 / 4
-	if cfg.MinHeight > 0 && h < cfg.MinHeight {
-		h = cfg.MinHeight
+	if cfg.Height.Min > 0 && h < cfg.Height.Min {
+		h = cfg.Height.Min
 	}
-	if cfg.MaxHeight > 0 && h > cfg.MaxHeight {
-		h = cfg.MaxHeight
+	if cfg.Height.Max > 0 && h > cfg.Height.Max {
+		h = cfg.Height.Max
 	}
 	return h
 }
@@ -169,16 +82,24 @@ func panelDialogHeight(bodyH int, cfg dialogConfig) int {
 // dialogPosition computes the (x, y) top-left position for a dialog of size
 // (dlgW, dlgH) within a terminal of size (termW, termH) using config percentages.
 func dialogPosition(termW, termH, dlgW, dlgH int, cfg dialogConfig) (x, y int) {
-	xOff := cfg.XOffset
-	if xOff <= 0 {
-		xOff = 50
+	switch cfg.Position.Horizontal {
+	case "left":
+		x = 0
+	case "right":
+		x = termW - dlgW
+	default:
+		x = (termW - dlgW) / 2
 	}
-	yOff := cfg.YOffset
-	if yOff <= 0 {
-		yOff = 50
+	switch cfg.Position.Vertical {
+	case "top":
+		y = 0
+	case "bottom":
+		y = termH - dlgH
+	default:
+		y = (termH - dlgH) / 2
 	}
-	x = termW*xOff/100 - dlgW/2
-	y = termH*yOff/100 - dlgH/2
+	x += cfg.Position.OffsetX
+	y += cfg.Position.OffsetY
 	if x < 0 {
 		x = 0
 	}
@@ -188,29 +109,27 @@ func dialogPosition(termW, termH, dlgW, dlgH int, cfg dialogConfig) (x, y int) {
 	return x, y
 }
 
-// resolveOverlay produces a hex-with-alpha color string by combining the
-// app-level DialogOverlayColor (highest priority) with embed config defaults.
-func resolveOverlay(appColor string, cfg dialogConfig) string {
-	if appColor != "" {
-		return appColor
+func resolveOverlay(theme *config.Theme) string {
+	if theme == nil {
+		theme = config.DefaultTheme()
 	}
-	base := cfg.OverlayColor
-	if base == "" {
-		base = "#0d1117"
+	base := theme.ResolveColor(theme.Dialog.Overlay)
+	parsed, ok := utils.ParseColor(base)
+	if !ok {
+		fallback := config.DefaultTheme()
+		base = fallback.ResolveColor(fallback.Dialog.Overlay)
+		parsed, _ = utils.ParseColor(base)
 	}
-	// If the embed config already provides a full 9-char hex with alpha, use it.
-	if len(base) == 9 && base[0] == '#' {
-		return base
+	rgba := color.NRGBAModel.Convert(parsed).(color.NRGBA)
+	alpha := uint8(int(theme.Dialog.OverlayOpacity) * 255 / 100)
+	return fmt.Sprintf("#%02x%02x%02x%02x", rgba.R, rgba.G, rgba.B, alpha)
+}
+
+func OverlayColor(m *state.AppModel) string {
+	if m == nil {
+		return resolveOverlay(nil)
 	}
-	opacity := cfg.OverlayOpacity
-	if opacity <= 0 {
-		opacity = 80
-	}
-	if opacity > 100 {
-		opacity = 100
-	}
-	alpha := fmt.Sprintf("%02x", opacity*255/100)
-	return base + alpha
+	return resolveOverlay(m.Dependencies.Theme)
 }
 
 func titleColorForKind(kind state.DialogKind) color.Color {
@@ -238,8 +157,8 @@ func actionLabelForKind(kind state.DialogKind) string {
 // Render builds a full-screen modal dialog for export/debug/exec modes.
 func Render(m *state.AppModel) string {
 	tc := titleColorForKind(m.Dialog.Kind)
-	dlgCfg := LoadDialogConfig()
-	oc := resolveOverlay(m.Dependencies.Config.UI.DialogOverlayColor, dlgCfg)
+	dlgCfg := m.Dependencies.Config.UI.Dialog
+	oc := resolveOverlay(m.Dependencies.Theme)
 
 	dialogBox := SelectionDialog(
 		m.Dialog.Title, m.Dialog.Body, m.Dialog.Preview,
@@ -254,8 +173,8 @@ func Render(m *state.AppModel) string {
 // centered on top. Background content remains visible but muted behind the dialog.
 func RenderOverlay(content string, m *state.AppModel) string {
 	tc := titleColorForKind(m.Dialog.Kind)
-	dlgCfg := LoadDialogConfig()
-	oc := resolveOverlay(m.Dependencies.Config.UI.DialogOverlayColor, dlgCfg)
+	dlgCfg := m.Dependencies.Config.UI.Dialog
+	oc := resolveOverlay(m.Dependencies.Theme)
 
 	dialogBox := SelectionDialog(
 		m.Dialog.Title, m.Dialog.Body, m.Dialog.Preview,
@@ -268,8 +187,8 @@ func RenderOverlay(content string, m *state.AppModel) string {
 // RenderChoiceOverlay renders the shared confirm/choice window without a
 // full-screen scrim. The underlying page remains visible outside the box.
 func RenderChoiceOverlay(content string, m *state.AppModel) string {
-	cfg := LoadDialogConfig()
-	overlay := resolveOverlay(m.Dependencies.Config.UI.DialogOverlayColor, cfg)
+	cfg := m.Dependencies.Config.UI.Dialog
+	overlay := resolveOverlay(m.Dependencies.Theme)
 	options := make([]ChoiceOption, 0, len(m.Confirm.Options))
 	for _, option := range m.Confirm.Options {
 		options = append(options, ChoiceOption{
@@ -295,8 +214,8 @@ func RenderChoiceOverlay(content string, m *state.AppModel) string {
 // RenderExecOverlay renders a full-screen scrim with the exec shell dialog
 // (3 shell options + custom input + confirm/cancel) centered on top.
 func RenderExecOverlay(content string, m *state.AppModel) string {
-	dlgCfg := LoadDialogConfig()
-	oc := resolveOverlay(m.Dependencies.Config.UI.DialogOverlayColor, dlgCfg)
+	dlgCfg := m.Dependencies.Config.UI.Dialog
+	oc := resolveOverlay(m.Dependencies.Theme)
 
 	dialogBox := ExecDialog(m, oc, dlgCfg, 0, 0)
 	return PlaceDialog(content, dialogBox, m.Viewport.Width, m.Viewport.Height, oc, dlgCfg)
@@ -306,8 +225,8 @@ func RenderExecOverlay(content string, m *state.AppModel) string {
 // content, centering it within body (per BR-040). Sizing uses body
 // dimensions so the box fits the panel.
 func RenderChoiceOverlayInPanel(content string, m *state.AppModel, body PanelBody) string {
-	cfg := LoadDialogConfig()
-	overlay := resolveOverlay(m.Dependencies.Config.UI.DialogOverlayColor, cfg)
+	cfg := m.Dependencies.Config.UI.Dialog
+	overlay := resolveOverlay(m.Dependencies.Theme)
 	options := make([]ChoiceOption, 0, len(m.Confirm.Options))
 	for _, option := range m.Confirm.Options {
 		options = append(options, ChoiceOption{
@@ -334,8 +253,8 @@ func RenderChoiceOverlayInPanel(content string, m *state.AppModel, body PanelBod
 // export / image debug kinds) into content, centering within body.
 func RenderOverlayInPanel(content string, m *state.AppModel, body PanelBody) string {
 	tc := titleColorForKind(m.Dialog.Kind)
-	dlgCfg := LoadDialogConfig()
-	oc := resolveOverlay(m.Dependencies.Config.UI.DialogOverlayColor, dlgCfg)
+	dlgCfg := m.Dependencies.Config.UI.Dialog
+	oc := resolveOverlay(m.Dependencies.Theme)
 
 	dialogBox := SelectionDialog(
 		m.Dialog.Title, m.Dialog.Body, m.Dialog.Preview,
@@ -347,8 +266,8 @@ func RenderOverlayInPanel(content string, m *state.AppModel, body PanelBody) str
 // RenderExecOverlayInPanel splices the exec shell dialog into content,
 // centering within body.
 func RenderExecOverlayInPanel(content string, m *state.AppModel, body PanelBody) string {
-	dlgCfg := LoadDialogConfig()
-	oc := resolveOverlay(m.Dependencies.Config.UI.DialogOverlayColor, dlgCfg)
+	dlgCfg := m.Dependencies.Config.UI.Dialog
+	oc := resolveOverlay(m.Dependencies.Theme)
 
 	dialogBox := ExecDialog(m, oc, dlgCfg, body.Width, body.Rows)
 	return PlaceDialogInPanel(content, dialogBox, body, dlgCfg)
@@ -357,8 +276,8 @@ func RenderExecOverlayInPanel(content string, m *state.AppModel, body PanelBody)
 // RenderContainerFormOverlayInPanel splices the container-action form dialog
 // (Copy / Update / Export / Commit) into content, centering within body.
 func RenderContainerFormOverlayInPanel(content string, m *state.AppModel, body PanelBody) string {
-	dlgCfg := LoadDialogConfig()
-	oc := resolveOverlay(m.Dependencies.Config.UI.DialogOverlayColor, dlgCfg)
+	dlgCfg := m.Dependencies.Config.UI.Dialog
+	oc := resolveOverlay(m.Dependencies.Theme)
 
 	dialogBox := FormDialog(m, oc, dlgCfg, body.Width, body.Rows)
 	return PlaceDialogInPanel(content, dialogBox, body, dlgCfg)

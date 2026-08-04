@@ -10,7 +10,7 @@ import (
 )
 
 func TestRenderConstrainsLoadedConnectionDataToViewport(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Viewport.Width = 80
 	app.Viewport.HeaderVisible = true
 	app.Connection.RuntimeType = strings.Repeat("podman-", 12)

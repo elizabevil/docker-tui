@@ -14,32 +14,6 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
 
-//go:embed help.jsonc
-var helpDefaultData []byte
-
-// helpConfig maps the JSONC structure for help panel defaults.
-type helpConfig struct {
-	AppDescription string `json:"appDescription"`
-}
-
-func (c *helpConfig) normalize() {
-	if c.AppDescription == "" {
-		c.AppDescription = "Docker & Podman TUI Manager"
-	}
-}
-
-// DefaultHelpConfig returns default values parsed from the embedded help.jsonc.
-func DefaultHelpConfig() helpConfig {
-	loader := component.ConfigLoader[helpConfig]{
-		RawData:  helpDefaultData,
-		Fallback: helpConfig{AppDescription: "Docker & Podman TUI Manager"},
-		Normalize: func(c *helpConfig) {
-			c.normalize()
-		},
-	}
-	return loader.Load()
-}
-
 //go:embed about.txt
 var aboutText string
 
@@ -76,7 +50,6 @@ func (defaultSectionProvider) Sections(app *state.AppModel) []helpSection {
 
 // Renderer 绑定帮助页配置与渲染行为，减少散落函数。
 type Renderer struct {
-	cfg      helpConfig
 	provider SectionProvider
 }
 
@@ -84,7 +57,7 @@ func NewRenderer(provider SectionProvider) *Renderer {
 	if provider == nil {
 		provider = defaultSectionProvider{}
 	}
-	return &Renderer{cfg: DefaultHelpConfig(), provider: provider}
+	return &Renderer{provider: provider}
 }
 
 func (r *Renderer) Render(width int, app *state.AppModel) string {

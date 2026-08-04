@@ -11,7 +11,7 @@ import (
 )
 
 func sampleState() *state.AppModel {
-	m := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	m.History.Open("sha256:abc", "nginx:latest")
 	return m
 }
@@ -25,7 +25,7 @@ func sampleLayers() []dockerclient.ImageHistoryLayer {
 }
 
 func TestRenderViewNoImageID(t *testing.T) {
-	m := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	got := RenderView(m, 30, 120)
 	if !strings.Contains(got, "Select an image") {
 		t.Errorf("missing 'Select an image' message in: %q", got)

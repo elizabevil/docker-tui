@@ -33,7 +33,7 @@ func TestTemplateFor(t *testing.T) {
 }
 
 func TestImageContainerSubviewSummaryUsesPersistentImageRef(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Navigation.ActivePanel = state.PanelImages
 	app.Resources.Images.Items = []runtimeapi.ImageSummary{{ID: "sha256:image", RepoTags: []string{"example/nginx:latest"}}}
 	app.Resources.Images.ContainersViewID = "sha256:image"

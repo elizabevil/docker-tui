@@ -7,7 +7,7 @@ import (
 )
 
 func TestCompileBindingsAppliesOverridesAndFallbacks(t *testing.T) {
-	bindings := CompileBindings(config.KeymapConfig{Help: []string{"f3"}})
+	bindings := CompileBindings(config.KeymapConfig{Global: config.GlobalKeymap{Help: config.KeyBinding{Primary: "f3"}}})
 	if got := bindings.ByAction[ActionHelp]; len(got) != 1 || got[0] != "f3" {
 		t.Fatalf("help override = %#v", got)
 	}
@@ -40,7 +40,7 @@ func TestImageHistoryUsesHOnlyInImages(t *testing.T) {
 }
 
 func TestResourceDeleteOverrideDisablesLegacyGenericBinding(t *testing.T) {
-	resolver := NewResolver(CompileBindings(config.KeymapConfig{ImageRemove: []string{"z"}}))
+	resolver := NewResolver(CompileBindings(config.KeymapConfig{Image: config.ImageKeymap{Remove: config.KeyBinding{Primary: "z"}}}))
 	context := Context{App: "app", Surface: "main", View: "images", Mode: "normal"}
 
 	if action, ok := resolver.Resolve(KeyCtrlD, context); ok {
@@ -52,14 +52,14 @@ func TestResourceDeleteOverrideDisablesLegacyGenericBinding(t *testing.T) {
 }
 
 func TestResolverRejectsActionOutsideContext(t *testing.T) {
-	resolver := NewResolver(CompileBindings(config.KeymapConfig{ContainerStart: []string{"z"}}))
+	resolver := NewResolver(CompileBindings(config.KeymapConfig{Container: config.ContainerKeymap{Start: config.KeyBinding{Primary: "z"}}}))
 	if action, ok := resolver.Resolve("z", Context{App: "app", Surface: "main", View: "images", Mode: "normal"}); ok {
 		t.Fatalf("resolved out-of-context action %q", action)
 	}
 }
 
-func TestDefaultConfigMatchesRegistryDefaults(t *testing.T) {
-	configured := CompileBindings(config.DefaultConfig().Keymap)
+func TestDefaultAppConfigMatchesRegistryDefaults(t *testing.T) {
+	configured := CompileBindings(config.DefaultAppConfig().Keymap)
 	defaults := CompileBindings(config.KeymapConfig{})
 	for _, spec := range Registry() {
 		got := configured.ByAction[spec.Action]

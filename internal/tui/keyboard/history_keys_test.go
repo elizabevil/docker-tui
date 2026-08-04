@@ -10,7 +10,7 @@ import (
 )
 
 func historyKeyModel() *state.AppModel {
-	m := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	m.Navigation.Mode = state.ModeHistory
 	m.Viewport.Height = 40
 	m.History.Open("sha256:test", "example:test")

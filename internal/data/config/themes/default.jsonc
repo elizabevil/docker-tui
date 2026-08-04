@@ -1,64 +1,73 @@
 {
-  "name": "Default Dark",
-  "description": "JetBrains Rider inspired dark theme",
-  "colors": {
-    "green": "#499c54",
-    "cyan": "#56b4c2",
-    "blue": "#589df6",
-    "red": "#db5a5a",
-    "yellow": "#c8a35e",
-    "orange": "#cc7832",
-    "purple": "#a962b5",
-    "white": "#c9d1d9",
-    "gray": "#5a6270",
-    "dark": "#1e1f22",
-    "surface": "#2b2d30",
-    "background": "#18191b"
+  "meta": {
+    "name": "Default Dark",
+    "description": "JetBrains Rider inspired dark theme"
   },
-  "border": {
-    "active": "cyan",
-    "inactive": "gray",
-    "focused": "green",
-    "style": "rounded"
-  },
-  "header": {
-    "bar_bg": "#1e1f22",
-    "label": "#5a6270",
-    "value": "#c9d1d9",
-    "logo": "#589df6"
-  },
-  "main": {
-    "border_active": "cyan",
-    "border_inactive": "gray",
-    "title": "cyan",
-    "header_fg": "blue",
-    "row_selected": "blue",
-    "footer": "gray"
-  },
-  "footer": {
-    "status_bar_bg": "#2b2d30",
-    "shortcuts_bar_bg": "#1e1f22",
-    "key": "white",
-    "desc": "gray",
-    "separator": "gray"
-  },
-  "dialog": {
-    "border": "red",
-    "title": "red",
-    "body": "white",
-    "overlay": "#18191b"
-  },
-  "toast": {
-    "success": "green",
-    "error": "red",
-    "bg": "#1e1f22"
-  },
-  "text": {
-    "info": "cyan",
-    "error": "red",
-    "success": "green",
-    "warning": "yellow",
-    "help_key": "cyan",
-    "help_desc": "white"
+  "theme": {
+    "palette": {
+      "green": "#499c54",
+      "cyan": "#56b4c2",
+      "blue": "#589df6",
+      "red": "#db5a5a",
+      "yellow": "#c8a35e",
+      "orange": "#cc7832",
+      "purple": "#a962b5",
+      "white": "#c9d1d9",
+      "gray": "#5a6270",
+      "dark": "#1e1f22",
+      "surface": "#2b2d30",
+      "background": "#18191b"
+    },
+    "border": {
+      "active": { "token": "cyan" },
+      "inactive": { "token": "gray" },
+      "focused": { "token": "green" },
+      "kind": "rounded"
+    },
+    "header": {
+      "background": { "token": "dark" },
+      "label": { "token": "gray" },
+      "value": { "token": "white" },
+      "logo": { "token": "blue" }
+    },
+    "main": {
+      "borderActive": { "token": "cyan" },
+      "borderInactive": { "token": "gray" },
+      "title": { "token": "cyan" },
+      "tableHeader": { "token": "blue" },
+      "rowSelected": { "token": "blue" },
+      "rowText": { "token": "white" },
+      "footer": { "token": "gray" }
+    },
+    "footer": {
+      "statusBackground": { "token": "surface" },
+      "shortcutBackground": { "token": "dark" },
+      "key": { "token": "white" },
+      "description": { "token": "gray" },
+      "separator": { "token": "gray" }
+    },
+    "dialog": {
+      "border": { "token": "red" },
+      "title": { "token": "red" },
+      "body": { "token": "white" },
+      "optionActive": { "token": "cyan" },
+      "optionInactive": { "token": "gray" },
+      "overlay": { "token": "background" },
+      "overlayOpacity": 80
+    },
+    "toast": {
+      "success": { "token": "green" },
+      "error": { "token": "red" },
+      "background": { "token": "dark" }
+    },
+    "text": {
+      "info": { "token": "cyan" },
+      "error": { "token": "red" },
+      "success": { "token": "green" },
+      "warning": { "token": "yellow" },
+      "dim": { "token": "gray" },
+      "helpKey": { "token": "cyan" },
+      "helpDescription": { "token": "white" }
+    }
   }
 }

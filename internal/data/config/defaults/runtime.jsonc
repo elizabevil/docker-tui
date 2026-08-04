@@ -1,0 +1,15 @@
+{
+  "runtime": {
+    "default": "local-docker",
+    "discovery": {
+      "localDocker": true,
+      "localPodman": true
+    },
+    "health": {
+      "intervalSec": 3,
+      "timeoutSec": 2,
+      "failureThreshold": 2
+    },
+    "connections": []
+  }
+}

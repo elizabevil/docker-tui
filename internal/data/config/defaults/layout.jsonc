@@ -1,0 +1,16 @@
+{
+  "layout": {
+    "sectionWeights": { "top": 2, "content": 7, "bottom": 1 },
+    "background": {
+      "enable": false,
+      "fallthrough": false,
+      "type": "image",
+      "color": "red",
+      "image": {
+        "sizing": "cover",
+        "position": "center",
+        "opacity": 100
+      }
+    }
+  }
+}

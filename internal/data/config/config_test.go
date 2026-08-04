@@ -7,333 +7,220 @@ import (
 	"time"
 )
 
-func TestDefaultConfig(t *testing.T) {
-	cfg := DefaultConfig()
-	if cfg == nil {
-		t.Fatal("DefaultConfig returned nil")
+func TestDefaultAppConfig(t *testing.T) {
+	cfg := DefaultAppConfig()
+	if err := ValidateApp(cfg); err != nil {
+		t.Fatalf("compiled fallback is invalid: %v", err)
 	}
-	if cfg.ConfigVersion != CurrentConfigVersion {
-		t.Errorf("configVersion=%d", cfg.ConfigVersion)
+	if cfg.Version != CurrentConfigVersion {
+		t.Fatalf("version = %d", cfg.Version)
 	}
-	if cfg.Runtime.Default != "local-docker" || !cfg.Runtime.Discovery.LocalDocker || !cfg.Runtime.Discovery.LocalPodman {
-		t.Errorf("unexpected runtime defaults: %#v", cfg.Runtime)
+	if cfg.Keymap.Navigation.Up.Primary != "up" || cfg.Keymap.Navigation.Up.Secondary != "k" {
+		t.Fatalf("unexpected navigation binding: %#v", cfg.Keymap.Navigation.Up)
 	}
-	if cfg.Runtime.Health.IntervalSec != 3 {
-		t.Errorf("health interval=%d", cfg.Runtime.Health.IntervalSec)
-	}
-	if cfg.Docker.Timeout != 30*time.Second {
-		t.Errorf("expected 30s timeout, got %v", cfg.Docker.Timeout)
-	}
-	if cfg.General.ScrollHeight != 2 {
-		t.Errorf("expected scrollHeight 2, got %d", cfg.General.ScrollHeight)
-	}
-	if len(cfg.Keymap.Quit) == 0 {
-		t.Error("expected Quit keybindings to be set")
-	}
-	if cfg.UI.Theme.ActiveBorderColor == nil {
-		t.Error("expected ActiveBorderColor to be set")
+	if cfg.Commands.DockerCompose.Executable != "docker" {
+		t.Fatalf("unexpected compose command: %#v", cfg.Commands.DockerCompose)
 	}
 }
 
-func TestConfigDir(t *testing.T) {
-	dir, err := ConfigDir()
-	if err != nil {
-		t.Fatalf("ConfigDir failed: %v", err)
+func TestAppPatchPreservesOmittedFieldsAndExplicitZeroValues(t *testing.T) {
+	cfg := DefaultAppConfig()
+	falseValue := false
+	zero := 0
+	lang := LanguageChinese
+	patch := AppPatch{
+		General: &GeneralPatch{Lang: &lang},
+		UI:      &UIPatch{EnableMouse: &falseValue, HintTimeout: &zero},
 	}
-	if dir == "" {
-		t.Fatal("ConfigDir returned empty string")
+	patch.Apply(cfg)
+
+	if cfg.General.Lang != "zh" || cfg.General.SizeFormat != "binary" {
+		t.Fatalf("general patch result: %#v", cfg.General)
 	}
-	home, _ := os.UserHomeDir()
-	expected := filepath.Join(home, ".config", "docker-tui")
-	if dir != expected {
-		t.Errorf("expected %q, got %q", expected, dir)
+	if cfg.UI.EnableMouse || cfg.UI.HintTimeout != 0 {
+		t.Fatalf("explicit zero values were not preserved: %#v", cfg.UI)
 	}
 }
 
-func TestConfigFile(t *testing.T) {
-	path, err := ConfigFile()
-	if err != nil {
-		t.Fatalf("ConfigFile failed: %v", err)
-	}
-	if filepath.Base(path) != "config.yml" {
-		t.Errorf("expected config.yml, got %s", filepath.Base(path))
-	}
-}
-
-func TestLoadNonExistent(t *testing.T) {
-	cfg, err := Load("/nonexistent/path/config.yml")
-	if err != nil {
-		t.Fatalf("Load should not error for missing file: %v", err)
-	}
-	if cfg == nil {
-		t.Fatal("Load returned nil config")
-	}
-	if cfg.Runtime.Default != "local-docker" {
-		t.Errorf("default runtime=%q", cfg.Runtime.Default)
+func TestAppPatchReplacesConnectionCollection(t *testing.T) {
+	cfg := DefaultAppConfig()
+	cfg.Runtime.Connections = []RuntimeConnection{{Name: "old"}}
+	connections := []RuntimeConnection{{Name: "new", Driver: "docker", Endpoint: "unix:///tmp/docker.sock"}}
+	AppPatch{Runtime: &RuntimePatch{Connections: &connections}}.Apply(cfg)
+	if len(cfg.Runtime.Connections) != 1 || cfg.Runtime.Connections[0].Name != "new" {
+		t.Fatalf("connections were not replaced: %#v", cfg.Runtime.Connections)
 	}
 }
 
-func TestSaveAndLoad(t *testing.T) {
-	tmpDir := t.TempDir()
-	cfgPath := filepath.Join(tmpDir, "test-config.yml")
-
-	cfg := DefaultConfig()
-	cfg.Runtime.Default = "remote-docker"
-	cfg.Runtime.Connections = []RuntimeConn{{
-		Name:     "remote-docker",
-		Driver:   "docker",
-		Endpoint: "tcp://192.168.1.1:2376",
-		TLS: RuntimeTLSConfig{
-			Enabled: true, Verify: true, CAFile: "/certs/ca.pem", ServerName: "docker.example.com",
-		},
-	}}
-	cfg.UI.Theme.ActiveBorderColor = []string{"red"}
-
-	if err := Save(cfg, cfgPath); err != nil {
-		t.Fatalf("Save failed: %v", err)
-	}
-
-	if _, err := os.Stat(cfgPath); err != nil {
-		t.Fatalf("config file not created: %v", err)
-	}
-
-	loaded, err := Load(cfgPath)
-	if err != nil {
-		t.Fatalf("Load failed: %v", err)
-	}
-
-	if loaded.Runtime.Default != "remote-docker" || len(loaded.Runtime.Connections) != 1 {
-		t.Errorf("runtime mismatch: %#v", loaded.Runtime)
-	}
-	if loaded.Runtime.Connections[0].TLS.CAFile != "/certs/ca.pem" {
-		t.Errorf("TLS mismatch: %#v", loaded.Runtime.Connections[0].TLS)
-	}
-	if loaded.Runtime.Connections[0].TLS.ServerName != "docker.example.com" {
-		t.Errorf("TLS serverName mismatch: %#v", loaded.Runtime.Connections[0].TLS)
-	}
-	if loaded.UI.Theme.ActiveBorderColor[0] != "red" {
-		t.Errorf("theme mismatch: got %v", loaded.UI.Theme.ActiveBorderColor)
-	}
-}
-
-func TestLoadInvalidYAML(t *testing.T) {
-	tmpDir := t.TempDir()
-	cfgPath := filepath.Join(tmpDir, "bad.yml")
-	if err := os.WriteFile(cfgPath, []byte("invalid: [unclosed"), 0644); err != nil {
+func TestLoadResolvedLayersEmbeddedUserAndCLI(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yml")
+	data := []byte(`version: 1
+app:
+  general:
+    lang: zh
+  ui:
+    enableMouse: false
+    window:
+      contentWidthPercent: 88
+    table:
+      rowPrefixSelected: "> "
+  runtime:
+    health:
+      intervalSec: 5
+appearance:
+  theme: nord
+  overrides:
+    dialog:
+      border:
+        token: cyan
+`)
+	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	_, err := Load(cfgPath)
+
+	resolved, err := LoadResolved(LoadOptions{ConfigPath: path, Lang: "en"})
+	if err != nil {
+		t.Fatalf("LoadResolved: %v", err)
+	}
+	if resolved.App.General.Lang != "en" {
+		t.Fatalf("CLI lang did not win: %q", resolved.App.General.Lang)
+	}
+	if resolved.App.UI.EnableMouse {
+		t.Fatal("explicit false was not preserved")
+	}
+	if resolved.App.UI.Window.ContentWidthPercent != 88 || resolved.App.UI.Table.RowPrefixSelected != "> " {
+		t.Fatalf("typed UI scopes were not applied: %#v", resolved.App.UI)
+	}
+	if resolved.App.Runtime.Health.IntervalSec != 5 || resolved.App.Runtime.Health.TimeoutSec != 2 {
+		t.Fatalf("nested patch lost defaults: %#v", resolved.App.Runtime.Health)
+	}
+	if resolved.ThemeName != ThemeName("nord") || resolved.Theme.Dialog.Border != TokenRef(ColorTokenCyan) {
+		t.Fatalf("theme cascade failed: name=%q dialog=%#v", resolved.ThemeName, resolved.Theme.Dialog)
+	}
+	if resolved.Theme.Palette.Cyan != "#81a1c1" {
+		t.Fatalf("selected theme palette not applied: %q", resolved.Theme.Palette.Cyan)
+	}
+}
+
+func TestLoadResolvedCLIThemeChangesBaseButKeepsUserOverride(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yml")
+	data := []byte(`version: 1
+appearance:
+  theme: light
+  overrides:
+    dialog:
+      border:
+        token: purple
+`)
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := LoadResolved(LoadOptions{ConfigPath: path, ThemeName: "nord"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resolved.ThemeName != "nord" || resolved.Theme.Palette.Background != "#242933" {
+		t.Fatalf("CLI theme did not select nord: %#v", resolved.Theme.Palette)
+	}
+	if resolved.Theme.Dialog.Border != TokenRef(ColorTokenPurple) {
+		t.Fatalf("user property override did not remain highest: %q", resolved.Theme.Dialog.Border)
+	}
+}
+
+func TestLoadResolvedRejectsUnknownFields(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yml")
+	if err := os.WriteFile(path, []byte("version: 1\napp:\n  runtime:\n    typo: true\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadResolved(LoadOptions{ConfigPath: path}); err == nil {
+		t.Fatal("expected unknown field error")
+	}
+}
+
+func TestLoadResolvedRejectsNull(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yml")
+	if err := os.WriteFile(path, []byte("version: 1\napp:\n  general:\n    lang: null\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadResolved(LoadOptions{ConfigPath: path}); err == nil {
+		t.Fatal("expected null to be rejected")
+	}
+}
+
+func TestLoadResolvedRejectsUnknownThemeScope(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yml")
+	if err := os.WriteFile(path, []byte("version: 1\nappearance:\n  theme: invalid\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(dir, "themes"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	theme := []byte(`{"meta":{"name":"Invalid"},"theme":{"runtime":{"default":"bad"}}}`)
+	if err := os.WriteFile(filepath.Join(dir, "themes", "invalid.jsonc"), theme, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadResolved(LoadOptions{ConfigPath: path}); err == nil {
+		t.Fatal("expected forbidden theme scope to fail strict decoding")
+	}
+}
+
+func TestThemePatchRejectsStringColorReference(t *testing.T) {
+	var patch ThemePatch
+	err := decodeJSONCStrict([]byte(`{"dialog":{"border":"cyan"}}`), &patch)
 	if err == nil {
-		t.Fatal("expected error for invalid YAML")
+		t.Fatal("expected string color reference to be rejected")
 	}
 }
 
-func TestLoadRejectsLegacyConnectionFields(t *testing.T) {
-	cfgPath := filepath.Join(t.TempDir(), "config.yml")
-	legacy := "docker:\n  host: unix:///var/run/docker.sock\n"
-	if err := os.WriteFile(cfgPath, []byte(legacy), 0o644); err != nil {
+func TestLoadResolvedRejectsThemePathTraversal(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yml")
+	if err := os.WriteFile(path, []byte("version: 1\nappearance:\n  theme: ../outside\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Load(cfgPath); err == nil {
-		t.Fatal("expected legacy docker.host to be rejected")
+	if _, err := LoadResolved(LoadOptions{ConfigPath: path}); err == nil {
+		t.Fatal("expected unsafe theme name to fail")
 	}
 }
 
-func TestValidateRuntimeConnections(t *testing.T) {
-	tests := []struct {
-		name        string
-		connections []RuntimeConn
-	}{
-		{name: "driver", connections: []RuntimeConn{{Name: "remote", Driver: "containerd", Endpoint: "tcp://example:2376"}}},
-		{name: "duplicate", connections: []RuntimeConn{{Name: "remote", Driver: "docker", Endpoint: "tcp://one:2376"}, {Name: "remote", Driver: "docker", Endpoint: "tcp://two:2376"}}},
-		{name: "tls verify", connections: []RuntimeConn{{Name: "remote", Driver: "docker", Endpoint: "tcp://example:2376", TLS: RuntimeTLSConfig{Enabled: true, CAFile: "/ca.pem", ServerName: "example"}}}},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			cfg := DefaultConfig()
-			cfg.Runtime.Default = test.connections[0].Name
-			cfg.Runtime.Connections = test.connections
-			if err := Validate(cfg); err == nil {
-				t.Fatal("expected validation error")
-			}
-		})
+func TestValidateEmbeddedDefaultScope(t *testing.T) {
+	patch := AppPatch{General: &GeneralPatch{}, Runtime: &RuntimePatch{}}
+	if err := validateEmbeddedDefaultScope("general.jsonc", patch); err == nil {
+		t.Fatal("expected cross-scope embedded default to fail")
 	}
 }
 
-func TestValidateRuntimeTLSModes(t *testing.T) {
-	tests := []struct {
-		name    string
-		conn    RuntimeConn
-		wantErr bool
-	}{
-		{
-			name: "verified certificates are lazy loaded",
-			conn: RuntimeConn{Name: "verified", Driver: "docker", Endpoint: "tcp://example:2376",
-				TLS: RuntimeTLSConfig{Enabled: true, Verify: true, CAFile: "/not/read/during/validation.pem"}},
-		},
-		{
-			name: "explicit insecure",
-			conn: RuntimeConn{Name: "insecure", Driver: "podman", Endpoint: "https://example:2376",
-				TLS: RuntimeTLSConfig{Enabled: true, InsecureSkipVerify: true}},
-		},
-		{
-			name: "implicit insecure rejected", wantErr: true,
-			conn: RuntimeConn{Name: "invalid", Driver: "docker", Endpoint: "tcp://example:2376",
-				TLS: RuntimeTLSConfig{Enabled: true}},
-		},
-		{
-			name: "conflicting modes rejected", wantErr: true,
-			conn: RuntimeConn{Name: "invalid", Driver: "docker", Endpoint: "tcp://example:2376",
-				TLS: RuntimeTLSConfig{Enabled: true, Verify: true, InsecureSkipVerify: true, CAFile: "/ca.pem"}},
-		},
-		{
-			name: "unix tls rejected", wantErr: true,
-			conn: RuntimeConn{Name: "invalid", Driver: "docker", Endpoint: "unix:///var/run/docker.sock",
-				TLS: RuntimeTLSConfig{Enabled: true, InsecureSkipVerify: true}},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.conn.Validate()
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("Validate() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
+func TestValidateAppRejectsInvalidDialogPosition(t *testing.T) {
+	cfg := DefaultAppConfig()
+	cfg.UI.Dialog.Position.Horizontal = "floating"
+	if err := ValidateApp(cfg); err == nil {
+		t.Fatal("expected invalid dialog position to fail")
 	}
 }
 
-func TestRuntimeHealthDurationsUseValidatedValues(t *testing.T) {
+func TestValidateAppRejectsInvalidKeyBinding(t *testing.T) {
+	cfg := DefaultAppConfig()
+	cfg.Keymap.Global.Help = KeyBinding{Secondary: "f1"}
+	if err := ValidateApp(cfg); err == nil {
+		t.Fatal("expected secondary key without primary to fail")
+	}
+}
+
+func TestRuntimeConnectionValidation(t *testing.T) {
+	valid := RuntimeConnection{Name: "remote", Driver: "docker", Endpoint: "tcp://example:2375"}
+	if err := valid.Validate(); err != nil {
+		t.Fatalf("valid connection rejected: %v", err)
+	}
+	invalid := valid
+	invalid.Endpoint = "missing-scheme"
+	if err := invalid.Validate(); err == nil {
+		t.Fatal("invalid endpoint accepted")
+	}
+}
+
+func TestRuntimeHealthDurations(t *testing.T) {
 	health := RuntimeHealthConfig{IntervalSec: 7, TimeoutSec: 4, FailureThreshold: 3}
-	if err := health.Validate(); err != nil {
-		t.Fatalf("Validate failed: %v", err)
-	}
 	if health.Interval() != 7*time.Second || health.Timeout() != 4*time.Second {
 		t.Fatalf("durations = %s, %s", health.Interval(), health.Timeout())
-	}
-}
-
-func TestConfigKeymapDefaults(t *testing.T) {
-	cfg := DefaultConfig()
-	if len(cfg.Keymap.TabNext) == 0 || cfg.Keymap.TabNext[0] != "tab" {
-		t.Error("expected TabNext to be 'tab'")
-	}
-	if len(cfg.Keymap.Up) < 2 || cfg.Keymap.Up[0] != "up" || cfg.Keymap.Up[1] != "k" {
-		t.Error("expected Up to be 'up' and 'k'")
-	}
-}
-
-func TestLoadKeymapOverridePreservesOtherDefaults(t *testing.T) {
-	cfgPath := filepath.Join(t.TempDir(), "config.yml")
-	if err := os.WriteFile(cfgPath, []byte("keymap:\n  help: [f3]\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-
-	cfg, err := Load(cfgPath)
-	if err != nil {
-		t.Fatalf("Load failed: %v", err)
-	}
-	if len(cfg.Keymap.Help) != 1 || cfg.Keymap.Help[0] != "f3" {
-		t.Fatalf("help override = %v", cfg.Keymap.Help)
-	}
-	if len(cfg.Keymap.Quit) == 0 || cfg.Keymap.Quit[0] != "ctrl+c" {
-		t.Fatalf("quit default was not preserved: %v", cfg.Keymap.Quit)
-	}
-	if len(cfg.Keymap.ActionBar) == 0 || cfg.Keymap.ActionBar[0] != ";" {
-		t.Fatalf("action bar default was not preserved: %v", cfg.Keymap.ActionBar)
-	}
-}
-
-// TestLoadSplitMergesEmbeddedDefaults verifies that the eight split files
-// under styles/ combine into the same Config that DefaultConfigJSON parses.
-func TestLoadSplitMergesEmbeddedDefaults(t *testing.T) {
-	cfg, err := LoadSplit(t.TempDir())
-	if err != nil {
-		t.Fatalf("LoadSplit: %v", err)
-	}
-	if cfg.ConfigVersion != CurrentConfigVersion {
-		t.Errorf("configVersion=%d", cfg.ConfigVersion)
-	}
-	if cfg.General.Lang != "en" {
-		t.Errorf("general.lang=%q", cfg.General.Lang)
-	}
-	if cfg.Docker.Timeout == 0 {
-		t.Errorf("docker.timeout not loaded")
-	}
-	if cfg.Runtime.Default != "local-docker" {
-		t.Errorf("runtime.default=%q", cfg.Runtime.Default)
-	}
-	if len(cfg.Keymap.Quit) == 0 {
-		t.Errorf("keymap.quot missing")
-	}
-}
-
-// TestLoadSplitMatchesLegacyDefaultJSONC is a regression guard: the new
-// split-file loader must produce the same effective Config as the old
-// monolithic default.jsonc.
-func TestLoadSplitMatchesLegacyDefaultJSONC(t *testing.T) {
-	userDir := t.TempDir()
-	merged, err := LoadSplit(userDir)
-	if err != nil {
-		t.Fatalf("LoadSplit: %v", err)
-	}
-	legacy := DefaultConfig()
-	if legacy.ConfigVersion != merged.ConfigVersion {
-		t.Errorf("configVersion: %d vs %d", legacy.ConfigVersion, merged.ConfigVersion)
-	}
-	if legacy.General.Lang != merged.General.Lang {
-		t.Errorf("general.lang: %q vs %q", legacy.General.Lang, merged.General.Lang)
-	}
-	if legacy.Docker.Timeout != merged.Docker.Timeout {
-		t.Errorf("docker.timeout: %v vs %v", legacy.Docker.Timeout, merged.Docker.Timeout)
-	}
-	if legacy.Runtime.Default != merged.Runtime.Default {
-		t.Errorf("runtime.default: %q vs %q", legacy.Runtime.Default, merged.Runtime.Default)
-	}
-	if len(legacy.Keymap.Quit) != len(merged.Keymap.Quit) {
-		t.Errorf("keymap.quit len: %d vs %d", len(legacy.Keymap.Quit), len(merged.Keymap.Quit))
-	}
-}
-
-// TestLoadSplitAppliesUserOverride verifies a user file in the styles dir
-// overrides the embedded default for the same section.
-func TestLoadSplitAppliesUserOverride(t *testing.T) {
-	userDir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(userDir, "general.jsonc"), []byte(`{
-  "general": { "lang": "zh" }
-}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	cfg, err := LoadSplit(userDir)
-	if err != nil {
-		t.Fatalf("LoadSplit: %v", err)
-	}
-	if cfg.General.Lang != "zh" {
-		t.Fatalf("general.lang=%q, want zh", cfg.General.Lang)
-	}
-}
-
-// TestLoadSplitMissingUserDirReturnsDefaults verifies that a nonexistent
-// user dir is not an error (use embedded defaults only).
-func TestLoadSplitMissingUserDirReturnsDefaults(t *testing.T) {
-	missing := filepath.Join(t.TempDir(), "nope")
-	cfg, err := LoadSplit(missing)
-	if err != nil {
-		t.Fatalf("LoadSplit on missing dir: %v", err)
-	}
-	if cfg.General.Lang != "en" {
-		t.Errorf("general.lang=%q, want en (embedded default)", cfg.General.Lang)
-	}
-}
-
-// TestLoadSplitInvalidJSONCReturnsError verifies a malformed user file
-// surfaces as an error.
-func TestLoadSplitInvalidJSONCReturnsError(t *testing.T) {
-	userDir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(userDir, "ui.jsonc"), []byte(`{ "ui": { `), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := LoadSplit(userDir); err == nil {
-		t.Fatal("expected parse error, got nil")
 	}
 }

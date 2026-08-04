@@ -111,7 +111,7 @@ type AppModel struct {
 }
 
 // NewAppModel creates a new application model with default state.
-func NewAppModel(cfg *config.Config, engine runtimeapi.Engine, appVersion string) *AppModel {
+func NewAppModel(cfg *config.AppConfig, engine runtimeapi.Engine, appVersion string) *AppModel {
 	return &AppModel{
 		Dependencies: Dependencies{Config: cfg, AppVersion: appVersion},
 		Connection:   NewConnectionState(engine),

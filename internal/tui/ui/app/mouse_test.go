@@ -23,7 +23,7 @@ func TestRenderActionBarInStandardAndCompactLayouts(t *testing.T) {
 }
 
 func newModel(width, height int) *state.AppModel {
-	m := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	m.Viewport.Width = width
 	m.Viewport.Height = height
 	return m

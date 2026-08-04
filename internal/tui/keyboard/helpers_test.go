@@ -10,7 +10,7 @@ import (
 )
 
 func TestComposeProjectAndServiceHelpers(t *testing.T) {
-	m := state.NewAppModel(config.DefaultConfig(), nil, "")
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "")
 	m.Resources.Containers.Items = []dockermodel.ContainerSummary{
 		{ID: "c1", ComposeProject: "proj-b", ComposeService: "api"},
 		{ID: "c2", ComposeProject: "proj-a", ComposeService: "web"},
@@ -35,7 +35,7 @@ func TestComposeProjectAndServiceHelpers(t *testing.T) {
 }
 
 func TestComposeProjectDetailUsesStandardTitle(t *testing.T) {
-	m := state.NewAppModel(config.DefaultConfig(), nil, "")
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "")
 	m.Navigation.ActivePanel = state.PanelCompose
 	m.Resources.Containers.Items = []dockermodel.ContainerSummary{{
 		ID:             "c1",

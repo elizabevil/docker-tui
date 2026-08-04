@@ -1,0 +1,8 @@
+{
+  "commands": {
+    "dockerCompose": {
+      "executable": "docker",
+      "subcommand": "compose"
+    }
+  }
+}

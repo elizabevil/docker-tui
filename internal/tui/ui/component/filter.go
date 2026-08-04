@@ -1,24 +1,10 @@
 package component
 
 import (
-	_ "embed"
 	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 )
-
-//go:embed filter.jsonc
-var filterDefaultData []byte
-
-func init() {
-	loader := ConfigLoader[styleConfig]{
-		RawData:   filterDefaultData,
-		Fallback:  styleConfig{},
-		Normalize: nil,
-	}
-	cfg := loader.Load()
-	RegisterComponentStyles("filter", cfg.Styles)
-}
 
 // FilterConfig holds debounce and display settings for the search/command filter.
 type FilterConfig struct {
@@ -45,19 +31,14 @@ func (c *FilterConfig) normalize() {
 
 // DefaultFilterConfig returns sensible defaults.
 func DefaultFilterConfig() FilterConfig {
-	loader := ConfigLoader[FilterConfig]{
-		RawData: filterDefaultData,
-		Fallback: FilterConfig{
-			DebounceMs:  1000,
-			MinChars:    1,
-			Placeholder: "Search...",
-			CommandHint: "compose/images/...",
-		},
-		Normalize: func(c *FilterConfig) {
-			c.normalize()
-		},
+	cfg := FilterConfig{
+		DebounceMs:  1000,
+		MinChars:    1,
+		Placeholder: "Search...",
+		CommandHint: "compose/images/...",
 	}
-	return loader.Load()
+	cfg.normalize()
+	return cfg
 }
 
 // AutocompleteHint returns the best matching autocomplete suggestion.

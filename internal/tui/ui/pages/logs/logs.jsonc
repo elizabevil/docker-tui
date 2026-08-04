@@ -1,6 +1,0 @@
-{
-  // Log view defaults.
-  "defaultSince": "1h",
-  "defaultTail": "200",
-  "showTimestamps": false
-}

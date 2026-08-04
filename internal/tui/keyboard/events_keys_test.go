@@ -12,7 +12,7 @@ import (
 )
 
 func eventKeyModel() *state.AppModel {
-	m := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	m.Viewport.Height = 40
 	m.EventPanel.AppendItems([]runtimeapi.EventItem{
 		{Event: runtimeapi.Event{ResourceType: "container", Action: "start"}},

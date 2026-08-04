@@ -172,23 +172,23 @@ func Normalize(key string) string {
 
 func configuredBindings(keymap config.KeymapConfig) map[KeyAction][]string {
 	return map[KeyAction][]string{
-		ActionQuit: keymap.Quit, ActionActionBar: keymap.ActionBar, ActionHelp: keymap.Help, ActionFilter: keymap.Filter, ActionRefresh: keymap.Refresh,
-		ActionContainerStart: keymap.ContainerStart, ActionContainerStop: keymap.ContainerStop,
-		ActionContainerRestart: keymap.ContainerRestart, ActionContainerKill: keymap.ContainerKill,
-		ActionContainerRemove: keymap.ContainerRemove, ActionContainerLogs: keymap.ContainerLogs,
-		ActionContainerExec: keymap.ContainerExec, ActionContainerInspect: keymap.ContainerInspect,
-		ActionContainerStats: keymap.ContainerStats, ActionContainerPause: keymap.ContainerPause,
+		ActionQuit: keymap.Global.Quit.Values(), ActionActionBar: keymap.Global.ActionBar.Values(), ActionHelp: keymap.Global.Help.Values(), ActionFilter: keymap.Global.Filter.Values(), ActionRefresh: keymap.Global.Refresh.Values(),
+		ActionContainerStart: keymap.Container.Start.Values(), ActionContainerStop: keymap.Container.Stop.Values(),
+		ActionContainerRestart: keymap.Container.Restart.Values(), ActionContainerKill: keymap.Container.Kill.Values(),
+		ActionContainerRemove: keymap.Container.Remove.Values(), ActionContainerLogs: keymap.Container.Logs.Values(),
+		ActionContainerExec: keymap.Container.Exec.Values(), ActionContainerInspect: keymap.Container.Inspect.Values(),
+		ActionContainerStats: keymap.Container.Stats.Values(), ActionContainerPause: keymap.Container.Pause.Values(),
 		// TASK-019 advanced container actions.
-		ActionContainerUpdate: keymap.ContainerUpdate, ActionContainerDiff: keymap.ContainerDiff,
-		ActionContainerExport: keymap.ContainerExport, ActionContainerCommit: keymap.ContainerCommit,
-		ActionContainerWait: keymap.ContainerWait, ActionContainerCopy: keymap.ContainerCopy,
-		ActionImagePull:   keymap.ImagePull,
-		ActionImageRemove: keymap.ImageRemove, ActionImagePrune: keymap.ImagePrune,
-		ActionImageTag: keymap.ImageTag, ActionImagePush: keymap.ImagePush, ActionImageSave: keymap.ImageSave, ActionImageLoad: keymap.ImageLoad, ActionImageHistory: keymap.ImageHistory,
-		ActionVolumeCreate: keymap.VolumeCreate, ActionVolumePrune: keymap.VolumePrune, ActionVolumeRemove: keymap.VolumeRemove,
-		ActionNetworkCreate: keymap.NetworkCreate, ActionNetworkPrune: keymap.NetworkPrune, ActionNetworkRemove: keymap.NetworkRemove,
-		ActionTabNext: keymap.TabNext, ActionTabPrev: keymap.TabPrev, ActionUp: keymap.Up,
-		ActionDown: keymap.Down, ActionEnter: keymap.Enter, ActionBack: keymap.Back, ActionDelete: keymap.Delete,
+		ActionContainerUpdate: keymap.Container.Update.Values(), ActionContainerDiff: keymap.Container.Diff.Values(),
+		ActionContainerExport: keymap.Container.Export.Values(), ActionContainerCommit: keymap.Container.Commit.Values(),
+		ActionContainerWait: keymap.Container.Wait.Values(), ActionContainerCopy: keymap.Container.Copy.Values(),
+		ActionImagePull:   keymap.Image.Pull.Values(),
+		ActionImageRemove: keymap.Image.Remove.Values(), ActionImagePrune: keymap.Image.Prune.Values(),
+		ActionImageTag: keymap.Image.Tag.Values(), ActionImagePush: keymap.Image.Push.Values(), ActionImageSave: keymap.Image.Save.Values(), ActionImageLoad: keymap.Image.Load.Values(), ActionImageHistory: keymap.Image.History.Values(),
+		ActionVolumeCreate: keymap.Volume.Create.Values(), ActionVolumePrune: keymap.Volume.Prune.Values(), ActionVolumeRemove: keymap.Volume.Remove.Values(),
+		ActionNetworkCreate: keymap.Network.Create.Values(), ActionNetworkPrune: keymap.Network.Prune.Values(), ActionNetworkRemove: keymap.Network.Remove.Values(),
+		ActionTabNext: keymap.Navigation.TabNext.Values(), ActionTabPrev: keymap.Navigation.TabPrev.Values(), ActionUp: keymap.Navigation.Up.Values(),
+		ActionDown: keymap.Navigation.Down.Values(), ActionEnter: keymap.Navigation.Enter.Values(), ActionBack: keymap.Navigation.Back.Values(), ActionDelete: keymap.Navigation.Delete.Values(),
 	}
 }
 

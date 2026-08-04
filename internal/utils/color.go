@@ -94,7 +94,7 @@ func parseFunctionalColor(value string) (color.Color, bool) {
 		return nil, false
 	}
 	channels := [4]uint8{0, 0, 0, 0xff}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		n, err := strconv.Atoi(strings.TrimSpace(parts[i]))
 		if err != nil || n < 0 || n > 255 {
 			return nil, false

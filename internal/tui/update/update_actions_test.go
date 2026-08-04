@@ -14,7 +14,7 @@ import (
 )
 
 func TestContainerActionResultCompletesAuditProjection(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Dependencies.Audit = audit.NewService(nil)
 	trace := app.Dependencies.Audit.Begin("resource.container.start", audit.ContainerTarget{ID: "short", Name: "api"}, audit.RuntimeContext{}, audit.UIContext{}, "Starting api")
 
@@ -29,7 +29,7 @@ func TestContainerActionResultCompletesAuditProjection(t *testing.T) {
 }
 
 func TestContainerActionFailureUsesPersistentErrorRail(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Dependencies.Audit = audit.NewService(nil)
 	trace := app.Dependencies.Audit.Begin("resource.container.start", audit.ContainerTarget{ID: "short", Name: "api"}, audit.RuntimeContext{}, audit.UIContext{}, "Starting api")
 
@@ -50,7 +50,7 @@ func TestContainerActionFailureUsesPersistentErrorRail(t *testing.T) {
 }
 
 func TestContainerDetailLoadedWritesRawJSON(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	title := "Container Detail: api"
 	app.Detail.Open(title, "")
 	app.Navigation.Mode = state.ModeDetail
@@ -70,7 +70,7 @@ func TestContainerDetailLoadedWritesRawJSON(t *testing.T) {
 }
 
 func TestHistoryLoadedIgnoresStaleResponse(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.History.Open("current", "current:latest")
 
 	updated, _ := handleHistoryLoaded(app, state.HistoryLoadedMsg{
@@ -91,7 +91,7 @@ func TestHistoryLoadedIgnoresStaleResponse(t *testing.T) {
 }
 
 func TestContainerWaitDoneIgnoresStaleGeneration(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	_, generation := app.ContainerWait.Begin()
 	updated, _ := handleContainerWaitDone(app, keyboard.ContainerWaitDone{Generation: generation + 1})
 	if !updated.ContainerWait.Current(generation) {
@@ -100,7 +100,7 @@ func TestContainerWaitDoneIgnoresStaleGeneration(t *testing.T) {
 }
 
 func TestContainerWaitCancellationCompletesCurrentGeneration(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Dependencies.Audit = audit.NewService(nil)
 	_, generation := app.ContainerWait.Begin()
 	trace := app.Dependencies.Audit.Begin("resource.container.wait", audit.ContainerTarget{ID: "abc"}, audit.RuntimeContext{}, audit.UIContext{}, "Waiting")
@@ -118,7 +118,7 @@ func TestContainerWaitCancellationCompletesCurrentGeneration(t *testing.T) {
 }
 
 func TestVolumeDetailLoadedShowsErrorPlaceholder(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	title := "Volume Detail: data"
 	app.Detail.Open(title, "")
 	app.Navigation.Mode = state.ModeDetail
@@ -135,7 +135,7 @@ func TestVolumeDetailLoadedShowsErrorPlaceholder(t *testing.T) {
 }
 
 func TestNetworkDetailLoadedWritesRawJSON(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	title := "Network Detail: net0"
 	app.Detail.Open(title, "")
 	app.Navigation.Mode = state.ModeDetail

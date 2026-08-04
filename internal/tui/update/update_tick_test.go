@@ -23,7 +23,7 @@ func TestCursorBlinkTickTogglesAndReschedules(t *testing.T) {
 }
 
 func TestStatsTickKeepsSchedulerAliveOutsideContainers(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), mockengine.New(), "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), mockengine.New(), "test")
 	app.Navigation.ActivePanel = state.PanelImages
 	if _, cmd := handleStatsTick(app, state.StatsTick{}); cmd == nil {
 		t.Fatal("stats scheduler stopped after leaving containers")
@@ -34,7 +34,7 @@ func TestStatsTickKeepsSchedulerAliveOutsideContainers(t *testing.T) {
 }
 
 func TestTopRefreshSchedulesAndRejectsStaleTick(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), mockengine.New(), "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), mockengine.New(), "test")
 	app.Navigation.Mode = state.ModeTop
 	app.Processes.Open("c1", "api")
 	app.Processes.Loading = false
@@ -88,7 +88,7 @@ func TestHandleFilterExitTimeoutIgnoresStaleWindow(t *testing.T) {
 }
 
 func TestHandleDockerConnectedErrorProjectsTargetAndMessage(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	updated, cmd := handleDockerConnected(app, state.DockerConnected{
 		Name:  "local-docker",
 		Error: errors.New("dial unix /var/run/docker.sock: no such file"),
@@ -114,7 +114,7 @@ func TestHandleDockerConnectedErrorProjectsTargetAndMessage(t *testing.T) {
 }
 
 func TestRuntimeHealthTransitionsAtThresholdAndRecovers(t *testing.T) {
-	cfg := config.DefaultConfig()
+	cfg := config.DefaultAppConfig()
 	cfg.Runtime.Health.FailureThreshold = 2
 	app := state.NewAppModel(cfg, nil, "test")
 	app.Connection.Engine = &dockerclient.Client{}
@@ -143,7 +143,7 @@ func TestRuntimeHealthTransitionsAtThresholdAndRecovers(t *testing.T) {
 }
 
 func TestRuntimeHealthIgnoresStaleConnectionResult(t *testing.T) {
-	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Connection.Engine = &dockerclient.Client{}
 	app.Connection.Connected = true
 	app.Connection.ConnectionTarget = "podman"

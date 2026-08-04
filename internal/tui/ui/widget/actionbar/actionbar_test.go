@@ -11,7 +11,7 @@ import (
 )
 
 func TestRenderBarShowsEmptyFilteredState(t *testing.T) {
-	m := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	m.Navigation.ActionBar.Filter = "does-not-exist"
 	if len(actionmodel.VisibleItems(m)) != 0 {
 		t.Fatal("test filter unexpectedly matched an action")

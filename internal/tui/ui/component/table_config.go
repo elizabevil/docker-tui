@@ -1,105 +1,104 @@
 package component
 
 import (
-	_ "embed"
-	"fmt"
-	"os"
-
+	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
-	"github.com/elizabevil/docker-tui/internal/utils"
 )
-
-//go:embed table.jsonc
-var tableDefaultData []byte
 
 // TableStyleConfig 对应 table.jsonc 顶层结构
 type TableStyleConfig struct {
-	Table        TableLayoutConfig   `json:"table"`
-	RowStyles    map[string]styleRef `json:"rowStyles"`
-	StateStyles  map[string]styleRef `json:"stateStyles"`
-	ColumnStyles map[string]styleRef `json:"columnStyles"`
+	Table        config.TableLayoutConfig `json:"table"`
+	RowStyles    RowStyleRefs             `json:"rowStyles"`
+	StateStyles  StateStyleRefs           `json:"stateStyles"`
+	ColumnStyles ColumnStyleRefs          `json:"columnStyles"`
 }
 
-// TableLayoutConfig 表格布局参数
-type TableLayoutConfig struct {
-	ColumnSpacing     int              `json:"columnSpacing"`
-	RowPrefix         string           `json:"rowPrefix"`
-	RowPrefixSelected string           `json:"rowPrefixSelected"`
-	SelectionInfo     SelectionInfoCfg `json:"selectionInfo"`
-	RowSpacing        int              `json:"rowSpacing"` // 行间距（额外空行数）
+type RowStyleRefs struct {
+	Selected styleRef `json:"selected"`
+	Normal   styleRef `json:"normal"`
+	Alt      styleRef `json:"alt"`
+	Marked   styleRef `json:"marked"`
 }
 
-// SelectionInfoCfg 选中项详细信息显示配置
-type SelectionInfoCfg struct {
-	Enabled    bool   `json:"enabled"`
-	PadLines   int    `json:"padLines"`   // 预览与表格之间的空行数，默认 1
-	Color      string `json:"color"`      // palette name or common color format
-	Background string `json:"background"` // palette name or common color format
+type StateStyleRefs struct {
+	Running    styleRef `json:"running"`
+	Stopping   styleRef `json:"stopping"`
+	Stopped    styleRef `json:"stopped"`
+	Exited     styleRef `json:"exited"`
+	Paused     styleRef `json:"paused"`
+	Created    styleRef `json:"created"`
+	Restarting styleRef `json:"restarting"`
+	Dead       styleRef `json:"dead"`
 }
+
+type ColumnStyleRefs struct {
+	ID       styleRef `json:"id"`
+	Name     styleRef `json:"name"`
+	Project  styleRef `json:"project"`
+	Service  styleRef `json:"service"`
+	Registry styleRef `json:"registry"`
+	Tag      styleRef `json:"tag"`
+	Platform styleRef `json:"platform"`
+	State    styleRef `json:"state"`
+	Status   styleRef `json:"status"`
+	Created  styleRef `json:"created"`
+	Time     styleRef `json:"time"`
+	Ports    styleRef `json:"ports"`
+	Subnet   styleRef `json:"subnet"`
+}
+
+type TableLayoutConfig = config.TableLayoutConfig
 
 // ColumnStyle is the resolved visual style for one rendered column.
 type ColumnStyle struct {
 	Style styleRef `json:"style"`
 }
 
-func (c *TableStyleConfig) normalize() {
-	if c.Table.ColumnSpacing <= 0 {
-		c.Table.ColumnSpacing = 2
-	}
-	if c.Table.RowPrefix == "" {
-		c.Table.RowPrefix = "  "
-	}
-	if c.Table.RowPrefixSelected == "" {
-		c.Table.RowPrefixSelected = "▸ "
-	}
-}
-
-// validateColors validates every configured table foreground/background once.
-func (c *TableStyleConfig) validateColors() {
-	validate := func(path string, ref styleRef) {
-		for property, value := range map[string]string{"color": ref.Color, "background": ref.Background} {
-			if value != "" {
-				if _, ok := utils.ParseColor(value); !ok {
-					fmt.Fprintf(os.Stderr, "[dtui] table.jsonc: %s.%s: invalid color %q\n", path, property, value)
-				}
-			}
-		}
-	}
-	validate("table.selectionInfo", styleRef{Color: c.Table.SelectionInfo.Color, Background: c.Table.SelectionInfo.Background})
-	for key, ref := range c.RowStyles {
-		validate("rowStyles."+key, ref)
-	}
-	for key, ref := range c.StateStyles {
-		validate("stateStyles."+key, ref)
-	}
-	for key, ref := range c.ColumnStyles {
-		validate("columnStyles."+key, ref)
-	}
-}
-
 var tableCfg TableStyleConfig
 
 func init() {
-	loader := ConfigLoader[TableStyleConfig]{
-		RawData:  tableDefaultData,
-		Fallback: defaultTableConfig(),
-		Normalize: func(c *TableStyleConfig) {
-			c.normalize()
-		},
-	}
-	tableCfg = loader.Load()
-	tableCfg.validateColors()
+	tableCfg = defaultTableConfig()
 }
 
 func defaultTableConfig() TableStyleConfig {
 	return TableStyleConfig{
-		Table: TableLayoutConfig{
-			ColumnSpacing:     2,
-			RowPrefix:         "  ",
-			RowPrefixSelected: "\u25b8 ",
+		Table: config.DefaultAppConfig().UI.Table,
+		RowStyles: RowStyleRefs{
+			Selected: styleRef{Bold: true},
+			Normal:   styleRef{Color: string(config.ColorTokenOrange)},
+			Alt:      styleRef{Faint: true, Background: string(config.ColorTokenDark)},
+			Marked:   styleRef{Color: string(config.ColorTokenWhite), Background: tableMarkedBackground, Bold: true},
 		},
+		StateStyles: StateStyleRefs{
+			Running: styleRef{Color: string(config.ColorTokenGreen)}, Stopping: styleRef{Color: string(config.ColorTokenYellow)},
+			Stopped: styleRef{Color: string(config.ColorTokenWhite), Faint: true}, Exited: styleRef{Color: string(config.ColorTokenWhite), Faint: true},
+			Paused: styleRef{Color: string(config.ColorTokenYellow)}, Created: styleRef{Color: string(config.ColorTokenBlue)},
+			Restarting: styleRef{Color: string(config.ColorTokenOrange)}, Dead: styleRef{Color: string(config.ColorTokenRed)},
+		},
+		ColumnStyles: defaultColumnStyles(),
 	}
+}
+
+const (
+	tableMarkedBackground = "#463f16"
+	tableColumnForeground = "#ECEFF1"
+	tableNameForeground   = "#FAF0E6"
+)
+
+func defaultColumnStyles() ColumnStyleRefs {
+	standard := styleRef{Color: tableColumnForeground}
+	dimmed := styleRef{Color: tableColumnForeground, Faint: true}
+	bold := styleRef{Color: tableColumnForeground, Bold: true}
+	return ColumnStyleRefs{
+		ID: dimmed, Name: styleRef{Color: tableNameForeground, Bold: true}, Project: bold, Service: bold,
+		Registry: dimmed, Tag: styleRef{Color: string(config.ColorTokenCyan)}, Platform: dimmed,
+		State: standard, Status: standard, Created: dimmed, Time: dimmed, Ports: standard, Subnet: standard,
+	}
+}
+
+func ApplyTableLayout(layout config.TableLayoutConfig) {
+	tableCfg.Table = layout
 }
 
 // GetTableLayout 返回表格布局参数（间距、前缀）
@@ -132,41 +131,80 @@ func RowSpacing() int {
 
 // GetRowStyle 返回行状态样式（selected / normal / alt / marked）
 func GetRowStyle(name string) styleRef {
-	if s, ok := tableCfg.RowStyles[name]; ok {
-		return s
+	switch name {
+	case "selected":
+		return tableCfg.RowStyles.Selected
+	case "normal":
+		return tableCfg.RowStyles.Normal
+	case "alt":
+		return tableCfg.RowStyles.Alt
+	case "marked":
+		return tableCfg.RowStyles.Marked
 	}
 	return styleRef{}
 }
 
 // GetStateStyle 返回容器状态颜色（running / exited / paused …）
 func GetStateStyle(containerState string) styleRef {
-	if s, ok := tableCfg.StateStyles[containerState]; ok {
-		return s
-	}
-	// 兼容旧版命名（stateRunning → running）
 	switch containerState {
 	case state.ContainerStateRunning:
-		return tableCfg.StateStyles["running"]
-	case state.ContainerStateStopped, state.ContainerStateExited, state.ContainerStateDead:
-		return tableCfg.StateStyles["stopped"]
+		return tableCfg.StateStyles.Running
+	case "stopping":
+		return tableCfg.StateStyles.Stopping
+	case state.ContainerStateStopped:
+		return tableCfg.StateStyles.Stopped
+	case state.ContainerStateExited:
+		return tableCfg.StateStyles.Exited
 	case state.ContainerStatePaused:
-		return tableCfg.StateStyles["paused"]
+		return tableCfg.StateStyles.Paused
 	case state.ContainerStateCreated:
-		return tableCfg.StateStyles["created"]
+		return tableCfg.StateStyles.Created
 	case state.ContainerStateRestarting:
-		return tableCfg.StateStyles["restarting"]
+		return tableCfg.StateStyles.Restarting
+	case state.ContainerStateDead:
+		return tableCfg.StateStyles.Dead
 	}
 	return styleRef{}
 }
 
 // GetColumnStyles resolves semantic column styles by column key.
 func GetColumnStyles(colsDef []tables.ColumnDef) []ColumnStyle {
-	if len(tableCfg.ColumnStyles) == 0 {
-		return nil
-	}
 	styles := make([]ColumnStyle, len(colsDef))
 	for i, cd := range colsDef {
-		styles[i] = ColumnStyle{Style: tableCfg.ColumnStyles[cd.Key]}
+		styles[i] = ColumnStyle{Style: tableCfg.ColumnStyles.lookup(cd.Key)}
 	}
 	return styles
+}
+
+func (s ColumnStyleRefs) lookup(key string) styleRef {
+	switch key {
+	case "id":
+		return s.ID
+	case "name":
+		return s.Name
+	case "project":
+		return s.Project
+	case "service":
+		return s.Service
+	case "registry":
+		return s.Registry
+	case "tag":
+		return s.Tag
+	case "platform":
+		return s.Platform
+	case "state":
+		return s.State
+	case "status":
+		return s.Status
+	case "created":
+		return s.Created
+	case "time":
+		return s.Time
+	case "ports":
+		return s.Ports
+	case "subnet":
+		return s.Subnet
+	default:
+		return styleRef{}
+	}
 }

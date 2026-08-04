@@ -1,5 +1,0 @@
-{
-  // Dialog overlay defaults.
-  // overlayColor: hex with optional alpha (#RRGGBB or #RRGGBBAA).
-  "overlayColor": "#0d1117cc"
-}

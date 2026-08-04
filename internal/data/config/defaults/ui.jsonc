@@ -1,0 +1,43 @@
+{
+  "ui": {
+    "wrapMainPanel": false,
+    "returnImmediately": false,
+    "showHelp": true,
+    "hintTimeout": 3,
+    "enableMouse": true,
+    "dialog": {
+      "width": { "percent": 25, "min": 40, "max": 80 },
+      "height": { "percent": 30, "min": 10, "max": 40 },
+      "position": {
+        "horizontal": "center",
+        "vertical": "center",
+        "offsetX": 0,
+        "offsetY": 0
+      }
+    },
+    "window": {
+      "marginTopPercent": 2,
+      "marginBottomPercent": 2,
+      "contentWidthPercent": 99
+    },
+    "header": {
+      "columns": {
+        "host": 3,
+        "connection": 5,
+        "keystroke": 7,
+        "logo": 3
+      },
+      "keystrokeContentRatio": 80
+    },
+    "table": {
+      "columnSpacing": 2,
+      "rowPrefix": "  ",
+      "rowPrefixSelected": "┃ ",
+      "rowSpacing": 0,
+      "selectionInfo": {
+        "enabled": true,
+        "padLines": 1
+      }
+    }
+  }
+}

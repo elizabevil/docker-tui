@@ -15,7 +15,7 @@ import (
 // component (FlexLayout-driven).
 func RenderView(ev *state.EventsPanelState, panelHeight, panelWidth int) string {
 	tc := tables.MustLoad("events")
-	cols := tc.Columns["default"]
+	cols := tc.Columns.Get("default")
 	if panelWidth < 30 {
 		panelWidth = 30
 	}

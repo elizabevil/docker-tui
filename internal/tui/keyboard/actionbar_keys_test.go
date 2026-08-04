@@ -13,7 +13,7 @@ import (
 )
 
 func TestQIsUnassignedAndCtrlCStillQuits(t *testing.T) {
-	m := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	updated, cmd := HandleKeyPress(keyMessage("q"), m)
 	if cmd != nil || updated.Feedback.ToastMessage != "" || updated.Navigation.Mode != state.ModeNormal {
 		t.Fatalf("q should be a silent no-op: toast=%q mode=%v cmd=%v", updated.Feedback.ToastMessage, updated.Navigation.Mode, cmd)
@@ -28,7 +28,7 @@ func TestQIsUnassignedAndCtrlCStillQuits(t *testing.T) {
 }
 
 func TestActionBarOpenFilterAndClose(t *testing.T) {
-	m := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	updated, _ := HandleKeyPress(keyMessage(";"), m)
 	if updated.Navigation.Mode != state.ModeActionBar || !updated.Navigation.ActionBar.Visible {
 		t.Fatalf("action bar did not open: mode=%v state=%#v", updated.Navigation.Mode, updated.Navigation.ActionBar)
@@ -50,7 +50,7 @@ func TestActionBarOpenFilterAndClose(t *testing.T) {
 }
 
 func TestActionBarDoesNotExecuteDisabledItems(t *testing.T) {
-	m := state.NewAppModel(config.DefaultConfig(), nil, "test")
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	m.Navigation.ActivePanel = state.PanelContainers
 	doActionBar(m)
 	updated, cmd := handleActionBarKeys("enter", m)
@@ -60,7 +60,7 @@ func TestActionBarDoesNotExecuteDisabledItems(t *testing.T) {
 }
 
 func TestActionBarRenameOpensExistingDialog(t *testing.T) {
-	m := state.NewAppModel(config.DefaultConfig(), &dockerclient.Client{}, "test")
+	m := state.NewAppModel(config.DefaultAppConfig(), &dockerclient.Client{}, "test")
 	m.Resources.Containers.Items = []runtimeapi.ContainerSummary{{ID: "one", Name: "api", State: state.ContainerStateRunning}}
 	doActionBar(m)
 	items := actionbar.VisibleItems(m)

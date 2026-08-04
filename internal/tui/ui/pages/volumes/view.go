@@ -1,7 +1,6 @@
 package volumes
 
 import (
-	_ "embed"
 	"fmt"
 
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
@@ -11,32 +10,6 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
-
-//go:embed volumes.jsonc
-var volumesDefaultData []byte
-
-// volumesConfig maps the JSONC structure for volumes panel defaults.
-type volumesConfig struct {
-	DefaultSort string `json:"defaultSort"`
-}
-
-func (c *volumesConfig) normalize() {
-	if c.DefaultSort == "" {
-		c.DefaultSort = "name"
-	}
-}
-
-// DefaultVolumesConfig returns default values parsed from the embedded volumes.jsonc.
-func DefaultVolumesConfig() volumesConfig {
-	loader := component.ConfigLoader[volumesConfig]{
-		RawData:  volumesDefaultData,
-		Fallback: volumesConfig{DefaultSort: "name"},
-		Normalize: func(c *volumesConfig) {
-			c.normalize()
-		},
-	}
-	return loader.Load()
-}
 
 var tc = tables.MustLoad("volumes")
 
@@ -60,7 +33,7 @@ func RenderList(vm *state.VolumeListModel, cm *state.ContainerListModel, width i
 	}
 
 	profile := profileSelector.Select(w)
-	colsDef := tc.Columns[profile]
+	colsDef := tc.Columns.Get(profile)
 	if len(colsDef) == 0 {
 		return i18n.T("msg.loading")
 	}
@@ -133,7 +106,7 @@ func RenderList(vm *state.VolumeListModel, cm *state.ContainerListModel, width i
 
 func renderContainers(cm *state.ContainerListModel, width int, volName string, panelHeight int) string {
 	w := width
-	colsDef := tc.Columns["containers_sub"]
+	colsDef := tc.Columns.Get("containers_sub")
 	if len(colsDef) == 0 {
 		return i18n.T("msg.loading")
 	}

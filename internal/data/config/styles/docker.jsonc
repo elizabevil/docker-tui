@@ -1,8 +1,0 @@
-{
-  // BR-043 §3.4 — docker section
-  "docker": {
-    "timeout": 30000000000,
-    "statsPollSec": 3
-    // 30s in nanoseconds (time.Duration)
-  }
-}

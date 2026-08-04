@@ -15,25 +15,26 @@ var (
 )
 
 func ApplyTheme(theme *config.Theme) {
-	c := theme.Colors
-	style.Colors.Green = style.Color(c.Green)
-	style.Colors.Cyan = style.Color(c.Cyan)
-	style.Colors.Blue = style.Color(c.Blue)
-	style.Colors.Red = style.Color(c.Red)
-	style.Colors.Yellow = style.Color(c.Yellow)
-	style.Colors.Orange = style.Color(c.Orange)
-	style.Colors.Purple = style.Color(c.Purple)
-	style.Colors.White = style.Color(c.White)
-	style.Colors.Gray = style.Color(c.Gray)
-	style.Colors.Dark = style.Color(c.Dark)
-	style.Colors.Surface = style.Color(c.Surface)
-	style.Colors.BG = style.Color(c.Background)
+	c := theme.Palette
+	style.Colors.Green = style.Color(string(c.Green))
+	style.Colors.Cyan = style.Color(string(c.Cyan))
+	style.Colors.Blue = style.Color(string(c.Blue))
+	style.Colors.Red = style.Color(string(c.Red))
+	style.Colors.Yellow = style.Color(string(c.Yellow))
+	style.Colors.Orange = style.Color(string(c.Orange))
+	style.Colors.Purple = style.Color(string(c.Purple))
+	style.Colors.White = style.Color(string(c.White))
+	style.Colors.Gray = style.Color(string(c.Gray))
+	style.Colors.Dark = style.Color(string(c.Dark))
+	style.Colors.Surface = style.Color(string(c.Surface))
+	style.Colors.BG = style.Color(string(c.Background))
 	style.SyncPalette()
+	component.ApplyThemeStyles(theme)
 
-	br := component.ResolveBorder(theme.Border.Style)
-	ActiveBorderStyle = lipgloss.NewStyle().Border(br).Foreground(style.Color(theme.Main.BorderActive)).Padding(0)
-	InactiveBorderStyle = lipgloss.NewStyle().Foreground(style.Color(theme.Main.BorderInactive)).Padding(0)
-	FocusedBorderStyle = lipgloss.NewStyle().Border(br).Foreground(style.Color(theme.Border.Focused)).Padding(0)
+	br := component.ResolveBorder(theme.Border.Kind)
+	ActiveBorderStyle = lipgloss.NewStyle().Border(br).Foreground(style.Color(theme.ResolveColor(theme.Main.BorderActive))).Padding(0)
+	InactiveBorderStyle = lipgloss.NewStyle().Foreground(style.Color(theme.ResolveColor(theme.Main.BorderInactive))).Padding(0)
+	FocusedBorderStyle = lipgloss.NewStyle().Border(br).Foreground(style.Color(theme.ResolveColor(theme.Border.Focused))).Padding(0)
 }
 
 // ApplyLayoutConfig clears border backgrounds when image/fallthrough backgrounds
@@ -48,9 +49,16 @@ func ApplyLayoutConfig(layout *config.LayoutConfig) {
 		return
 	}
 
-	if bg.Fallthrough || (bg.Type == "image" && bg.Image.Src != "") {
+	if bg.Fallthrough || (bg.Type == config.BackgroundImageType && bg.Image.Src != "") {
 		ActiveBorderStyle = ActiveBorderStyle.Background(lipgloss.NoColor{})
 	}
+}
+
+func ApplyUIConfig(ui *config.UIConfig) {
+	if ui == nil {
+		return
+	}
+	component.ApplyTableLayout(ui.Table)
 }
 
 func init() {

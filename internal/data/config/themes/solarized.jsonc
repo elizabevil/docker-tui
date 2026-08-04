@@ -1,64 +1,12 @@
 {
-  "name": "Solarized",
-  "description": "Solarized Rider-inspired theme",
-  "colors": {
-    "green": "#859900",
-    "cyan": "#2aa198",
-    "blue": "#268bd2",
-    "red": "#dc322f",
-    "yellow": "#b58900",
-    "orange": "#cb4b16",
-    "purple": "#6c71c4",
-    "white": "#93a1a1",
-    "gray": "#657b83",
-    "dark": "#073642",
-    "surface": "#073642",
-    "background": "#002b36"
-  },
-  "border": {
-    "active": "cyan",
-    "inactive": "gray",
-    "focused": "blue",
-    "style": "rounded"
-  },
-  "header": {
-    "bar_bg": "#073642",
-    "label": "#657b83",
-    "value": "#93a1a1",
-    "logo": "#268bd2"
-  },
-  "main": {
-    "border_active": "cyan",
-    "border_inactive": "gray",
-    "title": "cyan",
-    "header_fg": "blue",
-    "row_selected": "blue",
-    "footer": "gray"
-  },
-  "footer": {
-    "status_bar_bg": "#073642",
-    "shortcuts_bar_bg": "#002b36",
-    "key": "white",
-    "desc": "gray",
-    "separator": "gray"
-  },
-  "dialog": {
-    "border": "red",
-    "title": "red",
-    "body": "white",
-    "overlay": "#002b36"
-  },
-  "toast": {
-    "success": "green",
-    "error": "red",
-    "bg": "#073642"
-  },
-  "text": {
-    "info": "cyan",
-    "error": "red",
-    "success": "green",
-    "warning": "yellow",
-    "help_key": "cyan",
-    "help_desc": "white"
+  "meta": { "name": "Solarized", "description": "Solarized Rider-inspired theme" },
+  "theme": {
+    "palette": {
+      "green": "#859900", "cyan": "#2aa198", "blue": "#268bd2",
+      "red": "#dc322f", "yellow": "#b58900", "orange": "#cb4b16",
+      "purple": "#6c71c4", "white": "#93a1a1", "gray": "#657b83",
+      "dark": "#073642", "surface": "#073642", "background": "#002b36"
+    },
+    "border": { "focused": { "token": "blue" } }
   }
 }

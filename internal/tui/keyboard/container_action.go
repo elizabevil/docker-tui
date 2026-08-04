@@ -91,7 +91,7 @@ func executeBatchAction(m *state.AppModel, action string, trace audit.Trace) (*s
 	engine := m.Connection.Engine
 	return m, func() tea.Msg {
 		result := state.BatchActioned{
-			Scope:    "container.batch." + action,
+			Scope:    ContainerBatchScope("container.batch", action, nil),
 			Resource: state.ResourceContainer,
 			Total:    len(ids),
 			Audit:    trace,
