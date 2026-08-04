@@ -31,7 +31,7 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg dialogConfig, bodyW,
 		dialogH = dialogHeight(m.Viewport.Height, cfg)
 	}
 	if overlayColor == "" {
-		overlayColor = "#0d1117cc"
+		overlayColor = OverlayColor(nil)
 	}
 
 	enterKey := i18n.T("key.sym_enter")

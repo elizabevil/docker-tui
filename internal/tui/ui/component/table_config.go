@@ -68,7 +68,7 @@ func defaultTableConfig() TableStyleConfig {
 			Selected: styleRef{Bold: true},
 			Normal:   styleRef{Color: string(config.ColorTokenOrange)},
 			Alt:      styleRef{Faint: true, Background: string(config.ColorTokenDark)},
-			Marked:   styleRef{Color: string(config.ColorTokenWhite), Background: tableMarkedBackground, Bold: true},
+			Marked:   styleRef{Color: string(config.FallbackColorTableNameForeground), Background: string(config.FallbackColorTableMarkedBackground), Bold: true},
 		},
 		StateStyles: StateStyleRefs{
 			Running: styleRef{Color: string(config.ColorTokenGreen)}, Stopping: styleRef{Color: string(config.ColorTokenYellow)},
@@ -76,22 +76,16 @@ func defaultTableConfig() TableStyleConfig {
 			Paused: styleRef{Color: string(config.ColorTokenYellow)}, Created: styleRef{Color: string(config.ColorTokenBlue)},
 			Restarting: styleRef{Color: string(config.ColorTokenOrange)}, Dead: styleRef{Color: string(config.ColorTokenRed)},
 		},
-		ColumnStyles: defaultColumnStyles(),
+		ColumnStyles: defaultColumnStyles(string(config.FallbackColorTableColumnForeground), string(config.FallbackColorTableNameForeground)),
 	}
 }
 
-const (
-	tableMarkedBackground = "#463f16"
-	tableColumnForeground = "#ECEFF1"
-	tableNameForeground   = "#FAF0E6"
-)
-
-func defaultColumnStyles() ColumnStyleRefs {
-	standard := styleRef{Color: tableColumnForeground}
-	dimmed := styleRef{Color: tableColumnForeground, Faint: true}
-	bold := styleRef{Color: tableColumnForeground, Bold: true}
+func defaultColumnStyles(columnForeground, nameForeground string) ColumnStyleRefs {
+	standard := styleRef{Color: columnForeground}
+	dimmed := styleRef{Color: columnForeground, Faint: true}
+	bold := styleRef{Color: columnForeground, Bold: true}
 	return ColumnStyleRefs{
-		ID: dimmed, Name: styleRef{Color: tableNameForeground, Bold: true}, Project: bold, Service: bold,
+		ID: dimmed, Name: styleRef{Color: nameForeground, Bold: true}, Project: bold, Service: bold,
 		Registry: dimmed, Tag: styleRef{Color: string(config.ColorTokenCyan)}, Platform: dimmed,
 		State: standard, Status: standard, Created: dimmed, Time: dimmed, Ports: standard, Subnet: standard,
 	}
@@ -149,7 +143,7 @@ func GetStateStyle(containerState string) styleRef {
 	switch containerState {
 	case state.ContainerStateRunning:
 		return tableCfg.StateStyles.Running
-	case "stopping":
+	case state.ContainerStateStopping:
 		return tableCfg.StateStyles.Stopping
 	case state.ContainerStateStopped:
 		return tableCfg.StateStyles.Stopped

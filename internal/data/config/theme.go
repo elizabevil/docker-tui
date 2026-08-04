@@ -109,16 +109,32 @@ type TextStyles struct {
 	HelpDescription ColorRef `json:"helpDescription" yaml:"helpDescription"`
 }
 
+type TableStyles struct {
+	MarkedBackground ColorRef `json:"markedBackground" yaml:"markedBackground"`
+	ColumnForeground ColorRef `json:"columnForeground" yaml:"columnForeground"`
+	NameForeground   ColorRef `json:"nameForeground" yaml:"nameForeground"`
+}
+
+type SafeFallbackStyles struct {
+	Normal ColorRef `json:"normal" yaml:"normal"`
+	Bold   ColorRef `json:"bold" yaml:"bold"`
+	Dim    ColorRef `json:"dim" yaml:"dim"`
+	Accent ColorRef `json:"accent" yaml:"accent"`
+	Error  ColorRef `json:"error" yaml:"error"`
+}
+
 // Theme is a complete visual configuration with fixed component scopes.
 type Theme struct {
-	Palette Palette      `json:"palette" yaml:"palette"`
-	Border  BorderStyles `json:"border" yaml:"border"`
-	Header  HeaderStyles `json:"header" yaml:"header"`
-	Main    MainStyles   `json:"main" yaml:"main"`
-	Footer  FooterStyles `json:"footer" yaml:"footer"`
-	Dialog  DialogStyles `json:"dialog" yaml:"dialog"`
-	Toast   ToastStyles  `json:"toast" yaml:"toast"`
-	Text    TextStyles   `json:"text" yaml:"text"`
+	Palette      Palette            `json:"palette" yaml:"palette"`
+	Border       BorderStyles       `json:"border" yaml:"border"`
+	Header       HeaderStyles       `json:"header" yaml:"header"`
+	Main         MainStyles         `json:"main" yaml:"main"`
+	Footer       FooterStyles       `json:"footer" yaml:"footer"`
+	Dialog       DialogStyles       `json:"dialog" yaml:"dialog"`
+	Toast        ToastStyles        `json:"toast" yaml:"toast"`
+	Text         TextStyles         `json:"text" yaml:"text"`
+	Table        TableStyles        `json:"table" yaml:"table"`
+	SafeFallback SafeFallbackStyles `json:"safeFallback" yaml:"safeFallback"`
 }
 
 type ThemeMetadata struct {
@@ -198,27 +214,45 @@ type TextStylesPatch struct {
 	HelpDescription *ColorRef `json:"helpDescription,omitempty" yaml:"helpDescription,omitempty"`
 }
 
+type TableStylesPatch struct {
+	MarkedBackground *ColorRef `json:"markedBackground,omitempty" yaml:"markedBackground,omitempty"`
+	ColumnForeground *ColorRef `json:"columnForeground,omitempty" yaml:"columnForeground,omitempty"`
+	NameForeground   *ColorRef `json:"nameForeground,omitempty" yaml:"nameForeground,omitempty"`
+}
+
+type SafeFallbackStylesPatch struct {
+	Normal *ColorRef `json:"normal,omitempty" yaml:"normal,omitempty"`
+	Bold   *ColorRef `json:"bold,omitempty" yaml:"bold,omitempty"`
+	Dim    *ColorRef `json:"dim,omitempty" yaml:"dim,omitempty"`
+	Accent *ColorRef `json:"accent,omitempty" yaml:"accent,omitempty"`
+	Error  *ColorRef `json:"error,omitempty" yaml:"error,omitempty"`
+}
+
 type ThemePatch struct {
-	Palette *PalettePatch      `json:"palette,omitempty" yaml:"palette,omitempty"`
-	Border  *BorderStylesPatch `json:"border,omitempty" yaml:"border,omitempty"`
-	Header  *HeaderStylesPatch `json:"header,omitempty" yaml:"header,omitempty"`
-	Main    *MainStylesPatch   `json:"main,omitempty" yaml:"main,omitempty"`
-	Footer  *FooterStylesPatch `json:"footer,omitempty" yaml:"footer,omitempty"`
-	Dialog  *DialogStylesPatch `json:"dialog,omitempty" yaml:"dialog,omitempty"`
-	Toast   *ToastStylesPatch  `json:"toast,omitempty" yaml:"toast,omitempty"`
-	Text    *TextStylesPatch   `json:"text,omitempty" yaml:"text,omitempty"`
+	Palette      *PalettePatch            `json:"palette,omitempty" yaml:"palette,omitempty"`
+	Border       *BorderStylesPatch       `json:"border,omitempty" yaml:"border,omitempty"`
+	Header       *HeaderStylesPatch       `json:"header,omitempty" yaml:"header,omitempty"`
+	Main         *MainStylesPatch         `json:"main,omitempty" yaml:"main,omitempty"`
+	Footer       *FooterStylesPatch       `json:"footer,omitempty" yaml:"footer,omitempty"`
+	Dialog       *DialogStylesPatch       `json:"dialog,omitempty" yaml:"dialog,omitempty"`
+	Toast        *ToastStylesPatch        `json:"toast,omitempty" yaml:"toast,omitempty"`
+	Text         *TextStylesPatch         `json:"text,omitempty" yaml:"text,omitempty"`
+	Table        *TableStylesPatch        `json:"table,omitempty" yaml:"table,omitempty"`
+	SafeFallback *SafeFallbackStylesPatch `json:"safeFallback,omitempty" yaml:"safeFallback,omitempty"`
 }
 
 func DefaultTheme() *Theme {
 	return &Theme{
-		Palette: Palette{Green: FallbackColorGreen, Cyan: FallbackColorCyan, Blue: FallbackColorBlue, Red: FallbackColorRed, Yellow: FallbackColorYellow, Orange: FallbackColorOrange, Purple: FallbackColorPurple, White: FallbackColorWhite, Gray: FallbackColorGray, Dark: FallbackColorDark, Surface: FallbackColorSurface, Background: FallbackColorBackground},
-		Border:  BorderStyles{Active: TokenRef(ColorTokenCyan), Inactive: TokenRef(ColorTokenGray), Focused: TokenRef(ColorTokenGreen), Kind: BorderRounded},
-		Header:  HeaderStyles{Background: TokenRef(ColorTokenDark), Label: TokenRef(ColorTokenGray), Value: TokenRef(ColorTokenWhite), Logo: TokenRef(ColorTokenCyan)},
-		Main:    MainStyles{BorderActive: TokenRef(ColorTokenCyan), BorderInactive: TokenRef(ColorTokenGray), Title: TokenRef(ColorTokenCyan), TableHeader: TokenRef(ColorTokenBlue), RowSelected: TokenRef(ColorTokenBlue), RowText: TokenRef(ColorTokenWhite), Footer: TokenRef(ColorTokenGray)},
-		Footer:  FooterStyles{StatusBackground: TokenRef(ColorTokenSurface), ShortcutBackground: TokenRef(ColorTokenDark), Key: TokenRef(ColorTokenWhite), Description: TokenRef(ColorTokenGray), Separator: TokenRef(ColorTokenSurface)},
-		Dialog:  DialogStyles{Border: TokenRef(ColorTokenRed), Title: TokenRef(ColorTokenRed), Body: TokenRef(ColorTokenWhite), OptionActive: TokenRef(ColorTokenCyan), OptionInactive: TokenRef(ColorTokenGray), Overlay: TokenRef(ColorTokenBackground), OverlayOpacity: 80},
-		Toast:   ToastStyles{Success: TokenRef(ColorTokenGreen), Error: TokenRef(ColorTokenRed), Background: TokenRef(ColorTokenDark)},
-		Text:    TextStyles{Info: TokenRef(ColorTokenCyan), Error: TokenRef(ColorTokenRed), Success: TokenRef(ColorTokenGreen), Warning: TokenRef(ColorTokenYellow), Dim: TokenRef(ColorTokenGray), HelpKey: TokenRef(ColorTokenCyan), HelpDescription: TokenRef(ColorTokenWhite)},
+		Palette:      Palette{Green: FallbackColorGreen, Cyan: FallbackColorCyan, Blue: FallbackColorBlue, Red: FallbackColorRed, Yellow: FallbackColorYellow, Orange: FallbackColorOrange, Purple: FallbackColorPurple, White: FallbackColorWhite, Gray: FallbackColorGray, Dark: FallbackColorDark, Surface: FallbackColorSurface, Background: FallbackColorBackground},
+		Border:       BorderStyles{Active: TokenRef(ColorTokenCyan), Inactive: TokenRef(ColorTokenGray), Focused: TokenRef(ColorTokenGreen), Kind: BorderRounded},
+		Header:       HeaderStyles{Background: TokenRef(ColorTokenDark), Label: TokenRef(ColorTokenGray), Value: TokenRef(ColorTokenWhite), Logo: TokenRef(ColorTokenCyan)},
+		Main:         MainStyles{BorderActive: TokenRef(ColorTokenCyan), BorderInactive: TokenRef(ColorTokenGray), Title: TokenRef(ColorTokenCyan), TableHeader: TokenRef(ColorTokenBlue), RowSelected: TokenRef(ColorTokenBlue), RowText: TokenRef(ColorTokenWhite), Footer: TokenRef(ColorTokenGray)},
+		Footer:       FooterStyles{StatusBackground: TokenRef(ColorTokenSurface), ShortcutBackground: TokenRef(ColorTokenDark), Key: TokenRef(ColorTokenWhite), Description: TokenRef(ColorTokenGray), Separator: TokenRef(ColorTokenSurface)},
+		Dialog:       DialogStyles{Border: TokenRef(ColorTokenRed), Title: TokenRef(ColorTokenRed), Body: TokenRef(ColorTokenWhite), OptionActive: TokenRef(ColorTokenCyan), OptionInactive: TokenRef(ColorTokenGray), Overlay: TokenRef(ColorTokenBackground), OverlayOpacity: 80},
+		Toast:        ToastStyles{Success: TokenRef(ColorTokenGreen), Error: TokenRef(ColorTokenRed), Background: TokenRef(ColorTokenDark)},
+		Text:         TextStyles{Info: TokenRef(ColorTokenCyan), Error: TokenRef(ColorTokenRed), Success: TokenRef(ColorTokenGreen), Warning: TokenRef(ColorTokenYellow), Dim: TokenRef(ColorTokenGray), HelpKey: TokenRef(ColorTokenCyan), HelpDescription: TokenRef(ColorTokenWhite)},
+		Table:        TableStyles{MarkedBackground: ValueRef(FallbackColorTableMarkedBackground), ColumnForeground: ValueRef(FallbackColorTableColumnForeground), NameForeground: ValueRef(FallbackColorTableNameForeground)},
+		SafeFallback: SafeFallbackStyles{Normal: TokenRef(ColorTokenWhite), Bold: TokenRef(ColorTokenWhite), Dim: TokenRef(ColorTokenGray), Accent: TokenRef(ColorTokenCyan), Error: TokenRef(ColorTokenRed)},
 	}
 }
 
@@ -324,6 +358,18 @@ func (p ThemePatch) Apply(target *Theme) {
 		assign(&target.Text.Dim, p.Text.Dim)
 		assign(&target.Text.HelpKey, p.Text.HelpKey)
 		assign(&target.Text.HelpDescription, p.Text.HelpDescription)
+	}
+	if p.Table != nil {
+		assign(&target.Table.MarkedBackground, p.Table.MarkedBackground)
+		assign(&target.Table.ColumnForeground, p.Table.ColumnForeground)
+		assign(&target.Table.NameForeground, p.Table.NameForeground)
+	}
+	if p.SafeFallback != nil {
+		assign(&target.SafeFallback.Normal, p.SafeFallback.Normal)
+		assign(&target.SafeFallback.Bold, p.SafeFallback.Bold)
+		assign(&target.SafeFallback.Dim, p.SafeFallback.Dim)
+		assign(&target.SafeFallback.Accent, p.SafeFallback.Accent)
+		assign(&target.SafeFallback.Error, p.SafeFallback.Error)
 	}
 }
 

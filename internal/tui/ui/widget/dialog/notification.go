@@ -9,7 +9,7 @@ import (
 // NotificationDialog renders a simple informational dialog with a dismiss hint.
 func NotificationDialog(title, body string, termW, termH int, overlayColor string, cfg dialogConfig) string {
 	if overlayColor == "" {
-		overlayColor = "#0d1117cc"
+		overlayColor = OverlayColor(nil)
 	}
 	dialogW := dialogWidth(termW, cfg)
 	dialogH := dialogHeight(termH, cfg)

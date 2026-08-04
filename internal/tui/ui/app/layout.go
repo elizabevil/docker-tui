@@ -140,7 +140,11 @@ func RenderApp(m *state.AppModel) string {
 						op = 100
 					}
 					if op < 100 {
-						c = blendColors("#0d1117", c, op)
+						baseBg := config.FallbackColorBackground
+						if m.Dependencies.Theme != nil {
+							baseBg = m.Dependencies.Theme.Palette.Background
+						}
+						c = blendColors(string(baseBg), c, op)
 					}
 					globalColors[i] = c
 				}

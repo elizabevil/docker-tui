@@ -51,7 +51,7 @@ func FormDialog(m *state.AppModel, overlayColor string, cfg dialogConfig, bodyW,
 		dialogH = maxH
 	}
 	if overlayColor == "" {
-		overlayColor = "#0d1117cc"
+		overlayColor = OverlayColor(nil)
 	}
 	innerWidth := formInnerWidth(dialogW)
 

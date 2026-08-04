@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
 )
 
@@ -43,8 +44,8 @@ func TestTableConfigOwnsSharedLayoutAndSemanticColumnStyles(t *testing.T) {
 	if !styles[0].Style.Bold {
 		t.Fatal("semantic name style is not bold")
 	}
-	if styles[0].Style.Color != "#FAF0E6" {
-		t.Fatalf("semantic name color = %q, want #FAF0E6", styles[0].Style.Color)
+	if styles[0].Style.Color != string(config.FallbackColorTableNameForeground) {
+		t.Fatalf("semantic name color = %q, want %q", styles[0].Style.Color, config.FallbackColorTableNameForeground)
 	}
 	if ansi := cellStyleANSI("name", styles[0].Style); !strings.Contains(ansi, "\x1b[38;2;250;240;230m") {
 		t.Fatalf("hex column color was not converted to truecolor ANSI: %q", ansi)

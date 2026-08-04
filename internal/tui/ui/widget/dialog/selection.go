@@ -23,7 +23,7 @@ func SelectionDialog(title, body, preview, action string, focus int, termW, term
 		titleColor = style.Colors.Cyan
 	}
 	if overlayColor == "" {
-		overlayColor = "#0d1117cc"
+		overlayColor = OverlayColor(nil)
 	}
 	var dialogW, dialogH int
 	if bodyW > 0 && bodyH > 0 {

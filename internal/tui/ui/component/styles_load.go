@@ -131,9 +131,21 @@ func ApplyThemeStyles(theme *config.Theme) {
 	tableCfg.RowStyles.Selected.Color = resolve(theme.Main.RowText)
 	tableCfg.RowStyles.Selected.Background = resolve(theme.Main.RowSelected)
 	tableCfg.RowStyles.Selected.Bold = true
+
+	ApplyTableTheme(theme)
+	ApplySafeFallback(theme)
 }
 
-// SafeFallbackStyles 定义 5 个安全兜底样式，确保 GetStyle 永不返回空值。
+func ApplyTableTheme(theme *config.Theme) {
+	if theme == nil {
+		return
+	}
+	resolve := theme.ResolveColor
+	tableCfg.RowStyles.Marked.Background = resolve(theme.Table.MarkedBackground)
+	tableCfg.RowStyles.Marked.Color = resolve(theme.Table.NameForeground)
+	tableCfg.ColumnStyles = defaultColumnStyles(resolve(theme.Table.ColumnForeground), resolve(theme.Table.NameForeground))
+}
+
 type SafeFallbackStyles struct {
 	Normal lipgloss.Style
 	Bold   lipgloss.Style
@@ -142,17 +154,21 @@ type SafeFallbackStyles struct {
 	Error  lipgloss.Style
 }
 
-// SafeFallback 提供 5 个内置安全默认样式，作为 getStyleChain 的最后兜底。
-// 灵感来自 Compose 的 staticCompositionLocalOf { default } 模式。
-var SafeFallback = SafeFallbackStyles{
-	Normal: lipgloss.NewStyle().Foreground(lipgloss.Color("#c9d1d9")),
-	Bold:   lipgloss.NewStyle().Foreground(lipgloss.Color("#c9d1d9")).Bold(true),
-	Dim:    lipgloss.NewStyle().Foreground(lipgloss.Color("#5a6270")).Faint(true),
-	Accent: lipgloss.NewStyle().Foreground(lipgloss.Color("#56b4c2")),
-	Error:  lipgloss.NewStyle().Foreground(lipgloss.Color("#db5a5a")),
+var safeFallbackRef = SafeFallbackStyles{}
+
+func ApplySafeFallback(theme *config.Theme) {
+	if theme == nil {
+		return
+	}
+	safeFallbackRef = SafeFallbackStyles{
+		Normal: lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ResolveColor(theme.SafeFallback.Normal))),
+		Bold:   lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ResolveColor(theme.SafeFallback.Bold))).Bold(true),
+		Dim:    lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ResolveColor(theme.SafeFallback.Dim))).Faint(true),
+		Accent: lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ResolveColor(theme.SafeFallback.Accent))),
+		Error:  lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ResolveColor(theme.SafeFallback.Error))),
+	}
 }
 
-// GetStyle 按名称解析样式，颜色从当前调色板解析。
 func GetStyle(name string) lipgloss.Style {
 	if ref, ok := rawStyles.lookup(name); ok {
 		return buildStyle(ref)
@@ -160,7 +176,7 @@ func GetStyle(name string) lipgloss.Style {
 	if c := style.Color(name); c != nil {
 		return lipgloss.NewStyle().Foreground(c)
 	}
-	return SafeFallback.Normal
+	return safeFallbackRef.Normal
 }
 
 func (s globalStyleRefs) lookup(name string) (styleRef, bool) {

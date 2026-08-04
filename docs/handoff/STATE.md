@@ -1,7 +1,43 @@
 # STATE — task 任务驱动 / 当前活跃批次
 
-> 上次更新: 2026-08-03
-> 当前轮次: 1
+> 上次更新: 2026-08-04
+> 当前轮次: 2
+
+## 批次 R2:主题硬编码色全面迁移(13 处 → 配置)
+
+### R2.1 — 批次元信息
+
+- **状态**:done(未 commit,等用户确认)
+- **日期**:2026-08-04
+- **范围**:
+  - schema 扩展:`internal/data/config/{theme.go, constants_domain.go}`
+  - 投影重写:`internal/tui/ui/component/{styles_load.go, table_config.go}`
+  - 主题文件:`internal/data/config/themes/{default, dark, light, nord, dracula, solarized}.jsonc`
+  - 硬编码替换:`internal/tui/ui/widget/dialog/{form, notification, selection, exec}.go` + `internal/tui/ui/app/layout.go`
+  - 测试:`internal/tui/ui/component/{styles_load_test, table_test}.go`
+  - 留置文档:`docs/handoff/proposals/theme-hardcoded-migration.md` + `docs/handoff/GLOBAL.md` 本日决策日志
+- **不可触碰边界**:Go 业务逻辑 / `internal/data/i18n/lang/*` / `internal/data/config/default.jsonc` 以外的所有 config 文件 / `docs/requirement/*` 与 `docs/constraint/*` 真理源
+- **主模型决策**:见 [GLOBAL.md § 2026-08-04](./GLOBAL.md#2026-08-04--主题硬编码色全面迁移至配置13-处)
+- **未来扩展点**(留待后续批次):见 [proposals/theme-hardcoded-migration.md § 7](./proposals/theme-hardcoded-migration.md#7-未来扩展点)
+
+### R2.2 — 子任务清单
+
+| 子任务 | 状态 | 范围文件 | 提交者 |
+|---|---|---|---|
+| 盘点硬编码清单(13 处) | done | (无文件改动,2 个 explore agent 报告) | 主模型 |
+| 设计 schema 扩展 | done | `theme.go` 加 `TableStyles` / `SafeFallbackStyles` | 主模型 |
+| 主题文件 1:1 镜像 | done | 6 份 JSONC 各加 8 键 | 主模型 |
+| 投影重写 | done | `styles_load.go` + `table_config.go` | 主模型 |
+| 硬编码替换 | done | 4 dialog + 1 layout | 主模型 |
+| 测试更新 | done | 2 个 test 文件 | 主模型 |
+| 留置文档 | done | proposals/ + GLOBAL/ + STATE | 主模型 |
+
+### R2.3 — 验证
+
+- `go test ./...`:全部通过
+- `go vet ./...`:无诊断
+- JSONC 嵌套键 1:1 镜像:6 主题均 47 键
+- 硬编码字面量扫描:13 处全部消失
 
 ## 批次 R1:文档真理源重组与清理
 

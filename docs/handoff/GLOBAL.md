@@ -1,9 +1,26 @@
 # GLOBAL — 全局信息(决策日志 + 待确认问题)
 
-> 上次更新: 2026-08-03
+> 上次更新: 2026-08-04
 > 范围: append-only,时间倒序排列
 
 ## 决策日志(主模型 → 全体)
+
+### 2026-08-04 — 主题硬编码色全面迁移至配置(13 处)
+
+- **决策**:把组件渲染层 13 处硬编码十六进制字面量(3 处 table_config、5 处 SafeFallback、4 处 dialog overlay、1 处 layout background)下沉为主题配置。新增 2 个作用域 `theme.table.*` (3 键)与 `theme.safeFallback.*` (5 键),dialog overlay 与 layout 改走已有 `theme.dialog.overlay` + `theme.palette.background`。
+- **理由**:BR-043 §3.4 主题层叠方案升级后只补了 `default.jsonc` 51 键,5 个非默认主题 + 13 处硬编码仍绕过主题系统,导致切 dark/dracula/solarized 等主题时表格色、被标记行、找不到名字的兜底样式、对话框遮罩、image fallthrough 背景全部不变。
+- **改动**(16 文件,详 [proposals/theme-hardcoded-migration.md](./proposals/theme-hardcoded-migration.md)):
+  - schema:`theme.go` 加 `TableStyles` / `SafeFallbackStyles` + patch,`constants_domain.go` 加 3 个 `FallbackColorTable*` 命名常量
+  - 投影:`component/styles_load.go` 重写 `SafeFallback` 为 `ApplySafeFallback(theme)` 函数,`ApplyThemeStyles` 末尾链式调 `ApplyTableTheme` + `ApplySafeFallback`;`table_config.go` 删 3 个 const,`defaultColumnStyles` 改接受参数
+  - 主题文件:6 份 JSONC 各加 8 个键,1:1 镜像 default
+  - 硬编码替换:`dialog/{form,notification,selection,exec}.go` 4 处 `overlayColor = "#0d1117cc"` 改 `OverlayColor(nil)`;`app/layout.go:143` 改 `blendColors(string(theme.Palette.Background), c, op)`
+  - 测试:`table_test.go:46` 改用 `config.FallbackColorTableNameForeground` 引用;`styles_load_test.go` 增 5 项 SafeFallback / Table 投影断言
+- **影响**:
+  - 切换任意主题时,表格 / 标记行 / Name 列 / SafeFallback / 对话框遮罩 / image fallthrough 全部跟随调色板
+  - `light` 主题的表色仍是绝对 `#ECEFF1`(深背景前景),与浅色背景对比度较弱——**有意保留**,避免 light 主题表格几乎不可读
+  - 未来扩展点:在 `light.jsonc` 单独覆盖 `theme.table.*` 3 键即可,无需改代码
+- **验证**:`go test ./...` 全过、`go vet ./...` 干净、JSONC 6 主题 47 键 1:1 镜像、13 处字面量扫描全清
+- **下次注意**:`footer.go:39` 与 `keyhint.go:25` 调 `GetStyle("shortcutBar")`,但 `globalStyleRefs.lookup` 没注册 `shortcutBar`,**永远走 SafeFallback**——是本次范围外的真 bug,下次修
 
 ### 2026-08-03 — BR-043 §3.2 高度修订 + Confirm/Cancel 同行渲染
 

@@ -68,6 +68,18 @@
       "dim": { "token": "gray" },
       "helpKey": { "token": "cyan" },
       "helpDescription": { "token": "white" }
+    },
+    "table": {
+      "markedBackground": { "value": "#463f16" },
+      "columnForeground": { "value": "#ECEFF1" },
+      "nameForeground": { "value": "#FAF0E6" }
+    },
+    "safeFallback": {
+      "normal": { "token": "white" },
+      "bold": { "token": "white" },
+      "dim": { "token": "gray" },
+      "accent": { "token": "cyan" },
+      "error": { "token": "red" }
     }
   }
 }
