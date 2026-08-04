@@ -55,8 +55,8 @@ func doBatchContainerAction(m *state.AppModel, action string, cmdFn func(runtime
 	m.Confirm.Open("batch-"+action, target, message, trace)
 	if action == string(runtimeapi.ActionStop) {
 		m.Confirm.Options = []state.ChoiceOption{
-			{ID: "cancel", Label: "Cancel"},
-			{ID: "force", Label: "Force", Description: "stop immediately"},
+			{ID: keys.ShowOptionCancel, Label: "Cancel"},
+			{ID: keys.ShowOptionForce, Label: "Force", Description: "stop immediately"},
 		}
 	}
 	m.Navigation.Mode = state.ModeConfirm

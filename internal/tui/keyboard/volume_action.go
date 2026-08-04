@@ -7,6 +7,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -55,7 +56,7 @@ func doVolumeRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if vol == nil {
 		return m, nil
 	}
-	confirmAction(m, "volume-remove", vol.Name, fmt.Sprintf("Remove volume %s?", vol.Name))
+	confirmAction(m, keys.ShowVolumeRemove, vol.Name, fmt.Sprintf("Remove volume %s?", vol.Name))
 	m.Confirm.ConfirmAudit = beginAudit(m, "resource.volume.delete", audit.VolumeTarget{Name: vol.Name, Meta: audit.VolumeMeta{Driver: vol.Driver}}, "Remove volume "+vol.Name)
 	return m, nil
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/data/runtime"
 	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime/docker"
+	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
 
@@ -43,19 +44,19 @@ func TestBatchContainerActionInitializesChoiceOptions(t *testing.T) {
 	if cmd != nil || updated.Navigation.Mode != state.ModeConfirm {
 		t.Fatalf("batch confirmation = mode %v cmd=%v", updated.Navigation.Mode, cmd != nil)
 	}
-	if len(updated.Confirm.Options) != 2 || updated.Confirm.Options[0].ID != "cancel" || updated.Confirm.Options[1].ID != "force" {
+	if len(updated.Confirm.Options) != 2 || updated.Confirm.Options[0].ID != keys.ShowOptionCancel || updated.Confirm.Options[1].ID != keys.ShowOptionForce {
 		t.Fatalf("batch choice options = %#v", updated.Confirm.Options)
 	}
 }
 
 func TestBulkDeleteOptionsExposeForceWhenSupported(t *testing.T) {
 	options := bulkDeleteOptions(state.PanelContainers)
-	if len(options) != 2 || options[0].ID != "cancel" || options[1].ID != "force" {
+	if len(options) != 2 || options[0].ID != keys.ShowOptionCancel || options[1].ID != keys.ShowOptionForce {
 		t.Fatalf("container bulk delete options = %#v", options)
 	}
 
 	networkOptions := bulkDeleteOptions(state.PanelNetworks)
-	if len(networkOptions) != 2 || networkOptions[0].ID != "cancel" || networkOptions[1].ID != "confirm" {
+	if len(networkOptions) != 2 || networkOptions[0].ID != keys.ShowOptionCancel || networkOptions[1].ID != keys.ShowOptionConfirm {
 		t.Fatalf("network bulk delete options = %#v", networkOptions)
 	}
 }
@@ -67,7 +68,7 @@ func TestBatchStopOffersCancelDefaultAndForce(t *testing.T) {
 	if cmd != nil || updated.Confirm.Focus != 0 || len(updated.Confirm.Options) != 2 {
 		t.Fatalf("batch stop confirmation = %#v", updated.Confirm)
 	}
-	if updated.Confirm.Options[0].ID != "cancel" || updated.Confirm.Options[1].ID != "force" {
+	if updated.Confirm.Options[0].ID != keys.ShowOptionCancel || updated.Confirm.Options[1].ID != keys.ShowOptionForce {
 		t.Fatalf("batch stop options = %#v", updated.Confirm.Options)
 	}
 }

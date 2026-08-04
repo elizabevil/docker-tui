@@ -123,6 +123,17 @@
 
 > 状态: open(子模型提的) / answered(主模型答完)
 
+### 2026-08-03 — BR-043 §3.4 配置拆分方案审查
+
+详见 [`proposals/config-split-review.md`](./proposals/config-split-review.md)。
+
+3 项决策待主模型裁定：
+1. **P1**：字段级深合并（替换当前浅合并）
+2. **P2**：Dialog 配置搬到 `internal/data/config/styles/dialog.jsonc`
+3. **N/A**：YAML+JSONC 双格式 / 主题独立 / 配置版本 — 确认保持现状
+
+主模型响应后子模型实施，无需主模型参与代码。
+
 ### 2026-08-03 — handoff 命名 (状态: open)
 
 - 问题:子模型问:目录名 `handoff/` 是否合适?或用 `coordination/` / `comm/`?

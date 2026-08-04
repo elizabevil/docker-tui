@@ -65,7 +65,7 @@ func handleEventPanelKeys(rawKey string, m *state.AppModel) (*state.AppModel, te
 	case keys.KeySlash:
 		panel.Filtering = true
 	case keys.KeyCtrlD:
-		m.Confirm.Open("events-clear", "events", "Clear all retained runtime events?", audit.Trace{})
+		m.Confirm.Open(keys.ShowEventsClear, "events", "Clear all retained runtime events?", audit.Trace{})
 		m.Confirm.ReturnMode = state.ModeEvents
 		m.Navigation.Mode = state.ModeConfirm
 	}

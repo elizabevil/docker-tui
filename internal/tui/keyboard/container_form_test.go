@@ -172,7 +172,7 @@ func TestContainerUpdateInspectLeavesUnlimitedResourcesBlank(t *testing.T) {
 func TestContainerUpdateTabCyclesFocus(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerUpdateForm(m)
-	if m.Form.FocusedButton() != "cancel" {
+	if m.Form.FocusedButton() != keys.ShowOptionCancel {
 		t.Fatal("setup must start on Cancel")
 	}
 	handleContainerFormKey(keys.KeyTab, m)
@@ -1045,12 +1045,12 @@ func TestSubmitContainerCopyOverwriteConfirm(t *testing.T) {
 	if updated.Navigation.Mode != state.ModeConfirm {
 		t.Fatalf("mode = %v, want ModeConfirm", updated.Navigation.Mode)
 	}
-	if updated.Confirm.Focus != 0 || updated.Confirm.Options[0].ID != "cancel" {
+	if updated.Confirm.Focus != 0 || updated.Confirm.Options[0].ID != keys.ShowOptionCancel {
 		t.Fatalf("overwrite confirm must default to Cancel: %#v", updated.Confirm.Options)
 	}
 	hasForce := false
 	for _, opt := range updated.Confirm.Options {
-		if opt.ID == "force" {
+		if opt.ID == keys.ShowOptionForce {
 			hasForce = true
 		}
 	}
@@ -1351,17 +1351,17 @@ func TestPathPopupEnterOnDirectoryVsFile(t *testing.T) {
 func TestFormLeftRightInButtonsToggles(t *testing.T) {
 	m := formModel(t, &stubContainerService{})
 	openContainerCopyForm(m)
-	if m.Form.FocusedButton() != "cancel" {
+	if m.Form.FocusedButton() != keys.ShowOptionCancel {
 		t.Fatalf("default focus = %q, want cancel", m.Form.FocusedButton())
 	}
 	// Up/Left on Cancel → Confirm (BR-043 §3.3 linear model).
 	handleContainerFormKey(keys.KeyLeft, m)
-	if m.Form.FocusedButton() != "confirm" {
+	if m.Form.FocusedButton() != keys.ShowOptionConfirm {
 		t.Fatalf("Left on Cancel = %q, want confirm", m.Form.FocusedButton())
 	}
 	// Down/Right on Confirm → Cancel.
 	handleContainerFormKey(keys.KeyRight, m)
-	if m.Form.FocusedButton() != "cancel" {
+	if m.Form.FocusedButton() != keys.ShowOptionCancel {
 		t.Fatalf("Right on Confirm = %q, want cancel", m.Form.FocusedButton())
 	}
 	// From a field: Left/Right must NOT toggle button focus.

@@ -50,7 +50,7 @@ func TestConfirmCancelCompletesAuditTrace(t *testing.T) {
 	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
 	app.Dependencies.Audit = audit.NewService(nil)
 	app.Navigation.Mode = state.ModeConfirm
-	app.Confirm.ConfirmAction = "container-stop"
+	app.Confirm.ConfirmAction = keys.ShowContainerStop
 	app.Confirm.ConfirmAudit = beginAudit(app, "resource.container.stop", audit.ContainerTarget{ID: "one", Name: "api"}, "Stop api")
 
 	updated, _ := handleConfirmKeys(keys.KeyEsc, app)
@@ -67,7 +67,7 @@ func TestConfirmTabAndEnterCancelChoice(t *testing.T) {
 	app := state.NewAppModel(config.DefaultConfig(), nil, "test")
 	app.Dependencies.Audit = audit.NewService(nil)
 	app.Navigation.Mode = state.ModeConfirm
-	app.Confirm.Open("container-stop", "api", "Stop api?", audit.Trace{})
+	app.Confirm.Open(keys.ShowContainerStop, "api", "Stop api?", audit.Trace{})
 
 	updated, _ := handleConfirmKeys(keys.KeyTab, app)
 	if updated.Confirm.Focus != 1 {

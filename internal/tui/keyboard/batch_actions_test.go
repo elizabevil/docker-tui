@@ -8,6 +8,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/data/config"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/data/runtime/mockengine"
+	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -136,7 +137,7 @@ func TestExecuteBulkDeleteAggregatesImages(t *testing.T) {
 	if batch.Total != 2 || batch.Success != 1 || batch.Failed != 1 {
 		t.Errorf("unexpected summary: %+v", batch)
 	}
-	if batch.Scope != "bulk-delete" {
+	if batch.Scope != keys.ShowBulkDelete {
 		t.Errorf("scope = %q", batch.Scope)
 	}
 	if batch.Resource != state.ResourceImage {

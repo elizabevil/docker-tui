@@ -301,7 +301,7 @@ func handleContainerFormKey(key string, m *state.AppModel) (*state.AppModel, tea
 		case keys.KeyDown, keys.KeyRight:
 			m.Form.MoveField(1)
 		case keys.KeyEnter:
-			if m.Form.FocusedButton() == "confirm" {
+			if m.Form.FocusedButton() == keys.ShowOptionConfirm {
 				return submitContainerForm(m)
 			}
 			clearContainerForm(m)
@@ -885,7 +885,7 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if m.Connection.Engine == nil {
 		return m, nil
 	}
-	if m.Form.FocusedButton() != "confirm" {
+	if m.Form.FocusedButton() != keys.ShowOptionConfirm {
 		clearContainerForm(m)
 		return m, nil
 	}
@@ -911,7 +911,7 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		}
 		dst.Input.Set(destination)
 		if localDestExists(m, destination) {
-			return openOverwriteConfirm(m, "container-copy", "resource.container.copy", "Copy file from container "+name)
+			return openOverwriteConfirm(m, keys.ShowContainerCopy, "resource.container.copy", "Copy file from container "+name)
 		}
 		trace := beginAudit(m, "resource.container.copy", containerTarget(m, id), "Copy file from container "+name)
 		clearContainerForm(m)
@@ -937,7 +937,7 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		}
 		dst.Input.Set(destination)
 		if localDestExists(m, destination) {
-			return openOverwriteConfirm(m, "container-export", "resource.container.export", "Export container "+name)
+			return openOverwriteConfirm(m, keys.ShowContainerExport, "resource.container.export", "Export container "+name)
 		}
 		trace := beginAudit(m, "resource.container.export", containerTarget(m, id), "Export container "+name)
 		clearContainerForm(m)
@@ -1002,7 +1002,7 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 			return m, nil
 		}
 		if archivePath != "" && localDestExists(m, archivePath) {
-			return openOverwriteConfirm(m, "container-commit-export", "resource.container.commit", "Commit container "+name+" and export image")
+			return openOverwriteConfirm(m, keys.ShowContainerCommitExport, "resource.container.commit", "Commit container "+name+" and export image")
 		}
 		trace := beginAudit(m, "resource.container.commit", containerTarget(m, id), "Commit container "+name)
 		return executeContainerCommitForm(m, opts, archivePath, trace)
@@ -1253,8 +1253,8 @@ func openOverwriteConfirm(m *state.AppModel, action, auditAction, message string
 	trace := beginAudit(m, auditAction, containerTarget(m, m.Form.TargetID), message)
 	m.Confirm.Open(action, m.Form.TargetID, i18n.T("form.overwrite.confirm"), trace)
 	m.Confirm.Options = []state.ChoiceOption{
-		{ID: "cancel", Label: i18n.T("key.cancel")},
-		{ID: "force", Label: i18n.T("form.overwrite.force"), Description: i18n.T("form.overwrite.force_desc")},
+		{ID: keys.ShowOptionCancel, Label: i18n.T("key.cancel")},
+		{ID: keys.ShowOptionForce, Label: i18n.T("form.overwrite.force"), Description: i18n.T("form.overwrite.force_desc")},
 	}
 	m.Confirm.ReturnMode = state.ModeContainerForm
 	m.Navigation.Mode = state.ModeConfirm
@@ -1262,10 +1262,10 @@ func openOverwriteConfirm(m *state.AppModel, action, auditAction, message string
 }
 
 func openImageSaveOverwriteConfirm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	m.Confirm.Open("image-save", m.Form.TargetID, i18n.T("form.overwrite.confirm"), audit.Trace{})
+	m.Confirm.Open(keys.ShowImageSave, m.Form.TargetID, i18n.T("form.overwrite.confirm"), audit.Trace{})
 	m.Confirm.Options = []state.ChoiceOption{
-		{ID: "cancel", Label: i18n.T("key.cancel")},
-		{ID: "force", Label: i18n.T("form.overwrite.force"), Description: i18n.T("form.overwrite.force_desc")},
+		{ID: keys.ShowOptionCancel, Label: i18n.T("key.cancel")},
+		{ID: keys.ShowOptionForce, Label: i18n.T("form.overwrite.force"), Description: i18n.T("form.overwrite.force_desc")},
 	}
 	m.Confirm.ReturnMode = state.ModeContainerForm
 	m.Navigation.Mode = state.ModeConfirm

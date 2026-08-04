@@ -89,7 +89,7 @@ func doImageRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if len(img.RepoTags) > 0 {
 		tag = img.RepoTags[0]
 	}
-	confirmAction(m, "image-remove", img.ID, fmt.Sprintf("Remove image %s?", tag))
+	confirmAction(m, keys.ShowImageRemove, img.ID, fmt.Sprintf("Remove image %s?", tag))
 	m.Confirm.ConfirmAudit = beginAudit(m, "resource.image.delete", imageTarget(m, img.ID), "Remove image "+tag)
 	return m, nil
 }

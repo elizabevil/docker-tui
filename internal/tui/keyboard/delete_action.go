@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
+	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -20,7 +21,7 @@ func doDeleteAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case state.PanelContainers:
 		ctr := m.Resources.Containers.Selected()
 		if ctr != nil {
-			confirmAction(m, "container-remove", ctr.ID, fmt.Sprintf("Remove container %s?", ctr.Name))
+			confirmAction(m, keys.ShowContainerRemove, ctr.ID, fmt.Sprintf("Remove container %s?", ctr.Name))
 		}
 	case state.PanelImages:
 		img := m.Resources.Images.Selected()
@@ -29,17 +30,17 @@ func doDeleteAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 			if len(img.RepoTags) > 0 {
 				tag = img.RepoTags[0]
 			}
-			confirmAction(m, "image-remove", img.ID, fmt.Sprintf("Remove image %s?", tag))
+			confirmAction(m, keys.ShowImageRemove, img.ID, fmt.Sprintf("Remove image %s?", tag))
 		}
 	case state.PanelVolumes:
 		vol := m.Resources.Volumes.Selected()
 		if vol != nil {
-			confirmAction(m, "volume-remove", vol.Name, fmt.Sprintf("Remove volume %s?", vol.Name))
+			confirmAction(m, keys.ShowVolumeRemove, vol.Name, fmt.Sprintf("Remove volume %s?", vol.Name))
 		}
 	case state.PanelNetworks:
 		net := m.Resources.Networks.Selected()
 		if net != nil {
-			confirmAction(m, "network-remove", net.ID, fmt.Sprintf("Remove network %s?", net.Name))
+			confirmAction(m, keys.ShowNetworkRemove, net.ID, fmt.Sprintf("Remove network %s?", net.Name))
 		}
 	}
 	return m, nil

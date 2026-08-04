@@ -7,6 +7,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -76,7 +77,7 @@ func doNetworkRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if net == nil {
 		return m, nil
 	}
-	confirmAction(m, "network-remove", net.ID, fmt.Sprintf("Remove network %s?", net.Name))
+	confirmAction(m, keys.ShowNetworkRemove, net.ID, fmt.Sprintf("Remove network %s?", net.Name))
 	m.Confirm.ConfirmAudit = beginAudit(m, "resource.network.delete", audit.NetworkTarget{ID: net.ID, Name: net.Name, Meta: audit.NetworkMeta{Driver: net.Driver}}, "Remove network "+net.Name)
 	return m, nil
 }

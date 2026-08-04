@@ -7,6 +7,7 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -46,18 +47,18 @@ func doBulkDelete(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	target := fmt.Sprintf("%d items", len(m.Selection.MarkedIDs))
 	message := fmt.Sprintf("Delete %d items?", len(m.Selection.MarkedIDs))
 	trace := beginAudit(m, "resource."+bulkResourceName(m.Navigation.ActivePanel)+".delete", bulkTarget(m), message)
-	m.Confirm.Open("bulk-delete", target, message, trace)
+	m.Confirm.Open(keys.ShowBulkDelete, target, message, trace)
 	m.Confirm.Options = bulkDeleteOptions(m.Navigation.ActivePanel)
 	m.Navigation.Mode = state.ModeConfirm
 	return m, nil
 }
 
 func bulkDeleteOptions(panel state.PanelType) []state.ChoiceOption {
-	options := []state.ChoiceOption{{ID: "cancel", Label: "Cancel"}}
+	options := []state.ChoiceOption{{ID: keys.ShowOptionCancel, Label: "Cancel"}}
 	if panel != state.PanelNetworks {
-		options = append(options, state.ChoiceOption{ID: "force", Label: "Force", Description: "delete even if active or in use"})
+		options = append(options, state.ChoiceOption{ID: keys.ShowOptionForce, Label: "Force", Description: "delete even if active or in use"})
 	} else {
-		options = append(options, state.ChoiceOption{ID: "confirm", Label: "Delete"})
+		options = append(options, state.ChoiceOption{ID: keys.ShowOptionConfirm, Label: "Delete"})
 	}
 	return options
 }
@@ -73,41 +74,41 @@ func doConfirmYes(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	switch {
 	case strings.HasPrefix(action, "batch-"):
 		return executeBatchAction(m, strings.TrimPrefix(action, "batch-"), trace)
-	case action == "bulk-delete", action == "bulk-delete-force":
-		return executeBulkDelete(m, trace, action == "bulk-delete-force")
-	case action == "container-stop":
+	case action == keys.ShowBulkDelete, action == keys.ShowBulkDeleteForce:
+		return executeBulkDelete(m, trace, action == keys.ShowBulkDeleteForce)
+	case action == keys.ShowContainerStop:
 		return m, withContainerAudit(containerStopCmd(m.Connection.Engine, target), trace)
-	case action == "container-kill":
+	case action == keys.ShowContainerKill:
 		return m, withContainerAudit(containerKillCmd(m.Connection.Engine, target), trace)
-	case action == "container-restart":
+	case action == keys.ShowContainerRestart:
 		return m, withContainerAudit(containerRestartCmd(m.Connection.Engine, target), trace)
-	case action == "container-remove":
+	case action == keys.ShowContainerRemove:
 		return m, withContainerAudit(containerRemoveCmd(m.Connection.Engine, target, true), trace)
-	case action == "image-remove":
+	case action == keys.ShowImageRemove:
 		return m, withImageAudit(imageRemoveCmd(m.Connection.Engine, target, true), trace)
-	case action == "volume-remove":
+	case action == keys.ShowVolumeRemove:
 		return m, withGenericAudit(volumeRemoveCmd(m.Connection.Engine, target, true), trace)
-	case action == "network-remove":
+	case action == keys.ShowNetworkRemove:
 		return m, withGenericAudit(networkRemoveCmd(m.Connection.Engine, target), trace)
-	case action == "container-copy":
+	case action == keys.ShowContainerCopy:
 		src := m.Form.Get(fieldSourcePath).Text()
 		dst := m.Form.Get(fieldDestinationPath).Text()
 		id := m.Form.TargetID
 		clearContainerForm(m)
 		return m, withAdvancedAudit(containerCopyCmd(m.Connection.Engine, id, src, dst), trace)
-	case action == "container-export":
+	case action == keys.ShowContainerExport:
 		dst := m.Form.Get(fieldDestinationPath).Text()
 		id := m.Form.TargetID
 		clearContainerForm(m)
 		return m, withAdvancedAudit(containerExportCmd(m.Connection.Engine, id, dst), trace)
-	case action == "container-commit-export":
+	case action == keys.ShowContainerCommitExport:
 		opts, archivePath, err := containerCommitFormRequest(m)
 		if err != nil {
 			clearContainerForm(m)
 			return m, nil
 		}
 		return executeContainerCommitForm(m, opts, archivePath, trace)
-	case action == "image-save":
+	case action == keys.ShowImageSave:
 		path := m.Form.Get(fieldImagePath)
 		if path == nil {
 			clearContainerForm(m)
@@ -116,11 +117,11 @@ func doConfirmYes(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		request := runtimeapi.ImageTransferRequest{Operation: runtimeapi.ImageTransferSave, Source: m.Form.TargetID, Path: path.Text()}
 		clearContainerForm(m)
 		return beginImageTransfer(m, request)
-	case action == "volume-prune":
+	case action == keys.ShowVolumePrune:
 		return m, resourcePruneCmd(m, runtimeapi.ResourceVolume, trace)
-	case action == "network-prune":
+	case action == keys.ShowNetworkPrune:
 		return m, resourcePruneCmd(m, runtimeapi.ResourceNetwork, trace)
-	case action == "events-clear":
+	case action == keys.ShowEventsClear:
 		m.EventPanel.Clear()
 		return m, nil
 	}
@@ -145,7 +146,7 @@ func executeBulkDelete(m *state.AppModel, trace audit.Trace, force ...bool) (*st
 	forceDelete := len(force) > 0 && force[0]
 	return m, func() tea.Msg {
 		result := state.BatchActioned{
-			Scope:    "bulk-delete",
+			Scope:    keys.ShowBulkDelete,
 			Resource: bulkResourceType(panel),
 			Total:    len(ids),
 			Audit:    trace,
