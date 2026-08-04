@@ -155,10 +155,10 @@ func renderDocument(m *state.AppModel, bodyLines []state.DetailDocumentLine, pan
 
 	footer := fmt.Sprintf(" %d-%d/%d", offset+1, visibleEnd, len(bodyLines))
 	if m.Detail.DetailHint != "" {
-		footer += " \u2502 " + m.Detail.DetailHint
+		footer += " " + component.BorderLineVertical + " " + m.Detail.DetailHint
 	}
 	if m.Detail.SourceSelected {
-		footer += " \u2502 " + i18n.T("hint.source_selected")
+		footer += " " + component.BorderLineVertical + " " + i18n.T("hint.source_selected")
 	}
 	return lipgloss.JoinVertical(lipgloss.Top, body, dimStyle.Render(footer))
 }

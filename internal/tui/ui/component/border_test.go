@@ -12,11 +12,11 @@ func TestResolveBorderUsesTypedKinds(t *testing.T) {
 		top  string
 		left string
 	}{
-		{config.BorderRounded, borderLineHorizontal, borderLineVertical},
-		{config.BorderSingle, borderLineHorizontal, borderLineVertical},
-		{config.BorderDouble, borderDoubleHorizontal, borderDoubleVertical},
-		{config.BorderThick, borderThickHorizontal, borderThickVertical},
-		{config.BorderHidden, borderHiddenGlyph, borderHiddenGlyph},
+		{config.BorderRounded, BorderLineHorizontal, BorderLineVertical},
+		{config.BorderSingle, BorderLineHorizontal, BorderLineVertical},
+		{config.BorderDouble, BorderDoubleHorizontal, BorderDoubleVertical},
+		{config.BorderThick, BorderThickHorizontal, BorderThickVertical},
+		{config.BorderHidden, BorderHiddenGlyph, BorderHiddenGlyph},
 	}
 	for _, test := range tests {
 		border := ResolveBorder(test.kind)
@@ -28,7 +28,7 @@ func TestResolveBorderUsesTypedKinds(t *testing.T) {
 
 func TestResolveBorderUnknownKindUsesCompiledFallback(t *testing.T) {
 	border := ResolveBorder(config.BorderKind("unknown"))
-	if border.TopLeft != borderRoundedTopLeft || border.BottomRight != borderRoundedBottomRight {
+	if border.TopLeft != BorderRoundedTopLeft || border.BottomRight != BorderRoundedBottomRight {
 		t.Fatalf("unknown border kind did not use rounded fallback: %#v", border)
 	}
 }

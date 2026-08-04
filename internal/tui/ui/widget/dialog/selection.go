@@ -17,7 +17,7 @@ import (
 // When bodyW > 0 and bodyH > 0, dialog sizing follows the active panel body
 // (BR-043 §3.2: width = bodyW*3/4, height = bodyH, clamped to cfg). Otherwise
 // it falls back to termW/termH-percentage sizing.
-func SelectionDialog(title, body, preview, action string, focus int, termW, termH int, bodyW, bodyH int, titleColor color.Color, overlayColor string, cfg dialogConfig) string {
+func SelectionDialog(title, body, preview, action string, focus int, termW, termH int, bodyW, bodyH int, titleColor color.Color, overlayColor string, cfg DialogConfig) string {
 	if titleColor == nil {
 		titleColor = component.GetStyle("panelTitle").GetForeground()
 	}
@@ -40,11 +40,11 @@ func SelectionDialog(title, body, preview, action string, focus int, termW, term
 
 	var confirmBtn, cancelBtn string
 	if focus == 0 {
-		confirmBtn = lipgloss.NewStyle().Foreground(titleColor).Bold(true).Render(enterKey + " \u25b6 " + confirmLabel)
+		confirmBtn = lipgloss.NewStyle().Foreground(titleColor).Bold(true).Render(enterKey + " " + component.ButtonIndicator + " " + confirmLabel)
 		cancelBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(escKey + " " + cancelLabel)
 	} else {
 		confirmBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(enterKey + " " + confirmLabel)
-		cancelBtn = lipgloss.NewStyle().Foreground(titleColor).Bold(true).Render(escKey + " \u25b6 " + cancelLabel)
+		cancelBtn = lipgloss.NewStyle().Foreground(titleColor).Bold(true).Render(escKey + " " + component.ButtonIndicator + " " + cancelLabel)
 	}
 	buttons := lipgloss.NewStyle().Width(dialogW - 4).Align(lipgloss.Center).Render(
 		confirmBtn + "   " + cancelBtn,

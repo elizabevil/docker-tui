@@ -20,7 +20,7 @@ func RenderShellDialogBox(shell string, termW int, overlayColor string, cursorVi
 	if shell == "" {
 		shell = "/bin/sh"
 	}
-	cursor := "\u2588"
+	cursor := BlockCursor
 	if len(cursorVisible) > 0 && !cursorVisible[0] {
 		cursor = " "
 	}
@@ -45,7 +45,7 @@ func RenderShellDialogBox(shell string, termW int, overlayColor string, cursorVi
 func RenderTextInputBox(title, value string, cursor, termW int, overlayColor string, cursorVisible ...bool) string {
 	runes := []rune(value)
 	cursor = min(max(0, cursor), len(runes))
-	mark := "\u2588"
+	mark := BlockCursor
 	if len(cursorVisible) > 0 && !cursorVisible[0] {
 		mark = " "
 	}

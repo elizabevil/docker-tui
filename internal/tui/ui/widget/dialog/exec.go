@@ -20,7 +20,7 @@ var execShellOptions = []string{"/bin/sh", "/bin/bash", "/bin/ash"}
 // When bodyW > 0 and bodyH > 0, dialog sizing follows the active panel body
 // (BR-043 §3.2: width = bodyW*3/4, height = bodyH, clamped to cfg). Otherwise
 // it falls back to viewport-percentage sizing.
-func ExecDialog(m *state.AppModel, overlayColor string, cfg dialogConfig, bodyW, bodyH int) string {
+func ExecDialog(m *state.AppModel, overlayColor string, cfg DialogConfig, bodyW, bodyH int) string {
 	var dialogW, dialogH int
 	if bodyW > 0 && bodyH > 0 {
 		dialogW = panelDialogWidth(bodyW, cfg)
@@ -42,7 +42,7 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg dialogConfig, bodyW,
 	var optionBtns []string
 	for i, opt := range execShellOptions {
 		if m.Dialog.Focus == i {
-			optionBtns = append(optionBtns, lipgloss.NewStyle().Foreground(component.GetStyle("dialogConfirm").GetForeground()).Bold(true).Render("\u25b6 "+opt))
+			optionBtns = append(optionBtns, lipgloss.NewStyle().Foreground(component.GetStyle("dialogConfirm").GetForeground()).Bold(true).Render(component.ButtonIndicator + " "+opt))
 		} else {
 			optionBtns = append(optionBtns, lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(opt))
 		}
@@ -66,7 +66,7 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg dialogConfig, bodyW,
 	}
 	inputDisplay := component.GetStyle("dim").Render(i18n.T("inspect.shell")+": ") + string(inputRunes[:cursor])
 	if m.Dialog.Focus == execFocusInput && !m.CursorBlinkHidden {
-		inputDisplay += "\u2588" // block cursor when focused
+		inputDisplay += component.BlockCursor // block cursor when focused
 	} else {
 		inputDisplay += " " // space when not focused
 	}
@@ -78,11 +78,11 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg dialogConfig, bodyW,
 	var confirmBtn, cancelBtn string
 	switch {
 	case m.Dialog.Focus == 4:
-		confirmBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dialogConfirm").GetForeground()).Bold(true).Render(enterKey + " \u25b6 " + confirmLabel)
+		confirmBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dialogConfirm").GetForeground()).Bold(true).Render(enterKey + " " + component.ButtonIndicator + " " + confirmLabel)
 		cancelBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(escKey + " " + cancelLabel)
 	case m.Dialog.Focus == 5:
 		confirmBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(enterKey + " " + confirmLabel)
-		cancelBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dialogConfirm").GetForeground()).Bold(true).Render(escKey + " \u25b6 " + cancelLabel)
+		cancelBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dialogConfirm").GetForeground()).Bold(true).Render(escKey + " " + component.ButtonIndicator + " " + cancelLabel)
 	default:
 		confirmBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(enterKey + " " + confirmLabel)
 		cancelBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(escKey + " " + cancelLabel)

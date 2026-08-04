@@ -10,7 +10,7 @@ import (
 // PlaceDialog centers dialogBox over content WITHOUT a full-screen scrim.
 // Only the dialog box itself carries the dark background (set by DialogBox).
 // Content outside the dialog area remains completely visible.
-func PlaceDialog(content string, dialogBox string, termW, termH int, _ string, cfg dialogConfig) string {
+func PlaceDialog(content string, dialogBox string, termW, termH int, _ string, cfg DialogConfig) string {
 	contentLines := strings.Split(content, "\n")
 	dialogLines := strings.Split(dialogBox, "\n")
 

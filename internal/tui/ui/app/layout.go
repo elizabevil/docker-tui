@@ -424,7 +424,7 @@ func renderExecPassthroughPanel(m *state.AppModel, bodyH int) string {
 			}
 			before := string(runes[:vc])
 			after := string(runes[vc:])
-			lines[vr] = before + "\u2588" + after
+			lines[vr] = before + component.BlockCursor + after
 		}
 	}
 	for i, line := range lines {
@@ -451,7 +451,7 @@ func insertCursor(text string, cursor int, cursorVisible ...bool) string {
 	if cursor > len(r) {
 		cursor = len(r)
 	}
-	mark := "\u2588"
+	mark := component.BlockCursor
 	if len(cursorVisible) > 0 && !cursorVisible[0] {
 		mark = " "
 	}

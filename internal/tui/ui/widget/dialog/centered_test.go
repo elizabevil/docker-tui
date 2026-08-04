@@ -12,7 +12,7 @@ func TestCenterOnPanelNormal(t *testing.T) {
 	content := buildContent(80, 24, '.')
 	dlg := buildDialog(20, 5, '#')
 
-	got := CenterOnPanel(content, dlg, body, 80, 24, dialogConfig{})
+	got := CenterOnPanel(content, dlg, body, 80, 24, DialogConfig{})
 	lines := strings.Split(got, "\n")
 	if len(lines) != 24 {
 		t.Fatalf("line count = %d, want 24", len(lines))
@@ -46,7 +46,7 @@ func TestCenterOnPanelNormal(t *testing.T) {
 func TestCenterOnPanelEmptyDialog(t *testing.T) {
 	body := PanelBody{Left: 10, Top: 5, Width: 50, Rows: 10}
 	content := buildContent(80, 20, '.')
-	got := CenterOnPanel(content, "", body, 80, 20, dialogConfig{})
+	got := CenterOnPanel(content, "", body, 80, 20, DialogConfig{})
 	if got != content {
 		t.Errorf("empty dialog should return content unchanged")
 	}
@@ -57,7 +57,7 @@ func TestCenterOnPanelClampsWideDialog(t *testing.T) {
 	content := buildContent(80, 20, '.')
 	dlg := buildDialog(60, 3, '#')
 
-	got := CenterOnPanel(content, dlg, body, 80, 20, dialogConfig{})
+	got := CenterOnPanel(content, dlg, body, 80, 20, DialogConfig{})
 	lines := strings.Split(got, "\n")
 
 	for _, lineIdx := range []int{0, 6, 10, 19} {
@@ -81,7 +81,7 @@ func TestCenterOnPanelClampsTallDialog(t *testing.T) {
 	content := buildContent(40, 10, '.')
 	dlg := buildDialog(10, 6, '#')
 
-	got := CenterOnPanel(content, dlg, body, 40, 10, dialogConfig{})
+	got := CenterOnPanel(content, dlg, body, 40, 10, DialogConfig{})
 	lines := strings.Split(got, "\n")
 
 	// Effective rows = min(6, 3) = 3. So only 3 lines modified.
@@ -101,7 +101,7 @@ func TestCenterOnPanelPreservesANSI(t *testing.T) {
 		"\x1b[32mgreen\x1b[0m\n" +
 		"\x1b[34mblue\x1b[0m"
 
-	got := CenterOnPanel(content, dlg, body, 20, 4, dialogConfig{})
+	got := CenterOnPanel(content, dlg, body, 20, 4, DialogConfig{})
 	lines := strings.Split(got, "\n")
 
 	// startX = 0 + (20-5)/2 = 7. startY = 0 + (4-3)/2 = 0.
@@ -136,7 +136,7 @@ func TestPlaceDialogInPanelDerivesSize(t *testing.T) {
 	content := "row0-1234567890\nrow1-short\n" + buildContentRow(40, '.')
 	dlg := buildDialog(10, 3, '#')
 
-	got := PlaceDialogInPanel(content, dlg, body, dialogConfig{})
+	got := PlaceDialogInPanel(content, dlg, body, DialogConfig{})
 	lines := strings.Split(got, "\n")
 	if len(lines) != 3 {
 		t.Fatalf("line count = %d, want 3", len(lines))
@@ -157,7 +157,7 @@ func TestCenterOnPanelClampsStartXY(t *testing.T) {
 	body := PanelBody{Left: 5, Top: 18, Width: 40, Rows: 5}
 	content := buildContent(60, 20, '.')
 	dlg := buildDialog(30, 3, '#')
-	got := CenterOnPanel(content, dlg, body, 60, 20, dialogConfig{})
+	got := CenterOnPanel(content, dlg, body, 60, 20, DialogConfig{})
 	lines := strings.Split(got, "\n")
 	if len(lines) != 20 {
 		t.Fatalf("line count = %d, want 20", len(lines))

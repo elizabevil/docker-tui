@@ -8,6 +8,7 @@ import (
 	"charm.land/lipgloss/v2"
 
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/action"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
@@ -94,7 +95,7 @@ func (r *Renderer) Render(width int, app *state.AppModel) string {
 		}
 	}
 	rightSb.WriteString("\n")
-	closeKeys := "Esc"
+	closeKeys := keys.KEsc
 	for _, shortcut := range action.ForMode(app) {
 		if shortcut.Description == "Close" || shortcut.Description == i18n.T("key.close_help") {
 			closeKeys = shortcut.Key

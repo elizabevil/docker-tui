@@ -6,6 +6,7 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/footer"
@@ -125,7 +126,7 @@ func renderCompactApp(m *state.AppModel) string {
 	}
 	status := renderMessageRail(m, usableW)
 	header := renderCompactHeader(m, usableW)
-	footer := renderCompactFooter(m, usableW)
+	footerLine := renderCompactFooter(usableW)
 	query := renderQueryRail(m, usableW)
 	// Reserve the query rail only while an input is active; the rail
 	// renders with its own border so we have to give it the rows it
@@ -160,8 +161,8 @@ func renderCompactApp(m *state.AppModel) string {
 		parts = append(parts, fitRailHeight(query, plan.query))
 	}
 	parts = append(parts, body)
-	if footer != "" {
-		parts = append(parts, fitRailHeight(footer, plan.footer))
+	if footerLine != "" {
+		parts = append(parts, fitRailHeight(footerLine, plan.footer))
 	} else {
 		parts = append(parts, strings.Repeat("\n", plan.footer-1))
 	}
@@ -189,9 +190,9 @@ func renderCompactHeader(m *state.AppModel, width int) string {
 // renderCompactFooter produces a single-line shortcut strip with the most
 // common actions. Other shortcuts remain available via the keymap and
 // are documented in the help panel.
-func renderCompactFooter(m *state.AppModel, width int) string {
+func renderCompactFooter(width int) string {
 	short := []struct{ k, d string }{
-		{"Tab", "Panel"}, {"Enter", "Open"}, {"Esc", "Back"}, {":", "Cmd"}, {"F1", "Help"},
+		{keys.KTab, "Panel"}, {keys.KEnter, "Open"}, {keys.KEsc, "Back"}, {":", "Cmd"}, {keys.KF1, keys.ActionLabelHelp},
 	}
 	var parts []string
 	for _, s := range short {
@@ -199,7 +200,7 @@ func renderCompactFooter(m *state.AppModel, width int) string {
 			component.GetStyle("hintKey").Render(s.k)+
 				component.GetStyle("hintDesc").Render(" "+s.d))
 	}
-	line := strings.Join(parts, component.GetStyle("hintSep").Render(" │ "))
+	line := strings.Join(parts, component.GetStyle("hintSep").Render(" " + component.BorderLineVertical + " "))
 	return fitRailHeight(component.TruncateVisible(line, width), 1)
 }
 

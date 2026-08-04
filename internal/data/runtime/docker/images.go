@@ -10,6 +10,7 @@ import (
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
+	"github.com/elizabevil/docker-tui/internal/constants"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 )
 
@@ -49,10 +50,10 @@ func (c *Client) listImagesDocker(ctx context.Context, options runtimeapi.ImageL
 			s.Arch = img.Descriptor.Platform.Architecture
 		}
 		if s.OS == "" {
-			s.OS = "\u2014"
+			s.OS = constants.EmDash
 		}
 		if s.Arch == "" {
-			s.Arch = "\u2014"
+			s.Arch = constants.EmDash
 		}
 		// Populate manifests from Docker API
 		for _, m := range img.Manifests {
@@ -82,10 +83,10 @@ func (c *Client) listImagesDocker(ctx context.Context, options runtimeapi.ImageL
 			s.IsManifest = true
 		}
 		// Arch fallback: use first manifest's platform if descriptor not available
-		if s.Arch == "\u2014" && len(s.Manifests) > 0 && s.Manifests[0].Platform.Architecture != "" {
+		if s.Arch == constants.EmDash && len(s.Manifests) > 0 && s.Manifests[0].Platform.Architecture != "" {
 			s.Arch = s.Manifests[0].Platform.Architecture
 		}
-		if s.OS == "\u2014" && len(s.Manifests) > 0 && s.Manifests[0].Platform.OS != "" {
+		if s.OS == constants.EmDash && len(s.Manifests) > 0 && s.Manifests[0].Platform.OS != "" {
 			s.OS = s.Manifests[0].Platform.OS
 		}
 		s.Registry, _, _ = splitImageRef(s.RepoTags)

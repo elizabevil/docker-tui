@@ -60,7 +60,7 @@ func RenderList(auditState *state.AuditState, width int, panelHeight int) string
 	}
 	hint := fmt.Sprintf("%d records%s", total, levelHint)
 	if filter := auditState.FilterText(); filter != "" {
-		hint += " \u2502 Filter: " + filter
+		hint += " " + component.BorderLineVertical + " Filter: " + filter
 	}
 
 	return component.RenderTable(component.TableData{

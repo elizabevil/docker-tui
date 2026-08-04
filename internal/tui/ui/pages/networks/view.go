@@ -88,7 +88,7 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 				if net.Containers > 0 {
 					return fmt.Sprintf("%d", net.Containers)
 				}
-				return "\u2014"
+				return component.StrDash
 			case "created":
 				return utils.FormatCreated(net.Created)
 			}
@@ -141,7 +141,7 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 
 func sortArrow(asc bool) string {
 	if asc {
-		return " \u25b2"
+		return " " + component.TriangleUp
 	}
-	return " \u25bc"
+	return " " + component.TriangleDown
 }

@@ -52,7 +52,7 @@ func (p Panel) Render() string {
 func renderTitle(p Panel) string {
 	title := p.Title
 	if p.Info != "" {
-		title += " \u2502 " + p.Info
+		title += " " + component.BorderLineVertical + " " + p.Info
 	}
 	titleLine := component.GetStyle("panelTitle").Render(title)
 	if p.Breadcrumb != "" {
@@ -93,7 +93,7 @@ func buildBorderLabelLine(label string, width int) string {
 	}
 	left := remain / 2
 	right := remain - left
-	return "╭" + strings.Repeat("─", left) + lab + strings.Repeat("─", right) + "╮"
+	return component.BorderRoundedTopLeft + strings.Repeat(component.BorderLineHorizontal, left) + lab + strings.Repeat(component.BorderLineHorizontal, right) + component.BorderRoundedTopRight
 }
 
 // RenderNoBorder 渲染无外层边框的面板。
@@ -103,7 +103,7 @@ func (p Panel) RenderNoBorder() string {
 	}
 	title := p.Title
 	if p.Info != "" {
-		title += " \u2502 " + p.Info
+		title += " " + component.BorderLineVertical + " " + p.Info
 	}
 	return lipgloss.JoinVertical(lipgloss.Top,
 		component.GetStyle("panelTitle").Render(title),

@@ -77,7 +77,7 @@ func renderPathPopup(form state.FormState, _ string, dialogW, _ int) string {
 	lines = append(header, lines...)
 
 	if detail := renderPathDetail(selectedEntry(entries, form.Popup.Cursor, idxMap), innerW); len(detail) > 0 {
-		lines = append(lines, component.FormRow("", 0, innerW, strings.Repeat("─", innerW)))
+		lines = append(lines, component.FormRow("", 0, innerW, strings.Repeat(component.BorderLineHorizontal, innerW)))
 		lines = append(lines, detail...)
 	}
 

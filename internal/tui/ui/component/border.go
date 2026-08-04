@@ -6,29 +6,29 @@ import (
 )
 
 const (
-	borderLineHorizontal     = "─"
-	borderLineVertical       = "│"
-	borderRoundedTopLeft     = "╭"
-	borderRoundedTopRight    = "╮"
-	borderRoundedBottomLeft  = "╰"
-	borderRoundedBottomRight = "╯"
-	borderDoubleHorizontal   = "═"
-	borderDoubleVertical     = "║"
-	borderDoubleTopLeft      = "╔"
-	borderDoubleTopRight     = "╗"
-	borderDoubleBottomLeft   = "╚"
-	borderDoubleBottomRight  = "╝"
-	borderThickHorizontal    = "━"
-	borderThickVertical      = "┃"
-	borderThickTopLeft       = "┏"
-	borderThickTopRight      = "┓"
-	borderThickBottomLeft    = "┗"
-	borderThickBottomRight   = "┛"
-	borderSingleTopLeft      = "┌"
-	borderSingleTopRight     = "┐"
-	borderSingleBottomLeft   = "└"
-	borderSingleBottomRight  = "┘"
-	borderHiddenGlyph        = " "
+	BorderLineHorizontal     = "─"
+	BorderLineVertical       = "│"
+	BorderRoundedTopLeft     = "╭"
+	BorderRoundedTopRight    = "╮"
+	BorderRoundedBottomLeft  = "╰"
+	BorderRoundedBottomRight = "╯"
+	BorderDoubleHorizontal   = "═"
+	BorderDoubleVertical     = "║"
+	BorderDoubleTopLeft      = "╔"
+	BorderDoubleTopRight     = "╗"
+	BorderDoubleBottomLeft   = "╚"
+	BorderDoubleBottomRight  = "╝"
+	BorderThickHorizontal    = "━"
+	BorderThickVertical      = "┃"
+	BorderThickTopLeft       = "┏"
+	BorderThickTopRight      = "┓"
+	BorderThickBottomLeft    = "┗"
+	BorderThickBottomRight   = "┛"
+	BorderSingleTopLeft      = "┌"
+	BorderSingleTopRight     = "┐"
+	BorderSingleBottomLeft   = "└"
+	BorderSingleBottomRight  = "┘"
+	BorderHiddenGlyph        = " "
 )
 
 // BorderDef defines the 8 characters that make up a complete box-drawing border.
@@ -87,24 +87,24 @@ func ResolveBorder(kind config.BorderKind) lipgloss.Border {
 func defaultBorderDefs() BorderDefinitions {
 	return BorderDefinitions{
 		Rounded: BorderDef{
-			Top: borderLineHorizontal, Bottom: borderLineHorizontal, Left: borderLineVertical, Right: borderLineVertical,
-			TopLeft: borderRoundedTopLeft, TopRight: borderRoundedTopRight, BottomLeft: borderRoundedBottomLeft, BottomRight: borderRoundedBottomRight,
+			Top: BorderLineHorizontal, Bottom: BorderLineHorizontal, Left: BorderLineVertical, Right: BorderLineVertical,
+			TopLeft: BorderRoundedTopLeft, TopRight: BorderRoundedTopRight, BottomLeft: BorderRoundedBottomLeft, BottomRight: BorderRoundedBottomRight,
 		},
 		Double: BorderDef{
-			Top: borderDoubleHorizontal, Bottom: borderDoubleHorizontal, Left: borderDoubleVertical, Right: borderDoubleVertical,
-			TopLeft: borderDoubleTopLeft, TopRight: borderDoubleTopRight, BottomLeft: borderDoubleBottomLeft, BottomRight: borderDoubleBottomRight,
+			Top: BorderDoubleHorizontal, Bottom: BorderDoubleHorizontal, Left: BorderDoubleVertical, Right: BorderDoubleVertical,
+			TopLeft: BorderDoubleTopLeft, TopRight: BorderDoubleTopRight, BottomLeft: BorderDoubleBottomLeft, BottomRight: BorderDoubleBottomRight,
 		},
 		Thick: BorderDef{
-			Top: borderThickHorizontal, Bottom: borderThickHorizontal, Left: borderThickVertical, Right: borderThickVertical,
-			TopLeft: borderThickTopLeft, TopRight: borderThickTopRight, BottomLeft: borderThickBottomLeft, BottomRight: borderThickBottomRight,
+			Top: BorderThickHorizontal, Bottom: BorderThickHorizontal, Left: BorderThickVertical, Right: BorderThickVertical,
+			TopLeft: BorderThickTopLeft, TopRight: BorderThickTopRight, BottomLeft: BorderThickBottomLeft, BottomRight: BorderThickBottomRight,
 		},
 		Single: BorderDef{
-			Top: borderLineHorizontal, Bottom: borderLineHorizontal, Left: borderLineVertical, Right: borderLineVertical,
-			TopLeft: borderSingleTopLeft, TopRight: borderSingleTopRight, BottomLeft: borderSingleBottomLeft, BottomRight: borderSingleBottomRight,
+			Top: BorderLineHorizontal, Bottom: BorderLineHorizontal, Left: BorderLineVertical, Right: BorderLineVertical,
+			TopLeft: BorderSingleTopLeft, TopRight: BorderSingleTopRight, BottomLeft: BorderSingleBottomLeft, BottomRight: BorderSingleBottomRight,
 		},
 		Hidden: BorderDef{
-			Top: borderHiddenGlyph, Bottom: borderHiddenGlyph, Left: borderHiddenGlyph, Right: borderHiddenGlyph,
-			TopLeft: borderHiddenGlyph, TopRight: borderHiddenGlyph, BottomLeft: borderHiddenGlyph, BottomRight: borderHiddenGlyph,
+			Top: BorderHiddenGlyph, Bottom: BorderHiddenGlyph, Left: BorderHiddenGlyph, Right: BorderHiddenGlyph,
+			TopLeft: BorderHiddenGlyph, TopRight: BorderHiddenGlyph, BottomLeft: BorderHiddenGlyph, BottomRight: BorderHiddenGlyph,
 		},
 	}
 }

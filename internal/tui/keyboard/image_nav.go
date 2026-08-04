@@ -38,19 +38,19 @@ func handleImagePanelKeys(key string, m *state.AppModel) (*state.AppModel, tea.C
 		case keys.ActionContainerExec:
 			syncContainerCursorForSubView(m)
 			mm, cmd := doAutoExecAction(m)
-			return mm, tea.Batch(cmd, RecordKeyStroke(m, key, "Exec"))
+			return mm, tea.Batch(cmd, RecordKeyStroke(m, key, keys.ActionLabelExec))
 		case keys.ActionContainerStart:
 			mm, cmd := doImageSubContainerCmd(m, containerStartCmd)
-			return mm, tea.Batch(cmd, RecordKeyStroke(m, key, "Start"))
+			return mm, tea.Batch(cmd, RecordKeyStroke(m, key, keys.ActionLabelStart))
 		case keys.ActionContainerStop:
 			mm, cmd := doImageSubContainerCmd(m, func(c runtimeapi.Engine, id string) tea.Cmd { return containerStopCmd(c, id) })
-			return mm, tea.Batch(cmd, RecordKeyStroke(m, key, "Stop"))
+			return mm, tea.Batch(cmd, RecordKeyStroke(m, key, keys.ActionLabelStop))
 		case keys.ActionContainerRestart:
 			mm, cmd := doImageSubContainerCmd(m, func(c runtimeapi.Engine, id string) tea.Cmd { return containerRestartCmd(c, id) })
-			return mm, tea.Batch(cmd, RecordKeyStroke(m, key, "Restart"))
+			return mm, tea.Batch(cmd, RecordKeyStroke(m, key, keys.ActionLabelRestart))
 		case keys.ActionEnter, keys.ActionContainerLogs:
 			mm, cmd := doImageContainerLog(m)
-			return mm, tea.Batch(cmd, RecordKeyStroke(m, key, "Logs"))
+			return mm, tea.Batch(cmd, RecordKeyStroke(m, key, keys.ActionLabelLogs))
 		case keys.ActionBack:
 			return doImageCollapse(m)
 		}

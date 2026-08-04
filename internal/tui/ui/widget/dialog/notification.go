@@ -6,7 +6,7 @@ import (
 )
 
 // NotificationDialog renders a simple informational dialog with a dismiss hint.
-func NotificationDialog(title, body string, termW, termH int, overlayColor string, cfg dialogConfig) string {
+func NotificationDialog(title, body string, termW, termH int, overlayColor string, cfg DialogConfig) string {
 	if overlayColor == "" {
 		overlayColor = OverlayColor(nil)
 	}

@@ -212,25 +212,25 @@ func FormatKeyForDisplay(key string) string {
 	case key == keys.KeyEnter:
 		return "↵"
 	case key == keys.KeyEsc:
-		return "Esc"
+		return keys.KEsc
 	case key == keys.KeyTab:
 		return "⇥"
 	case key == keys.KeyBackspace:
 		return "⌫"
 	case key == keys.KeyUp:
-		return "↑"
+		return keys.KUp
 	case key == keys.KeyDown:
-		return "↓"
+		return keys.KDown
 	case key == keys.KeyLeft:
-		return "←"
+		return keys.KLeft
 	case key == keys.KeyRight:
-		return "→"
+		return keys.KRight
 	case key == keys.KeyPgUp:
-		return "Pg↑"
+		return keys.KPgUp + keys.KUp
 	case key == keys.KeyPgDn:
-		return "Pg↓"
+		return keys.KPgDn + keys.KDown
 	case strings.HasPrefix(key, keys.KeyCtrlPrefix):
-		return "^" + strings.ToUpper(strings.TrimPrefix(key, keys.KeyCtrlPrefix))
+		return keys.DisplayCtrl + strings.ToUpper(strings.TrimPrefix(key, keys.KeyCtrlPrefix))
 	case len(key) == 1:
 		return strings.ToUpper(key)
 	default:
@@ -262,29 +262,29 @@ func RecordKeyStroke(m *state.AppModel, key, action string) tea.Cmd {
 // KeyStrokeActionLabel returns a short action label for a keys.
 func KeyStrokeActionLabel(key string) string {
 	label := map[string]string{
-		keys.KeyQ: "Quit", keys.KeyQUpper: "Quit",
-		keys.KeyQmark: "Help", keys.KeyF1: "Help",
-		keys.KeySlash: "Filter",
-		keys.KeyR:     "Refresh", keys.KeyRUpper: "Restart",
-		keys.KeyS: "Start", keys.KeySUpper: "Stop", keys.KeyKUpper: "Kill",
-		keys.KeyD: "Detail", keys.KeyDUpper: "Detail",
-		keys.KeyL: "Logs", keys.KeyLUpper: "Logs",
-		keys.KeyI: "Inspect", keys.KeyIUpper: "Inspect",
-		keys.KeyE: "Exec", keys.KeyEUpper: "Exec",
-		keys.KeyM: "Stats", keys.KeyMUpper: "Stats",
-		keys.KeyPUpper: "Pull", keys.KeyP: "Prune",
-		keys.KeyH: "History", keys.KeyHUpper: "History",
-		keys.KeyC: "Conn", keys.KeyCUpper: "Conn",
-		keys.KeyO: "Sort", keys.KeyOUpper: "Sort",
-		keys.KeyEnter: "Open",
-		keys.KeyEsc:   "Back",
-		keys.KeySpace: "Mark",
-		keys.KeyTab:   "Panel",
-		keys.KeyUp:    "Up", keys.KeyK: "Up",
-		keys.KeyDown: "Down", keys.KeyJ: "Down",
-		keys.KeyCtrlD: "Delete",
-		keys.KeyF2:    "Switch",
-		":":           "Cmd",
+		keys.KeyQ: keys.ActionLabelQuit, keys.KeyQUpper: keys.ActionLabelQuit,
+		keys.KeyQmark: keys.ActionLabelHelp, keys.KeyF1: keys.ActionLabelHelp,
+		keys.KeySlash: keys.ActionLabelFilter,
+		keys.KeyR:     keys.ActionLabelRefresh, keys.KeyRUpper: keys.ActionLabelRestart,
+		keys.KeyS: keys.ActionLabelStart, keys.KeySUpper: keys.ActionLabelStop, keys.KeyKUpper: keys.ActionLabelKill,
+		keys.KeyD: keys.ActionLabelDetail, keys.KeyDUpper: keys.ActionLabelDetail,
+		keys.KeyL: keys.ActionLabelLogs, keys.KeyLUpper: keys.ActionLabelLogs,
+		keys.KeyI: keys.ActionLabelInspect, keys.KeyIUpper: keys.ActionLabelInspect,
+		keys.KeyE: keys.ActionLabelExec, keys.KeyEUpper: keys.ActionLabelExec,
+		keys.KeyM: keys.ActionLabelStats, keys.KeyMUpper: keys.ActionLabelStats,
+		keys.KeyPUpper: keys.ActionLabelPull, keys.KeyP: keys.ActionLabelPrune,
+		keys.KeyH: keys.ActionLabelHistory, keys.KeyHUpper: keys.ActionLabelHistory,
+		keys.KeyC: keys.ActionLabelConn, keys.KeyCUpper: keys.ActionLabelConn,
+		keys.KeyO: keys.ActionLabelSort, keys.KeyOUpper: keys.ActionLabelSort,
+		keys.KeyEnter: keys.ActionLabelOpen,
+		keys.KeyEsc:   keys.ActionLabelBack,
+		keys.KeySpace: keys.ActionLabelMark,
+		keys.KeyTab:   keys.ActionLabelPanel,
+		keys.KeyUp:    keys.ActionLabelUp, keys.KeyK: keys.ActionLabelUp,
+		keys.KeyDown: keys.ActionLabelDown, keys.KeyJ: keys.ActionLabelDown,
+		keys.KeyCtrlD: keys.ActionLabelDelete,
+		keys.KeyF2:    keys.ActionLabelSwitch,
+		":":           keys.ActionLabelCmd,
 	}
 	if l, ok := label[key]; ok {
 		return l

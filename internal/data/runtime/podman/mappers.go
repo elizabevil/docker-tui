@@ -6,6 +6,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/elizabevil/docker-tui/internal/constants"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/driver/podman/dto"
 )
@@ -110,10 +111,10 @@ func MapImageSummaries(raw []dto.ImageItem) []runtimeapi.ImageSummary {
 			Arch:     image.Arch,
 		}
 		if summary.OS == "" {
-			summary.OS = "\u2014"
+			summary.OS = constants.EmDash
 		}
 		if summary.Arch == "" {
-			summary.Arch = "\u2014"
+			summary.Arch = constants.EmDash
 		}
 		summary.IsManifest = image.IsManifestList != nil && *image.IsManifestList
 		summary.Registry, _, _ = runtimeapi.SplitImageRef(summary.RepoTags)

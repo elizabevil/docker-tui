@@ -36,5 +36,5 @@ func renderShortcuts(shortcuts []action.Shortcut) string {
 	for _, shortcut := range shortcuts {
 		parts = append(parts, component.GetStyle("hintKey").Render(shortcut.Key)+component.GetStyle("hintDesc").Render(" "+shortcut.Description))
 	}
-	return component.GetStyle("shortcutBar").Render(strings.Join(parts, component.GetStyle("hintSep").Render(" │ ")))
+	return component.GetStyle("shortcutBar").Render(strings.Join(parts, component.GetStyle("hintSep").Render(" " + component.BorderLineVertical + " ")))
 }

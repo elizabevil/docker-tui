@@ -39,7 +39,7 @@ type PanelBody struct {
 // termW, termH bound the spliced content so that lines wider than
 // the terminal are not produced. The dialog is centered within body,
 // not within the full terminal.
-func CenterOnPanel(content, dialogBox string, body PanelBody, termW, termH int, cfg dialogConfig) string {
+func CenterOnPanel(content, dialogBox string, body PanelBody, termW, termH int, cfg DialogConfig) string {
 	if dialogBox == "" {
 		return content
 	}
@@ -126,7 +126,7 @@ func CenterOnPanel(content, dialogBox string, body PanelBody, termW, termH int, 
 // derives termW / termH from content itself. Callers that already hold
 // the terminal dimensions can call CenterOnPanel directly to skip the
 // ANSI-aware line measurement.
-func PlaceDialogInPanel(content, dialogBox string, body PanelBody, cfg dialogConfig) string {
+func PlaceDialogInPanel(content, dialogBox string, body PanelBody, cfg DialogConfig) string {
 	contentLines := strings.Split(content, "\n")
 	termH := len(contentLines)
 	termW := 0
@@ -141,5 +141,5 @@ func PlaceDialogInPanel(content, dialogBox string, body PanelBody, cfg dialogCon
 // CenterOnPanelDefault is the cross-package entry point for app-level
 // overlays that already know the terminal dimensions.
 func CenterOnPanelDefault(content, dialogBox string, body PanelBody, termW, termH int) string {
-	return CenterOnPanel(content, dialogBox, body, termW, termH, dialogConfig{})
+	return CenterOnPanel(content, dialogBox, body, termW, termH, DialogConfig{})
 }

@@ -186,12 +186,12 @@ func CellValue(key string, c *dockerclient.ContainerSummary, status, ports, crea
 		if c.MountCount > 0 {
 			return fmt.Sprintf("%d", c.MountCount)
 		}
-		return "\u2014"
+		return component.StrDash
 	case "ip":
 		if len(c.IPs) > 0 {
 			return c.IPs[0]
 		}
-		return "\u2014"
+		return component.StrDash
 	case "created":
 		return created
 	default:
@@ -218,7 +218,7 @@ func statsString(st state.ContainerStats, cfg *tables.TableConfig) string {
 
 func FormatPorts(bindings []dockerclient.PortBinding, compact bool) []string {
 	if len(bindings) == 0 {
-		return []string{"\u2014"}
+		return []string{component.StrDash}
 	}
 	result := make([]string, 0, len(bindings))
 	for _, binding := range bindings {

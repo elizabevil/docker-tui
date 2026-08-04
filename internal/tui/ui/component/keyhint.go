@@ -22,5 +22,5 @@ func RenderKeyHints(hints []KeyHint) string {
 			GetStyle("hintKey").Render(h.Key)+
 				GetStyle("hintDesc").Render(" "+h.Desc))
 	}
-	return GetStyle("shortcutBar").Render(strings.Join(parts, GetStyle("hintSep").Render(" │ ")))
+	return GetStyle("shortcutBar").Render(strings.Join(parts, GetStyle("hintSep").Render(" " + BorderLineVertical + " ")))
 }

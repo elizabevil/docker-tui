@@ -37,6 +37,20 @@ const (
 	KGG        = "g/G"
 )
 
+// ── Display symbols for special keys (shown in keystroke animation) ──
+const (
+	// DisplaySpace is the U+2423 OPEN BOX used to render the Space key.
+	DisplaySpace = "\u2423"
+	// DisplayEnter is the U+21B5 DOWNWARDS ARROW WITH CORNER LEFTWARDS used for Enter.
+	DisplayEnter = "\u21b5"
+	// DisplayTab is the U+21E5 RIGHTWARDS ARROW TO BAR used for Tab.
+	DisplayTab = "\u21e5"
+	// DisplayBackspace is the U+232B ERASE TO THE LEFT used for Backspace.
+	DisplayBackspace = "\u232b"
+	// DisplayCtrl is the caret prefix used for Ctrl-modified keys.
+	DisplayCtrl = "^"
+)
+
 // ── Keystroke action labels (displayed in header bar animation) ──
 const (
 	ActionLabelStart      = "Start"
@@ -58,6 +72,21 @@ const (
 	ActionLabelHelp       = "Help"
 	ActionLabelFilter     = "Filter"
 	ActionLabelQuit       = "Quit"
+
+	// Additional labels used by KeyStrokeActionLabel.
+	ActionLabelRefresh = "Refresh"
+	ActionLabelKill    = "Kill"
+	ActionLabelInspect = "Inspect"
+	ActionLabelStats   = "Stats"
+	ActionLabelPull    = "Pull"
+	ActionLabelPrune   = "Prune"
+	ActionLabelHistory = "History"
+	ActionLabelConn    = "Conn"
+	ActionLabelOpen    = "Open"
+	ActionLabelBack    = "Back"
+	ActionLabelPanel   = "Panel"
+	ActionLabelUp      = "Up"
+	ActionLabelCmd     = "Cmd"
 )
 
 // ── Focus indicator colors (ANSI 256-color codes) ───────────────

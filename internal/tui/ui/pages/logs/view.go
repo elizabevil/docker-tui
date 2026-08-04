@@ -16,10 +16,10 @@ func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
 	lines := m.Log.LogContent
 	headerExtras := fmt.Sprintf("  %d lines", len(lines))
 	if m.Log.LogSearchText != "" {
-		headerExtras += fmt.Sprintf(" │ search: \"%s\"", m.Log.LogSearchText)
+		headerExtras += fmt.Sprintf(" " + component.BorderLineVertical + " search: \"%s\"", m.Log.LogSearchText)
 	}
 	if m.Log.LogWrapEnabled {
-		headerExtras += " │ wrap"
+		headerExtras += " " + component.BorderLineVertical + " wrap"
 	}
 	header := component.GetStyle("dim").Render(headerExtras)
 
@@ -95,7 +95,7 @@ func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
 		consumed++
 	}
 
-	footer := fmt.Sprintf(" %d-%d/%d │ j/k scroll │ / search │ n/N next │ w wrap │ Esc back",
+	footer := fmt.Sprintf(" %d-%d/%d " + component.BorderLineVertical + " j/k scroll " + component.BorderLineVertical + " / search " + component.BorderLineVertical + " n/N next " + component.BorderLineVertical + " w wrap " + component.BorderLineVertical + " Esc back",
 		offset+1,
 		offset+consumed,
 		len(lines),

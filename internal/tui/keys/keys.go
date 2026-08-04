@@ -81,7 +81,7 @@ const (
 )
 
 const (
-	KeySpace_pretty = "Space"
+	KeySpace_pretty = KSpace
 )
 
 // Backward compat: deprecated _up naming (prefer UPPER in letters.go)

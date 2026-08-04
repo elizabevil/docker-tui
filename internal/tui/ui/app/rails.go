@@ -197,7 +197,7 @@ func renderQueryInput(kind queryKind, text string, cursor int, width int, cursor
 		if suffix != "" {
 			typed := component.GetStyle("searchBar").Render(text)
 			hint := component.GetStyle("searchHint").Render(suffix)
-			cursorMark := "\u2588"
+			cursorMark := component.BlockCursor
 			if !visible {
 				cursorMark = " "
 			}

@@ -15,7 +15,7 @@ type ChoiceOption struct {
 	Disabled    bool
 }
 
-func ChoiceDialog(title, body string, options []ChoiceOption, focus, termW, termH int, titleColor color.Color, overlayColor string, cfg dialogConfig) string {
+func ChoiceDialog(title, body string, options []ChoiceOption, focus, termW, termH int, titleColor color.Color, overlayColor string, cfg DialogConfig) string {
 	dialogW, dialogH := choiceDialogSize(termW, termH, cfg)
 	if titleColor == nil {
 		titleColor = component.GetStyle("panelTitle").GetForeground()
@@ -45,7 +45,7 @@ func ChoiceDialog(title, body string, options []ChoiceOption, focus, termW, term
 	return DialogBox(DialogStyle{Width: dialogW, Height: dialogH, TitleColor: titleColor, OverlayColor: overlayColor}, parts...)
 }
 
-func choiceDialogSize(termW, termH int, cfg dialogConfig) (int, int) {
+func choiceDialogSize(termW, termH int, cfg DialogConfig) (int, int) {
 	if termW <= 0 || termH <= 0 {
 		return dialogWidth(termW, cfg), dialogHeight(termH, cfg)
 	}

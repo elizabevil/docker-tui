@@ -7,6 +7,7 @@ import (
 	"charm.land/lipgloss/v2"
 
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
@@ -127,7 +128,7 @@ func RenderTable(d TableData) string {
 		}
 		pageInfo := fmt.Sprintf("%d-%d/%d", d.Offset+1, end, d.Total)
 		if d.FooterHint != "" {
-			pageInfo += " \u2502 " + d.FooterHint
+			pageInfo += " " + BorderLineVertical + " " + d.FooterHint
 		}
 		rightAligned := lipgloss.NewStyle().Width(containerW).Align(lipgloss.Right).Render(GetStyle("dim").Render(pageInfo))
 		sb.WriteString(rightAligned)
@@ -186,12 +187,12 @@ func renderTopFrameLabel(label string, width int) string {
 	if width < 8 {
 		return GetStyle("dim").Render(label)
 	}
-	left := "── " + label + " "
+	left := BorderLineHorizontal + BorderLineHorizontal + " " + label + " "
 	remain := width - utils.VisibleLen(left)
 	if remain < 0 {
 		remain = 0
 	}
-	return GetStyle("dim").Render(left + strings.Repeat("─", remain))
+	return GetStyle("dim").Render(left + strings.Repeat(BorderLineHorizontal, remain))
 }
 
 // resolveHeaders resolves i18n keys and applies HeaderOverrides,
@@ -212,9 +213,9 @@ func resolveHeaders(d TableData) []string {
 		// Append sort indicator on the active sort column
 		if d.SortColKey != "" && cd.Key == d.SortColKey {
 			if d.SortAsc {
-				h += " \u2191" // ↑
+				h += " " + keys.KUp // ↑
 			} else {
-				h += " \u2193" // ↓
+				h += " " + keys.KDown // ↓
 			}
 		}
 		headers[i] = h
@@ -241,7 +242,7 @@ func RenderTableFooter(offset, end, total int, hint string) string {
 	left := fmt.Sprintf(" %d-%d/%d", offset+1, end, total)
 	ft := left
 	if hint != "" {
-		ft = left + " │ " + hint
+		ft = left + " " + BorderLineVertical + " " + hint
 	}
 	return GetStyle("footer").Render(ft)
 }

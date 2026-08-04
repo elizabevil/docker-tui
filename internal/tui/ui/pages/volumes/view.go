@@ -150,7 +150,7 @@ func renderContainers(cm *state.ContainerListModel, width int, volName string, p
 			Limit:      rowLimit,
 			BodyHeight: panelHeight,
 			BannerW:    w,
-			FooterHint: fmt.Sprintf("%d containers%s │ Esc back", total, more),
+			FooterHint: fmt.Sprintf("%d containers%s " + component.BorderLineVertical + " Esc back", total, more),
 			ColStyles:  colStyles,
 		})
 }

@@ -20,35 +20,9 @@ import (
 // When bodyW > 0 and bodyH > 0, dialog sizing follows the active panel body
 // (BR-043 §3.2: width = bodyW*3/4, height = bodyH, clamped to cfg). Otherwise
 // it falls back to viewport-percentage sizing (dialogWidth/dialogHeight).
-func FormDialog(m *state.AppModel, overlayColor string, cfg dialogConfig, bodyW, bodyH int) string {
+func FormDialog(m *state.AppModel, overlayColor string, cfg DialogConfig, bodyW, bodyH int) string {
 	form := m.Form
-	var dialogW, dialogH int
-	if bodyW > 0 && bodyH > 0 {
-		dialogW = panelDialogWidth(bodyW, cfg)
-		dialogH = panelDialogHeight(bodyH, cfg)
-	} else {
-		dialogW = dialogWidth(m.Viewport.Width, cfg)
-		dialogH = dialogHeight(m.Viewport.Height, cfg)
-	}
-	requiredH := 10
-	for i := range form.Fields {
-		if form.Fields[i].Hidden {
-			continue
-		}
-		requiredH++
-		if form.Fields[i].Error != "" {
-			requiredH++
-		}
-	}
-	if form.Loading {
-		requiredH++
-	}
-	if requiredH > dialogH {
-		dialogH = requiredH
-	}
-	if maxH := m.Viewport.Height - 2; maxH > 0 && dialogH > maxH {
-		dialogH = maxH
-	}
+	dialogW, dialogH := formDialogSize(m, cfg, bodyW, bodyH)
 	if overlayColor == "" {
 		overlayColor = OverlayColor(nil)
 	}
@@ -58,58 +32,112 @@ func FormDialog(m *state.AppModel, overlayColor string, cfg dialogConfig, bodyW,
 	escKey := i18n.T("key.sym_esc")
 
 	parts := []string{
-		lipgloss.NewStyle().Width(innerWidth).Align(lipgloss.Left).Render(component.GetStyle("panelTitle").Render(form.Title)),
+		lipgloss.NewStyle().Width(innerWidth).Align(lipgloss.Left).
+			Render(component.GetStyle("panelTitle").Render(form.Title)),
 	}
-	if form.TargetName != "" {
-		target := form.TargetName
-		if form.TargetID != "" && form.TargetID != target {
-			target = fmt.Sprintf("%s (%s)", target, form.TargetID)
-		}
-		parts = append(parts, component.GetStyle("dim").Render(
-			fmt.Sprintf("%s: %s", targetLabelForForm(form.Kind), target)))
-	}
+	parts = appendFormHeader(parts, form)
 	parts = append(parts, "")
 	labelWidth, valueWidth := formLayout(form.Fields, innerWidth)
-	if form.Loading {
-		parts = append(parts, component.GetStyle("dim").Render(i18n.T("container.update.form.loading")))
-	}
-	for i := range form.Fields {
-		if form.Fields[i].Hidden {
-			continue
-		}
-		parts = append(parts, renderFormField(form, &form.Fields[i], i, labelWidth, valueWidth, !m.CursorBlinkHidden))
-	}
+	parts = appendFormLoading(parts, form)
+	parts = appendFormFields(parts, form, labelWidth, valueWidth, !m.CursorBlinkHidden)
 	parts = append(parts, "")
 
 	// Confirm/Cancel on the same line, left-right (BR-043 §3.3 scheme B +
 	// height 3/4 revision). Cancel on the left (Esc), Confirm on the right
 	// (Enter). Focus stays linear: Cancel = n+1, Confirm = n.
-	renderBtn := func(key, label string, focused bool) string {
-		if focused {
-			return lipgloss.NewStyle().Foreground(component.GetStyle("dialogConfirm").GetForeground()).Bold(true).Render(key + " \u25b6 " + label)
-		}
-		return lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(key + " " + label)
-	}
-	confirmFocused := form.FieldFocus == form.ConfirmSlot() && !form.Popup.Open
-	cancelFocused := form.FieldFocus == form.CancelSlot() && !form.Popup.Open
-	cancelBtn := renderBtn(escKey, form.CancelLabel, cancelFocused)
-	confirmBtn := renderBtn(enterKey, form.ConfirmLabel, confirmFocused)
+	cancelBtn := renderFormButton(escKey, form.CancelLabel, form.FieldFocus == form.CancelSlot() && !form.Popup.Open)
+	confirmBtn := renderFormButton(enterKey, form.ConfirmLabel, form.FieldFocus == form.ConfirmSlot() && !form.Popup.Open)
 	buttons := lipgloss.NewStyle().Width(innerWidth).Align(lipgloss.Center).Render(
 		cancelBtn + "   " + confirmBtn,
 	)
-	parts = append(parts, buttons)
-	parts = append(parts, "")
 	hintKey := "form.hint.navigation"
 	if form.Kind == state.FormContainerUpdate {
 		hintKey = "form.hint.update_navigation"
 	}
-	parts = append(parts, component.GetStyle("dim").Render(i18n.T(hintKey)))
+	parts = append(parts, buttons, "", component.GetStyle("dim").Render(i18n.T(hintKey)))
 
-	box := DialogBox(DialogStyle{Width: dialogW, Height: dialogH, TitleColor: component.GetStyle("panelTitle").GetForeground(), OverlayColor: overlayColor, LeftAligned: true}, parts...)
+	box := DialogBox(DialogStyle{
+		Width:        dialogW,
+		Height:       dialogH,
+		TitleColor:   component.GetStyle("panelTitle").GetForeground(),
+		OverlayColor: overlayColor,
+		LeftAligned:  true,
+	}, parts...)
 	if form.Popup.Open {
 		box = renderFormPopup(form, box, dialogW, dialogH)
 	}
 	return box
+}
+
+func formDialogSize(m *state.AppModel, cfg DialogConfig, bodyW, bodyH int) (dialogW, dialogH int) {
+	if bodyW > 0 && bodyH > 0 {
+		dialogW = panelDialogWidth(bodyW, cfg)
+		dialogH = panelDialogHeight(bodyH, cfg)
+	} else {
+		dialogW = dialogWidth(m.Viewport.Width, cfg)
+		dialogH = dialogHeight(m.Viewport.Height, cfg)
+	}
+	requiredH := 10
+	for i := range m.Form.Fields {
+		if m.Form.Fields[i].Hidden {
+			continue
+		}
+		requiredH++
+		if m.Form.Fields[i].Error != "" {
+			requiredH++
+		}
+	}
+	if m.Form.Loading {
+		requiredH++
+	}
+	if requiredH > dialogH {
+		dialogH = requiredH
+	}
+	if maxH := m.Viewport.Height - 2; maxH > 0 && dialogH > maxH {
+		dialogH = maxH
+	}
+	return dialogW, dialogH
+}
+
+func appendFormHeader(parts []string, form state.FormState) []string {
+	if form.TargetName == "" {
+		return parts
+	}
+	target := form.TargetName
+	if form.TargetID != "" && form.TargetID != target {
+		target = fmt.Sprintf("%s (%s)", target, form.TargetID)
+	}
+	line := fmt.Sprintf("%s: %s", targetLabelForForm(form.Kind), target)
+	return append(parts, component.GetStyle("dim").Render(line))
+}
+
+func appendFormLoading(parts []string, form state.FormState) []string {
+	if !form.Loading {
+		return parts
+	}
+	return append(parts, component.GetStyle("dim").Render(i18n.T("container.update.form.loading")))
+}
+
+func appendFormFields(parts []string, form state.FormState, labelWidth, valueWidth int, cursorVisible bool) []string {
+	for i := range form.Fields {
+		if form.Fields[i].Hidden {
+			continue
+		}
+		parts = append(parts, renderFormField(form, &form.Fields[i], i, labelWidth, valueWidth, cursorVisible))
+	}
+	return parts
+}
+
+func renderFormButton(key, label string, focused bool) string {
+	if focused {
+		return lipgloss.NewStyle().
+			Foreground(component.GetStyle("dialogConfirm").GetForeground()).
+			Bold(true).
+			Render(key + " " + component.ButtonIndicator + " " + label)
+	}
+	return lipgloss.NewStyle().
+		Foreground(component.GetStyle("dim").GetForeground()).
+		Render(key + " " + label)
 }
 
 // formInnerWidth is the width available to a row after border and padding are

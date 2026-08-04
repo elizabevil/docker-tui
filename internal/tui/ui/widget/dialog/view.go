@@ -14,14 +14,14 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
 
-type dialogConfig = config.DialogLayoutConfig
+type DialogConfig = config.DialogLayoutConfig
 
-func LoadDialogConfig() dialogConfig {
+func LoadDialogConfig() DialogConfig {
 	return config.DefaultAppConfig().UI.Dialog
 }
 
 // dialogWidth computes dialog width from terminal width using config percentages.
-func dialogWidth(termW int, cfg dialogConfig) int {
+func dialogWidth(termW int, cfg DialogConfig) int {
 	pct := cfg.Width.Percent
 	if pct <= 0 {
 		pct = 25
@@ -37,7 +37,7 @@ func dialogWidth(termW int, cfg dialogConfig) int {
 }
 
 // dialogHeight computes dialog height from terminal height using config percentages.
-func dialogHeight(termH int, cfg dialogConfig) int {
+func dialogHeight(termH int, cfg DialogConfig) int {
 	pct := cfg.Height.Percent
 	if pct <= 0 {
 		pct = 30
@@ -54,7 +54,7 @@ func dialogHeight(termH int, cfg dialogConfig) int {
 
 // panelDialogWidth computes dialog width from a panel body using a fixed
 // 3/4 ratio, clamped to cfg.MinWidth / cfg.MaxWidth (BR-043 §3.2).
-func panelDialogWidth(bodyW int, cfg dialogConfig) int {
+func panelDialogWidth(bodyW int, cfg DialogConfig) int {
 	w := bodyW * 3 / 4
 	if cfg.Width.Min > 0 && w < cfg.Width.Min {
 		w = cfg.Width.Min
@@ -68,7 +68,7 @@ func panelDialogWidth(bodyW int, cfg dialogConfig) int {
 // panelDialogHeight computes dialog height from a panel body using a fixed
 // 3/4 ratio, clamped to cfg.MinHeight / cfg.MaxHeight (BR-043 §3.2 + height
 // revision: dialog 宽 3/4、高 3/4,均为 panel 比例).
-func panelDialogHeight(bodyH int, cfg dialogConfig) int {
+func panelDialogHeight(bodyH int, cfg DialogConfig) int {
 	h := bodyH * 3 / 4
 	if cfg.Height.Min > 0 && h < cfg.Height.Min {
 		h = cfg.Height.Min
@@ -81,7 +81,7 @@ func panelDialogHeight(bodyH int, cfg dialogConfig) int {
 
 // dialogPosition computes the (x, y) top-left position for a dialog of size
 // (dlgW, dlgH) within a terminal of size (termW, termH) using config percentages.
-func dialogPosition(termW, termH, dlgW, dlgH int, cfg dialogConfig) (x, y int) {
+func dialogPosition(termW, termH, dlgW, dlgH int, cfg DialogConfig) (x, y int) {
 	switch cfg.Position.Horizontal {
 	case "left":
 		x = 0
@@ -120,7 +120,7 @@ func resolveOverlay(theme *config.Theme) string {
 		base = fallback.ResolveColor(fallback.Dialog.Overlay)
 		parsed, _ = utils.ParseColor(base)
 	}
-	rgba := color.NRGBAModel.Convert(parsed).(color.NRGBA)
+	rgba := color.NRGBAModel.Convert(parsed).(color.NRGBA) //nolint:errcheck // NRGBAModel.Convert always yields NRGBA.
 	alpha := uint8(int(theme.Dialog.OverlayOpacity) * 255 / 100)
 	return fmt.Sprintf("#%02x%02x%02x%02x", rgba.R, rgba.G, rgba.B, alpha)
 }

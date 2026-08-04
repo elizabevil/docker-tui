@@ -90,7 +90,7 @@ func RenderList(im *state.ImageListModel, cm *state.ContainerListModel, width in
 		_, name, tag := splitRef(img.RepoTags)
 		registry := img.Registry
 		if registry == "" {
-			registry = "\u2014"
+			registry = component.StrDash
 		}
 		platform := imagePlatform(img)
 		created := utils.FormatCreated(img.Created)
@@ -171,13 +171,13 @@ func imagePlatform(img dockerclient.ImageSummary) string {
 	osName := img.OS
 	arch := img.Arch
 	if osName == "" {
-		osName = "\u2014"
+		osName = component.StrDash
 	}
 	if arch == "" {
-		arch = "\u2014"
+		arch = component.StrDash
 	}
-	if osName == "\u2014" && arch == "\u2014" {
-		return "\u2014"
+	if osName == component.StrDash && arch == component.StrDash {
+		return component.StrDash
 	}
 	return osName + "/" + arch
 }
@@ -340,9 +340,9 @@ func fullRef(img *dockerclient.ImageSummary) string {
 
 func sortArrow(asc bool) string {
 	if asc {
-		return " \u25b2"
+		return " " + component.TriangleUp
 	}
-	return " \u25bc"
+	return " " + component.TriangleDown
 }
 
 func precomputeContainerIDs(cm *state.ContainerListModel) []string {

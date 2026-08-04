@@ -135,7 +135,7 @@ func RenderPanel(m *state.AppModel, panelWidth int, panelHeight int) string {
 		if focused {
 			c = barColor
 		}
-		return lipgloss.NewStyle().Foreground(c).Render(strings.Repeat("\u2500", w))
+		return lipgloss.NewStyle().Foreground(c).Render(strings.Repeat(component.BorderLineHorizontal, w))
 	}
 	leftBar := topBar(m.Compose.ComposeFocus == 0, leftW)
 	rightBar := topBar(m.Compose.ComposeFocus == 1, rightW)
@@ -144,7 +144,7 @@ func RenderPanel(m *state.AppModel, panelWidth int, panelHeight int) string {
 	right = rightBar + "\n" + right
 
 	// 顶部竖线分隔（仅首行对齐，不撑高）
-	sep := component.GetStyle("panelTitle").Render("\u2502")
+	sep := component.GetStyle("panelTitle").Render(component.BorderLineVertical)
 
 	return lipgloss.JoinHorizontal(lipgloss.Top,
 		lipgloss.NewStyle().Width(leftW).Background(style.Colors.BG).Render(left),
@@ -386,7 +386,7 @@ func renderComposeContainers(m *state.AppModel, panelWidth int, panelHeight int)
 				if len(c.IPs) > 0 {
 					return c.IPs[0]
 				}
-				return "\u2014"
+				return component.StrDash
 			default:
 				return ""
 			}
