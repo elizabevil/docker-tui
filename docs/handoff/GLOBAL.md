@@ -5,6 +5,15 @@
 
 ## 决策日志(主模型 → 全体)
 
+### 2026-08-04 — R13 非弹框组件透明范围扩展
+
+- **决策**:为 ActionBar、MessageRail、QueryBar 新增独立背景槽位,归入 `theme.main`,默认及 6 个内置主题统一使用 `token: transparent`。
+- **理由**:移除 ActionBar 对 `style.Colors.BG` 的硬绑定,避免 MessageRail 复用 `toast.background`,并让 QueryBar 的透明行为可由 JSONC 显式覆盖;三个组件保持固定 schema,不开放任意 selector。
+- **改动**:`MainStyles` / patch / validator / apply 增 3 槽位;`styles_load.go` 增 3 个固定投影;三个渲染链路读取对应 style;6 主题 JSONC 同步增加 3 个槽位。
+- **默认行为**:三个槽位均为 transparent,不绘制背景;用户可在自定义主题中改为任意合法 token 或 hex value。
+- **边界**:不改 dialog 主体与遮罩图层;不实施 R10 留置的 non-truecolor alpha 降级算法。
+- **验证**:CGO_ENABLED=0/1 的 `go build ./...`、`go test ./...`、`go vet ./...` 全部通过;6 主题 JSONC 结构一致。
+
 ### 2026-08-04 — R12 增量清理:Legacy 别名与 caller 全部移除
 
 - **决策**:用户反馈"明显不符合要求"指出 R12 残留 legacy 别名(`ColorGreen = "success"` 等)与 caller(stateicon.go / dialog.go)间接通过别名引用旧色名。决定**完全删除 legacy 别名块**,所有 caller 直接用新语义名。

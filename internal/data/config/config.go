@@ -270,7 +270,20 @@ func ValidateTheme(theme *Theme) error {
 	if theme.Dialog.OverlayOpacity > 100 {
 		return errors.New(errThemeOverlayOpacityInvalid)
 	}
-	refs := []ColorRef{theme.Border.Active, theme.Border.Inactive, theme.Border.Focused, theme.Header.Background, theme.Header.Label, theme.Header.Value, theme.Header.Logo, theme.Main.BorderActive, theme.Main.BorderInactive, theme.Main.Title, theme.Main.TableHeader, theme.Main.RowSelected, theme.Main.RowText, theme.Main.Footer, theme.Footer.StatusBackground, theme.Footer.ShortcutBackground, theme.Footer.Key, theme.Footer.Description, theme.Footer.Separator, theme.Dialog.Border, theme.Dialog.Title, theme.Dialog.Body, theme.Dialog.BodyBackground, theme.Dialog.OptionActive, theme.Dialog.OptionInactive, theme.Dialog.Overlay, theme.Toast.Success, theme.Toast.Error, theme.Toast.Background, theme.Text.Info, theme.Text.Error, theme.Text.Success, theme.Text.Warning, theme.Text.Dim, theme.Text.HelpKey, theme.Text.HelpDescription}
+	refs := []ColorRef{
+		theme.Border.Active, theme.Border.Inactive, theme.Border.Focused,
+		theme.Header.Background, theme.Header.Label, theme.Header.Value, theme.Header.Logo,
+		theme.Main.BorderActive, theme.Main.BorderInactive, theme.Main.Title, theme.Main.TableHeader,
+		theme.Main.RowSelected, theme.Main.RowText, theme.Main.Footer, theme.Main.PanelBackground,
+		theme.Main.ActionBarBackground, theme.Main.MessageRailBackground, theme.Main.QueryBarBackground,
+		theme.Footer.StatusBackground, theme.Footer.ShortcutBackground, theme.Footer.Key,
+		theme.Footer.Description, theme.Footer.Separator,
+		theme.Dialog.Border, theme.Dialog.Title, theme.Dialog.Body, theme.Dialog.BodyBackground,
+		theme.Dialog.OptionActive, theme.Dialog.OptionInactive, theme.Dialog.Overlay,
+		theme.Toast.Success, theme.Toast.Error, theme.Toast.Background,
+		theme.Text.Info, theme.Text.Error, theme.Text.Success, theme.Text.Warning, theme.Text.Dim,
+		theme.Text.HelpKey, theme.Text.HelpDescription,
+	}
 	for _, ref := range refs {
 		if !isColorRef(ref) {
 			return fmt.Errorf(errThemeColorReferenceFormat, ref)
@@ -286,7 +299,7 @@ func isColorRef(ref ColorRef) bool {
 	if ref.Value != Color(emptyValue) {
 		return isHexColor(string(ref.Value))
 	}
-switch ref.Token {
+	switch ref.Token {
 	case ColorTokenPrimary, ColorTokenSuccess, ColorTokenWarning, ColorTokenDanger, ColorTokenInfo, ColorTokenAccent, ColorTokenAccentSecondary, ColorTokenForeground, ColorTokenForegroundMuted, ColorTokenBackground, ColorTokenBackgroundSubtle, ColorTokenBackgroundDeep, ColorTokenTransparent:
 		return true
 	default:

@@ -80,7 +80,7 @@ func parseHexColor(value string) (color.Color, bool) {
 	if len(hex) == 6 {
 		raw = raw<<8 | 0xff
 	}
-	return color.NRGBA{R: uint8(raw >> 24), G: uint8(raw >> 16), B: uint8(raw >> 8), A: 0xff}, true
+	return color.NRGBA{R: uint8(raw >> 24), G: uint8(raw >> 16), B: uint8(raw >> 8), A: uint8(raw)}, true
 }
 
 func parseFunctionalColor(value string) (color.Color, bool) {
@@ -106,6 +106,7 @@ func parseFunctionalColor(value string) (color.Color, bool) {
 		if err != nil || alpha < 0 || alpha > 1 {
 			return nil, false
 		}
+		channels[3] = uint8(alpha*255 + 0.5)
 	}
 	return color.NRGBA{R: channels[0], G: channels[1], B: channels[2], A: channels[3]}, true
 }

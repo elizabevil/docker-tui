@@ -1,6 +1,10 @@
 package component
 
 import (
+	"fmt"
+	"image/color"
+	"strings"
+
 	"charm.land/lipgloss/v2"
 	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
@@ -26,6 +30,7 @@ type globalStyleRefs struct {
 	DialogOption         styleRef `json:"dialogOption"`
 	DialogOptionDisabled styleRef `json:"dialogOptionDisabled"`
 	DialogBodyBackground styleRef `json:"dialogBodyBackground"`
+	Panel                styleRef `json:"panel"`
 	PanelTitle           styleRef `json:"panelTitle"`
 	Dim                  styleRef `json:"dim"`
 	HelpKey              styleRef `json:"helpKey"`
@@ -46,6 +51,9 @@ type globalStyleRefs struct {
 	KeyLast              styleRef `json:"keyLast"`
 	Footer               styleRef `json:"footer"`
 	ShortcutBar          styleRef `json:"shortcutBar"`
+	ActionBar            styleRef `json:"actionBar"`
+	MessageRail          styleRef `json:"messageRail"`
+	QueryBar             styleRef `json:"queryBar"`
 	SelectedRow          styleRef `json:"selectedRow"`
 	DialogConfirm        styleRef `json:"dialogConfirm"`
 	DialogError          styleRef `json:"dialogError"`
@@ -95,24 +103,28 @@ func ApplyThemeStyles(theme *config.Theme) {
 		return
 	}
 	resolve := theme.ResolveColor
+	resolveBackground := func(ref config.ColorRef) string {
+		return flattenThemeBackground(theme, ref)
+	}
 	rawStyles.SearchBar.Color = resolve(theme.Text.HelpDescription)
 	rawStyles.SearchCursor.Color = resolve(theme.Text.HelpDescription)
 	rawStyles.SearchHint.Color = resolve(theme.Text.Dim)
 	rawStyles.CommandPrefix.Color = resolve(theme.Text.Success)
 	rawStyles.Breadcrumb.Color = resolve(theme.Text.Dim)
 	rawStyles.BreadcrumbActive.Color = resolve(theme.Text.Info)
-	rawStyles.ToastSuccess = styleRef{Color: resolve(theme.Toast.Success), Background: resolve(theme.Toast.Background)}
-	rawStyles.ToastError = styleRef{Color: resolve(theme.Toast.Error), Background: resolve(theme.Toast.Background)}
-	rawStyles.ToastInfo = styleRef{Color: resolve(theme.Text.Info), Background: resolve(theme.Toast.Background)}
-	rawStyles.ToastWarning = styleRef{Color: resolve(theme.Text.Warning), Background: resolve(theme.Toast.Background)}
+	rawStyles.ToastSuccess = styleRef{Color: resolve(theme.Toast.Success), Background: resolveBackground(theme.Toast.Background)}
+	rawStyles.ToastError = styleRef{Color: resolve(theme.Toast.Error), Background: resolveBackground(theme.Toast.Background)}
+	rawStyles.ToastInfo = styleRef{Color: resolve(theme.Text.Info), Background: resolveBackground(theme.Toast.Background)}
+	rawStyles.ToastWarning = styleRef{Color: resolve(theme.Text.Warning), Background: resolveBackground(theme.Toast.Background)}
 	rawStyles.HintKey.Color = resolve(theme.Footer.Key)
 	rawStyles.HintDescription.Color = resolve(theme.Footer.Description)
 	rawStyles.HintSeparator.Color = resolve(theme.Footer.Separator)
 	rawStyles.DialogTitle.Color = resolve(theme.Dialog.Title)
 	rawStyles.DialogBody.Color = resolve(theme.Dialog.Body)
-	rawStyles.DialogBodyBackground = styleRef{Background: resolve(theme.Dialog.BodyBackground)}
+	rawStyles.DialogBodyBackground = styleRef{Background: resolveBackground(theme.Dialog.BodyBackground)}
 	rawStyles.DialogOption.Color = resolve(theme.Dialog.OptionActive)
 	rawStyles.DialogOptionDisabled.Color = resolve(theme.Dialog.OptionInactive)
+	rawStyles.Panel = styleRef{Background: resolveBackground(theme.Main.PanelBackground)}
 	rawStyles.PanelTitle.Color = resolve(theme.Main.Title)
 	rawStyles.Dim.Color = resolve(theme.Text.Dim)
 	rawStyles.HelpKey.Color = resolve(theme.Text.HelpKey)
@@ -121,29 +133,62 @@ func ApplyThemeStyles(theme *config.Theme) {
 	rawStyles.DetailSection.Color = resolve(theme.Text.HelpDescription)
 	rawStyles.DetailValue.Color = resolve(theme.Text.HelpDescription)
 	rawStyles.DetailDim.Color = resolve(theme.Text.Dim)
-	rawStyles.DetailSelection = styleRef{Color: resolve(theme.Main.RowText), Background: resolve(theme.Main.RowSelected)}
+	rawStyles.DetailSelection = styleRef{Color: resolve(theme.Main.RowText), Background: resolveBackground(theme.Main.RowSelected), Bold: true}
 	rawStyles.LogTimestamp.Color = resolve(theme.Text.Info)
 	rawStyles.LogText.Color = resolve(theme.Text.HelpDescription)
 	rawStyles.LogStderr.Color = resolve(theme.Text.Error)
-	rawStyles.LogHighlight = styleRef{Color: resolve(theme.Header.Background), Background: resolve(theme.Text.Warning)}
+	rawStyles.LogHighlight = styleRef{Color: resolveBackground(theme.Header.Background), Background: resolveBackground(theme.Text.Warning)}
 	rawStyles.Header = styleRef{Color: resolve(theme.Main.TableHeader), Bold: true}
-	rawStyles.HeaderBar = styleRef{Color: resolve(theme.Header.Value), Background: resolve(theme.Header.Background)}
+	rawStyles.HeaderBar = styleRef{Color: resolve(theme.Header.Value), Background: resolveBackground(theme.Header.Background)}
 	rawStyles.HeaderLabel = styleRef{Color: resolve(theme.Header.Label)}
-	rawStyles.KeyBadge = styleRef{Color: resolve(theme.Header.Value), Bold: true}
-	rawStyles.KeyLast = styleRef{Color: resolve(theme.Text.Dim)}
+	rawStyles.KeyBadge = styleRef{Color: resolve(theme.Header.Value), Background: resolveBackground(theme.Header.Background), Bold: true}
 	rawStyles.Footer = styleRef{Color: resolve(theme.Main.Footer)}
-	rawStyles.ShortcutBar = styleRef{Background: resolve(theme.Footer.ShortcutBackground)}
-	rawStyles.SelectedRow = styleRef{Color: resolve(theme.Main.RowText), Background: resolve(theme.Main.RowSelected), Bold: true}
-	rawStyles.DialogConfirm = styleRef{Color: resolve(theme.Text.Success), Background: resolve(theme.Toast.Background), Bold: true}
-	rawStyles.DialogError = styleRef{Color: resolve(theme.Text.Error), Background: resolve(theme.Toast.Background)}
-	rawStyles.DialogWarning = styleRef{Color: resolve(theme.Text.Warning), Background: resolve(theme.Toast.Background)}
+	rawStyles.ShortcutBar = styleRef{Background: resolveBackground(theme.Footer.ShortcutBackground)}
+	rawStyles.ActionBar = styleRef{Background: resolveBackground(theme.Main.ActionBarBackground)}
+	rawStyles.MessageRail = styleRef{Background: resolveBackground(theme.Main.MessageRailBackground)}
+	rawStyles.QueryBar = styleRef{Background: resolveBackground(theme.Main.QueryBarBackground)}
+	rawStyles.SelectedRow = styleRef{Color: resolve(theme.Main.RowText), Background: resolveBackground(theme.Main.RowSelected)}
+	rawStyles.DialogConfirm = styleRef{Color: resolve(theme.Text.Success), Background: resolveBackground(theme.Toast.Background), Bold: true}
+	rawStyles.DialogError = styleRef{Color: resolve(theme.Text.Error), Background: resolveBackground(theme.Toast.Background)}
+	rawStyles.DialogWarning = styleRef{Color: resolve(theme.Text.Warning), Background: resolveBackground(theme.Toast.Background)}
 
 	tableCfg.RowStyles.Selected.Color = resolve(theme.Main.RowText)
-	tableCfg.RowStyles.Selected.Background = resolve(theme.Main.RowSelected)
+	tableCfg.RowStyles.Selected.Background = resolveBackground(theme.Main.RowSelected)
 	tableCfg.RowStyles.Selected.Bold = true
 
 	ApplyTableTheme(theme)
 	ApplySafeFallback(theme)
+}
+
+func flattenThemeBackground(theme *config.Theme, ref config.ColorRef) string {
+	value := theme.ResolveColor(ref)
+	if value == string(config.FallbackColorTransparent) {
+		return ""
+	}
+	parsed, ok := utils.ParseColor(value)
+	if !ok {
+		return value
+	}
+	overlay, ok := color.NRGBAModel.Convert(parsed).(color.NRGBA)
+	if !ok || overlay.A == 0xff {
+		return value
+	}
+	if overlay.A == 0 {
+		return ""
+	}
+	baseParsed, ok := utils.ParseColor(string(theme.Palette.Background))
+	if !ok {
+		return value
+	}
+	base, ok := color.NRGBAModel.Convert(baseParsed).(color.NRGBA)
+	if !ok {
+		return value
+	}
+	blend := func(bottom, top uint8) uint8 {
+		alpha := uint32(overlay.A)
+		return uint8((uint32(top)*alpha + uint32(bottom)*(255-alpha) + 127) / 255)
+	}
+	return fmt.Sprintf("#%02x%02x%02x", blend(base.R, overlay.R), blend(base.G, overlay.G), blend(base.B, overlay.B))
 }
 
 func ApplyTableTheme(theme *config.Theme) {
@@ -151,7 +196,7 @@ func ApplyTableTheme(theme *config.Theme) {
 		return
 	}
 	resolve := theme.ResolveColor
-	tableCfg.RowStyles.Marked.Background = resolve(theme.Table.MarkedBackground)
+	tableCfg.RowStyles.Marked.Background = flattenThemeBackground(theme, theme.Table.MarkedBackground)
 	tableCfg.RowStyles.Marked.Color = resolve(theme.Table.NameForeground)
 	tableCfg.ColumnStyles = defaultColumnStyles(resolve(theme.Table.ColumnForeground), resolve(theme.Table.NameForeground))
 }
@@ -177,6 +222,32 @@ func ApplySafeFallback(theme *config.Theme) {
 		Accent: lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ResolveColor(theme.SafeFallback.Accent))),
 		Error:  lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ResolveColor(theme.SafeFallback.Error))),
 	}
+}
+
+// RawStylesForTest exposes the package-level style cache to tests in other packages.
+func RawStylesForTest() globalStyleRefs { return rawStyles }
+
+// SetRawStylesForTest restores the package-level style cache from tests.
+func SetRawStylesForTest(refs globalStyleRefs) { rawStyles = refs }
+
+// SafeFallbackForTest exposes the package-level safe fallback cache to tests.
+func SafeFallbackForTest() SafeFallbackStyles { return safeFallbackRef }
+
+// SetSafeFallbackForTest restores the package-level safe fallback cache from tests.
+func SetSafeFallbackForTest(refs SafeFallbackStyles) { safeFallbackRef = refs }
+
+func RenderBackgroundLayer(content string, background color.Color) string {
+	if content == "" || background == nil {
+		return content
+	}
+	r, g, b, _ := background.RGBA()
+	backgroundANSI := fmt.Sprintf("\033[48;2;%d;%d;%dm", r/257, g/257, b/257)
+	lines := strings.Split(content, "\n")
+	for i, line := range lines {
+		line = strings.ReplaceAll(line, "\033[0m", "\033[0m"+backgroundANSI)
+		lines[i] = backgroundANSI + line + "\033[0m"
+	}
+	return strings.Join(lines, "\n")
 }
 
 func GetStyle(name string) lipgloss.Style {
@@ -227,6 +298,8 @@ func (s globalStyleRefs) lookup(name string) (styleRef, bool) {
 		return s.DialogOption, true
 	case "dialogOptionDisabled":
 		return s.DialogOptionDisabled, true
+	case "panel":
+		return s.Panel, true
 	case "panelTitle":
 		return s.PanelTitle, true
 	case "dim":
@@ -267,6 +340,12 @@ func (s globalStyleRefs) lookup(name string) (styleRef, bool) {
 		return s.Footer, true
 	case "shortcutBar":
 		return s.ShortcutBar, true
+	case "actionBar":
+		return s.ActionBar, true
+	case "messageRail":
+		return s.MessageRail, true
+	case "queryBar":
+		return s.QueryBar, true
 	case "selectedRow":
 		return s.SelectedRow, true
 	case "dialogConfirm":

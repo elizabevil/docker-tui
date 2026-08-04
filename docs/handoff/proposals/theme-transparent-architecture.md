@@ -111,4 +111,15 @@ JSONC 嵌套键 1:1 镜像:6 主题均 47 键
 
 - 把 `SupportsTruecolor()` 接入 `tui.ApplyTheme`:non-truecolor 时自动把 9 位 hex 退化为 7 位,保留遮罩可见性
 - 给 `BodyBackground` 加 JSONC 计算支持:用户可写 `token: lighten(background, 5%)` 让程序动态计算 +5% 加亮(避免 6 主题都手填 hex)
-- 把 `transparent` token 扩展到所有非弹框组件(ActionBar / MessageRail / QueryBar)——目前这些由 R4/R5 代码层 `.Background(style.Colors.BG)` 兜底,JSONC 层暂未暴露
+
+## 8. R13 增量:非弹框组件透明范围扩展
+
+R10 留置的 ActionBar / MessageRail / QueryBar 透明扩展已实施:
+
+- `theme.main` 新增 `actionBarBackground`、`messageRailBackground`、`queryBarBackground` 3 个固定槽位
+- `DefaultTheme()` 与 6 个内置主题均设为 `token: transparent`
+- `ThemePatch.Apply`、`ValidateTheme`、`ApplyThemeStyles` 与 `globalStyleRefs.lookup` 全链路接入
+- ActionBar 移除 `.Background(style.Colors.BG)`;MessageRail 不再依赖 `toast.background`;QueryBar 从隐式无背景改为显式主题槽位
+- 用户可把任一槽位改为其它 token 或 `{"value":"#RRGGBB"}` 恢复独立背景
+
+R13 不包含 non-truecolor alpha 降级与 `lighten()` 计算语法,二者继续留待后续批次。

@@ -8,6 +8,28 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
 )
 
+func TestTableColumnsDoNotOwnBackgrounds(t *testing.T) {
+	previous := tableCfg
+	previousStyles := rawStyles
+	previousSafe := safeFallbackRef
+	defer func() {
+		tableCfg = previous
+		rawStyles = previousStyles
+		safeFallbackRef = previousSafe
+	}()
+
+	ApplyThemeStyles(config.DefaultTheme())
+	styles := GetColumnStyles([]tables.ColumnDef{{Key: "id"}, {Key: "name"}, {Key: "state"}})
+	for i, column := range styles {
+		if column.Style.Background != "" {
+			t.Fatalf("column %d owns background %q", i, column.Style.Background)
+		}
+	}
+	if GetRowStyle("selected").Background == "" || GetRowStyle("marked").Background == "" {
+		t.Fatal("selected and marked rows must retain row-level backgrounds")
+	}
+}
+
 func TestRenderTableProjectsPageAndSummaryAtTopRight(t *testing.T) {
 	rendered := RenderTable(TableData{
 		Cols:       []tables.ColumnDef{{Key: "name", Header: "Name", Fixed: 20}},

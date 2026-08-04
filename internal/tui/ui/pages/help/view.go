@@ -11,7 +11,6 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/action"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 
 	"github.com/elizabevil/docker-tui/internal/tui"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
@@ -104,8 +103,8 @@ func (r *Renderer) Render(width int, app *state.AppModel) string {
 	}
 	rightSb.WriteString(component.GetStyle("dim").Render(i18n.T("help.press_close", closeKeys)))
 
-	leftBox := lipgloss.NewStyle().Width(leftW).Background(style.Colors.BG).Render(leftSb.String())
-	rightBox := lipgloss.NewStyle().Width(rightW).Background(style.Colors.BG).Render(rightSb.String())
+	leftBox := component.GetStyle("panel").Width(leftW).Render(leftSb.String())
+	rightBox := component.GetStyle("panel").Width(rightW).Render(rightSb.String())
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, leftBox, rightBox)
 }

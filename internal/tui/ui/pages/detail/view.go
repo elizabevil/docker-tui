@@ -10,7 +10,6 @@ import (
 	"github.com/elizabevil/docker-tui/internal/data/runtime/docker"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
@@ -151,7 +150,7 @@ func renderDocument(m *state.AppModel, bodyLines []state.DetailDocumentLine, pan
 	for len(rendered) < bodyHeight {
 		rendered = append(rendered, "")
 	}
-	body := lipgloss.NewStyle().Height(bodyHeight).MaxHeight(bodyHeight).Background(style.Colors.BG).Render(strings.Join(rendered, "\n"))
+	body := component.GetStyle("panel").Height(bodyHeight).MaxHeight(bodyHeight).Render(strings.Join(rendered, "\n"))
 
 	footer := fmt.Sprintf(" %d-%d/%d", offset+1, visibleEnd, len(bodyLines))
 	if m.Detail.DetailHint != "" {

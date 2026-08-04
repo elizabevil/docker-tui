@@ -37,7 +37,10 @@
       "tableHeader": { "token": "primary" },
       "rowSelected": { "token": "accentSecondary" },
       "rowText": { "token": "foreground" },
-      "footer": { "token": "foregroundMuted" }
+      "footer": { "token": "foregroundMuted" },
+      "actionBarBackground": { "token": "transparent" },
+      "messageRailBackground": { "token": "transparent" },
+      "queryBarBackground": { "token": "transparent" }
     },
     "footer": {
       "statusBackground": { "token": "transparent" },

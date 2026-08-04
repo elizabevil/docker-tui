@@ -66,13 +66,17 @@ type HeaderStyles struct {
 }
 
 type MainStyles struct {
-	BorderActive   ColorRef `json:"borderActive" yaml:"borderActive"`
-	BorderInactive ColorRef `json:"borderInactive" yaml:"borderInactive"`
-	Title          ColorRef `json:"title" yaml:"title"`
-	TableHeader    ColorRef `json:"tableHeader" yaml:"tableHeader"`
-	RowSelected    ColorRef `json:"rowSelected" yaml:"rowSelected"`
-	RowText        ColorRef `json:"rowText" yaml:"rowText"`
-	Footer         ColorRef `json:"footer" yaml:"footer"`
+	BorderActive          ColorRef `json:"borderActive" yaml:"borderActive"`
+	BorderInactive        ColorRef `json:"borderInactive" yaml:"borderInactive"`
+	Title                 ColorRef `json:"title" yaml:"title"`
+	TableHeader           ColorRef `json:"tableHeader" yaml:"tableHeader"`
+	RowSelected           ColorRef `json:"rowSelected" yaml:"rowSelected"`
+	RowText               ColorRef `json:"rowText" yaml:"rowText"`
+	Footer                ColorRef `json:"footer" yaml:"footer"`
+	PanelBackground       ColorRef `json:"panelBackground" yaml:"panelBackground"`
+	ActionBarBackground   ColorRef `json:"actionBarBackground" yaml:"actionBarBackground"`
+	MessageRailBackground ColorRef `json:"messageRailBackground" yaml:"messageRailBackground"`
+	QueryBarBackground    ColorRef `json:"queryBarBackground" yaml:"queryBarBackground"`
 }
 
 type FooterStyles struct {
@@ -176,13 +180,17 @@ type HeaderStylesPatch struct {
 	Logo       *ColorRef `json:"logo,omitempty" yaml:"logo,omitempty"`
 }
 type MainStylesPatch struct {
-	BorderActive   *ColorRef `json:"borderActive,omitempty" yaml:"borderActive,omitempty"`
-	BorderInactive *ColorRef `json:"borderInactive,omitempty" yaml:"borderInactive,omitempty"`
-	Title          *ColorRef `json:"title,omitempty" yaml:"title,omitempty"`
-	TableHeader    *ColorRef `json:"tableHeader,omitempty" yaml:"tableHeader,omitempty"`
-	RowSelected    *ColorRef `json:"rowSelected,omitempty" yaml:"rowSelected,omitempty"`
-	RowText        *ColorRef `json:"rowText,omitempty" yaml:"rowText,omitempty"`
-	Footer         *ColorRef `json:"footer,omitempty" yaml:"footer,omitempty"`
+	BorderActive          *ColorRef `json:"borderActive,omitempty" yaml:"borderActive,omitempty"`
+	BorderInactive        *ColorRef `json:"borderInactive,omitempty" yaml:"borderInactive,omitempty"`
+	Title                 *ColorRef `json:"title,omitempty" yaml:"title,omitempty"`
+	TableHeader           *ColorRef `json:"tableHeader,omitempty" yaml:"tableHeader,omitempty"`
+	RowSelected           *ColorRef `json:"rowSelected,omitempty" yaml:"rowSelected,omitempty"`
+	RowText               *ColorRef `json:"rowText,omitempty" yaml:"rowText,omitempty"`
+	Footer                *ColorRef `json:"footer,omitempty" yaml:"footer,omitempty"`
+	PanelBackground       *ColorRef `json:"panelBackground,omitempty" yaml:"panelBackground,omitempty"`
+	ActionBarBackground   *ColorRef `json:"actionBarBackground,omitempty" yaml:"actionBarBackground,omitempty"`
+	MessageRailBackground *ColorRef `json:"messageRailBackground,omitempty" yaml:"messageRailBackground,omitempty"`
+	QueryBarBackground    *ColorRef `json:"queryBarBackground,omitempty" yaml:"queryBarBackground,omitempty"`
 }
 type FooterStylesPatch struct {
 	StatusBackground   *ColorRef `json:"statusBackground,omitempty" yaml:"statusBackground,omitempty"`
@@ -248,12 +256,24 @@ func DefaultTheme() *Theme {
 		Palette: Palette{Primary: FallbackColorPrimary, Success: FallbackColorSuccess, Warning: FallbackColorWarning, Danger: FallbackColorDanger, Info: FallbackColorInfo, Accent: FallbackColorAccent, AccentSecondary: FallbackColorAccentSecondary, Foreground: FallbackColorForeground, ForegroundMuted: FallbackColorForegroundMuted, Background: FallbackColorBackground, BackgroundSubtle: FallbackColorBackgroundSubtle, BackgroundDeep: FallbackColorBackgroundDeep},
 		Border:  BorderStyles{Active: TokenRef(ColorTokenPrimary), Inactive: TokenRef(ColorTokenForegroundMuted), Focused: TokenRef(ColorTokenSuccess), Kind: BorderRounded},
 		Header:  HeaderStyles{Background: TokenRef(ColorTokenTransparent), Label: TokenRef(ColorTokenForegroundMuted), Value: TokenRef(ColorTokenForeground), Logo: TokenRef(ColorTokenInfo)},
-		Main:    MainStyles{BorderActive: TokenRef(ColorTokenPrimary), BorderInactive: TokenRef(ColorTokenForegroundMuted), Title: TokenRef(ColorTokenPrimary), TableHeader: TokenRef(ColorTokenInfo), RowSelected: TokenRef(ColorTokenInfo), RowText: TokenRef(ColorTokenForeground), Footer: TokenRef(ColorTokenForegroundMuted)},
-		Footer:  FooterStyles{StatusBackground: TokenRef(ColorTokenTransparent), ShortcutBackground: TokenRef(ColorTokenTransparent), Key: TokenRef(ColorTokenForeground), Description: TokenRef(ColorTokenForegroundMuted), Separator: TokenRef(ColorTokenBackgroundDeep)},
-		Dialog:  DialogStyles{Border: TokenRef(ColorTokenDanger), Title: TokenRef(ColorTokenDanger), Body: TokenRef(ColorTokenForeground), BodyBackground: TokenRef(ColorTokenBackground), OptionActive: TokenRef(ColorTokenPrimary), OptionInactive: TokenRef(ColorTokenForegroundMuted), Overlay: TokenRef(ColorTokenBackground), OverlayOpacity: 80},
-		Toast:   ToastStyles{Success: TokenRef(ColorTokenSuccess), Error: TokenRef(ColorTokenDanger), Background: TokenRef(ColorTokenTransparent)},
-		Text:    TextStyles{Info: TokenRef(ColorTokenInfo), Error: TokenRef(ColorTokenDanger), Success: TokenRef(ColorTokenSuccess), Warning: TokenRef(ColorTokenWarning), Dim: TokenRef(ColorTokenForegroundMuted), HelpKey: TokenRef(ColorTokenPrimary), HelpDescription: TokenRef(ColorTokenForeground)},
-		Table:   TableStyles{MarkedBackground: ValueRef(FallbackColorTableMarkedBackground), ColumnForeground: ValueRef(FallbackColorTableColumnForeground), NameForeground: ValueRef(FallbackColorTableNameForeground)},
+		Main: MainStyles{
+			BorderActive:          TokenRef(ColorTokenPrimary),
+			BorderInactive:        TokenRef(ColorTokenForegroundMuted),
+			Title:                 TokenRef(ColorTokenPrimary),
+			TableHeader:           TokenRef(ColorTokenInfo),
+			RowSelected:           TokenRef(ColorTokenInfo),
+			RowText:               TokenRef(ColorTokenForeground),
+			Footer:                TokenRef(ColorTokenForegroundMuted),
+			PanelBackground:       TokenRef(ColorTokenBackgroundDeep),
+			ActionBarBackground:   TokenRef(ColorTokenTransparent),
+			MessageRailBackground: TokenRef(ColorTokenTransparent),
+			QueryBarBackground:    TokenRef(ColorTokenTransparent),
+		},
+		Footer:       FooterStyles{StatusBackground: TokenRef(ColorTokenTransparent), ShortcutBackground: TokenRef(ColorTokenTransparent), Key: TokenRef(ColorTokenForeground), Description: TokenRef(ColorTokenForegroundMuted), Separator: TokenRef(ColorTokenBackgroundDeep)},
+		Dialog:       DialogStyles{Border: TokenRef(ColorTokenDanger), Title: TokenRef(ColorTokenDanger), Body: TokenRef(ColorTokenForeground), BodyBackground: TokenRef(ColorTokenBackground), OptionActive: TokenRef(ColorTokenPrimary), OptionInactive: TokenRef(ColorTokenForegroundMuted), Overlay: TokenRef(ColorTokenBackground), OverlayOpacity: 80},
+		Toast:        ToastStyles{Success: TokenRef(ColorTokenSuccess), Error: TokenRef(ColorTokenDanger), Background: TokenRef(ColorTokenTransparent)},
+		Text:         TextStyles{Info: TokenRef(ColorTokenInfo), Error: TokenRef(ColorTokenDanger), Success: TokenRef(ColorTokenSuccess), Warning: TokenRef(ColorTokenWarning), Dim: TokenRef(ColorTokenForegroundMuted), HelpKey: TokenRef(ColorTokenPrimary), HelpDescription: TokenRef(ColorTokenForeground)},
+		Table:        TableStyles{MarkedBackground: ValueRef(FallbackColorTableMarkedBackground), ColumnForeground: ValueRef(FallbackColorTableColumnForeground), NameForeground: ValueRef(FallbackColorTableNameForeground)},
 		SafeFallback: SafeFallbackStyles{Normal: TokenRef(ColorTokenForeground), Bold: TokenRef(ColorTokenForeground), Dim: TokenRef(ColorTokenForegroundMuted), Accent: TokenRef(ColorTokenPrimary), Error: TokenRef(ColorTokenDanger)},
 	}
 }
@@ -332,6 +352,10 @@ func (p ThemePatch) Apply(target *Theme) {
 		assign(&target.Main.RowSelected, p.Main.RowSelected)
 		assign(&target.Main.RowText, p.Main.RowText)
 		assign(&target.Main.Footer, p.Main.Footer)
+		assign(&target.Main.PanelBackground, p.Main.PanelBackground)
+		assign(&target.Main.ActionBarBackground, p.Main.ActionBarBackground)
+		assign(&target.Main.MessageRailBackground, p.Main.MessageRailBackground)
+		assign(&target.Main.QueryBarBackground, p.Main.QueryBarBackground)
 	}
 	if p.Footer != nil {
 		assign(&target.Footer.StatusBackground, p.Footer.StatusBackground)

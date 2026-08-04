@@ -1,7 +1,40 @@
 # STATE — task 任务驱动 / 当前活跃批次
 
 > 上次更新: 2026-08-04
-> 当前轮次: 12
+> 当前轮次: 13
+
+## 批次 R13:非弹框组件透明范围扩展
+
+### R13.1 — 批次元信息
+
+- **状态**:done(未 commit,等用户确认)
+- **日期**:2026-08-04
+- **触发**:`theme-transparent-architecture.md` §7 留置的 ActionBar / MessageRail / QueryBar 透明范围扩展
+- **范围**:
+  - `MainStyles` / `MainStylesPatch` 新增 3 个背景槽位,默认 `token: transparent`
+  - 6 个内置主题 JSONC 显式配置 3 个透明槽位
+  - `styles_load.go` 增加固定投影与 lookup
+  - ActionBar / MessageRail / QueryBar 渲染链路改读独立主题槽位
+  - config / component 测试覆盖默认值、patch 与投影
+
+### R13.2 — 子任务清单
+
+| 子任务 | 状态 |
+|---|---|
+| Schema + patch + validator | done |
+| 6 主题 JSONC 透明槽位 | done |
+| 3 个组件投影与渲染接入 | done |
+| 相关包测试 | done |
+| 全量验证 | done |
+| Handoff 文档 | done |
+
+### R13.3 — 验证
+
+- `CGO_ENABLED=0/1 go build ./...`:全部通过
+- `CGO_ENABLED=0/1 go test ./...`:全部通过
+- `CGO_ENABLED=0/1 go vet ./...`:无诊断
+- JSONC 6 主题结构一致,每个 `theme` 60 个叶键
+- `golangci-lint`:当前环境未安装,无法执行
 
 ## 批次 R12:style.Colors 字段重命名为语义名
 

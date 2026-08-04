@@ -84,7 +84,7 @@ func RenderApp(m *state.AppModel) string {
 	case TerminalUnsupported:
 		return renderTerminalError(m.Viewport.Width, m.Viewport.Height)
 	case TerminalCompact:
-		return renderActionBar(m, renderCompactApp(m))
+		return renderActionBar(m, renderAppBackground(m, renderCompactApp(m)))
 	}
 
 	// Window margin: percentage of terminal height for top/bottom spacing
@@ -204,6 +204,7 @@ func RenderApp(m *state.AppModel) string {
 		wrap(queryRendered, queryColors),
 		wrap(panelRendered, panelColors),
 		wrap(footerRendered, footerColors)))
+	result = renderAppBackground(m, result)
 
 	overlayColor := dialog.OverlayColor(m)
 	rep := ResolveLayout(m)
@@ -249,6 +250,18 @@ func RenderApp(m *state.AppModel) string {
 	return result
 }
 
+func renderAppBackground(m *state.AppModel, content string) string {
+	if m == nil || m.Dependencies.Theme == nil || m.Viewport.Width <= 0 || m.Viewport.Height <= 0 {
+		return content
+	}
+	background := style.Color(string(m.Dependencies.Theme.Palette.Background))
+	return lipgloss.NewStyle().
+		Width(m.Viewport.Width).
+		Height(m.Viewport.Height).
+		Background(background).
+		Render(content)
+}
+
 func renderActionBar(m *state.AppModel, content string) string {
 	if m == nil || m.Navigation.Mode != state.ModeActionBar {
 		return content
@@ -292,7 +305,7 @@ func (ui runtimeSelectorUI) Render() string {
 		rows = append(rows, e.Info)
 	}
 	rows = append(rows, "", ui.Footer)
-	return lipgloss.NewStyle().Border(ui.Border).Padding(ui.Padding[0], ui.Padding[1]).Width(ui.Width).Background(style.Colors.BG).Render(strings.Join(rows, "\n"))
+	return component.GetStyle("panel").Border(ui.Border).Padding(ui.Padding[0], ui.Padding[1]).Width(ui.Width).Render(strings.Join(rows, "\n"))
 }
 
 func renderRuntimeSelector(m *state.AppModel) string {
@@ -432,7 +445,7 @@ func renderExecPassthroughPanel(m *state.AppModel, bodyH int) string {
 			lines[i] = line[:panelW]
 		}
 	}
-	return lipgloss.NewStyle().Width(panelW).Background(style.Colors.BG).Render(strings.Join(lines, "\n"))
+	return component.GetStyle("panel").Width(panelW).Render(strings.Join(lines, "\n"))
 }
 
 // sliceColors safely slices a colors array. Returns nil if colors is nil or bounds are invalid.

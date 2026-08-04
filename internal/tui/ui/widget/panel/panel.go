@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"charm.land/lipgloss/v2"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 
 	"github.com/elizabevil/docker-tui/internal/tui"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
@@ -39,13 +38,13 @@ func (p Panel) Render() string {
 	if contentH < 1 {
 		contentH = 1
 	}
-	body := lipgloss.NewStyle().MaxHeight(contentH).Height(contentH).Background(style.Colors.BG).Render(p.Content)
+	body := component.GetStyle("panel").MaxHeight(contentH).Height(contentH).Width(p.Width - 2).Render(p.Content)
 	inner := lipgloss.JoinVertical(lipgloss.Top, titleLine, body)
 	boxed := tui.ActiveBorderStyle.Width(p.Width - 2).Render(inner)
 	if p.BorderLabel != "" {
 		boxed = applyBorderLabel(boxed, p.BorderLabel, p.Width-2)
 	}
-	return boxed
+	return component.RenderBackgroundLayer(boxed, component.GetStyle("panel").GetBackground())
 }
 
 // renderTitle 标题行：面板名 + 面包屑(右侧)

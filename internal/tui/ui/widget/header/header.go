@@ -65,7 +65,7 @@ func Render(app *state.AppModel, usableW int) string {
 		hostStr = app.Connection.Engine.Identity().Endpoint
 	}
 	cpuC := cpuLoadColor(app.Metrics.HostCPU)
-	lb := component.GetStyle("headerLabel")
+	headerBg := component.GetStyle("headerBar").GetBackground()
 	tz := currentTimezone()
 	lang := i18n.Current()
 	if lang == "" {
@@ -73,20 +73,29 @@ func Render(app *state.AppModel, usableW int) string {
 	}
 
 	// Column helpers
-	lbl := func(s string) string { return lb.Render(utils.PadVisible(s, 10)) }
+	lbl := func(s string) string {
+		return component.GetStyle("headerLabel").Render(utils.PadVisible(s, 10))
+	}
+	val := func(s string) string {
+		return component.GetStyle("headerBar").Render(utils.PadVisible(s, 18))
+	}
 
 	// ── Col 1: Host dynamic info (15%) ────────────────────────
 	pct := func(v float64, c color.Color) string {
-		return lipgloss.NewStyle().Foreground(c).Render(utils.PadVisible(utils.FormatPercent(v), 8))
+		style := lipgloss.NewStyle().Foreground(c)
+		if headerBg != nil {
+			style = style.Background(headerBg)
+		}
+		return style.Render(utils.PadVisible(utils.FormatPercent(v), 8))
 	}
 	memStr := fmt.Sprintf("%s/%s",
 		utils.FormatBytes(float64(app.Metrics.HostMemUsed)),
 		utils.FormatBytes(float64(app.Metrics.HostMemTotal)))
 	colDyn := fmt.Sprintf("%s%s %dC\n%s%s\n%s%s\n%s%s",
 		lbl("CPU"), pct(app.Metrics.HostCPU, cpuC), app.Metrics.HostCPUCores,
-		lbl("Memory"), utils.PadVisible(memStr, 18),
-		lbl("Disk"), utils.PadVisible(app.Metrics.HostDisk, 18),
-		lbl("TimeZone"), utils.PadVisible(tz, 18),
+		lbl("Memory"), val(memStr),
+		lbl("Disk"), val(app.Metrics.HostDisk),
+		lbl("TimeZone"), val(tz),
 	)
 
 	// ── Col 2: Connection + App config (25%) ──────────────────
@@ -101,9 +110,9 @@ func Render(app *state.AppModel, usableW int) string {
 		}
 	}
 	colConn := fmt.Sprintf("%s%s\n%s%s\n%s%s",
-		lbl("Engine"), eng+" "+app.Connection.EngineVersion,
-		lbl("Socket"), hostStr,
-		lbl("Language"), lang,
+		lbl("Engine"), val(eng+" "+app.Connection.EngineVersion),
+		lbl("Socket"), val(hostStr),
+		lbl("Language"), val(lang),
 	)
 
 	// ── Column widths from config weights ─────────────────────
@@ -150,21 +159,23 @@ func Render(app *state.AppModel, usableW int) string {
 		lipgloss.NewStyle().Width(logoW).Align(lipgloss.Right).Render(fitColumn(colLogo, logoW)),
 	)
 
-	return component.GetStyle("headerBar").Width(usableW).Render(rendered)
+	headerStyle := lipgloss.NewStyle().Width(usableW)
+	return headerStyle.Render(rendered)
 }
 
 // renderKeyStrokeColumn 显示快捷键日志（简化版，仅收集期间显示）。
 func renderKeyStrokeColumn(app *state.AppModel, colW, ratio int) string {
+	keyBadgeStyle := component.GetStyle("keyBadge")
+	keyLastStyle := component.GetStyle("keyLast")
 	var content string
 
 	switch {
 	case len(app.Feedback.KeyStrokeBuffer) > 0:
 		content = joinKeyBadges(app.Feedback.KeyStrokeBuffer)
-		kbBg := component.GetStyle("headerBar").GetBackground()
-		content = component.GetStyle("keyBadge").Background(kbBg).Padding(0, 1).Bold(true).Render(content)
+		content = keyBadgeStyle.Padding(0, 1).Bold(true).Render(content)
 	case len(app.Feedback.LastKeyStroke) > 0:
 		content = joinKeyBadges(app.Feedback.LastKeyStroke)
-		content = component.GetStyle("keyLast").Render(content)
+		content = keyLastStyle.Render(content)
 	default:
 		return "" // 无按键时不留空白
 	}

@@ -11,9 +11,9 @@ func TestParseColorCommonFormats(t *testing.T) {
 	tests := map[string]color.NRGBA{
 		"#FAF0E6":              {R: 0xfa, G: 0xf0, B: 0xe6, A: 0xff},
 		"#abc":                 {R: 0xaa, G: 0xbb, B: 0xcc, A: 0xff},
-		"#FAF0E680":            {R: 0xfa, G: 0xf0, B: 0xe6, A: 0xff},
+		"#FAF0E680":            {R: 0xfa, G: 0xf0, B: 0xe6, A: 0x80},
 		"rgb(250, 240, 230)":   {R: 0xfa, G: 0xf0, B: 0xe6, A: 0xff},
-		"rgba(250,240,230,.5)": {R: 0xfa, G: 0xf0, B: 0xe6, A: 0xff},
+		"rgba(250,240,230,.5)": {R: 0xfa, G: 0xf0, B: 0xe6, A: 0x80},
 		"black":                {R: 0x00, G: 0x00, B: 0x00, A: 0xff},
 	}
 	for input, want := range tests {

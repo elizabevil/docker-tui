@@ -16,7 +16,7 @@
       "foregroundMuted": "#5a6270",
       "backgroundSubtle": "#1e1f22",
       "backgroundDeep": "#2b2d30",
-      "background": "#FFFAFA"
+      "background": "#18191b"
     },
     "border": {
       "active": { "token": "primary" },
@@ -24,10 +24,10 @@
       "focused": { "token": "success" },
       "kind": "rounded"
     },
-    "header": {
+"header": {
       "background": { "token": "transparent" },
-      "label": { "token": "foregroundMuted" },
-      "value": { "token": "foreground" },
+      "label": { "token": "transparent" },
+      "value": { "token": "transparent" },
       "logo": { "token": "info" }
     },
     "main": {
@@ -35,9 +35,13 @@
       "borderInactive": { "token": "foregroundMuted" },
       "title": { "token": "primary" },
       "tableHeader": { "token": "info" },
-      "rowSelected": { "token": "info" },
+"rowSelected": { "token": "backgroundSubtle" },
       "rowText": { "token": "foreground" },
-      "footer": { "token": "foregroundMuted" }
+      "footer": { "token": "foregroundMuted" },
+      "panelBackground": { "token": "transparent" },
+      "actionBarBackground": { "token": "transparent" },
+      "messageRailBackground": { "token": "transparent" },
+      "queryBarBackground": { "token": "transparent" }
     },
     "footer": {
       "statusBackground": { "token": "transparent" },

@@ -73,7 +73,8 @@ func renderMessageRail(m *state.AppModel, width int) string {
 	default:
 		return ""
 	}
-	return style.Render(wrapMessageRail(text, max(1, width), messageRailHeight))
+	railStyle := component.GetStyle("messageRail").Foreground(style.GetForeground())
+	return railStyle.Render(wrapMessageRail(text, max(1, width), messageRailHeight))
 }
 
 func levelStyle(level state.NotificationLevel) string {
@@ -214,7 +215,7 @@ func renderQueryInput(kind queryKind, text string, cursor int, width int, cursor
 	}
 
 	content := component.PadVisible(input, innerWidth)
-	return lipgloss.NewStyle().
+	return component.GetStyle("queryBar").
 		Width(boxWidth-2).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(component.GetStyle("dim").GetForeground()).

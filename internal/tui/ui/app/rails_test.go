@@ -10,6 +10,28 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 )
 
+func TestRenderAppBackgroundUsesThemePalette(t *testing.T) {
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	app.Viewport.Width = 20
+	app.Viewport.Height = 4
+	app.Dependencies.Theme = config.DefaultTheme()
+	app.Dependencies.Theme.Palette.Background = config.Color("#18191b")
+
+	rendered := renderAppBackground(app, "content")
+	lines := strings.Split(rendered, "\n")
+	if len(lines) != app.Viewport.Height {
+		t.Fatalf("background rows = %d, want %d", len(lines), app.Viewport.Height)
+	}
+	for _, line := range lines {
+		if width := component.VisibleLen(line); width != app.Viewport.Width {
+			t.Fatalf("background width = %d, want %d", width, app.Viewport.Width)
+		}
+	}
+	if !strings.Contains(rendered, "\x1b[48;") {
+		t.Fatalf("app background has no ANSI background: %q", rendered)
+	}
+}
+
 func TestCalculateRailHeights(t *testing.T) {
 	for _, height := range []int{20, 24, 32, 50} {
 		rails := calculateRailHeights(height)

@@ -200,8 +200,9 @@ func renderCompactFooter(width int) string {
 			component.GetStyle("hintKey").Render(s.k)+
 				component.GetStyle("hintDesc").Render(" "+s.d))
 	}
-	line := strings.Join(parts, component.GetStyle("hintSep").Render(" " + component.BorderLineVertical + " "))
-	return fitRailHeight(component.TruncateVisible(line, width), 1)
+	line := strings.Join(parts, component.GetStyle("hintSep").Render(" "+component.BorderLineVertical+" "))
+	line = component.PadVisible(component.TruncateVisible(line, width), width)
+	return fitRailHeight(component.GetStyle("shortcutBar").Render(line), 1)
 }
 
 func engineLabel(m *state.AppModel) string {

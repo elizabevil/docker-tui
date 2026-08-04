@@ -57,9 +57,9 @@ gpgme_version := "1.24.2"
 base_url := env("GPGME_SRC_URL", "https://gnupg.org/ftp/gcrypt")
 mirror_url := env("GPGME_MIRROR_URL", "https://www.mirrorservice.org/sites/ftp.gnupg.org/gcrypt")
 
-# Module directory (this justfile's location). `root` is kept as an
-# alias for readability in cross-module path expressions.
-root := justfile_directory()
+# Module and repository directories.
+root := source_directory()
+project_root := justfile_directory()
 
 # Dedicated scratch area for this module: every recipe runs here via
 # `set working-directory`, so no build junk ever lands in the repo root.
@@ -69,7 +69,7 @@ work_dir := root + "/work"
 src_cache := env("SRC_CACHE", work_dir + "/src-cache")
 
 # Final binary — the only artifact that escapes the work dir (goes to dist/).
-out := root + "/dist/dtui-musl-static-" + arch
+out := project_root + "/dist/dtui-musl-static-" + arch
 
 # ---------------------------------------------------------------------------
 # Derived values (evaluated lazily, on first recipe run)
@@ -81,14 +81,15 @@ _chk := assert(triple != "unsupported", "unsupported arch '" + arch + "' (want a
 
 # First gcc on $PATH matching the target triple, else generic fallbacks.
 musl_cc := shell("for c in " + triple + "-gcc x86_64-linux-musl-gcc musl-gcc; do command -v \"$c\" 2>/dev/null && break; done; true")
+musl_cc_name := if musl_cc == "" { "" } else { file_name(musl_cc) }
 
 # Sysroot prefix: $MUSL_PREFIX wins; else derive from the found gcc (musl-cross
 # layout: <prefix>/bin/<triple>-gcc, sysroot at <prefix>/<triple>); else default.
 musl_prefix := if env_var_or_default("MUSL_PREFIX", "") != "" {
     env_var("MUSL_PREFIX")
-} else if file_name(musl_cc) == triple + "-gcc" {
+} else if musl_cc_name == triple + "-gcc" {
     parent_directory(parent_directory(musl_cc)) + "/" + triple
-} else if file_name(musl_cc) == "x86_64-linux-musl-gcc" {
+} else if musl_cc_name == "x86_64-linux-musl-gcc" {
     parent_directory(parent_directory(musl_cc)) + "/x86_64-linux-musl"
 } else {
     "/opt/musl/x86_64-linux-musl-cross/x86_64-linux-musl"
@@ -211,15 +212,13 @@ _go-build: _c-libs
     # structure/ioctl definitions) — for amd64 gcc finds our copy before
     # the musl sysroot's identical copy, so no behavioural difference.
     CGO_ENABLED=1 GOOS=linux GOARCH={{ arch }} CC="{{ musl_cc }}" \
-    CGO_CFLAGS="-Os -fno-stack-protector -I/home/debi/IdeaProjects/docker-tui/scripts/musl-gpgme/include" \
-    CGO_LDFLAGS="-static $GPGME_LIBS" \
-    CGO_LDFLAGS="-static $GPGME_LIBS" \
+    CGO_CFLAGS="-Os -fno-stack-protector -I{{ root }}/include" \
     CGO_LDFLAGS="-static $GPGME_LIBS" \
     go build -trimpath \
         -ldflags "-s -w -linkmode external -extldflags '-static' \
                   -X internal/buildinfo.version={{ version }}" \
         -o "{{ out }}" \
-        {{ root }}/cmd/docker-tui
+        {{ project_root }}/cmd/docker-tui
 
 # ---------------------------------------------------------------------------
 # Step 3 — verify static linkage (file type + dynamic dependencies)

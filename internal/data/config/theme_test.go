@@ -19,17 +19,55 @@ func TestEmbeddedThemesCascadeFromDefault(t *testing.T) {
 	}
 }
 
+func TestEmbeddedDefaultThemeBackgroundExperiment(t *testing.T) {
+	loaded, err := loadNamedTheme(ThemeName(themeDefaultName), emptyValue, DefaultTheme())
+	if err != nil {
+		t.Fatal(err)
+	}
+	theme := loaded.Theme
+	transparent := TokenRef(ColorTokenTransparent)
+	headerBackground := ValueRef(Color("#2b2d30cc"))
+	if theme.Palette.Background != Color("#18191b") {
+		t.Fatalf("app background = %q", theme.Palette.Background)
+	}
+	if theme.Header.Background != transparent || theme.Header.Label != transparent ||
+		theme.Header.Value != transparent {
+		t.Fatalf("header slots should default to transparent: %#v", theme.Header)
+	}
+	if theme.Main.PanelBackground != transparent ||
+		theme.Footer.StatusBackground != transparent ||
+		theme.Footer.ShortcutBackground != transparent {
+		t.Fatalf("panel/footer backgrounds should default to transparent: %#v", theme)
+	}
+	if theme.Main.RowSelected != TokenRef(ColorTokenBackgroundSubtle) {
+		t.Fatalf("rowSelected = %+v", theme.Main.RowSelected)
+	}
+	_ = headerBackground
+}
+
 func TestThemePatchPreservesOmittedProperties(t *testing.T) {
 	theme := DefaultTheme()
 	cyan := Color("#00ffff")
 	falseColor := TokenRef(ColorTokenAccentSecondary)
-	patch := ThemePatch{Palette: &PalettePatch{Primary: &cyan}, Dialog: &DialogStylesPatch{Border: &falseColor}}
+	background := TokenRef(ColorTokenBackgroundSubtle)
+	patch := ThemePatch{
+		Palette: &PalettePatch{Primary: &cyan},
+		Main: &MainStylesPatch{
+			PanelBackground:     &background,
+			ActionBarBackground: &background,
+		},
+		Dialog: &DialogStylesPatch{Border: &falseColor},
+	}
 	patch.Apply(theme)
 	if theme.Palette.Primary != cyan || theme.Palette.Success == "" {
 		t.Fatalf("palette patch failed: %#v", theme.Palette)
 	}
 	if theme.Dialog.Border != TokenRef(ColorTokenAccentSecondary) || !isColorRef(theme.Dialog.Body) {
 		t.Fatalf("dialog patch failed: %#v", theme.Dialog)
+	}
+	if theme.Main.PanelBackground != background || theme.Main.ActionBarBackground != background ||
+		theme.Main.QueryBarBackground != TokenRef(ColorTokenTransparent) {
+		t.Fatalf("main background patch failed: %#v", theme.Main)
 	}
 }
 
@@ -64,6 +102,23 @@ func TestDialogStylesHasBodyBackground(t *testing.T) {
 	}
 	if !isColorRef(theme.Dialog.BodyBackground) {
 		t.Fatalf("BodyBackground %+v failed isColorRef", theme.Dialog.BodyBackground)
+	}
+}
+
+func TestMainBackgroundsDefaultToTransparent(t *testing.T) {
+	theme := DefaultTheme()
+	refs := []ColorRef{
+		theme.Main.ActionBarBackground,
+		theme.Main.MessageRailBackground,
+		theme.Main.QueryBarBackground,
+	}
+	for _, ref := range refs {
+		if ref != TokenRef(ColorTokenTransparent) {
+			t.Fatalf("main background = %+v, want transparent token", ref)
+		}
+		if !isColorRef(ref) {
+			t.Fatalf("main background %+v failed isColorRef", ref)
+		}
 	}
 }
 

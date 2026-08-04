@@ -8,7 +8,6 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 )
 
 // RenderView renders the log streaming view with search highlight and word wrap.
@@ -16,7 +15,7 @@ func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
 	lines := m.Log.LogContent
 	headerExtras := fmt.Sprintf("  %d lines", len(lines))
 	if m.Log.LogSearchText != "" {
-		headerExtras += fmt.Sprintf(" " + component.BorderLineVertical + " search: \"%s\"", m.Log.LogSearchText)
+		headerExtras += fmt.Sprintf(" "+component.BorderLineVertical+" search: \"%s\"", m.Log.LogSearchText)
 	}
 	if m.Log.LogWrapEnabled {
 		headerExtras += " " + component.BorderLineVertical + " wrap"
@@ -95,7 +94,7 @@ func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
 		consumed++
 	}
 
-	footer := fmt.Sprintf(" %d-%d/%d " + component.BorderLineVertical + " j/k scroll " + component.BorderLineVertical + " / search " + component.BorderLineVertical + " n/N next " + component.BorderLineVertical + " w wrap " + component.BorderLineVertical + " Esc back",
+	footer := fmt.Sprintf(" %d-%d/%d "+component.BorderLineVertical+" j/k scroll "+component.BorderLineVertical+" / search "+component.BorderLineVertical+" n/N next "+component.BorderLineVertical+" w wrap "+component.BorderLineVertical+" Esc back",
 		offset+1,
 		offset+consumed,
 		len(lines),
@@ -114,7 +113,7 @@ func renderLogPanel(header string, bodyLines []string, footer string, bodyHeight
 	if len(bodyLines) > bodyHeight {
 		bodyLines = bodyLines[:bodyHeight]
 	}
-	body := lipgloss.NewStyle().Height(bodyHeight).MaxHeight(bodyHeight).Background(style.Colors.BG).Render(strings.Join(bodyLines, "\n"))
+	body := component.GetStyle("panel").Height(bodyHeight).MaxHeight(bodyHeight).Render(strings.Join(bodyLines, "\n"))
 	return lipgloss.JoinVertical(lipgloss.Top, header, body, footer)
 }
 
