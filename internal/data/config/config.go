@@ -36,16 +36,18 @@ func ConfigFile() (string, error) {
 }
 
 // Load reads the configuration from the default path, merging with defaults.
+// Uses LoadSplit for embedded defaults + user style overrides, then layers
+// the CLI --config YAML on top (BR-043 §3.4 split config).
 func Load(path string) (*Config, error) {
-	cfg := DefaultConfig()
-	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("validate default config: %w", err)
+	cfg, err := LoadSplit("")
+	if err != nil {
+		return nil, fmt.Errorf("load embedded+user styles: %w", err)
 	}
 
 	if path == "" {
-		var err error
-		path, err = ConfigFile()
-		if err != nil {
+		var perr error
+		path, perr = ConfigFile()
+		if perr != nil {
 			return cfg, nil
 		}
 	}

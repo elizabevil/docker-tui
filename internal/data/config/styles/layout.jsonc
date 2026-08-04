@@ -1,0 +1,15 @@
+{
+  // BR-043 §3.4 — layout section
+  "layout": {
+    "sectionWeights": {
+      "top": 2,
+      "content": 7,
+      "bottom": 1
+    },
+    "background": {
+      "enable": false,
+      "type": "image",
+      "color": "red"
+    }
+  }
+}

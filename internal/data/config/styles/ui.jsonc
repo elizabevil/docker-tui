@@ -1,0 +1,12 @@
+{
+  // BR-043 §3.4 — ui section
+  "ui": {
+    "wrapMainPanel": false,
+    "returnImmediately": false,
+    "borderStyle": "rounded",
+    "showHelp": true,
+    "hintTimeout": 3,
+    "dialogOverlayColor": "#0d1117cc",
+    "enableMouse": true
+  }
+}

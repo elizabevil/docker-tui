@@ -243,3 +243,97 @@ func TestLoadKeymapOverridePreservesOtherDefaults(t *testing.T) {
 		t.Fatalf("action bar default was not preserved: %v", cfg.Keymap.ActionBar)
 	}
 }
+
+// TestLoadSplitMergesEmbeddedDefaults verifies that the eight split files
+// under styles/ combine into the same Config that DefaultConfigJSON parses.
+func TestLoadSplitMergesEmbeddedDefaults(t *testing.T) {
+	cfg, err := LoadSplit(t.TempDir())
+	if err != nil {
+		t.Fatalf("LoadSplit: %v", err)
+	}
+	if cfg.ConfigVersion != CurrentConfigVersion {
+		t.Errorf("configVersion=%d", cfg.ConfigVersion)
+	}
+	if cfg.General.Lang != "en" {
+		t.Errorf("general.lang=%q", cfg.General.Lang)
+	}
+	if cfg.Docker.Timeout == 0 {
+		t.Errorf("docker.timeout not loaded")
+	}
+	if cfg.Runtime.Default != "local-docker" {
+		t.Errorf("runtime.default=%q", cfg.Runtime.Default)
+	}
+	if len(cfg.Keymap.Quit) == 0 {
+		t.Errorf("keymap.quot missing")
+	}
+}
+
+// TestLoadSplitMatchesLegacyDefaultJSONC is a regression guard: the new
+// split-file loader must produce the same effective Config as the old
+// monolithic default.jsonc.
+func TestLoadSplitMatchesLegacyDefaultJSONC(t *testing.T) {
+	userDir := t.TempDir()
+	merged, err := LoadSplit(userDir)
+	if err != nil {
+		t.Fatalf("LoadSplit: %v", err)
+	}
+	legacy := DefaultConfig()
+	if legacy.ConfigVersion != merged.ConfigVersion {
+		t.Errorf("configVersion: %d vs %d", legacy.ConfigVersion, merged.ConfigVersion)
+	}
+	if legacy.General.Lang != merged.General.Lang {
+		t.Errorf("general.lang: %q vs %q", legacy.General.Lang, merged.General.Lang)
+	}
+	if legacy.Docker.Timeout != merged.Docker.Timeout {
+		t.Errorf("docker.timeout: %v vs %v", legacy.Docker.Timeout, merged.Docker.Timeout)
+	}
+	if legacy.Runtime.Default != merged.Runtime.Default {
+		t.Errorf("runtime.default: %q vs %q", legacy.Runtime.Default, merged.Runtime.Default)
+	}
+	if len(legacy.Keymap.Quit) != len(merged.Keymap.Quit) {
+		t.Errorf("keymap.quit len: %d vs %d", len(legacy.Keymap.Quit), len(merged.Keymap.Quit))
+	}
+}
+
+// TestLoadSplitAppliesUserOverride verifies a user file in the styles dir
+// overrides the embedded default for the same section.
+func TestLoadSplitAppliesUserOverride(t *testing.T) {
+	userDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(userDir, "general.jsonc"), []byte(`{
+  "general": { "lang": "zh" }
+}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := LoadSplit(userDir)
+	if err != nil {
+		t.Fatalf("LoadSplit: %v", err)
+	}
+	if cfg.General.Lang != "zh" {
+		t.Fatalf("general.lang=%q, want zh", cfg.General.Lang)
+	}
+}
+
+// TestLoadSplitMissingUserDirReturnsDefaults verifies that a nonexistent
+// user dir is not an error (use embedded defaults only).
+func TestLoadSplitMissingUserDirReturnsDefaults(t *testing.T) {
+	missing := filepath.Join(t.TempDir(), "nope")
+	cfg, err := LoadSplit(missing)
+	if err != nil {
+		t.Fatalf("LoadSplit on missing dir: %v", err)
+	}
+	if cfg.General.Lang != "en" {
+		t.Errorf("general.lang=%q, want en (embedded default)", cfg.General.Lang)
+	}
+}
+
+// TestLoadSplitInvalidJSONCReturnsError verifies a malformed user file
+// surfaces as an error.
+func TestLoadSplitInvalidJSONCReturnsError(t *testing.T) {
+	userDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(userDir, "ui.jsonc"), []byte(`{ "ui": { `), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadSplit(userDir); err == nil {
+		t.Fatal("expected parse error, got nil")
+	}
+}

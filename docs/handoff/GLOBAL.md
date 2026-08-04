@@ -15,6 +15,27 @@
 - **影响**:所有 `Render*InPanel` 调用(FormDialog/ExecDialog/SelectionDialog)高度变为 panel * 3/4;小窗口(40x16)下 height=12,需确认无挤压
 - **验证**:form/dialog/state/keyboard/keys 包测试全过
 
+### 2026-08-03 — BR-043 §3.4 配置拆分实施
+
+- **决策**:把 `internal/data/config/default.jsonc`(189 行,9 个 section)拆分为
+  `internal/data/config/styles/*.jsonc` 多文件 + 用户目录覆盖机制
+- **拆分结构**(每个分片包一个顶层 section):
+  - `general.jsonc` / `ui.jsonc` / `docker.jsonc` / `runtime.jsonc`
+  - `logs.jsonc` / `layout.jsonc` / `commandTemplates.jsonc` / `keymap.jsonc`
+- **加载机制** (`internal/data/config/loader.go`):
+  - `//go:embed styles/*.jsonc` → `StylesFS() fs.FS`
+  - `LoadSplit(userDir)` 按字母序加载嵌入分片,合并为 `map[string]json.RawMessage`,
+    再应用 `userDir/*.jsonc` 用户覆盖,最终 unmarshal 到 `Config`
+  - 加载顺序:嵌入分片 < 用户目录 < CLI YAML(`config.go Load`)
+- **路径选择**: `internal/data/config/styles/`(而非原计划 `internal/ui/styles/`),
+  与 `config.go` 同包,loader 直接调用 `DefaultConfigJSON`/`StylesFS` 紧耦合
+- **向后兼容**:`default.jsonc` 保留未删,`DefaultConfig()` 仍走旧路径;
+  `LoadSplit` 与 `DefaultConfigJSON` 等价(regression test 覆盖)
+- **用户目录**:`~/.config/docker-tui/styles/*.jsonc`(自动创建,不报错)
+- **影响范围**:`internal/data/config/{embed,config,loader,config_test}.go`
+  + 8 个 `styles/*.jsonc`
+- **验证**:5 个 `TestLoadSplit*` 测试全过 + 全包测试无回归
+
 ### 2026-08-03 — BR-043 批次 A-D 实施完成
 
 - **决策**:R2 批次按 GLOBAL.md § 2026-08-03 BR-043 六个问题决策实施
