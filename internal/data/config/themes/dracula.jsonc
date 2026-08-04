@@ -1,18 +1,73 @@
 {
-  "meta": { "name": "Dracula", "description": "Purple Rider-inspired theme" },
+  "meta": {
+    "name": "Dracula",
+    "description": "Purple Rider-inspired theme"
+  },
   "theme": {
     "palette": {
-      "green": "#50fa7b", "cyan": "#8be9fd", "blue": "#6272a4",
-      "red": "#ff5555", "yellow": "#f1fa8c", "orange": "#ffb86c",
-      "purple": "#bd93f9", "white": "#f8f8f2", "gray": "#44475a",
-      "dark": "#1e1f29", "surface": "#282a36", "background": "#21222c"
+      "green": "#50fa7b",
+      "cyan": "#8be9fd",
+      "blue": "#6272a4",
+      "red": "#ff5555",
+      "yellow": "#f1fa8c",
+      "orange": "#ffb86c",
+      "purple": "#bd93f9",
+      "white": "#f8f8f2",
+      "gray": "#44475a",
+      "dark": "#1e1f29",
+      "surface": "#282a36",
+      "background": "#21222c"
     },
-    "border": { "active": { "token": "purple" }, "focused": { "token": "cyan" } },
+    "border": {
+      "active": { "token": "purple" },
+      "inactive": { "token": "gray" },
+      "focused": { "token": "green" },
+      "kind": "rounded"
+    },
+    "header": {
+      "background": { "token": "dark" },
+      "label": { "token": "gray" },
+      "value": { "token": "white" },
+      "logo": { "token": "purple" }
+    },
     "main": {
       "borderActive": { "token": "purple" },
+      "borderInactive": { "token": "gray" },
       "title": { "token": "purple" },
+      "tableHeader": { "token": "cyan" },
       "rowSelected": { "token": "purple" },
-      "tableHeader": { "token": "cyan" }
+      "rowText": { "token": "white" },
+      "footer": { "token": "gray" }
+    },
+    "footer": {
+      "statusBackground": { "token": "surface" },
+      "shortcutBackground": { "token": "dark" },
+      "key": { "token": "white" },
+      "description": { "token": "gray" },
+      "separator": { "token": "gray" }
+    },
+    "dialog": {
+      "border": { "token": "red" },
+      "title": { "token": "red" },
+      "body": { "token": "white" },
+      "optionActive": { "token": "cyan" },
+      "optionInactive": { "token": "gray" },
+      "overlay": { "token": "background" },
+      "overlayOpacity": 80
+    },
+    "toast": {
+      "success": { "token": "green" },
+      "error": { "token": "red" },
+      "background": { "token": "dark" }
+    },
+    "text": {
+      "info": { "token": "cyan" },
+      "error": { "token": "red" },
+      "success": { "token": "green" },
+      "warning": { "token": "yellow" },
+      "dim": { "token": "gray" },
+      "helpKey": { "token": "cyan" },
+      "helpDescription": { "token": "white" }
     }
   }
 }
