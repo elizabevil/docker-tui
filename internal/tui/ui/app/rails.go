@@ -8,6 +8,7 @@ import (
 	"charm.land/lipgloss/v2"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
+	"github.com/elizabevil/docker-tui/internal/tui/filter"
 	"github.com/mattn/go-runewidth"
 )
 
@@ -141,13 +142,13 @@ func renderQueryRail(m *state.AppModel, width int) string {
 	kind := queryKindFor(m)
 	switch kind {
 	case queryFilter:
-		return renderQueryInput(kind, m.Navigation.FilterInput.Text, m.Navigation.FilterInput.Cursor, width, !m.CursorBlinkHidden)
+		return renderQueryInput(kind, m.Navigation.FilterInput.Text, m.Navigation.FilterInput.Cursor, width, filter.New(m).MatchCount(), !m.CursorBlinkHidden)
 	case querySearch:
-		return renderQueryInput(kind, m.Navigation.SearchInput.Text, m.Navigation.SearchInput.Cursor, width, !m.CursorBlinkHidden)
+		return renderQueryInput(kind, m.Navigation.SearchInput.Text, m.Navigation.SearchInput.Cursor, width, "", !m.CursorBlinkHidden)
 	case queryCommand:
-		return renderQueryInput(kind, m.Navigation.CommandInput.Text, m.Navigation.CommandInput.Cursor, width, !m.CursorBlinkHidden)
+		return renderQueryInput(kind, m.Navigation.CommandInput.Text, m.Navigation.CommandInput.Cursor, width, "", !m.CursorBlinkHidden)
 	case queryImagePull:
-		return renderQueryInput(kind, m.Dialog.Input.Text, m.Dialog.Input.Cursor, width, !m.CursorBlinkHidden)
+		return renderQueryInput(kind, m.Dialog.Input.Text, m.Dialog.Input.Cursor, width, "", !m.CursorBlinkHidden)
 	default:
 		return ""
 	}
@@ -182,7 +183,7 @@ func queryKindFor(m *state.AppModel) queryKind {
 	return queryNone
 }
 
-func renderQueryInput(kind queryKind, text string, cursor int, width int, cursorVisible ...bool) string {
+func renderQueryInput(kind queryKind, text string, cursor int, width int, matchCount string, cursorVisible ...bool) string {
 	if kind == queryNone {
 		return ""
 	}
@@ -211,7 +212,11 @@ func renderQueryInput(kind queryKind, text string, cursor int, width int, cursor
 	case queryImagePull:
 		input = component.GetStyle("searchBar").Render("Pull: " + insertCursor(text, cursor, visible))
 	default:
-		input = component.GetStyle("searchBar").Render("Filter: " + insertCursor(text, cursor, visible))
+		countSuffix := ""
+		if matchCount != "" {
+			countSuffix = " " + component.GetStyle("dim").Render(matchCount)
+		}
+		input = component.GetStyle("searchBar").Render("Filter: " + insertCursor(text, cursor, visible) + countSuffix)
 	}
 
 	content := component.PadVisible(input, innerWidth)

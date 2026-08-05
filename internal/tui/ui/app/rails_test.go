@@ -75,8 +75,8 @@ func TestQueryKindFor(t *testing.T) {
 }
 
 func TestRenderQueryInputUsesResourceSemantics(t *testing.T) {
-	filter := renderQueryInput(queryFilter, "nginx", 5, 100)
-	search := renderQueryInput(querySearch, "error", 5, 100)
+	filter := renderQueryInput(queryFilter, "nginx", 5, 100, "")
+	search := renderQueryInput(querySearch, "error", 5, 100, "")
 	if !strings.Contains(filter, "Filter:") {
 		t.Fatalf("filter query missing Filter label: %q", filter)
 	}

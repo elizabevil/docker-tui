@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"testing"
 
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
@@ -210,6 +211,65 @@ func TestController_ApplyCurrent(t *testing.T) {
 	}
 	if c.Active() != "live" {
 		t.Fatalf("Active()=%q, want live", c.Active())
+	}
+}
+
+func TestController_MatchCount(t *testing.T) {
+	cases := []struct {
+		name  string
+		panel state.PanelType
+		setup func(*state.AppModel)
+		want  string
+	}{
+		{
+			name:  "containers_match",
+			panel: state.PanelContainers,
+			setup: func(m *state.AppModel) {
+				m.Resources.Containers.Items = []dockerclient.ContainerSummary{
+					{Name: "api"}, {Name: "api2"}, {Name: "worker"},
+				}
+				m.Resources.Containers.SetFilter("api")
+			},
+			want: "(2/3)",
+		},
+		{
+			name:  "containers_no_match",
+			panel: state.PanelContainers,
+			setup: func(m *state.AppModel) {
+				m.Resources.Containers.Items = []dockerclient.ContainerSummary{{Name: "api"}}
+				m.Resources.Containers.SetFilter("zzz")
+			},
+			want: "(0/1)",
+		},
+		{
+			name:  "images_unfiltered",
+			panel: state.PanelImages,
+			setup: func(m *state.AppModel) {
+				},
+			want: "",
+		},
+		{
+			name:  "audit_filtered",
+			panel: state.PanelAudit,
+			setup: func(m *state.AppModel) {
+				m.Audit.SetFilter("x")
+			},
+			want: "(0)",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+			m.Navigation.ActivePanel = tc.panel
+			tc.setup(m)
+			if got := New(m).MatchCount(); got != tc.want {
+				t.Fatalf("MatchCount()=%q, want %q", got, tc.want)
+			}
+		})
+	}
+
+	if got := New(nil).MatchCount(); got != "" {
+		t.Fatalf("MatchCount(nil)=%q, want empty", got)
 	}
 }
 

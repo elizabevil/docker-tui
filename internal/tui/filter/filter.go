@@ -65,6 +65,45 @@ func (c *Controller) HasActive() bool {
 	return c.Active() != ""
 }
 
+// MatchCount returns a "(filtered/total)" string for the active panel so
+// the user sees the match result in real time while typing in the
+// filter bar. Returns "" when the active panel is not filter-capable
+// or has no items.
+//
+// Direct field access on the concrete list models is used (instead of
+// widening the TableFilter interface) because each model returns a
+// different concrete slice type ([]ContainerSummary, []ImageSummary, ...)
+// so a generic []T in the interface would erase that information.
+func (c *Controller) MatchCount() string {
+	if c.m == nil {
+		return ""
+	}
+	switch c.m.Navigation.ActivePanel {
+	case state.PanelContainers:
+		total := c.m.Resources.Containers.Len()
+		if total <= 0 { return "" }
+		return fmt.Sprintf("(%d/%d)", len(c.m.Resources.Containers.FilteredItems()), total)
+	case state.PanelImages:
+		total := c.m.Resources.Images.Len()
+		if total <= 0 { return "" }
+		return fmt.Sprintf("(%d/%d)", len(c.m.Resources.Images.FilteredItems()), total)
+	case state.PanelVolumes:
+		total := c.m.Resources.Volumes.Len()
+		if total <= 0 { return "" }
+		return fmt.Sprintf("(%d/%d)", len(c.m.Resources.Volumes.FilteredItems()), total)
+	case state.PanelNetworks:
+		total := c.m.Resources.Networks.Len()
+		if total <= 0 { return "" }
+		return fmt.Sprintf("(%d/%d)", len(c.m.Resources.Networks.FilteredItems()), total)
+	case state.PanelAudit:
+		if c.m.Audit.FilterText() == "" { return "" }
+		// AuditState doesn't expose the unfiltered count, so we show
+		// just the filtered count without the ratio.
+		return fmt.Sprintf("(%d)", len(c.m.Audit.AuditListModel()))
+	}
+	return ""
+}
+
 // BannerPrefixFor returns a banner prefix string for a panel whose
 // TableFilter may or may not be active. Format: "filter: <text> | ".
 // Returns "" when f is nil or has no active filter, so callers can
