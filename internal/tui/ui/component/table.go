@@ -98,6 +98,7 @@ func RenderTable(d TableData) string {
 		rowPrefixSel: prefixSel,
 		colStyles:    d.ColStyles,
 		rowWidth:     containerW,
+		Background:   resolveTableBackground(),
 	}
 
 	var sb strings.Builder
@@ -249,4 +250,12 @@ func RenderTableFooter(offset, end, total int, hint string) string {
 // renderSelectionInfo 按配置样式渲染选中项预览信息。
 func renderSelectionInfo(text string) string {
 	return GetStyle("detailSelection").Render(text)
+}
+
+// resolveTableBackground returns the table's component-level background,
+// or "" when the table should be transparent. The transparent value is the
+// fallback: the global renderAppBackground wrapper provides the fill for the
+// table area, and any row that explicitly sets a Background overrides it.
+func resolveTableBackground() string {
+	return ""
 }

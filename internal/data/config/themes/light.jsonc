@@ -32,7 +32,7 @@
     },
     "header": {
       "background": {
-        "token": "transparent"
+        "token": "background"
       },
       "label": {
         "token": "foregroundMuted"
@@ -58,7 +58,7 @@
         "token": "info"
       },
       "rowSelected": {
-        "token": "info"
+        "token": "backgroundSubtle"
       },
       "rowText": {
         "token": "foreground"
@@ -66,22 +66,25 @@
       "footer": {
         "token": "foregroundMuted"
       },
+      "panelBackground": {
+        "token": "background"
+      },
       "actionBarBackground": {
-        "token": "transparent"
+        "token": "background"
       },
       "messageRailBackground": {
-        "token": "transparent"
+        "token": "background"
       },
       "queryBarBackground": {
-        "token": "transparent"
+        "token": "background"
       }
     },
     "footer": {
       "statusBackground": {
-        "token": "transparent"
+        "token": "background"
       },
       "shortcutBackground": {
-        "token": "transparent"
+        "token": "background"
       },
       "key": {
         "token": "foreground"
@@ -102,6 +105,9 @@
       },
       "body": {
         "token": "foreground"
+      },
+      "bodyBackground": {
+        "value": "#e8e8e8"
       },
       "optionActive": {
         "token": "primary"

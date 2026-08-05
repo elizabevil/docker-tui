@@ -6,15 +6,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
-
 	"charm.land/lipgloss/v2"
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
+	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
+	"github.com/elizabevil/docker-tui/internal/tui/ui/component/box"
+	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
@@ -79,28 +79,37 @@ func Render(app *state.AppModel, usableW int) string {
 		}
 	}
 	cpuC := cpuLoadColor(app.Metrics.HostCPU)
-	headerBg := component.GetStyle("headerBar").GetBackground()
+	headerBg := resolveHeaderBackground(app)
 	tz := currentTimezone()
 	lang := i18n.Current()
 	if lang == "" {
 		lang = "en"
 	}
 
-	// Column helpers
+	// Column helpers — each label / value / stat cell is a self-contained
+	// component with the header background applied, so padding spaces inside
+	// later Width/Border sub-boxes pick up the header fill instead of the
+	// terminal default.
 	lbl := func(s string) string {
-		return component.GetStyle("headerLabel").Render(utils.PadVisible(s, 10))
+		return (&box.LabeledValue{
+			Label: utils.PadVisible(s, 10), LabelStyle: box.StyleHeaderLabel,
+			Background: headerBg,
+		}).Render()
 	}
 	val := func(s string) string {
-		return component.GetStyle("headerBar").Render(utils.PadVisible(s, 18))
+		return (&box.LabeledValue{
+			Value: utils.PadVisible(s, 18), ValueStyle: box.StyleHeaderValue,
+			Background: headerBg,
+		}).Render()
 	}
 
 	// ── Col 1: Host dynamic info (15%) ────────────────────────
 	pct := func(v float64, c color.Color) string {
-		style := lipgloss.NewStyle().Foreground(c)
-		if headerBg != nil {
-			style = style.Background(headerBg)
-		}
-		return style.Render(utils.PadVisible(utils.FormatPercent(v), 8))
+		return (&box.Stat{
+			Value: v, Unit: "%", ValueWidth: 8,
+			Color: hexFromColor(c), Background: headerBg,
+			WarningAt: 50, DangerAt: 80,
+		}).Render()
 	}
 	memStr := fmt.Sprintf("%s/%s",
 		utils.FormatBytes(float64(app.Metrics.HostMemUsed)),
@@ -195,31 +204,46 @@ func renderLink(status string) string {
 
 // renderKeyStrokeColumn 显示快捷键日志（简化版，仅收集期间显示）。
 func renderKeyStrokeColumn(app *state.AppModel, colW, ratio int) string {
-	keyBadgeStyle := component.GetStyle("keyBadge")
-	keyLastStyle := component.GetStyle("keyLast")
-	var content string
+	var keyStyleName box.StyleName
+	var bold bool
+	var events []state.KeyStrokeEvent
 
 	switch {
 	case len(app.Feedback.KeyStrokeBuffer) > 0:
-		content = joinKeyBadges(app.Feedback.KeyStrokeBuffer)
-		content = keyBadgeStyle.Padding(0, 1).Bold(true).Render(content)
+		keyStyleName = box.StyleHeaderKey
+		bold = true
+		events = app.Feedback.KeyStrokeBuffer
 	case len(app.Feedback.LastKeyStroke) > 0:
-		content = joinKeyBadges(app.Feedback.LastKeyStroke)
-		content = keyLastStyle.Render(content)
+		keyStyleName = box.StyleHeaderLast
+		events = app.Feedback.LastKeyStroke
 	default:
 		return "" // 无按键时不留空白
 	}
+
+	badges := make([]box.Badge, len(events))
+	for i, evt := range events {
+		badges[i] = box.Badge{Key: evt.Key, Description: evt.Action, StyleName: keyStyleName, Bold: bold}
+	}
+	headerBg := resolveHeaderBackground(app)
+	content := (&box.BadgeRow{
+		Badges:     badges,
+		Separator:  "  ",
+		Background: headerBg,
+	}).Render()
 
 	padH := (colW - 2) * (100 - ratio) / 200
 	if padH < 0 {
 		padH = 0
 	}
 
-	boxed := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder(), true, true, true, true).
-		BorderForeground(component.GetStyle("panelTitle").GetForeground()).
-		Padding(0, padH).
-		Render(content)
+	boxed := (&box.BorderedBox{
+		Content:     content,
+		UseRounded:  true,
+		BorderColor: hexFromColor(component.GetStyle(string(box.StylePanelTitle)).GetForeground()),
+		Background:  headerBg,
+		Padding:     [2]int{0, padH},
+		Width:       colW,
+	}).Render()
 	boxLines := strings.Count(boxed, "\n") + 1
 	if boxLines < 4 {
 		boxed += strings.Repeat("\n", 4-boxLines)
@@ -227,14 +251,22 @@ func renderKeyStrokeColumn(app *state.AppModel, colW, ratio int) string {
 	return boxed
 }
 
-// joinKeyBadges renders a slice of KeyStrokeEvents as badge strings.
-// Each badge looks like "[R] Restart".
-func joinKeyBadges(events []state.KeyStrokeEvent) string {
-	var parts []string
-	for _, evt := range events {
-		parts = append(parts, fmt.Sprintf("[%s] %s", evt.Key, evt.Action))
+// resolveHeaderBackground returns the header's component-level background,
+// or "" when the header should be transparent. The transparent value is the
+// fallback: the global renderAppBackground wrapper provides the fill, and
+// any component that explicitly sets a Background overrides it.
+func resolveHeaderBackground(app *state.AppModel) string {
+	return ""
+}
+
+// hexFromColor returns the hex string for a color.Color produced by the
+// style package, or "" when the value is nil / the transparent token.
+func hexFromColor(c color.Color) string {
+	if c == nil {
+		return ""
 	}
-	return strings.Join(parts, "  ")
+	r, g, b, _ := c.RGBA()
+	return fmt.Sprintf("#%02x%02x%02x", r/257, g/257, b/257)
 }
 
 func cpuLoadColor(pct float64) color.Color {

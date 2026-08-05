@@ -17,6 +17,11 @@ type RowRenderer struct {
 	rowPrefixSel string
 	colStyles    []ColumnStyle
 	rowWidth     int // 行总宽，用于背景填充
+	// Background fills the Width sub-area for normal / alt rows so padding
+	// spaces inherit the intended fill instead of the terminal default.
+	// Set by the caller (typically RenderTable) to the panel or table
+	// background from the theme. An empty string leaves the terminal default.
+	Background string
 }
 
 // RenderRow 渲染一行数据。
@@ -46,12 +51,25 @@ func (r *RowRenderer) RenderRow(cells []string, rowIdx int, marked, selected, al
 		return s.Render(content)
 	}
 
-	switch {
-	case alt:
-		return buildStyle(GetRowStyle("alt")).Width(r.rowWidth).Render(prefix + r.joinRow(cells, false))
-	default:
-		return lipgloss.NewStyle().Width(r.rowWidth).Render(prefix + r.joinRow(cells, false))
+	// 普通行与 alt 行：同样需要 Width + Background，否则 padding 空格
+	// 落回终端默认背景，light 主题下整片表格会变深。
+	style := lipgloss.NewStyle().Width(r.rowWidth)
+	if r.Background != "" {
+		if c, ok := utils.ParseColor(r.Background); ok {
+			style = style.Background(c)
+		}
 	}
+	if alt {
+		altRef := GetRowStyle("alt")
+		altStyle := buildStyle(altRef)
+		if bg := altStyle.GetBackground(); bg != nil {
+			style = style.Background(bg)
+		}
+		if altRef.Faint {
+			style = style.Faint(true)
+		}
+	}
+	return style.Render(prefix + r.joinRow(cells, false))
 }
 
 // joinRow 拼接一行单元格，按列应用独立样式。
