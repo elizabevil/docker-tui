@@ -264,6 +264,12 @@ func ValidateTheme(theme *Theme) error {
 			return fmt.Errorf(errThemePaletteColorFormat, color)
 		}
 	}
+	if isTransparentBase(theme.Palette.Background) {
+		return fmt.Errorf(errThemePaletteTransparentBase, theme.Palette.Background)
+	}
+	if isTransparentBase(theme.Palette.Foreground) {
+		return fmt.Errorf(errThemePaletteTransparentBase, theme.Palette.Foreground)
+	}
 	switch theme.Border.Kind {
 	case BorderRounded, BorderSingle, BorderDouble, BorderThick, BorderHidden:
 	default:
@@ -318,3 +324,16 @@ func isValidColor(value string) bool {
 	_, ok := utils.ParseColor(value)
 	return ok
 }
+
+// isTransparentBase reports whether value resolves to the V3 "transparent"
+// sentinel via ParseColor. Palette.Background and Palette.Foreground act as
+// blend bases for 0<α<255 colors and cannot themselves be transparent.
+func isTransparentBase(value Color) bool {
+	_, ok := utils.ParseColor(string(value))
+	if !ok {
+		return false
+	}
+	return strings.EqualFold(strings.TrimSpace(string(value)), keywordTransparent)
+}
+
+const keywordTransparent = "transparent"

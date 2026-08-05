@@ -33,9 +33,18 @@ func ApplyTheme(theme *config.Theme) {
 
 	br := component.ResolveBorder(theme.Border.Kind)
 	panelBackground := style.Colors.BG
-	ActiveBorderStyle = lipgloss.NewStyle().Border(br).Foreground(style.Color(theme.ResolveColor(theme.Main.BorderActive))).Background(panelBackground).Padding(0)
-	InactiveBorderStyle = lipgloss.NewStyle().Foreground(style.Color(theme.ResolveColor(theme.Main.BorderInactive))).Background(panelBackground).Padding(0)
-	FocusedBorderStyle = lipgloss.NewStyle().Border(br).Foreground(style.Color(theme.ResolveColor(theme.Border.Focused))).Background(panelBackground).Padding(0)
+	activeBorder := lipgloss.NewStyle().Border(br)
+	activeBorder = style.ApplyForeground(activeBorder, style.Color(theme.ResolveColor(theme.Main.BorderActive)))
+	activeBorder = style.ApplyBackground(activeBorder, panelBackground)
+	ActiveBorderStyle = activeBorder.Padding(0)
+	inactiveBorder := lipgloss.NewStyle()
+	inactiveBorder = style.ApplyForeground(inactiveBorder, style.Color(theme.ResolveColor(theme.Main.BorderInactive)))
+	inactiveBorder = style.ApplyBackground(inactiveBorder, panelBackground)
+	InactiveBorderStyle = inactiveBorder.Padding(0)
+	focusedBorder := lipgloss.NewStyle().Border(br)
+	focusedBorder = style.ApplyForeground(focusedBorder, style.Color(theme.ResolveColor(theme.Border.Focused)))
+	focusedBorder = style.ApplyBackground(focusedBorder, panelBackground)
+	FocusedBorderStyle = focusedBorder.Padding(0)
 }
 
 // ApplyLayoutConfig clears border backgrounds when image/fallthrough backgrounds

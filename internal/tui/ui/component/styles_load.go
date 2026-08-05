@@ -173,58 +173,60 @@ func ApplyThemeStyles(theme *config.Theme) {
 	if theme == nil {
 		return
 	}
-	resolve := theme.ResolveColor
+	resolveForeground := func(ref config.ColorRef) string {
+		return flattenThemeForeground(theme, ref)
+	}
 	resolveBackground := func(ref config.ColorRef) string {
 		return flattenThemeBackground(theme, ref)
 	}
-	rawStyles.SearchBar.Color = resolve(theme.Text.HelpDescription)
-	rawStyles.SearchCursor.Color = resolve(theme.Text.HelpDescription)
-	rawStyles.SearchHint.Color = resolve(theme.Text.Dim)
-	rawStyles.CommandPrefix.Color = resolve(theme.Text.Success)
-	rawStyles.Breadcrumb.Color = resolve(theme.Text.Dim)
-	rawStyles.BreadcrumbActive.Color = resolve(theme.Text.Info)
-	rawStyles.ToastSuccess = styleRef{Color: resolve(theme.Toast.Success), Background: resolveBackground(theme.Toast.Background)}
-	rawStyles.ToastError = styleRef{Color: resolve(theme.Toast.Error), Background: resolveBackground(theme.Toast.Background)}
-	rawStyles.ToastInfo = styleRef{Color: resolve(theme.Text.Info), Background: resolveBackground(theme.Toast.Background)}
-	rawStyles.ToastWarning = styleRef{Color: resolve(theme.Text.Warning), Background: resolveBackground(theme.Toast.Background)}
-	rawStyles.HintKey.Color = resolve(theme.Footer.Key)
-	rawStyles.HintDescription.Color = resolve(theme.Footer.Description)
-	rawStyles.HintSeparator.Color = resolve(theme.Footer.Separator)
-	rawStyles.DialogTitle.Color = resolve(theme.Dialog.Title)
-	rawStyles.DialogBody.Color = resolve(theme.Dialog.Body)
+	rawStyles.SearchBar.Color = resolveForeground(theme.Text.HelpDescription)
+	rawStyles.SearchCursor.Color = resolveForeground(theme.Text.HelpDescription)
+	rawStyles.SearchHint.Color = resolveForeground(theme.Text.Dim)
+	rawStyles.CommandPrefix.Color = resolveForeground(theme.Text.Success)
+	rawStyles.Breadcrumb.Color = resolveForeground(theme.Text.Dim)
+	rawStyles.BreadcrumbActive.Color = resolveForeground(theme.Text.Info)
+	rawStyles.ToastSuccess = styleRef{Color: resolveForeground(theme.Toast.Success), Background: resolveBackground(theme.Toast.Background)}
+	rawStyles.ToastError = styleRef{Color: resolveForeground(theme.Toast.Error), Background: resolveBackground(theme.Toast.Background)}
+	rawStyles.ToastInfo = styleRef{Color: resolveForeground(theme.Text.Info), Background: resolveBackground(theme.Toast.Background)}
+	rawStyles.ToastWarning = styleRef{Color: resolveForeground(theme.Text.Warning), Background: resolveBackground(theme.Toast.Background)}
+	rawStyles.HintKey.Color = resolveForeground(theme.Footer.Key)
+	rawStyles.HintDescription.Color = resolveForeground(theme.Footer.Description)
+	rawStyles.HintSeparator.Color = resolveForeground(theme.Footer.Separator)
+	rawStyles.DialogTitle.Color = resolveForeground(theme.Dialog.Title)
+	rawStyles.DialogBody.Color = resolveForeground(theme.Dialog.Body)
 	rawStyles.DialogBodyBackground = styleRef{Background: resolveBackground(theme.Dialog.BodyBackground)}
-	rawStyles.DialogOption.Color = resolve(theme.Dialog.OptionActive)
-	rawStyles.DialogOptionDisabled.Color = resolve(theme.Dialog.OptionInactive)
+	rawStyles.DialogOption.Color = resolveForeground(theme.Dialog.OptionActive)
+	rawStyles.DialogOptionDisabled.Color = resolveForeground(theme.Dialog.OptionInactive)
 	rawStyles.Panel = styleRef{Background: resolveBackground(theme.Main.PanelBackground)}
-	rawStyles.PanelTitle.Color = resolve(theme.Main.Title)
-	rawStyles.Dim.Color = resolve(theme.Text.Dim)
-	rawStyles.HelpKey.Color = resolve(theme.Text.HelpKey)
-	rawStyles.HelpDescription.Color = resolve(theme.Text.HelpDescription)
-	rawStyles.DetailLabel.Color = resolve(theme.Text.Info)
-	rawStyles.DetailSection.Color = resolve(theme.Text.HelpDescription)
-	rawStyles.DetailValue.Color = resolve(theme.Text.HelpDescription)
-	rawStyles.DetailDim.Color = resolve(theme.Text.Dim)
-	rawStyles.DetailSelection = styleRef{Color: resolve(theme.Main.RowText), Background: resolveBackground(theme.Main.RowSelected), Bold: true}
-	rawStyles.LogTimestamp.Color = resolve(theme.Text.Info)
-	rawStyles.LogText.Color = resolve(theme.Text.HelpDescription)
-	rawStyles.LogStderr.Color = resolve(theme.Text.Error)
+	rawStyles.PanelTitle.Color = resolveForeground(theme.Main.Title)
+	rawStyles.Dim.Color = resolveForeground(theme.Text.Dim)
+	rawStyles.HelpKey.Color = resolveForeground(theme.Text.HelpKey)
+	rawStyles.HelpDescription.Color = resolveForeground(theme.Text.HelpDescription)
+	rawStyles.DetailLabel.Color = resolveForeground(theme.Text.Info)
+	rawStyles.DetailSection.Color = resolveForeground(theme.Text.HelpDescription)
+	rawStyles.DetailValue.Color = resolveForeground(theme.Text.HelpDescription)
+	rawStyles.DetailDim.Color = resolveForeground(theme.Text.Dim)
+	rawStyles.DetailSelection = styleRef{Color: resolveForeground(theme.Main.RowText), Background: resolveBackground(theme.Main.RowSelected), Bold: true}
+	rawStyles.LogTimestamp.Color = resolveForeground(theme.Text.Info)
+	rawStyles.LogText.Color = resolveForeground(theme.Text.HelpDescription)
+	rawStyles.LogStderr.Color = resolveForeground(theme.Text.Error)
 	rawStyles.LogHighlight = styleRef{Color: resolveBackground(theme.Header.Background), Background: resolveBackground(theme.Text.Warning)}
-	rawStyles.Header = styleRef{Color: resolve(theme.Main.TableHeader), Bold: true}
-	rawStyles.HeaderBar = styleRef{Color: resolve(theme.Header.Value), Background: resolveBackground(theme.Header.Background)}
-	rawStyles.HeaderLabel = styleRef{Color: resolve(theme.Header.Label)}
-	rawStyles.KeyBadge = styleRef{Color: resolve(theme.Header.Value), Background: resolveBackground(theme.Header.Background), Bold: true}
-	rawStyles.Footer = styleRef{Color: resolve(theme.Main.Footer)}
+	rawStyles.Header = styleRef{Color: resolveForeground(theme.Main.TableHeader), Bold: true}
+	rawStyles.HeaderBar = styleRef{Color: resolveForeground(theme.Header.Value), Background: resolveBackground(theme.Header.Background)}
+	rawStyles.HeaderLabel = styleRef{Color: resolveForeground(theme.Header.Label)}
+	rawStyles.KeyBadge = styleRef{Color: resolveForeground(theme.Header.Value), Background: resolveBackground(theme.Header.Background), Bold: true}
+	rawStyles.Footer = styleRef{Color: resolveForeground(theme.Main.Footer)}
 	rawStyles.ShortcutBar = styleRef{Background: resolveBackground(theme.Footer.ShortcutBackground)}
-	rawStyles.ActionBar = styleRef{Color: resolve(theme.Main.RowText), Background: resolveBackground(theme.Main.ActionBarBackground)}
+	rawStyles.ActionBar = styleRef{Color: resolveForeground(theme.Main.RowText), Background: resolveBackground(theme.Main.ActionBarBackground)}
 	rawStyles.FormInput = styleRef{Background: string(theme.Palette.Background)}
 	rawStyles.MessageRail = styleRef{Background: resolveBackground(theme.Main.MessageRailBackground)}
 	rawStyles.QueryBar = styleRef{Background: resolveBackground(theme.Main.QueryBarBackground)}
-	rawStyles.SelectedRow = styleRef{Color: resolve(theme.Main.RowText), Background: resolveBackground(theme.Main.RowSelected)}
-	rawStyles.DialogConfirm = styleRef{Color: resolve(theme.Text.Success), Background: resolveBackground(theme.Toast.Background), Bold: true}
-	rawStyles.DialogError = styleRef{Color: resolve(theme.Text.Error), Background: resolveBackground(theme.Toast.Background)}
-	rawStyles.DialogWarning = styleRef{Color: resolve(theme.Text.Warning), Background: resolveBackground(theme.Toast.Background)}
+	rawStyles.SelectedRow = styleRef{Color: resolveForeground(theme.Main.RowText), Background: resolveBackground(theme.Main.RowSelected)}
+	rawStyles.DialogConfirm = styleRef{Color: resolveForeground(theme.Text.Success), Background: resolveBackground(theme.Toast.Background), Bold: true}
+	rawStyles.DialogError = styleRef{Color: resolveForeground(theme.Text.Error), Background: resolveBackground(theme.Toast.Background)}
+	rawStyles.DialogWarning = styleRef{Color: resolveForeground(theme.Text.Warning), Background: resolveBackground(theme.Toast.Background)}
 
-	tableCfg.RowStyles.Selected.Color = resolve(theme.Main.RowText)
+	tableCfg.RowStyles.Selected.Color = resolveForeground(theme.Main.RowText)
 	tableCfg.RowStyles.Selected.Background = resolveBackground(theme.Main.RowSelected)
 	tableCfg.RowStyles.Selected.Bold = true
 
@@ -263,14 +265,44 @@ func flattenThemeBackground(theme *config.Theme, ref config.ColorRef) string {
 	return fmt.Sprintf("#%02x%02x%02x", blend(base.R, overlay.R), blend(base.G, overlay.G), blend(base.B, overlay.B))
 }
 
+func flattenThemeForeground(theme *config.Theme, ref config.ColorRef) string {
+	value := theme.ResolveColor(ref)
+	if value == string(config.FallbackColorTransparent) {
+		return ""
+	}
+	parsed, ok := utils.ParseColor(value)
+	if !ok {
+		return value
+	}
+	overlay, ok := color.NRGBAModel.Convert(parsed).(color.NRGBA)
+	if !ok || overlay.A == 0xff {
+		return value
+	}
+	if overlay.A == 0 {
+		return ""
+	}
+	baseParsed, ok := utils.ParseColor(string(theme.Palette.Foreground))
+	if !ok {
+		return value
+	}
+	base, ok := color.NRGBAModel.Convert(baseParsed).(color.NRGBA)
+	if !ok {
+		return value
+	}
+	blend := func(bottom, top uint8) uint8 {
+		alpha := uint32(overlay.A)
+		return uint8((uint32(top)*alpha + uint32(bottom)*(255-alpha) + 127) / 255)
+	}
+	return fmt.Sprintf("#%02x%02x%02x", blend(base.R, overlay.R), blend(base.G, overlay.G), blend(base.B, overlay.B))
+}
+
 func ApplyTableTheme(theme *config.Theme) {
 	if theme == nil {
 		return
 	}
-	resolve := theme.ResolveColor
 	tableCfg.RowStyles.Marked.Background = flattenThemeBackground(theme, theme.Table.MarkedBackground)
-	tableCfg.RowStyles.Marked.Color = resolve(theme.Table.NameForeground)
-	tableCfg.ColumnStyles = defaultColumnStyles(resolve(theme.Table.ColumnForeground), resolve(theme.Table.NameForeground))
+	tableCfg.RowStyles.Marked.Color = flattenThemeForeground(theme, theme.Table.NameForeground)
+	tableCfg.ColumnStyles = defaultColumnStyles(flattenThemeForeground(theme, theme.Table.ColumnForeground), flattenThemeForeground(theme, theme.Table.NameForeground))
 }
 
 type SafeFallbackStyles struct {
@@ -312,7 +344,18 @@ func RenderBackgroundLayer(content string, background color.Color) string {
 	if content == "" || background == nil {
 		return content
 	}
-	r, g, b, _ := background.RGBA()
+	// lipgloss.Style.GetBackground() returns lipgloss.NoColor{} — a value
+	// type, not nil — when the background slot is unset. NoColor.RGBA()
+	// returns (0, 0, 0, 0xFFFF), so without this guard the function below
+	// would emit an opaque-black SGR over content the caller wanted to
+	// leave transparent. The type assertion is the only reliable signal.
+	if _, isNoColor := background.(lipgloss.NoColor); isNoColor {
+		return content
+	}
+	r, g, b, a := background.RGBA()
+	if a == 0 {
+		return content
+	}
 	backgroundANSI := fmt.Sprintf("\033[48;2;%d;%d;%dm", r/257, g/257, b/257)
 	lines := strings.Split(content, "\n")
 	for i, line := range lines {
@@ -434,16 +477,22 @@ func (s globalStyleRefs) lookup(name StyleName) (styleRef, bool) {
 // 由 getStyleChain 在第 2 层和第 1 层调用。
 func buildStyle(ref styleRef) lipgloss.Style {
 	s := lipgloss.NewStyle()
-	if ref.Color != "" {
-		if c, ok := utils.ParseColor(ref.Color); ok {
-			s = s.Foreground(c)
+	applyChannel := func(value string, set func(c color.Color) lipgloss.Style) {
+		if value == "" {
+			return
+		}
+		parsed, ok := utils.ParseColor(value)
+		if !ok {
+			return
+		}
+		nrgba, ok := color.NRGBAModel.Convert(parsed).(color.NRGBA)
+		if !ok || nrgba.A != 0 {
+			s = set(parsed)
+			return
 		}
 	}
-	if ref.Background != "" {
-		if c, ok := utils.ParseColor(ref.Background); ok {
-			s = s.Background(c)
-		}
-	}
+	applyChannel(ref.Color, s.Foreground)
+	applyChannel(ref.Background, s.Background)
 	if ref.Bold {
 		s = s.Bold(true)
 	}

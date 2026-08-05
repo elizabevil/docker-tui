@@ -135,7 +135,7 @@ func RenderPanel(m *state.AppModel, panelWidth int, panelHeight int) string {
 		if focused {
 			c = barColor
 		}
-		return lipgloss.NewStyle().Foreground(c).Render(strings.Repeat(component.BorderLineHorizontal, w))
+		return style.ApplyForeground(lipgloss.NewStyle(), c).Render(strings.Repeat(component.BorderLineHorizontal, w))
 	}
 	leftBar := topBar(m.Compose.ComposeFocus == 0, leftW)
 	rightBar := topBar(m.Compose.ComposeFocus == 1, rightW)

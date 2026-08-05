@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"charm.land/lipgloss/v2"
 	"github.com/elizabevil/docker-tui/internal/data/config"
 )
 
@@ -110,6 +111,48 @@ func TestRenderBackgroundLayerRestoresBackgroundAfterReset(t *testing.T) {
 	}
 }
 
+// TestRenderBackgroundLayerSkipsNoColor guards against the V3 transparent gap:
+// when a panel style's background is unset, lipgloss.Style.GetBackground()
+// returns lipgloss.NoColor{} — a value type with a non-nil RGBA() of
+// (0, 0, 0, 0xFFFF). The nil check in RenderBackgroundLayer misses it, so the
+// function would otherwise paint opaque black over the panel.
+func TestRenderBackgroundLayerSkipsNoColor(t *testing.T) {
+	const content = "panel-content"
+	got := RenderBackgroundLayer(content, lipgloss.NoColor{})
+	if got != content {
+		t.Fatalf("NoColor background must be a no-op; got %q (len=%d) want %q (len=%d)", got, len(got), content, len(content))
+	}
+	if strings.Contains(got, "48;2") {
+		t.Fatalf("NoColor background emitted a bg SGR: %q", got)
+	}
+}
+
+// TestRenderBackgroundLayerSkipsZeroAlpha is the defensive guard for direct
+// callers that hand RenderBackgroundLayer a color.Color with α==0. Phase 4
+// already keeps buildStyle from emitting such a value, but this keeps the
+// contract on RenderBackgroundLayer self-sufficient.
+func TestRenderBackgroundLayerSkipsZeroAlpha(t *testing.T) {
+	const content = "panel-content"
+	got := RenderBackgroundLayer(content, color.NRGBA{R: 0, G: 0, B: 0, A: 0})
+	if got != content {
+		t.Fatalf("zero-alpha background must be a no-op; got %q want %q", got, content)
+	}
+	if strings.Contains(got, "48;2") {
+		t.Fatalf("zero-alpha background emitted a bg SGR: %q", got)
+	}
+}
+
+// TestRenderBackgroundLayerEmitsSGRForOpaqueColor is the regression for the
+// happy path: an opaque, fully-alpha color must still emit a bg SGR. This
+// complements SkipsNoColor / SkipsZeroAlpha so a future change cannot silently
+// disable background rendering for legitimate callers.
+func TestRenderBackgroundLayerEmitsSGRForOpaqueColor(t *testing.T) {
+	got := RenderBackgroundLayer("x", color.NRGBA{R: 10, G: 20, B: 30, A: 255})
+	if !strings.Contains(got, "\033[48;2;10;20;30m") {
+		t.Fatalf("opaque color did not emit expected bg SGR: %q", got)
+	}
+}
+
 func TestFlattenThemeBackgroundBlendsAlphaOverAppBackground(t *testing.T) {
 	theme := config.DefaultTheme()
 	theme.Palette.Background = config.Color("#18191b")
@@ -153,4 +196,39 @@ func TestFlattenThemeBackgroundReturnsEmptyForTransparent(t *testing.T) {
 	if got := flattenThemeBackground(theme, ref); got != "" {
 		t.Fatalf("flattened background = %q, want empty", got)
 	}
+}
+
+func TestFlattenThemeForeground(t *testing.T) {
+	t.Run("blends alpha over palette foreground", func(t *testing.T) {
+		theme := config.DefaultTheme()
+		theme.Palette.Foreground = config.Color("#ff0000")
+		ref := config.ValueRef(config.Color("rgba(255,255,255,0.5)"))
+		if got := flattenThemeForeground(theme, ref); got != "#ff8080" {
+			t.Fatalf("flattened foreground = %q, want %q", got, "#ff8080")
+		}
+	})
+	t.Run("returns empty for transparent sentinel", func(t *testing.T) {
+		theme := config.DefaultTheme()
+		theme.Palette.Foreground = config.Color("#ffffff")
+		ref := config.TokenRef(config.ColorTokenTransparent)
+		if got := flattenThemeForeground(theme, ref); got != "" {
+			t.Fatalf("flattened foreground = %q, want empty", got)
+		}
+	})
+	t.Run("passes opaque color through unchanged", func(t *testing.T) {
+		theme := config.DefaultTheme()
+		theme.Palette.Foreground = config.Color("#ffffff")
+		ref := config.ValueRef(config.Color("#000000"))
+		if got := flattenThemeForeground(theme, ref); got != "#000000" {
+			t.Fatalf("flattened foreground = %q, want %q", got, "#000000")
+		}
+	})
+	t.Run("falls back to value when palette foreground is empty", func(t *testing.T) {
+		theme := config.DefaultTheme()
+		theme.Palette.Foreground = config.Color("")
+		ref := config.ValueRef(config.Color("#ff0000"))
+		if got := flattenThemeForeground(theme, ref); got != "#ff0000" {
+			t.Fatalf("flattened foreground = %q, want %q", got, "#ff0000")
+		}
+	})
 }

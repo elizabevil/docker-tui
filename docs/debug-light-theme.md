@@ -1,3 +1,7 @@
+> ⚠️ **本 debug 文档针对的 #656565 bug 已被 [V3 颜色透明方案](color-transparency-plan.md) 消除**(2026-08-05)。
+>
+> V3 通过将半透明色在加载期预混合到 `Palette.Foreground`/`Palette.Background` 解决了原 101,101,101 混合产物;本文件保留作为历史 debug 方法论参考。
+
 # Light 主题背景色 Debug 验证方案
 
 > 用途: 一键复制所有 debug 命令,定位 "header 右侧 / panel / table 仍是黑色" 的根因。

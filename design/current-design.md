@@ -208,9 +208,23 @@ GetStyle("stateRunning")
   → ④ SafeFallback.Normal    ← 安全兜底 (白色普通)
 ```
 
-所有配置前景色和背景色统一经过 `style.ParseColor`。支持大小写不敏感的
+所有配置前景色和背景色统一经过 `utils.ParseColor`。支持大小写不敏感的
 palette 名、常用颜色名、ANSI `0-255`、`#RGB/#RGBA/#RRGGBB/#RRGGBBAA`
-以及 `rgb()/rgba()`；终端输出按不透明 RGB 处理 alpha。
+以及 `rgb()/rgba()`。解析出的颜色按 alpha 值走三态:
+
+| alpha | 语义 | 消费者处理 | 终端表现 |
+|---|---|---|---|
+| `α=0`(`"transparent"` 关键字或 `#RRGGBB00`) | 完全不画 | 跳过 `lipgloss.Foreground/Background()` 调用 | 透到下层(Palette.Background / 终端默认) |
+| `0<α<255`(`rgba(...,a)` 或 `#RRGGBBAA`) | 半透明,需混合 | 加载期(`ApplyThemeStyles`)一次性算混合 → 实色 hex | 画混合后的实色 |
+| `α=255`(默认) | 不透明 | 直通 | 画原色 |
+
+**混合基底**(由 `flattenThemeBackground` / `flattenThemeForeground` 在加载期完成):
+
+- Background 通道的 0<α<255 → 混合到 `theme.Palette.Background`
+- Foreground 通道的 0<α<255 → 混合到 `theme.Palette.Foreground`
+- `Palette.Background` / `Palette.Foreground` 本身若是 `"transparent"` → 校验层拒绝(无基底可混)
+
+**为何不在运行时混合**:终端文本层 SGR(ECMA-48 / ISO 8613-6)没有 alpha 通道;lipgloss v2 收到 `NRGBA{A:0}` 会渲染成不透明黑色(`NRGBA.RGBA()` 预乘 alpha 把 RGB 乘 0)。所有 alpha 必须预计算为实色再传给 lipgloss。实测证据见 [`test/diagnostics/lipgloss-transparent-probe/main.go`](../test/diagnostics/lipgloss-transparent-probe/main.go)。
 
 ### 3.3 响应式列宽断点
 

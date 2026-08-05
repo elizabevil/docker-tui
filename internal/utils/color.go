@@ -24,9 +24,18 @@ func SetPaletteColor(name string, c color.Color) {
 // ParseColor resolves theme palette names and common terminal/CSS color forms:
 // palette names (registered via SetPaletteColor), standard CSS names, #hex
 // (3/4/6/8 digits), rgb()/rgba() functions, and ANSI 0-255 color indices.
+//
+// The string "transparent" (case-insensitive, trimmed) is the V3 sentinel
+// meaning "skip the channel". It returns NRGBA{A:0}; consumers must read
+// .A == 0 and bypass the lipgloss call — lipgloss v2 ignores the alpha
+// channel and would otherwise render A:0 as opaque black. See
+// test/diagnostics/lipgloss-transparent-probe for the evidence.
 func ParseColor(value string) (color.Color, bool) {
 	value = strings.TrimSpace(value)
 	name := strings.ToLower(value)
+	if name == "transparent" {
+		return color.NRGBA{R: 0x00, G: 0x00, B: 0x00, A: 0x00}, true
+	}
 	if c, ok := palette[name]; ok {
 		return c, true
 	}

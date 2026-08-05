@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -278,5 +279,42 @@ func TestValidateThemeAcceptsValueRefsInAllFormats(t *testing.T) {
 	theme.Main.RowSelected = ValueRef(Color("notacolor"))
 	if err := ValidateTheme(theme); err == nil {
 		t.Error("ValidateTheme accepted invalid rowSelected value")
+	}
+}
+
+func TestValidateThemeRejectsTransparentPaletteBase(t *testing.T) {
+	variants := []string{"transparent", "Transparent", "TRANSPARENT", "  transparent  ", "\tTRANSPARENT\n"}
+	for _, variant := range variants {
+		theme := DefaultTheme()
+		theme.Palette.Background = Color(variant)
+		err := ValidateTheme(theme)
+		if err == nil {
+			t.Errorf("ValidateTheme accepted Palette.Background=%q; want non-nil error", variant)
+			continue
+		}
+		if !strings.Contains(err.Error(), "transparent") {
+			t.Errorf("ValidateTheme error for Palette.Background=%q does not mention %q: %v", variant, "transparent", err)
+		}
+	}
+	for _, variant := range variants {
+		theme := DefaultTheme()
+		theme.Palette.Foreground = Color(variant)
+		err := ValidateTheme(theme)
+		if err == nil {
+			t.Errorf("ValidateTheme accepted Palette.Foreground=%q; want non-nil error", variant)
+			continue
+		}
+		if !strings.Contains(err.Error(), "transparent") {
+			t.Errorf("ValidateTheme error for Palette.Foreground=%q does not mention %q: %v", variant, "transparent", err)
+		}
+	}
+}
+
+func TestValidateThemeAcceptsOpaquePaletteBase(t *testing.T) {
+	theme := DefaultTheme()
+	theme.Palette.Background = "#ff0000"
+	theme.Palette.Foreground = "#ffffff"
+	if err := ValidateTheme(theme); err != nil {
+		t.Errorf("ValidateTheme rejected opaque palette base: %v", err)
 	}
 }

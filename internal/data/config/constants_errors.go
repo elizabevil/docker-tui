@@ -40,6 +40,7 @@ const (
 	errTLSClientPairRequired            = "tls.certFile and keyFile must be configured together"
 	errThemeNil                         = "theme is nil"
 	errThemePaletteColorFormat          = "theme palette color %q is not a valid color format"
+	errThemePaletteTransparentBase      = "theme palette color %q cannot be \"transparent\" (no base for alpha blending)"
 	errThemeBorderKindInvalid           = "theme.border.kind is invalid"
 	errThemeOverlayOpacityInvalid       = "theme.dialog.overlayOpacity must be between 0 and 100"
 	errThemeColorReferenceFormat        = "theme color reference %q is invalid"

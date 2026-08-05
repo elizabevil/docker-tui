@@ -254,10 +254,18 @@ func renderAppBackground(m *state.AppModel, content string) string {
 		return content
 	}
 	bgHex := string(m.Dependencies.Theme.Palette.Background)
-	if bgHex == "" || bgHex == "transparent" {
+	if bgHex == "" || strings.EqualFold(bgHex, "transparent") {
 		return content
 	}
-	r, g, b := utils.HexToRGB(bgHex)
+	parsed, ok := utils.ParseColor(bgHex)
+	if !ok {
+		return content
+	}
+	nrgba, ok := color.NRGBAModel.Convert(parsed).(color.NRGBA)
+	if !ok {
+		return content
+	}
+	r, g, b := int(nrgba.R), int(nrgba.G), int(nrgba.B)
 	bgAnsi := fmt.Sprintf("\033[48;2;%d;%d;%dm", r, g, b)
 	// Reset barrier: re-emit the background after every reset code. lipgloss
 	// emits both the long form (\x1b[0m) and the short form (\x1b[m); both must

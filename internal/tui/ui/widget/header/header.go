@@ -191,11 +191,13 @@ func Render(app *state.AppModel, usableW int) string {
 func renderLink(status string) string {
 	switch status {
 	case component.LinkUp:
+		up := style.ApplyForeground(lipgloss.NewStyle(), style.Colors.Success)
 		return component.GetStyle(component.StyleHeaderBar).Render(utils.PadVisible(
-			lipgloss.NewStyle().Foreground(style.Colors.Success).Render(status), 18))
+			up.Render(status), 18))
 	case component.BulletEmpty:
+		empty := style.ApplyForeground(lipgloss.NewStyle(), style.Colors.Danger)
 		return component.GetStyle(component.StyleHeaderBar).Render(utils.PadVisible(
-			lipgloss.NewStyle().Foreground(style.Colors.Danger).Render(status), 18))
+			empty.Render(status), 18))
 	default:
 		return component.GetStyle(component.StyleHeaderBar).Render(utils.PadVisible(status, 18))
 	}

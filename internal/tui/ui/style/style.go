@@ -17,34 +17,34 @@ import (
 // 并供 component.GetStyle()/buildStyle() 读取以完成样式解析。
 // 编译期默认值与 "default" 主题一致。
 type Palette struct {
-	Success         color.Color
-	Primary         color.Color
-	Info            color.Color
-	Danger          color.Color
-	Warning         color.Color
-	Accent          color.Color
-	AccentSecondary color.Color
-	Foreground      color.Color
-	ForegroundMuted color.Color
+	Success          color.Color
+	Primary          color.Color
+	Info             color.Color
+	Danger           color.Color
+	Warning          color.Color
+	Accent           color.Color
+	AccentSecondary  color.Color
+	Foreground       color.Color
+	ForegroundMuted  color.Color
 	BackgroundSubtle color.Color
-	BackgroundDeep  color.Color
-	BG              color.Color
+	BackgroundDeep   color.Color
+	BG               color.Color
 }
 
 // Colors 是全局唯一的调色板实例。
 var Colors = Palette{
-	Success:         lipgloss.Color("#499c54"),
-	Primary:         lipgloss.Color("#56b4c2"),
-	Info:            lipgloss.Color("#589df6"),
-	Danger:          lipgloss.Color("#db5a5a"),
-	Warning:         lipgloss.Color("#c8a35e"),
-	Accent:          lipgloss.Color("#cc7832"),
-	AccentSecondary: lipgloss.Color("#a962b5"),
-	Foreground:      lipgloss.Color("#c9d1d9"),
-	ForegroundMuted: lipgloss.Color("#5a6270"),
+	Success:          lipgloss.Color("#499c54"),
+	Primary:          lipgloss.Color("#56b4c2"),
+	Info:             lipgloss.Color("#589df6"),
+	Danger:           lipgloss.Color("#db5a5a"),
+	Warning:          lipgloss.Color("#c8a35e"),
+	Accent:           lipgloss.Color("#cc7832"),
+	AccentSecondary:  lipgloss.Color("#a962b5"),
+	Foreground:       lipgloss.Color("#c9d1d9"),
+	ForegroundMuted:  lipgloss.Color("#5a6270"),
 	BackgroundSubtle: lipgloss.Color("#1e1f22"),
-	BackgroundDeep:  lipgloss.Color("#2b2d30"),
-	BG:              lipgloss.Color("#18191b"),
+	BackgroundDeep:   lipgloss.Color("#2b2d30"),
+	BG:               lipgloss.Color("#18191b"),
 }
 
 // init 把编译期默认调色板注册到 utils，使 utils.ParseColor 在
@@ -78,4 +78,33 @@ func Color(value string) color.Color {
 		return resolved
 	}
 	return Colors.Foreground
+}
+
+// ApplyForeground returns s with c set as the foreground color, unless c is
+// nil or fully transparent (α == 0). In those cases the foreground channel
+// stays unset so lipgloss does not render a hard-coded black on top of
+// whatever the user wanted to be transparent (Phase 0 evidence in
+// test/diagnostics/lipgloss-transparent-probe). Mirrors the three-state
+// dispatch in component.buildStyle.
+func ApplyForeground(s lipgloss.Style, c color.Color) lipgloss.Style {
+	if c == nil {
+		return s
+	}
+	nrgba, ok := color.NRGBAModel.Convert(c).(color.NRGBA)
+	if ok && nrgba.A == 0 {
+		return s
+	}
+	return s.Foreground(c)
+}
+
+// ApplyBackground is the background counterpart of ApplyForeground.
+func ApplyBackground(s lipgloss.Style, c color.Color) lipgloss.Style {
+	if c == nil {
+		return s
+	}
+	nrgba, ok := color.NRGBAModel.Convert(c).(color.NRGBA)
+	if ok && nrgba.A == 0 {
+		return s
+	}
+	return s.Background(c)
 }

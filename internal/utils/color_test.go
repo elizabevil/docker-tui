@@ -34,6 +34,31 @@ func TestParseColorCommonFormats(t *testing.T) {
 	}
 }
 
+func TestParseColorTransparent(t *testing.T) {
+	// ParseColor must return NRGBA{A:0} so consumers can read .A == 0
+	// and skip the lipgloss call — lipgloss v2 ignores alpha and would
+	// otherwise render A:0 as opaque black. See lipgloss-transparent-probe.
+	sentinel := color.NRGBA{R: 0x00, G: 0x00, B: 0x00, A: 0x00}
+	for _, input := range []string{"transparent", "TRANSPARENT", "Transparent", "  transparent  ", "\tTRANSPARENT\n"} {
+		parsed, ok := ParseColor(input)
+		if !ok {
+			t.Errorf("ParseColor(%q) returned ok=false; want true", input)
+			continue
+		}
+		got, isNRGBA := color.NRGBAModel.Convert(parsed).(color.NRGBA)
+		if !isNRGBA {
+			t.Errorf("ParseColor(%q) returned non-NRGBA color: %T", input, parsed)
+			continue
+		}
+		if got != sentinel {
+			t.Errorf("ParseColor(%q) = %#v, want %#v", input, got, sentinel)
+		}
+		if got.A != 0 {
+			t.Errorf("ParseColor(%q).A = %d, want 0 (consumer-side discriminator)", input, got.A)
+		}
+	}
+}
+
 func TestParseColorPaletteAndANSI(t *testing.T) {
 	// Palette names only resolve once registered (the style package registers
 	// them at startup; tests register the names they exercise here).

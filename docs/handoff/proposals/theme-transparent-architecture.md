@@ -1,3 +1,7 @@
+> ⚠️ **本架构(Q1-Q4 引入 `ColorTokenTransparent` / `Dialog.BodyBackground` / 终端探测)已被 [V3 颜色透明方案](../../color-transparency-plan.md) 取代**(2026-08-05)。
+>
+> V3 走的是**反方向**:不引入新 token、不引入新 sentinel 类型、不引入终端探测,而是 `ParseColor("transparent")` → `NRGBA{A:0}` + 消费者读 `.A` 字段三态分流 + 加载期预混合半透明色。本文件保留作为历史决策记录。
+
 # 主题透明架构(Q1-Q4 全 a 方案实施)
 
 > 日期: 2026-08-04
