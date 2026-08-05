@@ -41,6 +41,9 @@ func RenderList(vm *state.VolumeListModel, cm *state.ContainerListModel, width i
 	items := vm.FilteredItems()
 	total := len(items)
 	if total == 0 {
+		if vm.FilterText() != "" {
+			return component.GetStyle("dim").Render(i18n.T("msg.no_volumes_match"))
+		}
 		return component.GetStyle("dim").Render(i18n.T("msg.no_volumes"))
 	}
 

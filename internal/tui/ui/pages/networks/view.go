@@ -38,6 +38,9 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 	items := nm.FilteredItems()
 	total := len(items)
 	if total == 0 {
+		if nm.FilterText() != "" {
+			return component.GetStyle("dim").Render(i18n.T("msg.no_networks_match"))
+		}
 		return component.GetStyle("dim").Render(i18n.T("msg.no_networks"))
 	}
 

@@ -41,6 +41,9 @@ func RenderList(im *state.ImageListModel, cm *state.ContainerListModel, width in
 	items := im.SortedItems()
 	total := len(items)
 	if total == 0 {
+		if im.FilterText() != "" {
+			return component.GetStyle("dim").Render(i18n.T("msg.no_images_match"))
+		}
 		return component.GetStyle("dim").Render(i18n.T("msg.no_images"))
 	}
 

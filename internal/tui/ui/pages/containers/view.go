@@ -43,6 +43,9 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 	items := cm.SortedItems()
 	total := len(items)
 	if total == 0 {
+		if cm.FilterText() != "" {
+			return component.GetStyle("dim").Render(i18n.T("msg.no_containers_match"))
+		}
 		return component.GetStyle("dim").Render(i18n.T("msg.no_containers"))
 	}
 
