@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
@@ -156,6 +157,158 @@ func TestController_Clear_Compose(t *testing.T) {
 	c.Clear()
 	if m.Compose.ComposeServiceFilter != "" {
 		t.Fatalf("ComposeServiceFilter=%q after Clear, want empty", m.Compose.ComposeServiceFilter)
+	}
+}
+
+func TestController_Open_Compose(t *testing.T) {
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	m.Navigation.Mode = state.ModeNormal
+	m.Navigation.ActivePanel = state.PanelCompose
+	m.Compose.ComposeFocus = 1
+	m.Compose.ComposeServiceFilter = "svc"
+	m.Compose.ComposeProjectFilter = "proj"
+
+	c := New(m)
+	c.Open()
+
+	if m.Navigation.Mode != state.ModeFilter {
+		t.Fatalf("Mode=%v, want ModeFilter", m.Navigation.Mode)
+	}
+	if m.Navigation.FilterInput.Text != "svc" {
+		t.Fatalf("FilterInput.Text=%q, want svc (active focus=1)", m.Navigation.FilterInput.Text)
+	}
+
+	m.Compose.ComposeFocus = 0
+	c.Open()
+	if m.Navigation.FilterInput.Text != "proj" {
+		t.Fatalf("FilterInput.Text=%q, want proj (active focus=0)", m.Navigation.FilterInput.Text)
+	}
+}
+
+func TestController_Apply_Compose_Project(t *testing.T) {
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	m.Navigation.ActivePanel = state.PanelCompose
+	m.Compose.ComposeFocus = 0
+	c := New(m)
+	c.Apply("proj-x")
+	if m.Compose.ComposeProjectFilter != "proj-x" {
+		t.Fatalf("ComposeProjectFilter=%q, want proj-x", m.Compose.ComposeProjectFilter)
+	}
+	if c.Active() != "proj-x" {
+		t.Fatalf("Active()=%q, want proj-x", c.Active())
+	}
+}
+
+func TestController_ApplyCurrent(t *testing.T) {
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	m.Navigation.ActivePanel = state.PanelContainers
+	m.Navigation.FilterInput.Text = "live"
+	c := New(m)
+	c.ApplyCurrent()
+	if m.Resources.Containers.Filter != "live" {
+		t.Fatalf("Container.Filter=%q, want live (from FilterInput.Text)", m.Resources.Containers.Filter)
+	}
+	if c.Active() != "live" {
+		t.Fatalf("Active()=%q, want live", c.Active())
+	}
+}
+
+func TestSaveLoadRoundtrip(t *testing.T) {
+	src := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	src.Navigation.ActivePanel = state.PanelContainers
+	src.Resources.Containers.SetFilter("c-f")
+	src.Resources.Images.SetFilter("i-f")
+	src.Resources.Volumes.SetFilter("v-f")
+	src.Resources.Networks.SetFilter("n-f")
+	src.Audit.SetFilter("a-f")
+	src.Compose.ComposeServiceFilter = "svc"
+	src.Compose.ComposeProjectFilter = "proj"
+
+	var buf bytes.Buffer
+	if err := New(src).Save(&buf); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+
+	dst := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	if err := Load(dst, &buf); err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	checks := []struct {
+		name string
+		got  string
+		want string
+	}{
+		{"Containers", dst.Resources.Containers.Filter, "c-f"},
+		{"Images", dst.Resources.Images.Filter, "i-f"},
+		{"Volumes", dst.Resources.Volumes.Filter, "v-f"},
+		{"Networks", dst.Resources.Networks.Filter, "n-f"},
+		{"Audit", dst.Audit.FilterText(), "a-f"},
+		{"ComposeService", dst.Compose.ComposeServiceFilter, "svc"},
+		{"ComposeProject", dst.Compose.ComposeProjectFilter, "proj"},
+	}
+	for _, c := range checks {
+		if c.got != c.want {
+			t.Errorf("%s: got %q, want %q", c.name, c.got, c.want)
+		}
+	}
+}
+
+func TestSave_NilSafe(t *testing.T) {
+	var buf bytes.Buffer
+	if err := New(nil).Save(&buf); err != nil {
+		t.Fatalf("Save(nil): %v", err)
+	}
+	if buf.Len() != 0 {
+		t.Errorf("Save(nil) wrote %d bytes, want 0", buf.Len())
+	}
+	if err := Load(nil, &buf); err != nil {
+		t.Fatalf("Load(nil): %v", err)
+	}
+}
+
+func TestBannerPrefixFor(t *testing.T) {
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	m.Navigation.ActivePanel = state.PanelContainers
+	m.Resources.Containers.SetFilter("foo")
+
+	cases := []struct {
+		name string
+		f    state.TableFilter
+		want string
+	}{
+		{"nil", nil, ""},
+		{"active", m.Resources.Containers, "filter: foo | "},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := BannerPrefixFor(tc.f); got != tc.want {
+				t.Fatalf("BannerPrefixFor()=%q, want %q", got, tc.want)
+			}
+		})
+	}
+
+	ctrl := New(m)
+	if got := ctrl.BannerPrefix(); got != "filter: foo | " {
+		t.Fatalf("Controller.BannerPrefix()=%q, want %q", got, "filter: foo | ")
+	}
+
+	countCases := []struct {
+		name     string
+		filtered int
+		total    int
+		want     string
+	}{
+		{"no_total", 3, 0, "filter: foo | "},
+		{"with_count", 3, 42, "filter: foo (3/42) | "},
+		{"zero_match", 0, 42, "filter: foo (0/42) | "},
+	}
+	for _, tc := range countCases {
+		t.Run("count_"+tc.name, func(t *testing.T) {
+			if got := BannerPrefixForCount(m.Resources.Containers, tc.filtered, tc.total); got != tc.want {
+				t.Fatalf("BannerPrefixForCount()=%q, want %q", got, tc.want)
+			}
+		})
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
+	"github.com/elizabevil/docker-tui/internal/tui/filter"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
@@ -65,14 +66,14 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 		}
 	}
 
-	banner := ""
+	banner := filter.BannerPrefixForCount(cm, total, cm.Len())
 	if !selectionDisabled && cm.Cursor < total {
 		sel := items[cm.Cursor]
 		b := sel.Name
 		if sel.ID != "" {
 			b += " (" + utils.ShortID(sel.ID) + ")"
 		}
-		banner = b
+		banner += b
 	}
 
 	rows := make([][]string, 0, rowHeight)

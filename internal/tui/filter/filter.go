@@ -17,6 +17,10 @@
 package filter
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
+
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/utils"
 )
@@ -59,6 +63,116 @@ func (c *Controller) Active() string {
 // HasActive reports whether any panel currently has a non-empty filter.
 func (c *Controller) HasActive() bool {
 	return c.Active() != ""
+}
+
+// BannerPrefixFor returns a banner prefix string for a panel whose
+// TableFilter may or may not be active. Format: "filter: <text> | ".
+// Returns "" when f is nil or has no active filter, so callers can
+// concatenate safely:
+//
+//	banner := filter.BannerPrefixFor(cm) + selectionLabel
+//
+// This is the package-level form (vs. Controller.BannerPrefix) so view
+// functions that receive only the list model — not the full AppModel —
+// can use it without threading the model through.
+func BannerPrefixFor(f state.TableFilter) string {
+	if f == nil {
+		return ""
+	}
+	text := f.FilterText()
+	if text == "" {
+		return ""
+	}
+	return "filter: " + text + " | "
+}
+
+// filterData is the on-disk shape for Save/Load. JSON-marshaled to
+// <configDir>/filters.json so the user's per-panel filters survive
+// app restarts.
+type filterData struct {
+	Containers     string `json:"containers"`
+	Images         string `json:"images"`
+	Volumes        string `json:"volumes"`
+	Networks       string `json:"networks"`
+	Audit          string `json:"audit"`
+	ComposeService string `json:"compose_service,omitempty"`
+	ComposeProject string `json:"compose_project,omitempty"`
+}
+
+// Save writes the current per-panel filter text to w as JSON.
+// Safe on a nil receiver (no-op).
+func (c *Controller) Save(w io.Writer) error {
+	if c == nil || c.m == nil {
+		return nil
+	}
+	data := filterData{
+		Containers:     c.m.Resources.Containers.Filter,
+		Images:         c.m.Resources.Images.Filter,
+		Volumes:        c.m.Resources.Volumes.Filter,
+		Networks:       c.m.Resources.Networks.Filter,
+		Audit:          c.m.Audit.FilterText(),
+		ComposeService: c.m.Compose.ComposeServiceFilter,
+		ComposeProject: c.m.Compose.ComposeProjectFilter,
+	}
+	return json.NewEncoder(w).Encode(data)
+}
+
+// Load reads JSON from r and applies the per-panel filter text to m.
+// Safe on a nil m (no-op). An empty input (io.EOF) is also a no-op
+// — callers can just always call Load on the opened file.
+func Load(m *state.AppModel, r io.Reader) error {
+	if m == nil {
+		return nil
+	}
+	var data filterData
+	if err := json.NewDecoder(r).Decode(&data); err != nil {
+		if err == io.EOF {
+			return nil
+		}
+		return err
+	}
+	m.Resources.Containers.SetFilter(data.Containers)
+	m.Resources.Images.SetFilter(data.Images)
+	m.Resources.Volumes.SetFilter(data.Volumes)
+	m.Resources.Networks.SetFilter(data.Networks)
+	m.Audit.SetFilter(data.Audit)
+	m.Compose.ComposeServiceFilter = data.ComposeService
+	m.Compose.ComposeProjectFilter = data.ComposeProject
+	return nil
+}
+
+// BannerPrefixForCount is like BannerPrefixFor but also includes the
+// filtered/total match count, e.g. "filter: foo (3/42) | ". Pass
+// filtered=0 or total<=0 to suppress the count.
+func BannerPrefixForCount(f state.TableFilter, filtered, total int) string {
+	if f == nil {
+		return ""
+	}
+	text := f.FilterText()
+	if text == "" {
+		return ""
+	}
+	if total > 0 {
+		return fmt.Sprintf("filter: %s (%d/%d) | ", text, filtered, total)
+	}
+	return "filter: " + text + " | "
+}
+
+// BannerPrefix returns a banner prefix string to be prepended to a panel's
+// banner when a filter is active. Format: "filter: <text> | ".
+// Returns "" when no filter is active, so callers can concatenate safely:
+//
+//	banner := c.BannerPrefix() + selectionLabel
+func (c *Controller) BannerPrefix() string {
+	return BannerPrefixFor(c.tableFilter())
+}
+
+// tableFilter returns the active panel's TableFilter (no-AppModel form).
+func (c *Controller) tableFilter() state.TableFilter {
+	if c.m == nil {
+		return nil
+	}
+	return utils.ActiveTableFilter(c.m)
 }
 
 // Open enters ModeFilter and seeds FilterInput with the current filter

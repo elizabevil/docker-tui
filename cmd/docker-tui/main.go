@@ -19,6 +19,7 @@ import (
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/runtimeinit"
 	"github.com/elizabevil/docker-tui/internal/tui"
+	"github.com/elizabevil/docker-tui/internal/tui/filter"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	view "github.com/elizabevil/docker-tui/internal/tui/ui/app"
 	"github.com/elizabevil/docker-tui/internal/tui/update"
@@ -102,6 +103,9 @@ func runTUI(ctx *orpheus.Context) error {
 		}
 	} else {
 		m.Dependencies.Audit = audit.NewService(nil)
+	}
+	if dir, configErr := config.ConfigDir(); configErr == nil {
+		loadFilters(m, filepath.Join(dir, "filters.json"))
 	}
 	m.Connection.Pool = pool
 	m.Dependencies.Theme = theme
@@ -217,6 +221,9 @@ func connectDocker(pool *runtimeapi.ConnectionPool, name string) tea.Cmd {
 }
 
 func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if _, ok := msg.(tea.QuitMsg); ok {
+		saveFilters(m.model)
+	}
 	toastGeneration := m.model.Feedback.ToastGeneration
 	updatedModel, cmd := update.Update(msg, m.model)
 	m.model = updatedModel
@@ -231,6 +238,35 @@ func (m *mainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(cmd, toastCmd)
 	}
 	return m, cmd
+}
+
+// loadFilters reads <path> and applies it to m. Missing or corrupt
+// files are silently ignored — the user just starts with empty
+// filters in that case.
+func loadFilters(m *state.AppModel, path string) {
+	f, err := os.Open(path)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	_ = filter.Load(m, f)
+}
+
+// saveFilters writes m's per-panel filter text to <path> in JSON.
+// Errors are best-effort: a failed save just means the filters
+// won't survive the next launch, but the current session is fine.
+func saveFilters(m *state.AppModel) {
+	dir, err := config.ConfigDir()
+	if err != nil {
+		return
+	}
+	path := filepath.Join(dir, "filters.json")
+	f, err := os.Create(path)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	_ = filter.New(m).Save(f)
 }
 
 func (m *mainModel) View() tea.View {

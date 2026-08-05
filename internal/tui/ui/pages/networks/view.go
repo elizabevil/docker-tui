@@ -8,6 +8,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
+	"github.com/elizabevil/docker-tui/internal/tui/filter"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
@@ -98,14 +99,14 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 			return ""
 		})
 
-	banner := ""
+	banner := filter.BannerPrefixForCount(nm, total, nm.Len())
 	if !selectionDisabled {
 		if sel := nm.Selected(); sel != nil {
 			label := sel.Name
 			if sel.ID != "" {
 				label += " (" + utils.ShortID(sel.ID) + ")"
 			}
-			banner = label
+			banner += label
 		}
 	}
 

@@ -8,6 +8,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
+	"github.com/elizabevil/docker-tui/internal/tui/filter"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/containers"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
@@ -75,14 +76,14 @@ func RenderList(im *state.ImageListModel, cm *state.ContainerListModel, width in
 		}
 	}
 
-	banner := ""
+	banner := filter.BannerPrefixForCount(im, total, im.Len())
 	if !selectionDisabled {
 		if sel := im.Selected(); sel != nil {
 			label := fullRef(sel)
 			if sel.IsManifest {
 				label += " (multi-arch)"
 			}
-			banner = label
+			banner += label
 		}
 	}
 
