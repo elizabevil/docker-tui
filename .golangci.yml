@@ -1,108 +1,127 @@
+# golangci-lint 配置文件 (版本 2)
+# 官方参考文档: https://golangci-lint.run/docs/configuration/file
+version: "2"
+
+# 运行时的全局选项
 run:
+  # 分析超时时间，可根据项目大小调整
   timeout: 5m
+  # 是否分析测试文件 (*_test.go)
   tests: true
-  issues-exit-code: 1
 
+# Linters 配置
 linters:
-  disable-all: true
+  # default: none 表示只启用下面 enable 列表中指定的 linter
+  default: none
+
+  # 启用的 linter 列表
   enable:
-    - govet
-    - staticcheck
-    - errcheck
-    - ineffassign
-    - unused
-    - gocritic
-    - revive
-    - gosimple
-    - gofmt
-    # Enterprise-grade additions
-    - lll              # line-length
-    - funlen           # function/method length
-    - cyclop           # cyclomatic complexity
-    - gocognit         # cognitive complexity
-    - dupl             # duplicated code blocks
-    - goconst          # repeated strings as constants
-    - misspell         # common typos in English
-    - unparam          # unused function parameters
+    # --- 基础与正确性 (Essential) ---
+    - govet          # Go 官方的静态分析工具，涵盖众多检查
+    - errcheck       # 检查未被处理的错误
+    - staticcheck    # 强大的综合静态分析工具 (包含了 gosimple, unused 等)
+    - ineffassign    # 检测无效的赋值
 
-linters-settings:
-  # 130-character line limit, matching golangci enterprise convention.
-  lll:
-    line-length: 130
-    tab-width: 4
+    # --- 代码质量与复杂度 (Quality & Complexity) ---
+    - gocritic       # 提供大量的代码风格和质量建议
+    - gocyclo        # 计算并检查函数的圈复杂度
+    - gocognit       # 计算并检查函数的认知复杂度
+    - funlen         # 检查函数或方法的长度
+    - nestif         # 检测深度嵌套的 if 语句
 
-  # 120-line limit per function/method; longer bodies are split.
-  funlen:
-    lines: 120
-    statements: 80
-    ignore-comments: true
-    # Test functions and tiny one-liner helpers are exempt from length.
-    skip-tests: true
+    # --- 错误处理 (Error Handling) ---
+    - errorlint      # 检查 Go 1.13+ 错误包装 (errors.Is, errors.As) 的使用
+    - nilerr         # 检查返回 nil 但 error 不为 nil 的情况
 
-  # Cyclomatic complexity ceiling.
-  cyclop:
-    max-complexity: 15
-    package-average: 10.0
-    skip-tests: true
+    # --- 性能 (Performance) ---
+    - prealloc       # 提示可以对 slice 进行预分配
+    - bodyclose      # 检查 HTTP 响应体 (resp.Body) 是否被关闭
+    - sqlclosecheck  # 检查 sql.Rows, sql.Stmt 等是否被关闭
 
-  # Cognitive complexity (more humane than cyclomatic) ceiling.
-  gocognit:
-    min-complexity: 20
-    skip-tests: true
+    # --- 安全 (Security) ---
+    - gosec          # 检查常见的安全问题
 
-  # gocritic opinions on style, naming, and parameter count.
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - style
-      - performance
-    disabled-checks:
-      - dupImport
-      - ifElseChain
-      - whyNoLint
-      - hugeParam
+    # --- 代码风格与惯用法 (Style & Idiomatic) ---
+    - misspell       # 检查拼写错误
+    - unconvert      # 检查不必要的类型转换
+    - usestdlibvars  # 建议使用标准库中的常量 (如 http.MethodGet)
+    - unparam        # 检查未使用的函数参数
+    - whitespace     # 检查不必要的空行
 
-  # No function may declare more than 5 parameters (matches the
-  # gocritic/hugeParam-style rule but enforced separately so it is
-  # visible on its own line in CI output).
-  revive:
-    confidence: 0.8
+    # --- 测试 (Testing) ---
+    - thelper        # 强制测试辅助函数调用 t.Helper()
+    - tparallel      # 检查 t.Parallel() 的不当使用
+
+  # 对特定 linter 进行细粒度设置
+  settings:
+    # govet 设置
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment # 字段对齐优化，可能带来大量噪音
+        - shadow         # 变量遮蔽检查，有时过于严格
+
+    # gocritic 设置
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+      disabled-checks:
+        - hugeParam     # 并非所有场景都适用
+        - importShadow  # 可能过于严格
+        - unlambda      # 个人/团队偏好
+
+    # 圈复杂度阈值设置
+    gocyclo:
+      min-complexity: 15
+    gocognit:
+      min-complexity: 30
+
+    # 函数长度限制
+    funlen:
+      lines: 100
+      statements: 60
+
+    # 嵌套深度
+    nestif:
+      min-complexity: 5
+
+    # gosec 排除规则
+    gosec:
+      excludes:
+        - G404 # 使用弱随机数生成器 (math/rand)
+        # 可根据需要在此排除其他误报的规则
+
+  # 排除规则
+  exclusions:
+    # 对生成代码的处理: 'lax' 模式更宽松地识别生成的文件
+    generated: lax
+    # 使用预设的排除规则集，减少误报
+    presets:
+      - comments
+      - std-error-handling
+      - common-false-positives
+
+    # 自定义排除规则
     rules:
-      - name: exported
-        disabled: true
-      - name: var-naming
-      - name: indent-error-flow
-      - name: blank-imports
-      - name: unexported-return
-      - name: function-result-limit
-        arguments: [3]
-      - name: max-public-structs
-        arguments: [10]
-      - name: cognitive-complexity
-      - name: cyclomatic
-        arguments: [15]
-      - name: line-length-limit
-        arguments: [130]
-      - name: max-control-nesting
-        arguments: [5]
+      # 在测试文件中放宽某些检查
+      - path: _test\.go
+        linters:
+          - errcheck
+          - funlen
+          - gocyclo
+          - gocognit
 
-  errcheck:
-    check-type-assertions: true
-    check-blank: true
+      # main 和 init 函数允许更长
+      - source: "^func (main|init)\\("
+        linters:
+          - funlen
 
+
+# 议题 (Issue) 输出控制
 issues:
+  # 0 表示不限制每个 linter 的报告数量
   max-issues-per-linter: 0
   max-same-issues: 0
-  exclude-use-default: false
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - errcheck
-    - # Generated mocks and embed bindings are exempt.
-      path: mockengine\.go|_embed\.go
-      linters:
-        - gochecknoglobals
-        - gochecknoinits
-
-output:
-  sort-results: true
+  fix: true
