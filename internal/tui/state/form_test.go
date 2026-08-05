@@ -149,7 +149,7 @@ func TestMoveFieldTraversesFieldsAndButtons(t *testing.T) {
 		{Key: "c", Kind: FormText},
 	}}
 	s.FieldFocus = s.CancelSlot() // default Cancel
-	s.MoveField(-1) // Up from Cancel → Confirm
+	s.MoveField(-1)               // Up from Cancel → Confirm
 	if s.FocusedButton() != "confirm" {
 		t.Fatalf("Up from Cancel = %s, want confirm", s.FocusedButton())
 	}

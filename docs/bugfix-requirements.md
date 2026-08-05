@@ -45,7 +45,7 @@
 - 当前行为:
   `InspectImageDetail()` 为普通镜像调用 runtime layer history API，为 manifest list 投影平台变体；详情页根据显式来源状态渲染真实记录、空数据、加载中或获取失败。
 - 代码锚点:
-  [internal/data/docker/images.go](/home/debi/IdeaProjects/docker-tui/internal/data/docker/images.go:277)
+  [internal/data/runtime/docker/images.go](/home/debi/IdeaProjects/docker-tui/internal/data/runtime/docker/images.go:107) `InspectImageDetailContext`
   [internal/tui/ui/pages/detail/image.go](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/pages/detail/image.go:14)
 - 期望行为:
   镜像详情中的 `History` 应作为一级区段保留；普通镜像与 manifest list 允许使用不同子语义和排版模型。镜像引擎可提供历史数据时，普通镜像至少展示 `CreatedBy`、`Size`、`Comment` 等核心字段；manifest list 则展示其平台变体结构。确实拿不到时，后续再定义降级语义。
@@ -82,7 +82,7 @@
 - 当前行为:
   默认配置、运行时解析、Help 和 Footer 已统一使用动作注册表及其有效绑定，不再将大写单键作为 stop / kill / pull 的默认说明。
 - 代码锚点:
-  [internal/data/config/default.jsonc](/home/debi/IdeaProjects/docker-tui/internal/data/config/default.jsonc:37)
+  [internal/data/config/defaults/keymap.jsonc](/home/debi/IdeaProjects/docker-tui/internal/data/config/defaults/keymap.jsonc:1)
   [internal/tui/keyboard/keyboard.go](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/keyboard.go:13)
   [internal/tui/keys/mapping.go](/home/debi/IdeaProjects/docker-tui/internal/tui/keys/mapping.go:6)
 - 期望行为:
@@ -1080,6 +1080,44 @@
   3. panel 缩窄 / 拉宽时,dialog 跟着居中且不溢出 panel。
   4. dialog 内的按钮 / 输入框 / 文本行版式统一。
 - 设计参考: [feature-design.md §5.8](feature-design.md#58-dialog-风格统一四周透明--panel-居中)
+
+### BR-041 action bar / 输入框 / 长 label wrap / select 图标 — Form Dialog UI 一组修复
+
+- 状态: `open`
+- 优先级: `high`
+- 症状(共 4 个):
+  1. action bar(`Esc ▶ Cancel   Enter Confirm` 行)的背景色没有覆盖整行,左/右 padding 与 border 内侧出现缺口或断裂。
+  2. `Container path` 等输入字段的值区没有下划线,与 label 视觉区分度不够。
+  3. `Local destination (tar)`(label 长度 23,超过 `labelWidth=14`)的 label 与 value 视觉上分两行(line 5 label 一行 + line 6 value 一行),value 跑到 padding 起始位置而非 value 列,看起来像"label 阶段 + value 阶段",且行内未铺满。
+  4. `FormSelect` / `FormMultiSelect` 的下拉 marker `▾` 应该和 value 同行单行显示,而不是出现在独立下一行(`renderFormField` 返回同行 marker,实测 `FormDialog` 输出时 marker 跑到了独立行,根因待定位)。
+- 当前行为(HEAD 基线 `1e2d3fd`):
+  - dialog body 已有 `dialogBodyBackground` 背景,Padding(1,2) 内铺满;按钮行通过 `lipgloss.Width(innerWidth).Align(Center).Render(...)` 渲染,Center 对齐下视觉上看起来"中段有底、两端断裂"(实际是 lipgloss Background 在 Render 行内的行为需复现)。
+  - 输入字段值区(`renderEditableValue` / `renderFormValue`)无 Underline。
+  - 长 label 行的 label 与 value 同行或分行的策略未对齐:短 label(label ≤ `labelWidth`)同行(line 4),长 label 分行(line 5 + line 6),value 起点是 padding 而非 value 列。
+  - marker `▾` 在 `renderFormField` 内是同行行尾,实测在 DialogBox `JoinVertical` + `Width(40)+Padding(1,2)+Border` 渲染时落到了独立下一行(原因待定位,可能是 lipgloss 对行尾 marker + padding 的处理)。
+- 代码锚点:
+  - [internal/tui/ui/widget/dialog/box.go](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/widget/dialog/box.go)
+  - [internal/tui/ui/widget/dialog/form.go](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/widget/dialog/form.go:185)
+  - [internal/tui/ui/widget/dialog/form.go:188](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/widget/dialog/form.go:188)
+  - [internal/tui/ui/widget/dialog/form.go:200](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/widget/dialog/form.go:200)
+  - [internal/tui/ui/widget/dialog/form.go:50](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/widget/dialog/form.go:50)
+  - [internal/tui/ui/component/styles_load.go:347](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/component/styles_load.go:347) (`case "formInput"`)
+  - [internal/tui/ui/widget/dialog/form_test.go:362](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/widget/dialog/form_test.go:362) (`TestFocusedFormFieldHasBackground`,上轮加的契约,本组修复可能调整或撤回)
+- 期望行为:
+  1. 按钮行(以及 dialog 其他内部行)的背景色从 `│`(左 border)内一格到右 `│`前一格连续无断裂,不再出现"中段有底、两端无底"的视觉。
+  2. `FormText` / `FormPath` / `FormInt` 字段的值区带下划线视觉提示,聚焦态保留原有加粗 + caret 强调。
+  3. 长 label 行(label 实际长度 > `labelWidth`):label 完整可见(测试 `TestFormDialogTwoColumnLayout` 必须通过),value 在 value 列起点(同行右截断 或 独立行左对齐到 value 列起点),不再出现"label 后大片空白 + value 跳到 padding 起始"的割裂感。
+  4. `FormSelect` / `FormMultiSelect` 的 marker `▾` 与 value 同行单行(`visW ≤ dialogW - 2`);`TestFormDialogSelectCollapsedWithMarker` 通过。
+- 验收标准:
+  1. `go test ./internal/tui/ui/widget/dialog/... ./internal/tui/ui/component/... -count=1` 全绿,包括:
+     - `TestFormDialogTwoColumnLayout`(label 完整可见)
+     - `TestFormDialogSelectCollapsedWithMarker`(▾ 单行可见)
+     - `TestLongPathCursorStaysVisible`(caret 可见 + 行宽 ≤ 60)
+     - `TestFormRendersInSmallViewports`(BR-041 §6.14,40/80/160 viewport 不溢出)
+  2. 视觉:在 viewport 40x16 / 80x24 / 160x40 下,FormDialog 输出行宽恒 ≤ `dialogW`,无 42/162/322 等溢出。
+  3. 视觉:action bar 背景从 border 到 border 连续;输入值区有下划线;长 label 行 layout 完整;select marker 单行。
+  4. 不引入 `github.com/fatih/color`(BR-000);不动 `config.Palette` schema 与 12 个编译期 hex 与 `style.Colors.BG`;不动主题 JSONC 颜色值。
+  5. `go vet ./...` 与 `go test ./internal/... ./cmd/...` 全量回归通过。
 
 ### BR-028 (TBD - 待用户补充)
 

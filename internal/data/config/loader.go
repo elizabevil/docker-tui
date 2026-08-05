@@ -189,7 +189,7 @@ func loadUserConfig(path string) (*UserConfig, string, error) {
 		return nil, path, fmt.Errorf(errParseConfigFormat, path, err)
 	}
 	var extra any
-	if err := decoder.Decode(&extra); err != io.EOF {
+	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) {
 		if err == nil {
 			err = errors.New(errMultipleYAMLDocuments)
 		}

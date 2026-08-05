@@ -6,8 +6,16 @@
     "hintTimeout": 3,
     "enableMouse": true,
     "dialog": {
-      "width": { "percent": 25, "min": 40, "max": 80 },
-      "height": { "percent": 30, "min": 10, "max": 40 },
+      "width": {
+        "percent": 25,
+        "min": 40,
+        "max": 80
+      },
+      "height": {
+        "percent": 30,
+        "min": 10,
+        "max": 40
+      },
       "position": {
         "horizontal": "center",
         "vertical": "center",

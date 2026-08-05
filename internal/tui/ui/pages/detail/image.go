@@ -169,20 +169,20 @@ func buildImageDetailSections(content string) []detailSection {
 			kv[k] = v
 		}
 
-		switch {
-		case current == "summary":
+		switch current {
+		case "summary":
 			if !strings.Contains(line, ":") {
 				sections[0].Lines = append(sections[0].Lines, line)
 			}
-		case current == "system":
+		case "system":
 			if !strings.Contains(line, ":") {
 				sections[1].Lines = append(sections[1].Lines, line)
 			}
-		case current == "config":
+		case "config":
 			if !strings.Contains(line, ":") {
 				sections[2].Lines = append(sections[2].Lines, line)
 			}
-		case current == "storage":
+		case "storage":
 			if !strings.Contains(line, ":") {
 				sections[3].Lines = append(sections[3].Lines, line)
 			}

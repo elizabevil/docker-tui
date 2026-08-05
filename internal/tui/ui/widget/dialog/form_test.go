@@ -360,12 +360,12 @@ func TestEditablePathCursorDoesNotShiftCharacters(t *testing.T) {
 	}
 }
 
-func TestFocusedFormFieldDoesNotAddBackground(t *testing.T) {
+func TestFocusedFormFieldHasBackground(t *testing.T) {
 	field := state.FormField{Label: "Local destination (tar)", Kind: state.FormPath, Input: state.NewQueryInput("/home/debi/archive.tar")}
 	form := state.FormState{Fields: []state.FormField{field}, FieldFocus: 0}
 	row := renderFormField(form, &form.Fields[0], 0, 24, 50)
-	if strings.Contains(row, "\x1b[48") {
-		t.Fatalf("focused form row must not set a background colour: %q", row)
+	if !strings.Contains(row, "\x1b[48") {
+		t.Fatalf("focused form row must paint the input cell background: %q", row)
 	}
 }
 

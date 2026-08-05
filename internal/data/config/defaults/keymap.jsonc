@@ -1,56 +1,135 @@
 {
   "keymap": {
     "global": {
-      "quit": { "primary": "ctrl+c" },
-      "actionBar": { "primary": ";" },
-      "help": { "primary": "?", "secondary": "f1" },
-      "filter": { "primary": "/" },
-      "refresh": { "primary": "r" }
+      "quit": {
+        "primary": "ctrl+c"
+      },
+      "actionBar": {
+        "primary": ";"
+      },
+      "help": {
+        "primary": "?",
+        "secondary": "f1"
+      },
+      "filter": {
+        "primary": "/"
+      },
+      "refresh": {
+        "primary": "r"
+      }
     },
     "container": {
-      "start": { "primary": "s" },
-      "stop": { "primary": "ctrl+s" },
-      "restart": { "primary": "ctrl+r" },
-      "kill": { "primary": "ctrl+k" },
-      "remove": { "primary": "ctrl+d" },
-      "logs": { "primary": "l" },
-      "exec": { "primary": "e" },
-      "inspect": { "primary": "i" },
-      "stats": { "primary": "m" },
-      "pause": { "primary": "p" }
+      "start": {
+        "primary": "s"
+      },
+      "stop": {
+        "primary": "ctrl+s"
+      },
+      "restart": {
+        "primary": "ctrl+r"
+      },
+      "kill": {
+        "primary": "ctrl+k"
+      },
+      "remove": {
+        "primary": "ctrl+d"
+      },
+      "logs": {
+        "primary": "l"
+      },
+      "exec": {
+        "primary": "e"
+      },
+      "inspect": {
+        "primary": "i"
+      },
+      "stats": {
+        "primary": "m"
+      },
+      "pause": {
+        "primary": "p"
+      }
     },
     "image": {
-      "pull": { "primary": "ctrl+p" },
-      "remove": { "primary": "ctrl+d" },
-      "prune": { "primary": "p" },
-      "tag": { "primary": "ctrl+t" },
-      "push": { "primary": "ctrl+u" },
-      "save": { "primary": "ctrl+e" },
-      "load": { "primary": "ctrl+l" },
-      "history": { "primary": "h" }
+      "pull": {
+        "primary": "ctrl+p"
+      },
+      "remove": {
+        "primary": "ctrl+d"
+      },
+      "prune": {
+        "primary": "p"
+      },
+      "tag": {
+        "primary": "ctrl+t"
+      },
+      "push": {
+        "primary": "ctrl+u"
+      },
+      "save": {
+        "primary": "ctrl+e"
+      },
+      "load": {
+        "primary": "ctrl+l"
+      },
+      "history": {
+        "primary": "h"
+      }
     },
     "volume": {
-      "create": { "primary": "c" },
-      "prune": { "primary": "p" },
-      "remove": { "primary": "ctrl+d" }
+      "create": {
+        "primary": "c"
+      },
+      "prune": {
+        "primary": "p"
+      },
+      "remove": {
+        "primary": "ctrl+d"
+      }
     },
     "network": {
-      "create": { "primary": "c" },
-      "prune": { "primary": "p" },
-      "remove": { "primary": "ctrl+d" }
+      "create": {
+        "primary": "c"
+      },
+      "prune": {
+        "primary": "p"
+      },
+      "remove": {
+        "primary": "ctrl+d"
+      }
     },
     "navigation": {
-      "tabNext": { "primary": "tab" },
-      "tabPrev": { "primary": "shift+tab" },
-      "up": { "primary": "up", "secondary": "k" },
-      "down": { "primary": "down", "secondary": "j" },
-      "enter": { "primary": "enter" },
-      "back": { "primary": "esc" },
-      "delete": { "primary": "ctrl+d" }
+      "tabNext": {
+        "primary": "tab"
+      },
+      "tabPrev": {
+        "primary": "shift+tab"
+      },
+      "up": {
+        "primary": "up",
+        "secondary": "k"
+      },
+      "down": {
+        "primary": "down",
+        "secondary": "j"
+      },
+      "enter": {
+        "primary": "enter"
+      },
+      "back": {
+        "primary": "esc"
+      },
+      "delete": {
+        "primary": "ctrl+d"
+      }
     },
     "dialog": {
-      "confirm": { "primary": "enter" },
-      "cancel": { "primary": "esc" }
+      "confirm": {
+        "primary": "enter"
+      },
+      "cancel": {
+        "primary": "esc"
+      }
     }
   }
 }

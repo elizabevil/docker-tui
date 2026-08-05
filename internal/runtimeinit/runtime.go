@@ -63,9 +63,10 @@ func detectRuntimeType(host string) runtimeapi.RuntimeType {
 func detectHost(cfg runtimeapi.ClientConfig) (string, runtimeapi.RuntimeType) {
 	if cfg.Host != "" {
 		rt := detectRuntimeType(cfg.Host)
-		if cfg.Runtime == runtimeapi.RuntimeDocker {
+		switch cfg.Runtime {
+		case runtimeapi.RuntimeDocker:
 			rt = runtimeapi.RuntimeDocker
-		} else if cfg.Runtime == runtimeapi.RuntimePodman {
+		case runtimeapi.RuntimePodman:
 			rt = runtimeapi.RuntimePodman
 		}
 		return cfg.Host, rt
@@ -166,7 +167,7 @@ func sanitizeEngine(e runtimeapi.Engine, err error) (runtimeapi.Engine, error) {
 		return nil, err
 	}
 	v := reflect.ValueOf(e)
-	if v.Kind() == reflect.Ptr && v.IsNil() {
+	if v.Kind() == reflect.Pointer && v.IsNil() {
 		return nil, err
 	}
 	return e, err

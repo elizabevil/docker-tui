@@ -93,7 +93,7 @@ func sanitizeEngine(e Engine, err error) Engine {
 		return nil
 	}
 	v := reflect.ValueOf(e)
-	if v.Kind() == reflect.Ptr && v.IsNil() {
+	if v.Kind() == reflect.Pointer && v.IsNil() {
 		return nil
 	}
 	return e
@@ -107,7 +107,7 @@ func engineIsUsable(engine Engine) bool {
 		return false
 	}
 	v := reflect.ValueOf(engine)
-	return !(v.Kind() == reflect.Ptr && v.IsNil())
+	return v.Kind() != reflect.Pointer || !v.IsNil()
 }
 
 // AddHost registers a connection candidate by its name.

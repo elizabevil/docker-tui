@@ -272,7 +272,8 @@ func renderEditableValue(f *state.FormField, focused bool, valueWidth int, curso
 		afterStart++
 	}
 	after := lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleHelpDescription).GetForeground()).Render(string(runes[afterStart:end]))
-	return utils.TruncateVisible(before+caret.Render(current)+after, valueWidth)
+	truncated := utils.TruncateVisible(before+caret.Render(current)+after, valueWidth)
+	return component.GetStyle(component.StyleFormInput).Render(truncated)
 }
 
 // renderSelectCell renders the collapsed value plus a dropdown marker for a

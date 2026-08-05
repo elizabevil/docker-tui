@@ -66,6 +66,9 @@
       "footer": {
         "token": "foregroundMuted"
       },
+      "panelBackground": {
+        "token": "transparent"
+      },
       "actionBarBackground": {
         "token": "transparent"
       },
@@ -102,6 +105,9 @@
       },
       "body": {
         "token": "foreground"
+      },
+      "bodyBackground": {
+        "value": "#0c2c3c"
       },
       "optionActive": {
         "token": "primary"

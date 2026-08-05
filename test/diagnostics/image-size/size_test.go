@@ -111,13 +111,13 @@ func TestSizeDiscrepancy(t *testing.T) {
 	t.Logf("")
 	t.Logf("Discrepancy by magnitude:")
 	t.Logf("  KB scale: %.2f%%", math.Abs(1-1000.0/1024.0)*100)
-	t.Logf("  MB scale: %.2f%%", math.Abs(1-math.Pow(1000, 2)/math.Pow(1024, 2))*100)
-	t.Logf("  GB scale: %.2f%%", math.Abs(1-math.Pow(1000, 3)/math.Pow(1024, 3))*100)
+	t.Logf("  MB scale: %.2f%%", math.Abs(1-float64(1000*1000)/float64(1024*1024))*100)
+	t.Logf("  GB scale: %.2f%%", math.Abs(1-float64(1000*1000*1000)/float64(1024*1024*1024))*100)
 
 	// For the largest image (1.1 GB), this is ~80 MB difference
 	largest := int64(1102134819)
-	siVal := float64(largest) / math.Pow(1000, 3)
-	binVal := float64(largest) / math.Pow(1024, 3)
+	siVal := float64(largest) / float64(1000*1000*1000)
+	binVal := float64(largest) / float64(1024*1024*1024)
 	t.Logf("")
 	t.Logf("Example: %d bytes image:", largest)
 	t.Logf("  SI (1000-base): %.2f GB", siVal)

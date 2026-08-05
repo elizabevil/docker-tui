@@ -164,7 +164,7 @@ func TestContainerDiffCmdError(t *testing.T) {
 	}
 	msg := containerDiffCmd(newAdvancedEngine(svc), "c1")()
 	done := msg.(ContainerDiffDone)
-	if done.Error != want {
+	if !errors.Is(done.Error, want) {
 		t.Fatalf("error = %v, want %v", done.Error, want)
 	}
 }
@@ -270,7 +270,7 @@ func TestDoContainerWaitError(t *testing.T) {
 	if !ok {
 		t.Fatalf("unexpected message %T, want ContainerWaitDone", msg)
 	}
-	if done.Error != want {
+	if !errors.Is(done.Error, want) {
 		t.Fatalf("error = %v, want %v", done.Error, want)
 	}
 }
@@ -322,7 +322,7 @@ func TestContainerExportErrorPropagates(t *testing.T) {
 	}
 	msg := containerExportCmd(newAdvancedEngine(svc), "c1", "/tmp/out.tar")()
 	done := msg.(ContainerExportDone)
-	if done.Error != want {
+	if !errors.Is(done.Error, want) {
 		t.Fatalf("error = %v, want %v", done.Error, want)
 	}
 }
@@ -385,7 +385,7 @@ func TestContainerCopyErrorPropagates(t *testing.T) {
 
 	msg := containerCopyCmd(eng, "c1", "/etc/app.conf", "out.tar")()
 	done := msg.(ContainerCopyDone)
-	if done.Error != want {
+	if !errors.Is(done.Error, want) {
 		t.Fatalf("error = %v, want %v", done.Error, want)
 	}
 }

@@ -96,13 +96,7 @@ func planFor(class TerminalClass, usableHeight int) railPlan {
 		}
 	default:
 		std := calculateRailHeights(usableHeight)
-		return railPlan{
-			header:  std.header,
-			message: std.message,
-			query:   std.query,
-			panel:   std.panel,
-			footer:  std.footer,
-		}
+		return railPlan(std)
 	}
 }
 

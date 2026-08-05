@@ -83,10 +83,11 @@ func projectPage(m *state.AppModel, bodyHeight, bodyWidth int) pageView {
 			view.title = state.PanelLabel(state.PanelDetail)
 		}
 		// Adjust title based on source view mode
-		if m.Detail.DetailSourceType == "yaml" {
+		switch m.Detail.DetailSourceType {
+		case "yaml":
 			view.title = strings.Replace(view.title, "Detail:", "YAML:", 1)
 			view.title = strings.Replace(view.title, "详情:", "YAML:", 1)
-		} else if m.Detail.DetailSourceType == "json" {
+		case "json":
 			view.title = strings.Replace(view.title, "Detail:", "JSON:", 1)
 			view.title = strings.Replace(view.title, "详情:", "JSON:", 1)
 		}

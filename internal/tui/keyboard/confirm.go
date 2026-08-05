@@ -25,9 +25,10 @@ func handleConfirmKeys(key string, m *state.AppModel) (*state.AppModel, tea.Cmd)
 			case keys.ShowOptionConfirm:
 				return doConfirmYes(m)
 			case keys.ShowOptionForce:
-				if m.Confirm.ConfirmAction == keys.ShowBulkDelete {
+				switch m.Confirm.ConfirmAction {
+				case keys.ShowBulkDelete:
 					m.Confirm.ConfirmAction = keys.ShowBulkDeleteForce
-				} else if m.Confirm.ConfirmAction == keys.ShowBatchStop {
+				case keys.ShowBatchStop:
 					m.Confirm.ConfirmAction = keys.ShowBatchKill
 				}
 				return doConfirmYes(m)

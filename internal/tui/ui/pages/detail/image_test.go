@@ -21,9 +21,9 @@ func TestBuildImageDetailDataSectionsOmitsHistorySection(t *testing.T) {
 
 func TestBuildImageDetailDataSectionsKeepsCoreSections(t *testing.T) {
 	sections := buildImageDetailDataSections(&dockerclient.ImageDetail{
-		ID:          "sha256:index",
-		IsManifest:  true,
-		RepoTags:    []string{"example/app:latest"},
+		ID:         "sha256:index",
+		IsManifest: true,
+		RepoTags:   []string{"example/app:latest"},
 		ManifestVariants: []dockerclient.ImageManifestEntry{{
 			Digest: "sha256:variant", Platform: dockerclient.ManifestPlatform{OS: "linux", Architecture: "amd64"},
 		}},

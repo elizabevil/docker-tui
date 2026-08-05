@@ -76,11 +76,11 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg DialogConfig, bodyW,
 
 	// Confirm / Cancel buttons with shortcut hints
 	var confirmBtn, cancelBtn string
-	switch {
-	case m.Dialog.Focus == 4:
+	switch m.Dialog.Focus {
+	case 4:
 		confirmBtn = lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDialogConfirm).GetForeground()).Bold(true).Render(enterKey + " " + component.ButtonIndicator + " " + confirmLabel)
 		cancelBtn = lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDim).GetForeground()).Render(escKey + " " + cancelLabel)
-	case m.Dialog.Focus == 5:
+	case 5:
 		confirmBtn = lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDim).GetForeground()).Render(enterKey + " " + confirmLabel)
 		cancelBtn = lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDialogConfirm).GetForeground()).Bold(true).Render(escKey + " " + component.ButtonIndicator + " " + cancelLabel)
 	default:

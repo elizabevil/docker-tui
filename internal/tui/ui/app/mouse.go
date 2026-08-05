@@ -146,13 +146,7 @@ func resolveStandardLayout(m *state.AppModel) LayoutReport {
 	}
 	padH := (m.Viewport.Width - usableW) / 2
 	rails := calculateRailHeights(usableH)
-	plan := railPlan{
-		header:  rails.header,
-		message: rails.message,
-		query:   rails.query,
-		panel:   rails.panel,
-		footer:  rails.footer,
-	}
+	plan := railPlan(rails)
 	headerBottom := marginTop + plan.header
 	messageBottom := headerBottom + plan.message
 	queryBottom := messageBottom + plan.query

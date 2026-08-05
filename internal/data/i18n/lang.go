@@ -32,7 +32,6 @@ func init() {
 
 // loadMessages 加载语言文件
 func loadMessages(tag language.Tag) {
-
 	cat := catalog.NewBuilder()
 	for _, ext := range []string{"jsonc", "json"} {
 		file := fmt.Sprintf("lang/%s.%s", tag.String(), ext)

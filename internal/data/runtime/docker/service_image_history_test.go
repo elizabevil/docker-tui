@@ -44,7 +44,7 @@ func TestMapDockerHistoryFieldPassthrough(t *testing.T) {
 func TestMapDockerHistoryReturnsRuntimeType(t *testing.T) {
 	raw := []image.HistoryResponseItem{{ID: "x", Created: 1, Size: 2, Comment: "c"}}
 	got := mapDockerHistory(raw)
-	var _ []runtimeapi.ImageHistoryLayer = got
+	var _ = got
 }
 
 func TestDockerHistoryForwardsSummaryID(t *testing.T) {

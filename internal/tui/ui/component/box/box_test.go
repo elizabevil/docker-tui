@@ -51,7 +51,7 @@ func TestLabeledValue_PadsLabel(t *testing.T) {
 
 func TestLabeledValue_FocusBoldAndColor(t *testing.T) {
 	out := (&LabeledValue{
-		Label:      "CPU", Value: "6%",
+		Label: "CPU", Value: "6%",
 		LabelStyle: StyleHeaderLabel, ValueStyle: StyleHeaderValue,
 		Background: "#fefefe",
 		FocusBold:  true,
@@ -166,7 +166,7 @@ func TestTableRow_AppliesBackgroundToPadding(t *testing.T) {
 func TestTableRow_NoWidthRendersFlat(t *testing.T) {
 	out := (&TableRow{
 		Cells: []string{"abc", "def"},
-		Gap:  " ",
+		Gap:   " ",
 	}).Render()
 	if strings.Contains(out, backgroundAnsi) {
 		t.Fatalf("flat row should not apply background, got %q", out)

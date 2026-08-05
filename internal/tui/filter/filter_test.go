@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/data/config"
+	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
 
@@ -245,7 +245,7 @@ func TestController_MatchCount(t *testing.T) {
 			name:  "images_unfiltered",
 			panel: state.PanelImages,
 			setup: func(m *state.AppModel) {
-				},
+			},
 			want: "",
 		},
 		{
@@ -390,8 +390,8 @@ func TestController_ClearAll(t *testing.T) {
 	c.ClearAll()
 
 	checks := []struct {
-		name  string
-		got   string
+		name string
+		got  string
 	}{
 		{"Containers", m.Resources.Containers.Filter},
 		{"Images", m.Resources.Images.Filter},

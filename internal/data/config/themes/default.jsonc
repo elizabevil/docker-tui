@@ -106,6 +106,9 @@
       "body": {
         "token": "foreground"
       },
+      "bodyBackground": {
+        "value": "#18191b"
+      },
       "optionActive": {
         "token": "primary"
       },

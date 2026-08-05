@@ -87,10 +87,9 @@ func (r *Renderer) Render(width int, app *state.AppModel) string {
 		rightSb.WriteString("\n")
 		for _, item := range sec.Items {
 			keyColumn := component.PadVisible(component.TruncateVisible(item.Keys, 20), 20)
-			rightSb.WriteString(fmt.Sprintf("  %s  %s\n",
+			fmt.Fprintf(&rightSb, "  %s  %s\n",
 				component.GetStyle(component.StyleHelpKey).Render(keyColumn),
-				component.GetStyle(component.StyleHelpDescription).Render(item.Desc),
-			))
+				component.GetStyle(component.StyleHelpDescription).Render(item.Desc))
 		}
 	}
 	rightSb.WriteString("\n")

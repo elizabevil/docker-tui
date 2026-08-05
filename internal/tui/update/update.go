@@ -52,7 +52,6 @@ func handleMouseClick(m *state.AppModel, msg tea.MouseClickMsg) (*state.AppModel
 
 func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	switch msg := msg.(type) {
-
 	case tea.WindowSizeMsg:
 		m.Viewport.Resize(msg.Width, msg.Height)
 		if m.Navigation.Mode == state.ModeExecPassthrough && m.Exec.ExecConn != nil {
@@ -230,7 +229,7 @@ func handleContainerDiffDone(m *state.AppModel, msg keyboard.ContainerDiffDone) 
 	var content strings.Builder
 	content.WriteString("KIND  PATH\n")
 	for _, change := range msg.Changes {
-		content.WriteString(fmt.Sprintf("%-5s %s\n", containerDiffKind(change.Kind), change.Path))
+		fmt.Fprintf(&content, "%-5s %s\n", containerDiffKind(change.Kind), change.Path)
 	}
 	if len(msg.Changes) == 0 {
 		content.WriteString("No filesystem changes.\n")

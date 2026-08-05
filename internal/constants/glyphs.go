@@ -7,5 +7,5 @@ package constants
 const (
 	// EmDash (—, U+2014) is used as a "no value" placeholder by both data
 	// adapters (image OS/Arch summaries) and UI rendering.
-	EmDash = "\u2014"
+	EmDash = "—"
 )
