@@ -16,7 +16,6 @@ import (
 	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/actionbar"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/dialog"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/footer"
@@ -254,12 +253,31 @@ func renderAppBackground(m *state.AppModel, content string) string {
 	if m == nil || m.Dependencies.Theme == nil || m.Viewport.Width <= 0 || m.Viewport.Height <= 0 {
 		return content
 	}
-	background := style.Color(string(m.Dependencies.Theme.Palette.Background))
-	return lipgloss.NewStyle().
-		Width(m.Viewport.Width).
-		Height(m.Viewport.Height).
-		Background(background).
-		Render(content)
+	bgHex := string(m.Dependencies.Theme.Palette.Background)
+	if bgHex == "" || bgHex == "transparent" {
+		return content
+	}
+	r, g, b := utils.HexToRGB(bgHex)
+	bgAnsi := fmt.Sprintf("\033[48;2;%d;%d;%dm", r, g, b)
+	// Reset barrier: re-emit the background after every reset code. lipgloss
+	// emits both the long form (\x1b[0m) and the short form (\x1b[m); both must
+	// be patched or any padding spaces that follow a short reset end up with
+	// the terminal default background instead of the intended fill.
+	content = strings.ReplaceAll(content, "\033[0m", "\033[0m"+bgAnsi)
+	content = strings.ReplaceAll(content, "\033[m", "\033[m"+bgAnsi)
+
+	lines := strings.Split(content, "\n")
+	for i, line := range lines {
+		pad := m.Viewport.Width - utils.DisplayWidth(line)
+		if pad > 0 {
+			line += strings.Repeat(" ", pad)
+		}
+		lines[i] = bgAnsi + line + bgAnsi
+	}
+	for len(lines) < m.Viewport.Height {
+		lines = append(lines, bgAnsi+strings.Repeat(" ", m.Viewport.Width)+bgAnsi)
+	}
+	return strings.Join(lines, "\n") + "\033[0m"
 }
 
 func renderActionBar(m *state.AppModel, content string) string {
@@ -624,9 +642,13 @@ func precomputeGlobalImageColors(m *state.AppModel, totalRows int) []string {
 
 // renderContentLayer is Layer 3: overlays pre-styled content text on top of
 // pre-computed background row colors (which already include Layer 1 + Layer 2 blending).
-// Uses the ANSI reset barrier: every \033[0m in content is followed by a background
-// restore code, preventing theme style resets from clearing the image background.
-// When globalColors is empty, returns the text unchanged (passthrough).
+// renderContentLayer applies a per-row background colour to each line of text.
+// Used for the image / solid Layout.Background scenarios; the default theme
+// path bypasses this function entirely (wrap short-circuits when globalColors
+// is nil). The function deliberately does NOT emit a reset barrier: the
+// padding and row chrome pick up the per-row fill from the leading bgAnsi,
+// and any subsequent component-level reset is expected to carry its own
+// background (Phase 1-2 refactor).
 func renderContentLayer(text string, rowColors []string) string {
 	if text == "" || len(rowColors) == 0 {
 		return text
@@ -638,8 +660,7 @@ func renderContentLayer(text string, rowColors []string) string {
 		}
 		br, bgC, bb := utils.HexToRGB(rowColors[i])
 		bgAnsi := fmt.Sprintf("\033[48;2;%d;%d;%dm", br, bgC, bb)
-		line := strings.ReplaceAll(lines[i], "\033[0m", "\033[0m"+bgAnsi)
-		lines[i] = bgAnsi + line + "\033[0m"
+		lines[i] = bgAnsi + lines[i] + "\033[0m"
 	}
 	return strings.Join(lines, "\n")
 }
@@ -695,6 +716,6 @@ func buildBreadcrumbItems(m *state.AppModel) []component.BreadcrumbItem {
 	case state.ModeEvents:
 		items = append(items, component.BreadcrumbItem{Label: i18n.T("events.title"), ID: "events"})
 	}
-
+	//
 	return items
 }
