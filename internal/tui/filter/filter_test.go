@@ -421,3 +421,130 @@ func TestController_ClearAll(t *testing.T) {
 		t.Error("HasActive()=true after ClearAll")
 	}
 }
+
+func TestController_ClampCursor_AllPanels(t *testing.T) {
+	// Exercise all 5 panel branches in clampCursor (containers /
+	// images / volumes / networks / audit) by setting non-zero
+	// cursor+offset then calling ClampCursor.
+	// clampCursor only resets the cursor of the ACTIVE panel. Set the
+	// active panel for each sub-test so the test exercises the correct
+	// switch branch.
+	cases := []struct {
+		name  string
+		panel state.PanelType
+		setup func(*state.AppModel)
+	}{
+		{"containers", state.PanelContainers, func(m *state.AppModel) {
+			m.Resources.Containers.Cursor = 7
+			m.Resources.Containers.ViewOffset = 3
+		}},
+		{"images", state.PanelImages, func(m *state.AppModel) {
+			m.Resources.Images.Cursor = 5
+			m.Resources.Images.ViewOffset = 2
+		}},
+		{"volumes", state.PanelVolumes, func(m *state.AppModel) {
+			m.Resources.Volumes.Cursor = 4
+			m.Resources.Volumes.ViewOffset = 1
+		}},
+		{"networks", state.PanelNetworks, func(m *state.AppModel) {
+			m.Resources.Networks.Cursor = 6
+			m.Resources.Networks.ViewOffset = 2
+		}},
+		{"audit", state.PanelAudit, func(m *state.AppModel) {
+			m.Audit.Cursor = 9
+		}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+			m.Navigation.ActivePanel = tc.panel
+			tc.setup(m)
+			New(m).ClampCursor()
+			switch tc.panel {
+			case state.PanelContainers:
+				if m.Resources.Containers.Cursor != 0 || m.Resources.Containers.ViewOffset != 0 {
+					t.Errorf("containers not reset: cursor=%d offset=%d", m.Resources.Containers.Cursor, m.Resources.Containers.ViewOffset)
+				}
+			case state.PanelImages:
+				if m.Resources.Images.Cursor != 0 || m.Resources.Images.ViewOffset != 0 {
+					t.Errorf("images not reset: cursor=%d offset=%d", m.Resources.Images.Cursor, m.Resources.Images.ViewOffset)
+				}
+			case state.PanelVolumes:
+				if m.Resources.Volumes.Cursor != 0 || m.Resources.Volumes.ViewOffset != 0 {
+					t.Errorf("volumes not reset: cursor=%d offset=%d", m.Resources.Volumes.Cursor, m.Resources.Volumes.ViewOffset)
+				}
+			case state.PanelNetworks:
+				if m.Resources.Networks.Cursor != 0 || m.Resources.Networks.ViewOffset != 0 {
+					t.Errorf("networks not reset: cursor=%d offset=%d", m.Resources.Networks.Cursor, m.Resources.Networks.ViewOffset)
+				}
+			case state.PanelAudit:
+				if m.Audit.Cursor != 0 {
+					t.Errorf("audit not reset: cursor=%d", m.Audit.Cursor)
+				}
+			}
+		})
+	}
+}
+
+func TestController_MatchCount_VolumesNetworks(t *testing.T) {
+	cases := []struct {
+		name  string
+		panel state.PanelType
+		setup func(*state.AppModel)
+		want  string
+	}{
+		// No items → total=0 → MatchCount returns "" (the bar would just
+		// show "Filter: <text>" without a count suffix).
+		{"volumes_empty", state.PanelVolumes, func(m *state.AppModel) {
+			m.Resources.Volumes.SetFilter("vol")
+		}, ""},
+		{"networks_empty", state.PanelNetworks, func(m *state.AppModel) {
+			m.Resources.Networks.SetFilter("net")
+		}, ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+			m.Navigation.ActivePanel = tc.panel
+			tc.setup(m)
+			if got := New(m).MatchCount(); got != tc.want {
+				t.Fatalf("MatchCount()=%q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestController_tableFilter_Nil(t *testing.T) {
+	// tableFilter is the private helper used by BannerPrefix and
+	// MatchCount. Cover the nil-m and non-table-filter branches.
+	if c := New(nil); c.tableFilter() != nil {
+		t.Fatalf("tableFilter(nil)=%v, want nil", c.tableFilter())
+	}
+}
+
+func TestController_ApplyCurrent_Nil(t *testing.T) {
+	// ApplyCurrent on a nil controller must be a no-op, not a panic.
+	New(nil).ApplyCurrent()
+}
+
+func TestBannerPrefixForCount_NoTotal(t *testing.T) {
+	// Both branches that return "" (nil filter f, and f with empty
+	// filter text) take precedence over the total<=0 path.
+	if got := BannerPrefixForCount(nil, 0, 0); got != "" {
+		t.Fatalf("BannerPrefixForCount(nil,0,0)=%q, want <empty>", got)
+	}
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	m.Navigation.ActivePanel = state.PanelContainers
+	New(m).Clear() // no items, no filter
+	if got := BannerPrefixForCount(m.Resources.Containers, 0, m.Resources.Containers.Len()); got != "" {
+		t.Fatalf("empty list no filter: got %q, want <empty>", got)
+	}
+}
+
+func TestLoad_Malformed(t *testing.T) {
+	// Non-JSON / corrupt input should return a non-nil error, not panic.
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	if err := Load(m, bytes.NewBufferString("this is not json{{")); err == nil {
+		t.Fatal("Load on corrupt input should return an error, got nil")
+	}
+}
