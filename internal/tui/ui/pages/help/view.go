@@ -75,21 +75,21 @@ func (r *Renderer) Render(width int, app *state.AppModel) string {
 	rightW := width - leftW - 2
 
 	var leftSb strings.Builder
-	leftSb.WriteString(component.GetStyle("panelTitle").Render(tui.DTUILogo))
+	leftSb.WriteString(component.GetStyle(component.StylePanelTitle).Render(tui.DTUILogo))
 	leftSb.WriteString("\n\n")
-	leftSb.WriteString(component.GetStyle("dim").Render(strings.TrimSpace(aboutText)))
+	leftSb.WriteString(component.GetStyle(component.StyleDim).Render(strings.TrimSpace(aboutText)))
 
 	// Right column: all shortcut sections
 	var rightSb strings.Builder
 	for _, sec := range r.provider.Sections(app) {
 		rightSb.WriteString("\n")
-		rightSb.WriteString(component.GetStyle("header").Render(sec.Title))
+		rightSb.WriteString(component.GetStyle(component.StyleHeader).Render(sec.Title))
 		rightSb.WriteString("\n")
 		for _, item := range sec.Items {
 			keyColumn := component.PadVisible(component.TruncateVisible(item.Keys, 20), 20)
 			rightSb.WriteString(fmt.Sprintf("  %s  %s\n",
-				component.GetStyle("helpKey").Render(keyColumn),
-				component.GetStyle("helpDesc").Render(item.Desc),
+				component.GetStyle(component.StyleHelpKey).Render(keyColumn),
+				component.GetStyle(component.StyleHelpDescription).Render(item.Desc),
 			))
 		}
 	}
@@ -101,10 +101,10 @@ func (r *Renderer) Render(width int, app *state.AppModel) string {
 			break
 		}
 	}
-	rightSb.WriteString(component.GetStyle("dim").Render(i18n.T("help.press_close", closeKeys)))
+	rightSb.WriteString(component.GetStyle(component.StyleDim).Render(i18n.T("help.press_close", closeKeys)))
 
-	leftBox := component.GetStyle("panel").Width(leftW).Render(leftSb.String())
-	rightBox := component.GetStyle("panel").Width(rightW).Render(rightSb.String())
+	leftBox := component.GetStyle(component.StylePanel).Width(leftW).Render(leftSb.String())
+	rightBox := component.GetStyle(component.StylePanel).Width(rightW).Render(rightSb.String())
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, leftBox, rightBox)
 }

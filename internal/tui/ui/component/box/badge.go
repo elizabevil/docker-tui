@@ -17,7 +17,7 @@ type Badge struct {
 // Render produces the formatted badge "[Key] Description" with the configured
 // background applied to the entire string.
 func (b *Badge) Render() string {
-	style := styleWithBackground(component.GetStyle(string(b.StyleName)), b.Background)
+	style := styleWithBackground(component.GetStyle(b.StyleName), b.Background)
 	if b.Bold {
 		style = style.Bold(true)
 	}
@@ -47,7 +47,7 @@ func (br *BadgeRow) Render() string {
 		sep = "  "
 	}
 	// Color the separator with the same background so the row reads as one box.
-	sepStyle := styleWithBackground(component.GetStyle(string(StyleDim)), br.Background)
+	sepStyle := styleWithBackground(component.GetStyle(StyleDim), br.Background)
 	return parts[0] + sepStyle.Render(sep) + joinWithSep(parts[1:], sepStyle.Render(sep))
 }
 

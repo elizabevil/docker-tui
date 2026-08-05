@@ -6,10 +6,10 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/tui/filter"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
-	"github.com/elizabevil/docker-tui/internal/tui/filter"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
@@ -45,9 +45,9 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 	total := len(items)
 	if total == 0 {
 		if cm.FilterText() != "" {
-			return component.GetStyle("dim").Render(i18n.T("msg.no_containers_match"))
+			return component.GetStyle(component.StyleDim).Render(i18n.T("msg.no_containers_match"))
 		}
-		return component.GetStyle("dim").Render(i18n.T("msg.no_containers"))
+		return component.GetStyle(component.StyleDim).Render(i18n.T("msg.no_containers"))
 	}
 
 	rowHeight := component.CalcTableRowHeight(panelHeight, !selectionDisabled)

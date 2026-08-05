@@ -68,7 +68,7 @@ func RenderSelectionBanner(text string, width int) string {
 	if text == "" {
 		return ""
 	}
-	dimStyle := GetStyle("footer")
+	dimStyle := GetStyle(StyleFooter)
 	centered := lipgloss.NewStyle().Width(width).Align(lipgloss.Center).Render(dimStyle.Render(text))
 	return centered + "\n"
 }

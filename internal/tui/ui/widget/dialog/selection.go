@@ -19,7 +19,7 @@ import (
 // it falls back to termW/termH-percentage sizing.
 func SelectionDialog(title, body, preview, action string, focus int, termW, termH int, bodyW, bodyH int, titleColor color.Color, overlayColor string, cfg DialogConfig) string {
 	if titleColor == nil {
-		titleColor = component.GetStyle("panelTitle").GetForeground()
+		titleColor = component.GetStyle(component.StylePanelTitle).GetForeground()
 	}
 	if overlayColor == "" {
 		overlayColor = OverlayColor(nil)
@@ -41,9 +41,9 @@ func SelectionDialog(title, body, preview, action string, focus int, termW, term
 	var confirmBtn, cancelBtn string
 	if focus == 0 {
 		confirmBtn = lipgloss.NewStyle().Foreground(titleColor).Bold(true).Render(enterKey + " " + component.ButtonIndicator + " " + confirmLabel)
-		cancelBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(escKey + " " + cancelLabel)
+		cancelBtn = lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDim).GetForeground()).Render(escKey + " " + cancelLabel)
 	} else {
-		confirmBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(enterKey + " " + confirmLabel)
+		confirmBtn = lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDim).GetForeground()).Render(enterKey + " " + confirmLabel)
 		cancelBtn = lipgloss.NewStyle().Foreground(titleColor).Bold(true).Render(escKey + " " + component.ButtonIndicator + " " + cancelLabel)
 	}
 	buttons := lipgloss.NewStyle().Width(dialogW - 4).Align(lipgloss.Center).Render(
@@ -53,18 +53,18 @@ func SelectionDialog(title, body, preview, action string, focus int, termW, term
 	hint := i18n.T("hint.tab_switch")
 
 	var parts []string
-	parts = append(parts, component.GetStyle("panelTitle").Render(title))
+	parts = append(parts, component.GetStyle(component.StylePanelTitle).Render(title))
 	parts = append(parts, "")
 	parts = append(parts, body)
 	if preview != "" {
 		parts = append(parts, "")
-		parts = append(parts, component.GetStyle("dim").Render("Preview:"))
+		parts = append(parts, component.GetStyle(component.StyleDim).Render("Preview:"))
 		parts = append(parts, preview)
 	}
 	parts = append(parts, "")
 	parts = append(parts, buttons)
 	parts = append(parts, "")
-	parts = append(parts, component.GetStyle("dim").Render(hint))
+	parts = append(parts, component.GetStyle(component.StyleDim).Render(hint))
 
 	return DialogBox(DialogStyle{Width: dialogW, Height: dialogH, TitleColor: titleColor, OverlayColor: overlayColor}, parts...)
 }

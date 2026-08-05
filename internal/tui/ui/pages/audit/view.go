@@ -27,9 +27,9 @@ func RenderList(auditState *state.AuditState, width int, panelHeight int) string
 	total := len(records)
 	if total == 0 {
 		if auditState.FilterText() != "" {
-			return component.GetStyle("dim").Render("No audit records match filter")
+			return component.GetStyle(component.StyleDim).Render("No audit records match filter")
 		}
-		return component.GetStyle("dim").Render("No audit records")
+		return component.GetStyle(component.StyleDim).Render("No audit records")
 	}
 
 	// Ensure cursor is in bounds
@@ -80,7 +80,7 @@ func RenderList(auditState *state.AuditState, width int, panelHeight int) string
 // RenderDetail renders a single audit record in detail view.
 func RenderDetail(record *audit.Record, width int, height int) string {
 	if record == nil {
-		return component.GetStyle("dim").Render("No record selected")
+		return component.GetStyle(component.StyleDim).Render("No record selected")
 	}
 
 	var sb strings.Builder
@@ -89,7 +89,7 @@ func RenderDetail(record *audit.Record, width int, height int) string {
 		w = 40
 	}
 
-	sb.WriteString(component.GetStyle("header").Render("Audit Record Detail"))
+	sb.WriteString(component.GetStyle(component.StyleHeader).Render("Audit Record Detail"))
 	sb.WriteString("\n\n")
 
 	// Time
@@ -133,16 +133,16 @@ func RenderDetail(record *audit.Record, width int, height int) string {
 	// Message
 	if record.Message != "" {
 		sb.WriteString("\n")
-		sb.WriteString(component.GetStyle("detailSection").Render("Message"))
+		sb.WriteString(component.GetStyle(component.StyleDetailSection).Render("Message"))
 		sb.WriteString("\n")
-		sb.WriteString(component.GetStyle("detailValue").Render("  " + record.Message))
+		sb.WriteString(component.GetStyle(component.StyleDetailValue).Render("  " + record.Message))
 		sb.WriteString("\n")
 	}
 
 	// Runtime
 	if record.Runtime.Type != "" {
 		sb.WriteString("\n")
-		sb.WriteString(component.GetStyle("detailSection").Render("Runtime"))
+		sb.WriteString(component.GetStyle(component.StyleDetailSection).Render("Runtime"))
 		sb.WriteString("\n")
 		sb.WriteString(detailRow("Type", record.Runtime.Type, w))
 		sb.WriteString("\n")
@@ -155,7 +155,7 @@ func RenderDetail(record *audit.Record, width int, height int) string {
 	// UI context
 	if record.UI.Surface != "" {
 		sb.WriteString("\n")
-		sb.WriteString(component.GetStyle("detailSection").Render("UI Context"))
+		sb.WriteString(component.GetStyle(component.StyleDetailSection).Render("UI Context"))
 		sb.WriteString("\n")
 		sb.WriteString(detailRow("Surface", record.UI.Surface, w))
 		sb.WriteString("\n")
@@ -168,7 +168,7 @@ func RenderDetail(record *audit.Record, width int, height int) string {
 	// Details
 	if record.Details.DurationMs > 0 || record.Details.Error != "" {
 		sb.WriteString("\n")
-		sb.WriteString(component.GetStyle("detailSection").Render("Details"))
+		sb.WriteString(component.GetStyle(component.StyleDetailSection).Render("Details"))
 		sb.WriteString("\n")
 		if record.Details.DurationMs > 0 {
 			sb.WriteString(detailRow("Duration", fmt.Sprintf("%dms", record.Details.DurationMs), w))
@@ -188,11 +188,11 @@ func RenderDetail(record *audit.Record, width int, height int) string {
 }
 
 func detailRow(label, value string, width int) string {
-	return detailRowStyled(label, value, component.GetStyle("detailValue"), width)
+	return detailRowStyled(label, value, component.GetStyle(component.StyleDetailValue), width)
 }
 
 func detailRowStyled(label, value string, valueStyle lipgloss.Style, width int) string {
-	labelStr := component.GetStyle("detailLabel").Render(fmt.Sprintf("%-14s", label))
+	labelStr := component.GetStyle(component.StyleDetailLabel).Render(fmt.Sprintf("%-14s", label))
 	valStr := valueStyle.Render(value)
 	return "  " + labelStr + "  " + valStr
 }
@@ -225,23 +225,23 @@ func auditCellValue(key string, r *audit.Record) string {
 func resolveResultStyle(result audit.Result) lipgloss.Style {
 	switch result {
 	case audit.ResultSucceeded:
-		return component.GetStyle("toastSuccess")
+		return component.GetStyle(component.StyleToastSuccess)
 	case audit.ResultFailed:
-		return component.GetStyle("toastError")
+		return component.GetStyle(component.StyleToastError)
 	case audit.ResultCancelled:
-		return component.GetStyle("toastWarning")
+		return component.GetStyle(component.StyleToastWarning)
 	default:
-		return component.GetStyle("dim")
+		return component.GetStyle(component.StyleDim)
 	}
 }
 
 func resolveLevelStyle(level audit.Level) lipgloss.Style {
 	switch level {
 	case audit.LevelError:
-		return component.GetStyle("toastError")
+		return component.GetStyle(component.StyleToastError)
 	case audit.LevelWarn:
-		return component.GetStyle("toastWarning")
+		return component.GetStyle(component.StyleToastWarning)
 	default:
-		return component.GetStyle("dim")
+		return component.GetStyle(component.StyleDim)
 	}
 }

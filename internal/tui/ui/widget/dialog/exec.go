@@ -42,9 +42,9 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg DialogConfig, bodyW,
 	var optionBtns []string
 	for i, opt := range execShellOptions {
 		if m.Dialog.Focus == i {
-			optionBtns = append(optionBtns, lipgloss.NewStyle().Foreground(component.GetStyle("dialogConfirm").GetForeground()).Bold(true).Render(component.ButtonIndicator + " "+opt))
+			optionBtns = append(optionBtns, lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDialogConfirm).GetForeground()).Bold(true).Render(component.ButtonIndicator+" "+opt))
 		} else {
-			optionBtns = append(optionBtns, lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(opt))
+			optionBtns = append(optionBtns, lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDim).GetForeground()).Render(opt))
 		}
 	}
 	optionsRow := lipgloss.NewStyle().Width(dialogW - 4).Align(lipgloss.Center).Render(
@@ -64,7 +64,7 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg DialogConfig, bodyW,
 	if cursor > len(inputRunes) {
 		cursor = len(inputRunes)
 	}
-	inputDisplay := component.GetStyle("dim").Render(i18n.T("inspect.shell")+": ") + string(inputRunes[:cursor])
+	inputDisplay := component.GetStyle(component.StyleDim).Render(i18n.T("inspect.shell")+": ") + string(inputRunes[:cursor])
 	if m.Dialog.Focus == execFocusInput && !m.CursorBlinkHidden {
 		inputDisplay += component.BlockCursor // block cursor when focused
 	} else {
@@ -78,14 +78,14 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg DialogConfig, bodyW,
 	var confirmBtn, cancelBtn string
 	switch {
 	case m.Dialog.Focus == 4:
-		confirmBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dialogConfirm").GetForeground()).Bold(true).Render(enterKey + " " + component.ButtonIndicator + " " + confirmLabel)
-		cancelBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(escKey + " " + cancelLabel)
+		confirmBtn = lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDialogConfirm).GetForeground()).Bold(true).Render(enterKey + " " + component.ButtonIndicator + " " + confirmLabel)
+		cancelBtn = lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDim).GetForeground()).Render(escKey + " " + cancelLabel)
 	case m.Dialog.Focus == 5:
-		confirmBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(enterKey + " " + confirmLabel)
-		cancelBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dialogConfirm").GetForeground()).Bold(true).Render(escKey + " " + component.ButtonIndicator + " " + cancelLabel)
+		confirmBtn = lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDim).GetForeground()).Render(enterKey + " " + confirmLabel)
+		cancelBtn = lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDialogConfirm).GetForeground()).Bold(true).Render(escKey + " " + component.ButtonIndicator + " " + cancelLabel)
 	default:
-		confirmBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(enterKey + " " + confirmLabel)
-		cancelBtn = lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground()).Render(escKey + " " + cancelLabel)
+		confirmBtn = lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDim).GetForeground()).Render(enterKey + " " + confirmLabel)
+		cancelBtn = lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDim).GetForeground()).Render(escKey + " " + cancelLabel)
 	}
 	buttons := lipgloss.NewStyle().Width(dialogW - 4).Align(lipgloss.Center).Render(
 		confirmBtn + "   " + cancelBtn,
@@ -94,18 +94,18 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg DialogConfig, bodyW,
 	hint := i18n.T("hint.tab_switch")
 
 	var parts []string
-	parts = append(parts, component.GetStyle("panelTitle").Render(i18n.T("hint.enter_shell")))
+	parts = append(parts, component.GetStyle(component.StylePanelTitle).Render(i18n.T("hint.enter_shell")))
 	parts = append(parts, "")
-	parts = append(parts, component.GetStyle("dim").Render("Select shell:"))
+	parts = append(parts, component.GetStyle(component.StyleDim).Render("Select shell:"))
 	parts = append(parts, optionsRow)
 	parts = append(parts, "")
 	parts = append(parts, inputDisplay)
 	parts = append(parts, "")
 	parts = append(parts, buttons)
 	parts = append(parts, "")
-	parts = append(parts, component.GetStyle("dim").Render(hint))
+	parts = append(parts, component.GetStyle(component.StyleDim).Render(hint))
 
-	return DialogBox(DialogStyle{Width: dialogW, Height: dialogH, TitleColor: component.GetStyle("dialogConfirm").GetForeground(), OverlayColor: overlayColor}, parts...)
+	return DialogBox(DialogStyle{Width: dialogW, Height: dialogH, TitleColor: component.GetStyle(component.StyleDialogConfirm).GetForeground(), OverlayColor: overlayColor}, parts...)
 }
 
 // execFocusInput is the focus position for the custom input field.

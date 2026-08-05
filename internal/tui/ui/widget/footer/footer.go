@@ -24,7 +24,7 @@ func Render(app *state.AppModel, width int) string {
 	rows = rows[:2]
 	for i := range rows {
 		row := component.PadVisible(component.TruncateVisible(rows[i], width), width)
-		rows[i] = component.GetStyle("shortcutBar").Render(row)
+		rows[i] = component.GetStyle(component.StyleShortcutBar).Render(row)
 	}
 	return strings.Join(rows, "\n")
 }
@@ -35,7 +35,7 @@ func renderShortcuts(shortcuts []action.Shortcut) string {
 	}
 	var parts []string
 	for _, shortcut := range shortcuts {
-		parts = append(parts, component.GetStyle("hintKey").Render(shortcut.Key)+component.GetStyle("hintDesc").Render(" "+shortcut.Description))
+		parts = append(parts, component.GetStyle(component.StyleHintKey).Render(shortcut.Key)+component.GetStyle(component.StyleHintDescription).Render(" "+shortcut.Description))
 	}
-	return strings.Join(parts, component.GetStyle("hintSep").Render(" "+component.BorderLineVertical+" "))
+	return strings.Join(parts, component.GetStyle(component.StyleHintSeparator).Render(" "+component.BorderLineVertical+" "))
 }

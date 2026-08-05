@@ -155,7 +155,7 @@ func renderCompactApp(m *state.AppModel) string {
 	if status != "" {
 		parts = append(parts, fitRailHeight(status, plan.message))
 	} else {
-		parts = append(parts, fitRailHeight(component.GetStyle("dim").Render(i18n.T("msg.ready")), plan.message))
+		parts = append(parts, fitRailHeight(component.GetStyle(component.StyleDim).Render(i18n.T("msg.ready")), plan.message))
 	}
 	if plan.query > 0 && query != "" {
 		parts = append(parts, fitRailHeight(query, plan.query))
@@ -184,7 +184,7 @@ func renderCompactHeader(m *state.AppModel, width int) string {
 	host := hostLabel(m)
 	summary := summaryLabel(m)
 	line := fmt.Sprintf("%s %s | %s | %dx%d", engine, host, summary, m.Viewport.Width, m.Viewport.Height)
-	return fitRailHeight(component.GetStyle("headerBar").Render(component.TruncateVisible(line, width)), 1)
+	return fitRailHeight(component.GetStyle(component.StyleHeaderBar).Render(component.TruncateVisible(line, width)), 1)
 }
 
 // renderCompactFooter produces a single-line shortcut strip with the most
@@ -197,12 +197,12 @@ func renderCompactFooter(width int) string {
 	var parts []string
 	for _, s := range short {
 		parts = append(parts,
-			component.GetStyle("hintKey").Render(s.k)+
-				component.GetStyle("hintDesc").Render(" "+s.d))
+			component.GetStyle(component.StyleHintKey).Render(s.k)+
+				component.GetStyle(component.StyleHintDescription).Render(" "+s.d))
 	}
-	line := strings.Join(parts, component.GetStyle("hintSep").Render(" "+component.BorderLineVertical+" "))
+	line := strings.Join(parts, component.GetStyle(component.StyleHintSeparator).Render(" "+component.BorderLineVertical+" "))
 	line = component.PadVisible(component.TruncateVisible(line, width), width)
-	return fitRailHeight(component.GetStyle("shortcutBar").Render(line), 1)
+	return fitRailHeight(component.GetStyle(component.StyleShortcutBar).Render(line), 1)
 }
 
 func engineLabel(m *state.AppModel) string {

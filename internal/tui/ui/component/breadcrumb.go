@@ -39,7 +39,7 @@ func RenderBreadcrumb(items []BreadcrumbItem, separator string, width int) strin
 
 	visLen := utils.VisibleLen(full)
 	if visLen <= width {
-		return GetStyle("breadcrumb").Render(full)
+		return GetStyle(StyleBreadcrumb).Render(full)
 	}
 
 	// Need to truncate: keep rightmost segments readable
@@ -80,5 +80,5 @@ func RenderBreadcrumb(items []BreadcrumbItem, separator string, width int) strin
 		result += rightParts[i]
 	}
 
-	return GetStyle("breadcrumb").Render(result)
+	return GetStyle(StyleBreadcrumb).Render(result)
 }

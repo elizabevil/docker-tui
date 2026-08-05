@@ -5,10 +5,10 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/tui/filter"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
-	"github.com/elizabevil/docker-tui/internal/tui/filter"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
@@ -40,9 +40,9 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 	total := len(items)
 	if total == 0 {
 		if nm.FilterText() != "" {
-			return component.GetStyle("dim").Render(i18n.T("msg.no_networks_match"))
+			return component.GetStyle(component.StyleDim).Render(i18n.T("msg.no_networks_match"))
 		}
-		return component.GetStyle("dim").Render(i18n.T("msg.no_networks"))
+		return component.GetStyle(component.StyleDim).Render(i18n.T("msg.no_networks"))
 	}
 
 	rowHeight := component.CalcTableRowHeight(panelHeight, !selectionDisabled)

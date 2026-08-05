@@ -106,11 +106,11 @@ func flattenSections(sections []detailSection) []state.DetailDocumentLine {
 }
 
 func renderDocument(m *state.AppModel, bodyLines []state.DetailDocumentLine, panelHeight, panelWidth int) string {
-	sectionStyle := component.GetStyle("detailSection")
-	labelStyle := component.GetStyle("detailLabel")
-	valueStyle := component.GetStyle("detailValue")
-	dimStyle := component.GetStyle("detailDim")
-	selectionStyle := component.GetStyle("detailSelection")
+	sectionStyle := component.GetStyle(component.StyleDetailSection)
+	labelStyle := component.GetStyle(component.StyleDetailLabel)
+	valueStyle := component.GetStyle(component.StyleDetailValue)
+	dimStyle := component.GetStyle(component.StyleDetailDim)
+	selectionStyle := component.GetStyle(component.StyleDetailSelection)
 
 	bodyHeight := panelHeight - 1
 	if bodyHeight < 3 {
@@ -150,7 +150,7 @@ func renderDocument(m *state.AppModel, bodyLines []state.DetailDocumentLine, pan
 	for len(rendered) < bodyHeight {
 		rendered = append(rendered, "")
 	}
-	body := component.GetStyle("panel").Height(bodyHeight).MaxHeight(bodyHeight).Render(strings.Join(rendered, "\n"))
+	body := component.GetStyle(component.StylePanel).Height(bodyHeight).MaxHeight(bodyHeight).Render(strings.Join(rendered, "\n"))
 
 	footer := fmt.Sprintf(" %d-%d/%d", offset+1, visibleEnd, len(bodyLines))
 	if m.Detail.DetailHint != "" {

@@ -14,10 +14,10 @@ func Render(processes state.ProcessState, width, height int) string {
 		return i18n.T("msg.loading")
 	}
 	if processes.Error != "" {
-		return component.GetStyle("toastError").Render(processes.Error)
+		return component.GetStyle(component.StyleToastError).Render(processes.Error)
 	}
 	if len(processes.Titles) == 0 || len(processes.Rows) == 0 {
-		return component.GetStyle("dim").Render(i18n.T("container.top.empty"))
+		return component.GetStyle(component.StyleDim).Render(i18n.T("container.top.empty"))
 	}
 	cols := make([]tables.ColumnDef, len(processes.Titles))
 	for i, title := range processes.Titles {

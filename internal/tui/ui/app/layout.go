@@ -323,7 +323,7 @@ func (ui runtimeSelectorUI) Render() string {
 		rows = append(rows, e.Info)
 	}
 	rows = append(rows, "", ui.Footer)
-	return component.GetStyle("panel").Border(ui.Border).Padding(ui.Padding[0], ui.Padding[1]).Width(ui.Width).Render(strings.Join(rows, "\n"))
+	return component.GetStyle(component.StylePanel).Border(ui.Border).Padding(ui.Padding[0], ui.Padding[1]).Width(ui.Width).Render(strings.Join(rows, "\n"))
 }
 
 func renderRuntimeSelector(m *state.AppModel) string {
@@ -463,7 +463,7 @@ func renderExecPassthroughPanel(m *state.AppModel, bodyH int) string {
 			lines[i] = line[:panelW]
 		}
 	}
-	return component.GetStyle("panel").Width(panelW).Render(strings.Join(lines, "\n"))
+	return component.GetStyle(component.StylePanel).Width(panelW).Render(strings.Join(lines, "\n"))
 }
 
 // sliceColors safely slices a colors array. Returns nil if colors is nil or bounds are invalid.

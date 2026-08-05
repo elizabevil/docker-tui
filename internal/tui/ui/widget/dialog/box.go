@@ -37,7 +37,7 @@ func DialogBox(style DialogStyle, parts ...string) string {
 		Foreground(titleColor).
 		Padding(1, 2).
 		Width(style.Width)
-	bodyBg := component.GetStyle("dialogBodyBackground").GetBackground()
+	bodyBg := component.GetStyle(component.StyleDialogBodyBackground).GetBackground()
 	if bodyBg != nil {
 		s = s.Background(bodyBg)
 	}

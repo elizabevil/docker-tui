@@ -20,10 +20,10 @@ type TableRow struct {
 	Width         int         // total visible width to fill
 	Background    string      // hex; "" → terminal default
 	Bold          bool
-	Foreground    string      // optional override for cells; "" → style default
-	TruncateCells bool        // if true, truncate cells to their column widths
-	ColWidths     []int       // when TruncateCells is true, per-column widths
-	Gap           string      // separator between cells, typically " "
+	Foreground    string // optional override for cells; "" → style default
+	TruncateCells bool   // if true, truncate cells to their column widths
+	ColWidths     []int  // when TruncateCells is true, per-column widths
+	Gap           string // separator between cells, typically " "
 }
 
 // Render produces the table row string.
@@ -74,9 +74,9 @@ func (tr *TableRow) Render() string {
 }
 
 func (tr *TableRow) cellStyle(i int) lipgloss.Style {
-	name := string(StyleDim)
+	name := StyleDim
 	if i < len(tr.CellStyles) && tr.CellStyles[i] != "" {
-		name = string(tr.CellStyles[i])
+		name = tr.CellStyles[i]
 	}
 	return styleWithBackground(component.GetStyle(name), tr.Background)
 }
@@ -85,7 +85,7 @@ func (tr *TableRow) renderPrefix() string {
 	if tr.Prefix == "" {
 		return ""
 	}
-	name := string(tr.PrefixStyle)
+	name := tr.PrefixStyle
 	if name == "" {
 		// Prefix without style: just return as-is.
 		return tr.Prefix

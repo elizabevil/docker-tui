@@ -165,8 +165,8 @@ func Render(app *state.AppModel, usableW int) string {
 	logoLines := strings.Split(strings.TrimSpace(tui.DTUILogo), "\n")
 	logoPart := strings.Join(logoLines[:min(3, len(logoLines))], "\n")
 	colLogo := lipgloss.JoinVertical(lipgloss.Right,
-		component.GetStyle("panelTitle").Render(logoPart),
-		component.GetStyle("panelTitle").Render("v"+verStr),
+		component.GetStyle(component.StylePanelTitle).Render(logoPart),
+		component.GetStyle(component.StylePanelTitle).Render("v"+verStr),
 	)
 	fitColumn := func(content string, width int) string {
 		lines := strings.Split(content, "\n")
@@ -191,16 +191,15 @@ func Render(app *state.AppModel, usableW int) string {
 func renderLink(status string) string {
 	switch status {
 	case component.LinkUp:
-		return component.GetStyle("headerBar").Render(utils.PadVisible(
+		return component.GetStyle(component.StyleHeaderBar).Render(utils.PadVisible(
 			lipgloss.NewStyle().Foreground(style.Colors.Success).Render(status), 18))
 	case "\u25cb":
-		return component.GetStyle("headerBar").Render(utils.PadVisible(
+		return component.GetStyle(component.StyleHeaderBar).Render(utils.PadVisible(
 			lipgloss.NewStyle().Foreground(style.Colors.Danger).Render(status), 18))
 	default:
-		return component.GetStyle("headerBar").Render(utils.PadVisible(status, 18))
+		return component.GetStyle(component.StyleHeaderBar).Render(utils.PadVisible(status, 18))
 	}
 }
-
 
 // renderKeyStrokeColumn 显示快捷键日志（简化版，仅收集期间显示）。
 func renderKeyStrokeColumn(app *state.AppModel, colW, ratio int) string {
@@ -239,7 +238,7 @@ func renderKeyStrokeColumn(app *state.AppModel, colW, ratio int) string {
 	boxed := (&box.BorderedBox{
 		Content:     content,
 		UseRounded:  true,
-		BorderColor: hexFromColor(component.GetStyle(string(box.StylePanelTitle)).GetForeground()),
+		BorderColor: hexFromColor(component.GetStyle(box.StylePanelTitle).GetForeground()),
 		Background:  headerBg,
 		Padding:     [2]int{0, padH},
 		Width:       colW,

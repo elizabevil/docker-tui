@@ -12,17 +12,17 @@ import (
 // from the value and an optional background. The bar is intentionally not part
 // of this component — a separate component can wrap Stat when a bar is needed.
 type Stat struct {
-	Label        string  // optional leading text (e.g. "CPU ")
-	LabelStyle   StyleName
-	Value        float64
-	Unit         string  // typically "%"
-	ValueWidth   int     // visible width reserved for the value+unit string
-	Suffix       string  // optional unit after value (e.g. "/15.6GB")
-	SuffixStyle  StyleName
-	Color        string  // hex color for the value text; "" → no override
-	WarningAt    float64 // threshold for the warning color (e.g. 50)
-	DangerAt     float64 // threshold for the danger color (e.g. 80)
-	Background   string  // hex color; "" → terminal default
+	Label       string // optional leading text (e.g. "CPU ")
+	LabelStyle  StyleName
+	Value       float64
+	Unit        string // typically "%"
+	ValueWidth  int    // visible width reserved for the value+unit string
+	Suffix      string // optional unit after value (e.g. "/15.6GB")
+	SuffixStyle StyleName
+	Color       string  // hex color for the value text; "" → no override
+	WarningAt   float64 // threshold for the warning color (e.g. 50)
+	DangerAt    float64 // threshold for the danger color (e.g. 80)
+	Background  string  // hex color; "" → terminal default
 }
 
 // Render returns the label + coloured value (+ optional suffix) inside a
@@ -30,17 +30,17 @@ type Stat struct {
 func (s *Stat) Render() string {
 	out := ""
 	if s.Label != "" {
-		labelStyle := styleWithBackground(component.GetStyle(string(s.LabelStyle)), s.Background)
+		labelStyle := styleWithBackground(component.GetStyle(s.LabelStyle), s.Background)
 		out += labelStyle.Render(s.Label)
 	}
 	valueText := formatStatValue(s.Value, s.Unit, s.ValueWidth)
-	valueStyle := styleWithBackground(component.GetStyle(string(StyleDim)), s.Background)
+	valueStyle := styleWithBackground(component.GetStyle(StyleDim), s.Background)
 	if c := pickStatColor(s.Value, s.Color, s.WarningAt, s.DangerAt); c != nil {
 		valueStyle = valueStyle.Foreground(c)
 	}
 	out += valueStyle.Render(valueText)
 	if s.Suffix != "" {
-		suffixStyle := styleWithBackground(component.GetStyle(string(s.SuffixStyle)), s.Background)
+		suffixStyle := styleWithBackground(component.GetStyle(s.SuffixStyle), s.Background)
 		out += suffixStyle.Render(s.Suffix)
 	}
 	return out

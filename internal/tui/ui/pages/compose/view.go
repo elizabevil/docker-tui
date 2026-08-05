@@ -86,9 +86,9 @@ func RenderPanel(m *state.AppModel, panelWidth int, panelHeight int) string {
 	ordered = filterProjects(ordered, m.Compose.ComposeProjectFilter)
 	if len(ordered) == 0 {
 		if m.Compose.ComposeProjectFilter != "" {
-			return component.GetStyle("dim").Render(i18n.T("compose.empty_projects_filter"))
+			return component.GetStyle(component.StyleDim).Render(i18n.T("compose.empty_projects_filter"))
 		}
-		return component.GetStyle("dim").Render(i18n.T("compose.empty_projects"))
+		return component.GetStyle(component.StyleDim).Render(i18n.T("compose.empty_projects"))
 	}
 	projectCursor := m.Compose.ProjectCursor(len(ordered))
 
@@ -144,12 +144,12 @@ func RenderPanel(m *state.AppModel, panelWidth int, panelHeight int) string {
 	right = rightBar + "\n" + right
 
 	// 顶部竖线分隔（仅首行对齐，不撑高）
-	sep := component.GetStyle("panelTitle").Render(component.BorderLineVertical)
+	sep := component.GetStyle(component.StylePanelTitle).Render(component.BorderLineVertical)
 
 	return lipgloss.JoinHorizontal(lipgloss.Top,
-		component.GetStyle("panel").Width(leftW).Render(left),
-		component.GetStyle("panel").Width(1).Render(sep),
-		component.GetStyle("panel").Width(rightW).Render(right),
+		component.GetStyle(component.StylePanel).Width(leftW).Render(left),
+		component.GetStyle(component.StylePanel).Width(1).Render(sep),
+		component.GetStyle(component.StylePanel).Width(rightW).Render(right),
 	)
 }
 
@@ -216,8 +216,8 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 	}
 	rawTitle := state.PanelLabel(state.PanelCompose) + " > " + proj.name + " > " + i18n.T("key.services")
 	rawSummary := i18n.T("compose.summary", sts, len(proj.svcs), proj.total)
-	title := component.GetStyle("panelTitle").Render(component.TruncateVisible(rawTitle, w))
-	summary := component.GetStyle("dim").Render(component.TruncateVisible(rawSummary, w))
+	title := component.GetStyle(component.StylePanelTitle).Render(component.TruncateVisible(rawTitle, w))
+	summary := component.GetStyle(component.StyleDim).Render(component.TruncateVisible(rawSummary, w))
 
 	svcNames := make([]string, 0, len(proj.svcs))
 	for name := range proj.svcs {
@@ -236,7 +236,7 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 			title,
 			summary,
 			"",
-			component.GetStyle("dim").Render(msg),
+			component.GetStyle(component.StyleDim).Render(msg),
 		)
 	}
 	serviceCursor := m.Compose.ServiceCursor(len(svcNames))
@@ -289,7 +289,7 @@ func RenderProjectDetailTable(m *state.AppModel, width, panelHeight int) string 
 	ordered, _ := gatherComposeProjects(m)
 	ordered = filterProjects(ordered, m.Compose.ComposeProjectFilter)
 	if len(ordered) == 0 {
-		return component.GetStyle("dim").Render(i18n.T("compose.empty_detail"))
+		return component.GetStyle(component.StyleDim).Render(i18n.T("compose.empty_detail"))
 	}
 	proj := ordered[m.Compose.ProjectCursor(len(ordered))]
 	svcNames := make([]string, 0, len(proj.svcs))
@@ -298,13 +298,13 @@ func RenderProjectDetailTable(m *state.AppModel, width, panelHeight int) string 
 	}
 	sort.Strings(svcNames)
 	if len(svcNames) == 0 {
-		return component.GetStyle("dim").Render(i18n.T("compose.empty_services"))
+		return component.GetStyle(component.StyleDim).Render(i18n.T("compose.empty_services"))
 	}
 
 	w := max(40, width-4)
 	colsDef := tc.Columns.Get("detail")
 	if len(colsDef) == 0 {
-		return component.GetStyle("dim").Render(i18n.T("compose.empty_detail_columns"))
+		return component.GetStyle(component.StyleDim).Render(i18n.T("compose.empty_detail_columns"))
 	}
 	rowHeight := component.CalcTableRowHeight(panelHeight, false)
 	offset := m.Detail.ClampVisibleOffset(len(svcNames), rowHeight)
@@ -350,7 +350,7 @@ func RenderProjectDetailTable(m *state.AppModel, width, panelHeight int) string 
 func renderComposeContainers(m *state.AppModel, panelWidth int, panelHeight int) string {
 	colsDef := tc.Columns.Get("pods_sub")
 	if len(colsDef) == 0 {
-		return component.GetStyle("dim").Render(i18n.T("compose.empty_container_columns"))
+		return component.GetStyle(component.StyleDim).Render(i18n.T("compose.empty_container_columns"))
 	}
 
 	// 收集该服务的容器
@@ -365,7 +365,7 @@ func renderComposeContainers(m *state.AppModel, panelWidth int, panelHeight int)
 
 	total := len(matched)
 	if total == 0 {
-		return component.GetStyle("dim").Render(i18n.T("compose.empty_containers_for", service))
+		return component.GetStyle(component.StyleDim).Render(i18n.T("compose.empty_containers_for", service))
 	}
 
 	rowHeight := component.CalcRowHeight(panelHeight - 2) // title + breadcrumb
@@ -393,8 +393,8 @@ func renderComposeContainers(m *state.AppModel, panelWidth int, panelHeight int)
 		})
 
 	rawTitle := component.TruncateVisible(project+"/"+service, panelWidth)
-	title := component.GetStyle("panelTitle").Render(rawTitle)
-	bc := component.GetStyle("dim").Render("Esc " + i18n.T("key.back"))
+	title := component.GetStyle(component.StylePanelTitle).Render(rawTitle)
+	bc := component.GetStyle(component.StyleDim).Render("Esc " + i18n.T("key.back"))
 	return lipgloss.JoinVertical(lipgloss.Top,
 		title,
 		component.RenderTable(component.TableData{

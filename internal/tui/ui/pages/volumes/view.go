@@ -5,10 +5,10 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/tui/filter"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
-	"github.com/elizabevil/docker-tui/internal/tui/filter"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
@@ -43,9 +43,9 @@ func RenderList(vm *state.VolumeListModel, cm *state.ContainerListModel, width i
 	total := len(items)
 	if total == 0 {
 		if vm.FilterText() != "" {
-			return component.GetStyle("dim").Render(i18n.T("msg.no_volumes_match"))
+			return component.GetStyle(component.StyleDim).Render(i18n.T("msg.no_volumes_match"))
 		}
-		return component.GetStyle("dim").Render(i18n.T("msg.no_volumes"))
+		return component.GetStyle(component.StyleDim).Render(i18n.T("msg.no_volumes"))
 	}
 
 	rowHeight := component.CalcTableRowHeight(panelHeight, !selectionDisabled)
@@ -154,7 +154,7 @@ func renderContainers(cm *state.ContainerListModel, width int, volName string, p
 			Limit:      rowLimit,
 			BodyHeight: panelHeight,
 			BannerW:    w,
-			FooterHint: fmt.Sprintf("%d containers%s " + component.BorderLineVertical + " Esc back", total, more),
+			FooterHint: fmt.Sprintf("%d containers%s "+component.BorderLineVertical+" Esc back", total, more),
 			ColStyles:  colStyles,
 		})
 }

@@ -38,13 +38,13 @@ func (p Panel) Render() string {
 	if contentH < 1 {
 		contentH = 1
 	}
-	body := component.GetStyle("panel").MaxHeight(contentH).Height(contentH).Width(p.Width - 2).Render(p.Content)
+	body := component.GetStyle(component.StylePanel).MaxHeight(contentH).Height(contentH).Width(p.Width - 2).Render(p.Content)
 	inner := lipgloss.JoinVertical(lipgloss.Top, titleLine, body)
 	boxed := tui.ActiveBorderStyle.Width(p.Width - 2).Render(inner)
 	if p.BorderLabel != "" {
 		boxed = applyBorderLabel(boxed, p.BorderLabel, p.Width-2)
 	}
-	return component.RenderBackgroundLayer(boxed, component.GetStyle("panel").GetBackground())
+	return component.RenderBackgroundLayer(boxed, component.GetStyle(component.StylePanel).GetBackground())
 }
 
 // renderTitle 标题行：面板名 + 面包屑(右侧)
@@ -53,13 +53,13 @@ func renderTitle(p Panel) string {
 	if p.Info != "" {
 		title += " " + component.BorderLineVertical + " " + p.Info
 	}
-	titleLine := component.GetStyle("panelTitle").Render(title)
+	titleLine := component.GetStyle(component.StylePanelTitle).Render(title)
 	if p.Breadcrumb != "" {
 		lineW := p.Width - 6
 		if lineW < 10 {
 			lineW = 10
 		}
-		right := component.GetStyle("dim").Render(p.Breadcrumb)
+		right := component.GetStyle(component.StyleDim).Render(p.Breadcrumb)
 		titleLine = component.JustifyBetween(titleLine, right, lineW)
 	}
 	return titleLine
@@ -105,7 +105,7 @@ func (p Panel) RenderNoBorder() string {
 		title += " " + component.BorderLineVertical + " " + p.Info
 	}
 	return lipgloss.JoinVertical(lipgloss.Top,
-		component.GetStyle("panelTitle").Render(title),
+		component.GetStyle(component.StylePanelTitle).Render(title),
 		p.Content)
 }
 

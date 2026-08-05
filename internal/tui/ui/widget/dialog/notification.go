@@ -14,11 +14,11 @@ func NotificationDialog(title, body string, termW, termH int, overlayColor strin
 	dialogH := dialogHeight(termH, cfg)
 
 	var parts []string
-	parts = append(parts, component.GetStyle("panelTitle").Render(title))
+	parts = append(parts, component.GetStyle(component.StylePanelTitle).Render(title))
 	parts = append(parts, "")
 	parts = append(parts, body)
 	parts = append(parts, "")
-	parts = append(parts, component.GetStyle("dim").Render(i18n.T("hint.esc_cancel")))
+	parts = append(parts, component.GetStyle(component.StyleDim).Render(i18n.T("hint.esc_cancel")))
 
-	return DialogBox(DialogStyle{Width: dialogW, Height: dialogH, TitleColor: component.GetStyle("panelTitle").GetForeground(), OverlayColor: overlayColor}, parts...)
+	return DialogBox(DialogStyle{Width: dialogW, Height: dialogH, TitleColor: component.GetStyle(component.StylePanelTitle).GetForeground(), OverlayColor: overlayColor}, parts...)
 }

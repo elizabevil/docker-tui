@@ -131,7 +131,7 @@ func RenderTable(d TableData) string {
 		if d.FooterHint != "" {
 			pageInfo += " " + BorderLineVertical + " " + d.FooterHint
 		}
-		rightAligned := lipgloss.NewStyle().Width(containerW).Align(lipgloss.Right).Render(GetStyle("dim").Render(pageInfo))
+		rightAligned := lipgloss.NewStyle().Width(containerW).Align(lipgloss.Right).Render(GetStyle(StyleDim).Render(pageInfo))
 		sb.WriteString(rightAligned)
 		sb.WriteString("\n")
 	}
@@ -185,14 +185,14 @@ func adaptiveGapWidths(base, count, extra int) []int {
 
 func renderTopFrameLabel(label string, width int) string {
 	if width < 8 {
-		return GetStyle("dim").Render(label)
+		return GetStyle(StyleDim).Render(label)
 	}
 	left := BorderLineHorizontal + BorderLineHorizontal + " " + label + " "
 	remain := width - utils.VisibleLen(left)
 	if remain < 0 {
 		remain = 0
 	}
-	return GetStyle("dim").Render(left + strings.Repeat(BorderLineHorizontal, remain))
+	return GetStyle(StyleDim).Render(left + strings.Repeat(BorderLineHorizontal, remain))
 }
 
 // resolveHeaders resolves i18n keys and applies HeaderOverrides,
@@ -244,12 +244,12 @@ func RenderTableFooter(offset, end, total int, hint string) string {
 	if hint != "" {
 		ft = left + " " + BorderLineVertical + " " + hint
 	}
-	return GetStyle("footer").Render(ft)
+	return GetStyle(StyleFooter).Render(ft)
 }
 
 // renderSelectionInfo 按配置样式渲染选中项预览信息。
 func renderSelectionInfo(text string) string {
-	return GetStyle("detailSelection").Render(text)
+	return GetStyle(StyleDetailSelection).Render(text)
 }
 
 // resolveTableBackground returns the table's component-level background,

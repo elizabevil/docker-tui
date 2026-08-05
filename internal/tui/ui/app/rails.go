@@ -6,9 +6,9 @@ import (
 	"unicode/utf8"
 
 	"charm.land/lipgloss/v2"
+	"github.com/elizabevil/docker-tui/internal/tui/filter"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
-	"github.com/elizabevil/docker-tui/internal/tui/filter"
 	"github.com/mattn/go-runewidth"
 )
 
@@ -57,7 +57,7 @@ func renderMessageRail(m *state.AppModel, width int) string {
 	var style lipgloss.Style
 	switch {
 	case m.Feedback.ErrorMessage != "":
-		style = component.GetStyle("toastError")
+		style = component.GetStyle(component.StyleToastError)
 		text = m.Feedback.ErrorMessage
 		if m.Feedback.ErrorCount > 1 {
 			text += fmt.Sprintf(" [%d]", m.Feedback.ErrorCount)
@@ -66,28 +66,28 @@ func renderMessageRail(m *state.AppModel, width int) string {
 		style = component.GetStyle(levelStyle(m.Feedback.ToastLevel))
 		text = m.Feedback.ToastMessage
 	case m.Feedback.AuditOperationMessage != "":
-		style = component.GetStyle("toastInfo")
+		style = component.GetStyle(component.StyleToastInfo)
 		text = m.Feedback.AuditOperationMessage
 	case m.Feedback.InfoMessage != "":
-		style = component.GetStyle("toastInfo")
+		style = component.GetStyle(component.StyleToastInfo)
 		text = m.Feedback.InfoMessage
 	default:
 		return ""
 	}
-	railStyle := component.GetStyle("messageRail").Foreground(style.GetForeground())
+	railStyle := component.GetStyle(component.StyleMessageRail).Foreground(style.GetForeground())
 	return railStyle.Render(wrapMessageRail(text, max(1, width), messageRailHeight))
 }
 
-func levelStyle(level state.NotificationLevel) string {
+func levelStyle(level state.NotificationLevel) component.StyleName {
 	switch level {
 	case state.NotificationSuccess:
-		return "toastSuccess"
+		return component.StyleToastSuccess
 	case state.NotificationError:
-		return "toastError"
+		return component.StyleToastError
 	case state.NotificationWarning:
-		return "toastWarning"
+		return component.StyleToastWarning
 	default:
-		return "toastInfo"
+		return component.StyleToastInfo
 	}
 }
 
@@ -194,36 +194,36 @@ func renderQueryInput(kind queryKind, text string, cursor int, width int, matchC
 	visible := len(cursorVisible) == 0 || cursorVisible[0]
 	switch kind {
 	case queryCommand:
-		prefix := component.GetStyle("commandPrefix").Render(": ")
+		prefix := component.GetStyle(component.StyleCommandPrefix).Render(": ")
 		suffix := component.AutocompleteSuffix(text)
 		if suffix != "" {
-			typed := component.GetStyle("searchBar").Render(text)
-			hint := component.GetStyle("searchHint").Render(suffix)
+			typed := component.GetStyle(component.StyleSearchBar).Render(text)
+			hint := component.GetStyle(component.StyleSearchHint).Render(suffix)
 			cursorMark := component.BlockCursor
 			if !visible {
 				cursorMark = " "
 			}
 			input = prefix + typed + cursorMark + hint
 		} else {
-			input = prefix + component.GetStyle("searchBar").Render(insertCursor(text, cursor, visible))
+			input = prefix + component.GetStyle(component.StyleSearchBar).Render(insertCursor(text, cursor, visible))
 		}
 	case querySearch:
-		input = component.GetStyle("searchBar").Render("Search: " + insertCursor(text, cursor, visible))
+		input = component.GetStyle(component.StyleSearchBar).Render("Search: " + insertCursor(text, cursor, visible))
 	case queryImagePull:
-		input = component.GetStyle("searchBar").Render("Pull: " + insertCursor(text, cursor, visible))
+		input = component.GetStyle(component.StyleSearchBar).Render("Pull: " + insertCursor(text, cursor, visible))
 	default:
 		countSuffix := ""
 		if matchCount != "" {
-			countSuffix = " " + component.GetStyle("dim").Render(matchCount)
+			countSuffix = " " + component.GetStyle(component.StyleDim).Render(matchCount)
 		}
-		input = component.GetStyle("searchBar").Render("Filter: " + insertCursor(text, cursor, visible) + countSuffix)
+		input = component.GetStyle(component.StyleSearchBar).Render("Filter: " + insertCursor(text, cursor, visible) + countSuffix)
 	}
 
 	content := component.PadVisible(input, innerWidth)
-	return component.GetStyle("queryBar").
+	return component.GetStyle(component.StyleQueryBar).
 		Width(boxWidth-2).
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(component.GetStyle("dim").GetForeground()).
+		BorderForeground(component.GetStyle(component.StyleDim).GetForeground()).
 		Padding(0, 1).
 		Render(content)
 }

@@ -67,5 +67,5 @@ func (s *Spinner) Render() string {
 	if s == nil || !s.active {
 		return ""
 	}
-	return GetStyle("toastInfo").Render(" " + s.String())
+	return GetStyle(StyleToastInfo).Render(" " + s.String())
 }

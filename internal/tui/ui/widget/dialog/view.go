@@ -135,11 +135,11 @@ func OverlayColor(m *state.AppModel) string {
 func titleColorForKind(kind state.DialogKind) color.Color {
 	switch kind {
 	case state.DialogImageDebug:
-		return component.GetStyle("dialogWarning").GetForeground()
+		return component.GetStyle(component.StyleDialogWarning).GetForeground()
 	case state.DialogExec:
-		return component.GetStyle("dialogConfirm").GetForeground()
+		return component.GetStyle(component.StyleDialogConfirm).GetForeground()
 	default:
-		return component.GetStyle("panelTitle").GetForeground()
+		return component.GetStyle(component.StylePanelTitle).GetForeground()
 	}
 }
 
@@ -204,7 +204,7 @@ func RenderChoiceOverlay(content string, m *state.AppModel) string {
 		m.Confirm.Focus,
 		m.Viewport.Width,
 		m.Viewport.Height,
-		component.GetStyle("dialogWarning").GetForeground(),
+		component.GetStyle(component.StyleDialogWarning).GetForeground(),
 		overlay,
 		cfg,
 	)
@@ -242,7 +242,7 @@ func RenderChoiceOverlayInPanel(content string, m *state.AppModel, body PanelBod
 		m.Confirm.Focus,
 		body.Width,
 		body.Rows,
-		component.GetStyle("dialogWarning").GetForeground(),
+		component.GetStyle(component.StyleDialogWarning).GetForeground(),
 		overlay,
 		cfg,
 	)

@@ -20,24 +20,21 @@ func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
 	if m.Log.LogWrapEnabled {
 		headerExtras += " " + component.BorderLineVertical + " wrap"
 	}
-	header := component.GetStyle("dim").Render(headerExtras)
+	header := component.GetStyle(component.StyleDim).Render(headerExtras)
 
-	rowHeight := panelHeight - 2
-	if rowHeight < 1 {
-		rowHeight = 1
-	}
+	rowHeight := max(panelHeight-2, 1)
 
 	if m.Log.LogContainerID == "" {
 		return renderLogPanel(header, []string{
-			component.GetStyle("dim").Render("  Select a container and press 'l' to view logs"),
-			component.GetStyle("dim").Render("  Press Esc to return to container list"),
-		}, component.GetStyle("dim").Render(" Esc back"), rowHeight)
+			component.GetStyle(component.StyleDim).Render("  Select a container and press 'l' to view logs"),
+			component.GetStyle(component.StyleDim).Render("  Press Esc to return to container list"),
+		}, component.GetStyle(component.StyleDim).Render(" Esc back"), rowHeight)
 	}
 
 	if len(lines) == 0 {
 		return renderLogPanel(header, []string{
-			component.GetStyle("dim").Render("  No log output from container"),
-		}, component.GetStyle("dim").Render(" Esc back"), rowHeight)
+			component.GetStyle(component.StyleDim).Render("  No log output from container"),
+		}, component.GetStyle(component.StyleDim).Render(" Esc back"), rowHeight)
 	}
 
 	visibleRows := rowHeight
@@ -46,11 +43,11 @@ func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
 	}
 	offset := m.Log.VisibleOffset(len(lines), visibleRows)
 
-	lineNumStyle := component.GetStyle("dim")
-	timestampStyle := component.GetStyle("logTimestamp")
-	logTextStyle := component.GetStyle("logText")
-	stderrStyle := component.GetStyle("logStderr")
-	searchHighlight := component.GetStyle("logHighlightBg")
+	lineNumStyle := component.GetStyle(component.StyleDim)
+	timestampStyle := component.GetStyle(component.StyleLogTimestamp)
+	logTextStyle := component.GetStyle(component.StyleLogText)
+	stderrStyle := component.GetStyle(component.StyleLogStderr)
+	searchHighlight := component.GetStyle(component.StyleLogHighlight)
 
 	const prefixWidth = 38 // line number + timestamp + separators
 	logWidth := max(8, panelWidth-prefixWidth)
@@ -100,7 +97,7 @@ func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
 		len(lines),
 	)
 
-	return renderLogPanel(header, rendered, component.GetStyle("dim").Render(footer), rowHeight)
+	return renderLogPanel(header, rendered, component.GetStyle(component.StyleDim).Render(footer), rowHeight)
 }
 
 func renderLogPanel(header string, bodyLines []string, footer string, bodyHeight int) string {
@@ -113,7 +110,7 @@ func renderLogPanel(header string, bodyLines []string, footer string, bodyHeight
 	if len(bodyLines) > bodyHeight {
 		bodyLines = bodyLines[:bodyHeight]
 	}
-	body := component.GetStyle("panel").Height(bodyHeight).MaxHeight(bodyHeight).Render(strings.Join(bodyLines, "\n"))
+	body := component.GetStyle(component.StylePanel).Height(bodyHeight).MaxHeight(bodyHeight).Render(strings.Join(bodyLines, "\n"))
 	return lipgloss.JoinVertical(lipgloss.Top, header, body, footer)
 }
 

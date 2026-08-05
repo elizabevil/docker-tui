@@ -5,10 +5,10 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/tui/filter"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
-	"github.com/elizabevil/docker-tui/internal/tui/filter"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/containers"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
@@ -43,9 +43,9 @@ func RenderList(im *state.ImageListModel, cm *state.ContainerListModel, width in
 	total := len(items)
 	if total == 0 {
 		if im.FilterText() != "" {
-			return component.GetStyle("dim").Render(i18n.T("msg.no_images_match"))
+			return component.GetStyle(component.StyleDim).Render(i18n.T("msg.no_images_match"))
 		}
-		return component.GetStyle("dim").Render(i18n.T("msg.no_images"))
+		return component.GetStyle(component.StyleDim).Render(i18n.T("msg.no_images"))
 	}
 
 	rowHeight := component.CalcTableRowHeight(panelHeight, !selectionDisabled)
@@ -320,7 +320,7 @@ func renderInfoBlock(lines []string, panelHeight int) string {
 	}
 	b := make([]string, 0, bodyHeight)
 	for _, line := range lines {
-		b = append(b, component.GetStyle("dim").Render("  "+line))
+		b = append(b, component.GetStyle(component.StyleDim).Render("  "+line))
 	}
 	for len(b) < bodyHeight {
 		b = append(b, "")

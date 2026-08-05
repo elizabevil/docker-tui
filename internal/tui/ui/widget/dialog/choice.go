@@ -18,18 +18,18 @@ type ChoiceOption struct {
 func ChoiceDialog(title, body string, options []ChoiceOption, focus, termW, termH int, titleColor color.Color, overlayColor string, cfg DialogConfig) string {
 	dialogW, dialogH := choiceDialogSize(termW, termH, cfg)
 	if titleColor == nil {
-		titleColor = component.GetStyle("panelTitle").GetForeground()
+		titleColor = component.GetStyle(component.StylePanelTitle).GetForeground()
 	}
 	innerW := max(1, dialogW-6)
 	body = lipgloss.NewStyle().Width(innerW).Render(body)
-	parts := []string{component.GetStyle("panelTitle").Render(title), "", body, ""}
+	parts := []string{component.GetStyle(component.StylePanelTitle).Render(title), "", body, ""}
 	optionLabels := make([]string, 0, len(options))
 	for i, option := range options {
 		label := option.Label
 		if option.Description != "" {
 			label += "  " + option.Description
 		}
-		optionStyle := lipgloss.NewStyle().Foreground(component.GetStyle("dim").GetForeground())
+		optionStyle := lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDim).GetForeground())
 		if option.Disabled {
 			optionStyle = optionStyle.Faint(true)
 		} else if i == focus {
@@ -41,7 +41,7 @@ func ChoiceDialog(title, body string, options []ChoiceOption, focus, termW, term
 		optionLabels = append(optionLabels, optionStyle.Render(label))
 	}
 	parts = append(parts, lipgloss.NewStyle().Width(innerW).Align(lipgloss.Center).Render(strings.Join(optionLabels, "   ")))
-	parts = append(parts, "", component.GetStyle("dim").Render("Tab/Shift+Tab switch  Enter select  Esc cancel"))
+	parts = append(parts, "", component.GetStyle(component.StyleDim).Render("Tab/Shift+Tab switch  Enter select  Esc cancel"))
 	return DialogBox(DialogStyle{Width: dialogW, Height: dialogH, TitleColor: titleColor, OverlayColor: overlayColor}, parts...)
 }
 

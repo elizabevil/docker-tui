@@ -11,27 +11,28 @@ import (
 
 	"charm.land/lipgloss/v2"
 
+	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
-// StyleName is a stable identifier into the component package's style cache.
-// Keep these names aligned with the keys in globalStyleRefs (styles_load.go).
-type StyleName string
+// StyleName 是 component 包样式缓存的类型化标识(类型别名),
+// 直接对接 component.GetStyle 的入参,box 组件传入的样式名
+// 与全局样式注册表在编译期保持一致。
+type StyleName = component.StyleName
 
-// Common style names. Components accept a StyleName so the caller can pick the
-// right semantic role for the slice of content without coupling to a single
-// hard-coded style.
+// 常用样式名。未注册的保留名(rowNormal/marked/alt)经
+// component.GetStyle 解析时回退到 safe fallback。
 const (
-	StyleHeaderLabel StyleName = "headerLabel"
-	StyleHeaderValue StyleName = "headerBar"
-	StyleHeaderKey   StyleName = "keyBadge"
-	StyleHeaderLast  StyleName = "keyLast"
-	StylePanelTitle  StyleName = "panelTitle"
-	StyleDim         StyleName = "dim"
-	StyleRowNormal   StyleName = "rowNormal" // reserved; falls back to safe fallback
-	StyleRowSelected StyleName = "selectedRow"
-	StyleRowMarked   StyleName = "marked"
-	StyleRowAlt      StyleName = "alt"
+	StyleHeaderLabel = component.StyleHeaderLabel
+	StyleHeaderValue = component.StyleHeaderBar
+	StyleHeaderKey   = component.StyleKeyBadge
+	StyleHeaderLast  = component.StyleKeyLast
+	StylePanelTitle  = component.StylePanelTitle
+	StyleDim         = component.StyleDim
+	StyleRowNormal   = component.StyleName("rowNormal") // 保留;未注册 → safe fallback
+	StyleRowSelected = component.StyleSelectedRow
+	StyleRowMarked   = component.StyleName("marked") // 保留;未注册 → safe fallback
+	StyleRowAlt      = component.StyleName("alt")    // 保留;未注册 → safe fallback
 )
 
 // backgroundColor returns the parsed color or nil when bg is empty.

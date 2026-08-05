@@ -63,12 +63,12 @@ func TestToastQueue(t *testing.T) {
 func TestToastLevels(t *testing.T) {
 	tests := []struct {
 		level ToastLevel
-		want  string
+		want  StyleName
 	}{
-		{ToastSuccess, "toastSuccess"},
-		{ToastError, "toastError"},
-		{ToastInfo, "toastInfo"},
-		{ToastWarning, "toastWarning"},
+		{ToastSuccess, StyleToastSuccess},
+		{ToastError, StyleToastError},
+		{ToastInfo, StyleToastInfo},
+		{ToastWarning, StyleToastWarning},
 	}
 	for _, tt := range tests {
 		got := tt.level.styleName()

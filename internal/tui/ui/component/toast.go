@@ -127,18 +127,18 @@ func (q *ToastQueue) History(n int) []ToastMessage {
 }
 
 // styleName maps ToastLevel to a GetStyle name.
-func (l ToastLevel) styleName() string {
+func (l ToastLevel) styleName() StyleName {
 	switch l {
 	case ToastSuccess:
-		return "toastSuccess"
+		return StyleToastSuccess
 	case ToastError:
-		return "toastError"
+		return StyleToastError
 	case ToastInfo:
-		return "toastInfo"
+		return StyleToastInfo
 	case ToastWarning:
-		return "toastWarning"
+		return StyleToastWarning
 	default:
-		return "toastInfo"
+		return StyleToastInfo
 	}
 }
 

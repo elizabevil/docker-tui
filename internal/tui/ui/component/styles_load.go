@@ -7,9 +7,79 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/elizabevil/docker-tui/internal/data/config"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
+
+// StyleName 标识已注册的组件样式,是 GetStyle 的入参类型。
+// 所有取值由本组常量定义,调用方只能传入编译期已知的名称,
+// 拼写错误无法通过编译;运行时未注册值一律回退到 safe fallback。
+type StyleName string
+
+// 已注册的组件样式名,与 globalStyleRefs 的 JSON 键一一对应。
+const (
+	StyleSearchBar            StyleName = "searchBar"
+	StyleSearchCursor         StyleName = "searchCursor"
+	StyleSearchHint           StyleName = "searchHint"
+	StyleCommandPrefix        StyleName = "commandPrefix"
+	StyleBreadcrumb           StyleName = "breadcrumb"
+	StyleBreadcrumbActive     StyleName = "breadcrumbActive"
+	StyleToastSuccess         StyleName = "toastSuccess"
+	StyleToastError           StyleName = "toastError"
+	StyleToastInfo            StyleName = "toastInfo"
+	StyleToastWarning         StyleName = "toastWarning"
+	StyleHintKey              StyleName = "hintKey"
+	StyleHintDescription      StyleName = "hintDesc"
+	StyleHintSeparator        StyleName = "hintSep"
+	StyleDialogTitle          StyleName = "dialogTitle"
+	StyleDialogBody           StyleName = "dialogBody"
+	StyleDialogOption         StyleName = "dialogOption"
+	StyleDialogOptionDisabled StyleName = "dialogOptionDisabled"
+	StyleDialogBodyBackground StyleName = "dialogBodyBackground"
+	StylePanel                StyleName = "panel"
+	StylePanelTitle           StyleName = "panelTitle"
+	StyleDim                  StyleName = "dim"
+	StyleHelpKey              StyleName = "helpKey"
+	StyleHelpDescription      StyleName = "helpDesc"
+	StyleDetailSection        StyleName = "detailSection"
+	StyleDetailLabel          StyleName = "detailLabel"
+	StyleDetailValue          StyleName = "detailValue"
+	StyleDetailDim            StyleName = "detailDim"
+	StyleDetailSelection      StyleName = "detailSelection"
+	StyleLogTimestamp         StyleName = "logTimestamp"
+	StyleLogText              StyleName = "logText"
+	StyleLogStderr            StyleName = "logStderr"
+	StyleLogHighlight         StyleName = "logHighlightBg"
+	StyleHeader               StyleName = "header"
+	StyleHeaderBar            StyleName = "headerBar"
+	StyleHeaderLabel          StyleName = "headerLabel"
+	StyleKeyBadge             StyleName = "keyBadge"
+	StyleKeyLast              StyleName = "keyLast"
+	StyleFooter               StyleName = "footer"
+	StyleShortcutBar          StyleName = "shortcutBar"
+	StyleActionBar            StyleName = "actionBar"
+	StyleFormInput            StyleName = "formInput"
+	StyleMessageRail          StyleName = "messageRail"
+	StyleQueryBar             StyleName = "queryBar"
+	StyleSelectedRow          StyleName = "selectedRow"
+	StyleDialogConfirm        StyleName = "dialogConfirm"
+	StyleDialogError          StyleName = "dialogError"
+	StyleDialogWarning        StyleName = "dialogWarning"
+)
+
+// allStyleNames 列出全部已注册样式名,供测试断言 lookup 无遗漏。
+var allStyleNames = []StyleName{
+	StyleSearchBar, StyleSearchCursor, StyleSearchHint, StyleCommandPrefix,
+	StyleBreadcrumb, StyleBreadcrumbActive, StyleToastSuccess, StyleToastError,
+	StyleToastInfo, StyleToastWarning, StyleHintKey, StyleHintDescription,
+	StyleHintSeparator, StyleDialogTitle, StyleDialogBody, StyleDialogOption,
+	StyleDialogOptionDisabled, StyleDialogBodyBackground, StylePanel, StylePanelTitle,
+	StyleDim, StyleHelpKey, StyleHelpDescription, StyleDetailSection, StyleDetailLabel,
+	StyleDetailValue, StyleDetailDim, StyleDetailSelection, StyleLogTimestamp,
+	StyleLogText, StyleLogStderr, StyleLogHighlight, StyleHeader, StyleHeaderBar,
+	StyleHeaderLabel, StyleKeyBadge, StyleKeyLast, StyleFooter, StyleShortcutBar,
+	StyleActionBar, StyleFormInput, StyleMessageRail, StyleQueryBar, StyleSelectedRow,
+	StyleDialogConfirm, StyleDialogError, StyleDialogWarning,
+}
 
 type globalStyleRefs struct {
 	SearchBar            styleRef `json:"searchBar"`
@@ -52,6 +122,7 @@ type globalStyleRefs struct {
 	Footer               styleRef `json:"footer"`
 	ShortcutBar          styleRef `json:"shortcutBar"`
 	ActionBar            styleRef `json:"actionBar"`
+	FormInput            styleRef `json:"formInput"`
 	MessageRail          styleRef `json:"messageRail"`
 	QueryBar             styleRef `json:"queryBar"`
 	SelectedRow          styleRef `json:"selectedRow"`
@@ -144,7 +215,8 @@ func ApplyThemeStyles(theme *config.Theme) {
 	rawStyles.KeyBadge = styleRef{Color: resolve(theme.Header.Value), Background: resolveBackground(theme.Header.Background), Bold: true}
 	rawStyles.Footer = styleRef{Color: resolve(theme.Main.Footer)}
 	rawStyles.ShortcutBar = styleRef{Background: resolveBackground(theme.Footer.ShortcutBackground)}
-	rawStyles.ActionBar = styleRef{Background: resolveBackground(theme.Main.ActionBarBackground)}
+	rawStyles.ActionBar = styleRef{Color: resolve(theme.Main.RowText), Background: resolveBackground(theme.Main.ActionBarBackground)}
+	rawStyles.FormInput = styleRef{Background: string(theme.Palette.Background)}
 	rawStyles.MessageRail = styleRef{Background: resolveBackground(theme.Main.MessageRailBackground)}
 	rawStyles.QueryBar = styleRef{Background: resolveBackground(theme.Main.QueryBarBackground)}
 	rawStyles.SelectedRow = styleRef{Color: resolve(theme.Main.RowText), Background: resolveBackground(theme.Main.RowSelected)}
@@ -250,109 +322,108 @@ func RenderBackgroundLayer(content string, background color.Color) string {
 	return strings.Join(lines, "\n")
 }
 
-func GetStyle(name string) lipgloss.Style {
+func GetStyle(name StyleName) lipgloss.Style {
 	if ref, ok := rawStyles.lookup(name); ok {
 		return buildStyle(ref)
-	}
-	if c := style.Color(name); c != nil {
-		return lipgloss.NewStyle().Foreground(c)
 	}
 	return safeFallbackRef.Normal
 }
 
-func (s globalStyleRefs) lookup(name string) (styleRef, bool) {
+func (s globalStyleRefs) lookup(name StyleName) (styleRef, bool) {
 	switch name {
-	case "searchBar":
+	case StyleSearchBar:
 		return s.SearchBar, true
-	case "searchCursor":
+	case StyleSearchCursor:
 		return s.SearchCursor, true
-	case "searchHint":
+	case StyleSearchHint:
 		return s.SearchHint, true
-	case "commandPrefix":
+	case StyleCommandPrefix:
 		return s.CommandPrefix, true
-	case "breadcrumb":
+	case StyleBreadcrumb:
 		return s.Breadcrumb, true
-	case "breadcrumbActive":
+	case StyleBreadcrumbActive:
 		return s.BreadcrumbActive, true
-	case "toastSuccess":
+	case StyleToastSuccess:
 		return s.ToastSuccess, true
-	case "toastError":
+	case StyleToastError:
 		return s.ToastError, true
-	case "toastInfo":
+	case StyleToastInfo:
 		return s.ToastInfo, true
-	case "toastWarning":
+	case StyleToastWarning:
 		return s.ToastWarning, true
-	case "hintKey":
+	case StyleHintKey:
 		return s.HintKey, true
-	case "hintDesc":
+	case StyleHintDescription:
 		return s.HintDescription, true
-	case "hintSep":
+	case StyleHintSeparator:
 		return s.HintSeparator, true
-	case "dialogTitle":
+	case StyleDialogTitle:
 		return s.DialogTitle, true
-	case "dialogBody":
+	case StyleDialogBody:
 		return s.DialogBody, true
-	case "dialogBodyBackground":
+	case StyleDialogBodyBackground:
 		return s.DialogBodyBackground, true
-	case "dialogOption":
+	case StyleDialogOption:
 		return s.DialogOption, true
-	case "dialogOptionDisabled":
+	case StyleDialogOptionDisabled:
 		return s.DialogOptionDisabled, true
-	case "panel":
+	case StylePanel:
 		return s.Panel, true
-	case "panelTitle":
+	case StylePanelTitle:
 		return s.PanelTitle, true
-	case "dim":
+	case StyleDim:
 		return s.Dim, true
-	case "helpKey":
+	case StyleHelpKey:
 		return s.HelpKey, true
-	case "helpDesc":
+	case StyleHelpDescription:
 		return s.HelpDescription, true
-	case "detailSection":
+	case StyleDetailSection:
 		return s.DetailSection, true
-	case "detailLabel":
+	case StyleDetailLabel:
 		return s.DetailLabel, true
-	case "detailValue":
+	case StyleDetailValue:
 		return s.DetailValue, true
-	case "detailDim":
+	case StyleDetailDim:
 		return s.DetailDim, true
-	case "detailSelection":
+	case StyleDetailSelection:
 		return s.DetailSelection, true
-	case "logTimestamp":
+	case StyleLogTimestamp:
 		return s.LogTimestamp, true
-	case "logText":
+	case StyleLogText:
 		return s.LogText, true
-	case "logStderr":
+	case StyleLogStderr:
 		return s.LogStderr, true
-	case "logHighlightBg":
+	case StyleLogHighlight:
 		return s.LogHighlight, true
-	case "header":
+	case StyleHeader:
 		return s.Header, true
-	case "headerBar":
+	case StyleHeaderBar:
 		return s.HeaderBar, true
-	case "headerLabel":
+	case StyleHeaderLabel:
 		return s.HeaderLabel, true
-	case "keyBadge":
+	case StyleKeyBadge:
 		return s.KeyBadge, true
-	case "keyLast":
+	case StyleKeyLast:
 		return s.KeyLast, true
-	case "footer":
+	case StyleFooter:
 		return s.Footer, true
-	case "shortcutBar":
+	case StyleShortcutBar:
 		return s.ShortcutBar, true
-	case "actionBar":
+	case StyleActionBar:
 		return s.ActionBar, true
-	case "messageRail":
+	case StyleFormInput:
+		return s.FormInput, true
+	case StyleMessageRail:
 		return s.MessageRail, true
-	case "queryBar":
+	case StyleQueryBar:
 		return s.QueryBar, true
-	case "selectedRow":
+	case StyleSelectedRow:
 		return s.SelectedRow, true
-	case "dialogConfirm":
+	case StyleDialogConfirm:
 		return s.DialogConfirm, true
-	case "dialogError":
+	case StyleDialogError:
 		return s.DialogError, true
-	case "dialogWarning":
+	case StyleDialogWarning:
 		return s.DialogWarning, true
 	default:
 		return styleRef{}, false

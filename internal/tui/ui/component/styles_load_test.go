@@ -8,6 +8,22 @@ import (
 	"github.com/elizabevil/docker-tui/internal/data/config"
 )
 
+func TestLookupCoversAllRegisteredStyleNames(t *testing.T) {
+	for _, name := range allStyleNames {
+		if _, ok := rawStyles.lookup(name); !ok {
+			t.Errorf("registered style %q has no lookup case", name)
+		}
+	}
+}
+
+func TestGetStyleFallsBackForUnknownName(t *testing.T) {
+	got := GetStyle(StyleName("unknown")).Render("abc")
+	want := safeFallbackRef.Normal.Render("abc")
+	if got != want {
+		t.Errorf("unknown style name did not fall back to safe fallback: got %q, want %q", got, want)
+	}
+}
+
 func TestApplyThemeStylesProjectsFixedScopes(t *testing.T) {
 	previousStyles := rawStyles
 	previousTable := tableCfg
@@ -63,6 +79,12 @@ func TestApplyThemeStylesProjectsFixedScopes(t *testing.T) {
 	}
 	if rawStyles.ActionBar.Background != string(config.FallbackColorAccent) {
 		t.Fatalf("action bar background = %q", rawStyles.ActionBar.Background)
+	}
+	if rawStyles.ActionBar.Color != string(config.FallbackColorForeground) {
+		t.Fatalf("action bar color = %q", rawStyles.ActionBar.Color)
+	}
+	if rawStyles.FormInput.Background != string(config.FallbackColorBackground) {
+		t.Fatalf("form input background = %q", rawStyles.FormInput.Background)
 	}
 	if rawStyles.MessageRail.Background != string(config.FallbackColorBackgroundSubtle) {
 		t.Fatalf("message rail background = %q", rawStyles.MessageRail.Background)

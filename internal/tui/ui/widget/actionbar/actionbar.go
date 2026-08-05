@@ -28,7 +28,7 @@ func renderBox(items []actionmodel.ActionItem, selected int, filtering bool, fil
 	boxWidth = min(boxWidth, max(8, body.Width-2))
 	innerWidth := max(4, boxWidth-4)
 
-	lines := []string{component.GetStyle("panelTitle").Render("Action Bar")}
+	lines := []string{component.GetStyle(component.StylePanelTitle).Render("Action Bar")}
 	if filtering {
 		cursor := "|"
 		if len(cursorVisible) > 0 && !cursorVisible[0] {
@@ -36,11 +36,11 @@ func renderBox(items []actionmodel.ActionItem, selected int, filtering bool, fil
 		}
 		lines = append(lines, component.TruncateVisible("/ "+filter+cursor, innerWidth))
 	} else {
-		lines = append(lines, component.GetStyle("dim").Render("/ filter   1-9 jump   Esc close"))
+		lines = append(lines, component.GetStyle(component.StyleDim).Render("/ filter   1-9 jump   Esc close"))
 	}
 
 	if len(items) == 0 {
-		lines = append(lines, component.GetStyle("dim").Render("No matching actions"))
+		lines = append(lines, component.GetStyle(component.StyleDim).Render("No matching actions"))
 	} else {
 		selected = max(0, min(selected, len(items)-1))
 		availableRows := max(1, min(maxVisibleActions, body.Rows-6))
@@ -60,18 +60,18 @@ func renderBox(items []actionmodel.ActionItem, selected int, filtering bool, fil
 			labelWidth := max(1, innerWidth-keyWidth-3)
 			line := fmt.Sprintf("%s%-*s %s", marker, keyWidth, key, component.TruncateVisible(item.Label, labelWidth))
 			if item.Disabled {
-				line = component.GetStyle("dim").Render(line)
+				line = component.GetStyle(component.StyleDim).Render(line)
 			} else if index == selected {
-				line = component.GetStyle("selectedRow").Width(innerWidth).Render(line)
+				line = component.GetStyle(component.StyleSelectedRow).Width(innerWidth).Render(line)
 			}
 			lines = append(lines, line)
 		}
 		if len(items) > availableRows {
-			lines = append(lines, component.GetStyle("dim").Render(fmt.Sprintf("%d-%d / %d", start+1, end, len(items))))
+			lines = append(lines, component.GetStyle(component.StyleDim).Render(fmt.Sprintf("%d-%d / %d", start+1, end, len(items))))
 		}
 	}
 
-	return component.GetStyle("actionBar").
+	return component.GetStyle(component.StyleActionBar).
 		Border(lipgloss.RoundedBorder()).
 		Padding(0, 1).
 		Width(boxWidth - 4).
