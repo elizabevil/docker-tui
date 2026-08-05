@@ -28,6 +28,7 @@ func Global(app ...*state.AppModel) []Shortcut {
 		{bindingLabel(model, keys.ActionEnter, keys.KEnter), i18n.T("key.sym_enter")},
 		{bindingLabel(model, keys.ActionBack, keys.KEsc), i18n.T("key.back")},
 		{bindingLabel(model, keys.ActionFilter, keys.KeySlash), i18n.T("key.filter")},
+		{bindingLabel(model, keys.ActionClearFilters, keys.KeyCtrlI), i18n.T("key.clear_filters")},
 		{bindingLabel(model, keys.ActionRefresh, keys.KeyR), i18n.T("key.refresh")},
 		{bindingLabel(model, keys.ActionCommand, ":"), i18n.T("key.command")},
 		{bindingLabel(model, keys.ActionActionBar, keys.KeySemicolon), i18n.T("key.action_bar")},
