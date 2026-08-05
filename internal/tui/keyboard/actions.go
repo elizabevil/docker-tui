@@ -6,6 +6,7 @@ import (
 	"time"
 
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/tui/filter"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -172,6 +173,13 @@ func handleBackAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	if m.Navigation.ActivePanel == state.PanelVolumes && m.Resources.Volumes.DetailName != "" {
 		BackFromVolumeDetail(m)
+		return m, nil
+	}
+	// If a filter is active in the current panel, single Esc clears it
+	// instead of starting the double-Esc-to-exit-app flow.
+	ctrl := filter.New(m)
+	if ctrl.HasActive() {
+		ctrl.Clear()
 		return m, nil
 	}
 	m.Navigation.Mode = state.ModeNormal

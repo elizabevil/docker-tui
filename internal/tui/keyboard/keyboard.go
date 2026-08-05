@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
+	"github.com/elizabevil/docker-tui/internal/tui/filter"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
@@ -412,17 +413,21 @@ func keyMode(mode state.AppMode) string {
 }
 
 func handleFilterInput(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	if m == nil {
+		return m, nil
+	}
 	m.Navigation.FilterInput.Clamp()
+	ctrl := filter.New(m)
 
 	switch key {
 	case keys.KeyEnter:
-		ApplyFilter(m)
+		ctrl.ApplyCurrent()
 		focusFirstFilteredItem(m)
 		m.Navigation.Mode = state.ModeNormal
 		m.Navigation.ClearFilterExit()
 	case keys.KeyEsc:
 		if m.Navigation.FilterExitPending {
-			BackFromFilter(m)
+			ctrl.Close()
 			return m, nil
 		}
 		token := m.Navigation.BeginFilterExit()
@@ -432,7 +437,7 @@ func handleFilterInput(key string, m *state.AppModel) (*state.AppModel, tea.Cmd)
 		})
 	default:
 		if handled, changed := editQueryInput(key, &m.Navigation.FilterInput); handled && changed {
-			ApplyFilter(m)
+			ctrl.ApplyCurrent()
 		}
 	}
 	return m, nil

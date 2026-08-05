@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
+	"github.com/elizabevil/docker-tui/internal/tui/filter"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
@@ -70,66 +71,10 @@ func moveCursor(m *state.AppModel, delta int) {
 }
 
 // ApplyFilter applies the current resource filter to the active panel.
+// Thin wrapper around filter.Controller.ApplyCurrent for backward
+// compatibility with the existing call sites in keyboard and tests.
 func ApplyFilter(m *state.AppModel) {
-	if m == nil {
-		return
-	}
-	if m.Navigation.ActivePanel == state.PanelCompose {
-		if m.Compose.ComposeFocus == 1 {
-			m.Compose.ComposeServiceFilter = m.Navigation.FilterInput.Text
-		} else {
-			m.Compose.ComposeProjectFilter = m.Navigation.FilterInput.Text
-		}
-		return
-	}
-	if f := activeTableFilter(m); f != nil {
-		f.SetFilter(m.Navigation.FilterInput.Text)
-		clampFilterCursor(m)
-	}
-}
-
-func activeTableFilter(m *state.AppModel) state.TableFilter {
-	if m == nil {
-		return nil
-	}
-	switch m.Navigation.ActivePanel {
-	case state.PanelContainers:
-		return m.Resources.Containers
-	case state.PanelImages:
-		return m.Resources.Images
-	case state.PanelVolumes:
-		return m.Resources.Volumes
-	case state.PanelNetworks:
-		return m.Resources.Networks
-	case state.PanelAudit:
-		return &m.Audit
-	default:
-		return nil
-	}
-}
-
-
-// clampFilterCursor 筛选变化时把当前面板的 cursor 复位为 0,避免光标超过过滤后可见行数。
-func clampFilterCursor(m *state.AppModel) {
-	if m == nil {
-		return
-	}
-	switch m.Navigation.ActivePanel {
-	case state.PanelContainers:
-		m.Resources.Containers.Cursor = 0
-		m.Resources.Containers.ViewOffset = 0
-	case state.PanelImages:
-		m.Resources.Images.Cursor = 0
-		m.Resources.Images.ViewOffset = 0
-	case state.PanelVolumes:
-		m.Resources.Volumes.Cursor = 0
-		m.Resources.Volumes.ViewOffset = 0
-	case state.PanelNetworks:
-		m.Resources.Networks.Cursor = 0
-		m.Resources.Networks.ViewOffset = 0
-	case state.PanelAudit:
-		m.Audit.Cursor = 0
-	}
+	filter.New(m).ApplyCurrent()
 }
 func PanelFromMode(mode state.AppMode) state.PanelType {
 	switch mode {

@@ -1,6 +1,7 @@
 package keyboard
 
 import (
+	"github.com/elizabevil/docker-tui/internal/tui/filter"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -88,28 +89,13 @@ func ToFilter(m *state.AppModel) tea.Cmd {
 		ToSearch(m)
 		return nil
 	}
-	m.Navigation.Mode = state.ModeFilter
-	if m.Navigation.ActivePanel == state.PanelCompose {
-		if m.Compose.ComposeFocus == 1 {
-			m.Navigation.FilterInput.Set(m.Compose.ComposeServiceFilter)
-		} else {
-			m.Navigation.FilterInput.Set(m.Compose.ComposeProjectFilter)
-		}
-	} else if filter := activeTableFilter(m); filter != nil {
-		m.Navigation.FilterInput.Set(filter.FilterText())
-	} else {
-		m.Navigation.FilterInput.Reset()
-	}
-	m.Navigation.ClearFilterExit()
+	filter.New(m).Open()
 	return nil
 }
 
 // BackFromFilter clears the active filter and closes the filter bar.
 func BackFromFilter(m *state.AppModel) {
-	m.Navigation.FilterInput.Reset()
-	m.Navigation.CancelFilterExit()
-	ApplyFilter(m)
-	m.Navigation.Mode = state.ModeNormal
+	filter.New(m).Close()
 }
 
 // ToSearch opens log search without changing the underlying log data.
