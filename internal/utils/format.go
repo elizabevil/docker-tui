@@ -6,11 +6,21 @@ import (
 	"time"
 )
 
-// ShortID truncates an ID string to its first 12 characters.
+// ShortIDLen is the canonical 12-character prefix of a Docker container /
+// image ID, used in CLI/Daemon output and matched across UI lists.
+const ShortIDLen = 12
+
+// dockerDigestPrefix is the "sha256:" tag Docker stamps on every image
+// and most container IDs. ShortID strips it before truncating.
+const dockerDigestPrefix = "sha256:"
+
+// ShortID truncates an ID string to its first ShortIDLen characters,
+// also stripping a leading "sha256:" digest prefix so the result stays
+// short.
 func ShortID(id string) string {
-	id = strings.TrimPrefix(id, "sha256:")
-	if len(id) > 12 {
-		return id[:12]
+	id = strings.TrimPrefix(id, dockerDigestPrefix)
+	if len(id) > ShortIDLen {
+		return id[:ShortIDLen]
 	}
 	return id
 }

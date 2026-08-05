@@ -10,6 +10,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/data/runtime/docker"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
+	"github.com/elizabevil/docker-tui/internal/utils"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -102,10 +103,7 @@ func doImageDetail(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if img == nil {
 		return m, nil
 	}
-	titleID := img.ID
-	if len(titleID) > 12 {
-		titleID = titleID[:12]
-	}
+	titleID := utils.ShortID(img.ID)
 	m.Detail.OpenImage(img.ID, "Image Detail: "+titleID, docker.NewImageDetailData(*img))
 	m.Navigation.PrevPanel = m.Navigation.ActivePanel
 	m.Navigation.Mode = state.ModeDetail
@@ -186,10 +184,7 @@ func hasUsingContainers(cm *state.ContainerListModel, imgID string, tags []strin
 }
 
 func shortID(id string) string {
-	if len(id) > 12 {
-		return id[:12]
-	}
-	return id
+	return utils.ShortID(id)
 }
 
 func doImageCollapse(m *state.AppModel) (*state.AppModel, tea.Cmd) {
@@ -228,10 +223,7 @@ func fullImageRef(img *runtimeapi.ImageSummary) string {
 	if len(img.RepoTags) > 0 && img.RepoTags[0] != "<none>:<none>" {
 		return img.RepoTags[0]
 	}
-	if len(img.ID) >= 12 {
-		return img.ID[:12]
-	}
-	return img.ID
+	return utils.ShortID(img.ID)
 }
 
 func doImageCopyRef(m *state.AppModel) (*state.AppModel, tea.Cmd) {

@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/elizabevil/docker-tui/internal/data/audit"
+	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
-
-	tea "charm.land/bubbletea/v2"
 )
 
 func doContainerAction(m *state.AppModel, action string, cmdFn func(runtimeapi.Engine, string) tea.Cmd) (*state.AppModel, tea.Cmd) {
@@ -305,8 +305,20 @@ func doAutoExecAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	return doExecCandidates(m, autoShellCandidates())
 }
 
+// shellCandidateWindows are the Windows-native shells probed in addition
+// to the POSIX ones in config.DefaultShellOptions. Kept separate because
+// the auto-exec picker should never run "cmd.exe" on a Linux container.
+var shellCandidateWindows = []string{"cmd.exe", "powershell.exe", "pwsh.exe"}
+
+// autoShellCandidates returns the full candidate list the exec-dialog
+// fallback will try in order: POSIX shells (config.DefaultShellOptions)
+// followed by the Windows shells. Order matters: the dialog picks
+// "candidates[0]" as the default input.
 func autoShellCandidates() []string {
-	return []string{"/bin/sh", "/bin/bash", "/bin/ash", "cmd.exe", "powershell.exe", "pwsh.exe"}
+	cands := make([]string, 0, len(config.DefaultShellOptions)+len(shellCandidateWindows))
+	cands = append(cands, config.DefaultShellOptions...)
+	cands = append(cands, shellCandidateWindows...)
+	return cands
 }
 
 func doExecCandidates(m *state.AppModel, candidates []string) (*state.AppModel, tea.Cmd) {
@@ -349,7 +361,7 @@ func doExecCandidates(m *state.AppModel, candidates []string) (*state.AppModel, 
 		}
 		FinishAudit(m, trace, audit.ResultFailed, "Exec session failed", audit.Details{Error: err.Error(), Shell: strings.Join(candidates, ", ")})
 		ShowToastNow(m, fmt.Sprintf("exec: %v", err))
-		fallback := "/bin/sh"
+		fallback := config.DefaultShell
 		if len(candidates) > 0 && candidates[0] != "" {
 			fallback = candidates[0]
 		}

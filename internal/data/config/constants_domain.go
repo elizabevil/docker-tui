@@ -81,7 +81,21 @@ const (
 	DefaultDockerTimeout         = 30 * time.Second
 	DefaultTableRowPrefix        = "  "
 	DefaultTableSelectedPrefix   = "┃ "
+
+	// DefaultShell is the POSIX fallback shell used by the exec dialog,
+	// the in-container path-listing probe, and any other place we need
+	// a sensible `/bin/<sh>` binary.
+	DefaultShell = "/bin/sh"
+	// DefaultShellBash / DefaultShellAsh are alternates offered in the
+	// exec dialog alongside DefaultShell.
+	DefaultShellBash = "/bin/bash"
+	DefaultShellAsh  = "/bin/ash"
 )
+
+// DefaultShellOptions is the canonical ordering of shells presented in
+// the exec dialog. Caller code should reference this list rather than
+// re-declaring its own slice so any new shell lands in one place.
+var DefaultShellOptions = []string{DefaultShell, DefaultShellBash, DefaultShellAsh}
 
 const (
 	KeyEmpty     Key = ""

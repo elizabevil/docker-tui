@@ -2,6 +2,7 @@ package state
 
 import (
 	"github.com/elizabevil/docker-tui/internal/data/audit"
+	"github.com/elizabevil/docker-tui/internal/data/config"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/term"
 )
@@ -19,7 +20,7 @@ type ExecState struct {
 
 func (s *ExecState) SetShell(shell string) {
 	if shell == "" {
-		shell = "/bin/sh"
+		shell = config.DefaultShell
 	}
 	s.ExecShell = shell
 }

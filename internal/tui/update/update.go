@@ -11,6 +11,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/keyboard"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	view "github.com/elizabevil/docker-tui/internal/tui/ui/app"
+	"github.com/elizabevil/docker-tui/internal/utils"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -274,10 +275,7 @@ func containerDiffKind(kind runtimeapi.ChangeKind) string {
 }
 
 func shortMessageID(id string) string {
-	if len(id) > 12 {
-		return id[:12]
-	}
-	return id
+	return utils.ShortID(id)
 }
 
 func handleExecOutput(m *state.AppModel, msg state.ExecOutput) (*state.AppModel, tea.Cmd) {

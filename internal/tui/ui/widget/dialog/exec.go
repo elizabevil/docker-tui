@@ -7,12 +7,15 @@ import (
 
 	"charm.land/lipgloss/v2"
 
+	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
 
-// execShellOptions are the default shell choices in the exec dialog.
-var execShellOptions = []string{"/bin/sh", "/bin/bash", "/bin/ash"}
+// execShellOptions mirrors config.DefaultShellOptions for the dialog's
+// option-row renderer. Kept as a separate var because it is iterated
+// by index (== DialogState.Focus) so a slice is the natural type.
+var execShellOptions = config.DefaultShellOptions
 
 // ExecDialog renders the container exec dialog with shell options + custom input.
 // Focus and input cursor are owned by DialogState.
@@ -54,7 +57,7 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg DialogConfig, bodyW,
 	// Custom input field with cursor
 	inputText := m.Dialog.Input.Text
 	if inputText == "" {
-		inputText = "/bin/sh"
+		inputText = config.DefaultShell
 	}
 	inputRunes := []rune(inputText)
 	cursor := m.Dialog.Input.Cursor
@@ -65,7 +68,7 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg DialogConfig, bodyW,
 		cursor = len(inputRunes)
 	}
 	inputDisplay := component.GetStyle(component.StyleDim).Render(i18n.T("inspect.shell")+": ") + string(inputRunes[:cursor])
-	if m.Dialog.Focus == execFocusInput && !m.CursorBlinkHidden {
+	if m.Dialog.Focus == state.ExecFocusInput && !m.CursorBlinkHidden {
 		inputDisplay += component.BlockCursor // block cursor when focused
 	} else {
 		inputDisplay += " " // space when not focused
@@ -77,10 +80,10 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg DialogConfig, bodyW,
 	// Confirm / Cancel buttons with shortcut hints
 	var confirmBtn, cancelBtn string
 	switch m.Dialog.Focus {
-	case 4:
+	case state.ExecFocusConfirm:
 		confirmBtn = lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDialogConfirm).GetForeground()).Bold(true).Render(enterKey + " " + component.ButtonIndicator + " " + confirmLabel)
 		cancelBtn = lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDim).GetForeground()).Render(escKey + " " + cancelLabel)
-	case 5:
+	case state.ExecFocusCancel:
 		confirmBtn = lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDim).GetForeground()).Render(enterKey + " " + confirmLabel)
 		cancelBtn = lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDialogConfirm).GetForeground()).Bold(true).Render(escKey + " " + component.ButtonIndicator + " " + cancelLabel)
 	default:
@@ -107,7 +110,3 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg DialogConfig, bodyW,
 
 	return DialogBox(DialogStyle{Width: dialogW, Height: dialogH, TitleColor: component.GetStyle(component.StyleDialogConfirm).GetForeground(), OverlayColor: overlayColor}, parts...)
 }
-
-// execFocusInput is the focus position for the custom input field.
-// Must match keyboard/exec_dialog.go's execFocusInput.
-const execFocusInput = 3

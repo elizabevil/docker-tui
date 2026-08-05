@@ -8,6 +8,7 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 // ── Named types for Docker inspect JSON unmarshalling ──────────
@@ -195,10 +196,7 @@ func BuildContainerDetailSections(info *runtimeapi.ContainerDetail) []DetailSect
 
 	// ── Basic Info ──
 	basic := DetailSection{Title: i18n.T("inspect.section_basic")}
-	shortID := info.ID
-	if len(shortID) > 12 {
-		shortID = shortID[:12]
-	}
+	shortID := utils.ShortID(info.ID)
 	appendValue(&basic.Lines, "ID", shortID)
 	appendValue(&basic.Lines, "Name", info.Name)
 	appendValue(&basic.Lines, "Image", info.Image)
@@ -209,7 +207,7 @@ func BuildContainerDetailSections(info *runtimeapi.ContainerDetail) []DetailSect
 		if info.State.StartedAt != "" {
 			appendValue(&basic.Lines, i18n.T("inspect.container.started_at"), info.State.StartedAt)
 		}
-		if info.State.FinishedAt != "" && info.State.FinishedAt != "0001-01-01T00:00:00Z" {
+		if !IsZeroTime(info.State.FinishedAt) {
 			appendValue(&basic.Lines, i18n.T("inspect.container.finished_at"), info.State.FinishedAt)
 		}
 		appendValue(&basic.Lines, i18n.T("inspect.container.restart_count"), fmt.Sprintf("%d", info.RestartCount))
@@ -331,10 +329,7 @@ func BuildNetworkDetailSections(info *runtimeapi.NetworkDetail) []DetailSection 
 
 	// ── Network Info ──
 	netInfo := DetailSection{Title: i18n.T("inspect.section_network_info")}
-	shortID := info.ID
-	if len(shortID) > 12 {
-		shortID = shortID[:12]
-	}
+	shortID := utils.ShortID(info.ID)
 	appendValue(&netInfo.Lines, i18n.T("inspect.network.name"), info.Name)
 	appendValue(&netInfo.Lines, "ID", shortID)
 	appendValue(&netInfo.Lines, i18n.T("inspect.network.driver"), info.Driver)
@@ -362,10 +357,7 @@ func BuildNetworkDetailSections(info *runtimeapi.NetworkDetail) []DetailSection 
 	if len(info.Containers) > 0 {
 		containers := DetailSection{Title: i18n.T("inspect.section_network_containers")}
 		for id, ctr := range info.Containers {
-			shortCtrID := id
-			if len(shortCtrID) > 12 {
-				shortCtrID = shortCtrID[:12]
-			}
+			shortCtrID := utils.ShortID(id)
 			containers.Lines = append(containers.Lines, fmt.Sprintf("  %s (%s):", ctr.Name, shortCtrID))
 			appendValue(&containers.Lines, "    IPv4", ctr.IPv4Address)
 			appendValue(&containers.Lines, "    IPv6", ctr.IPv6Address)

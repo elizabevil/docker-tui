@@ -5,6 +5,7 @@ import (
 
 	"charm.land/lipgloss/v2"
 	"github.com/elizabevil/docker-tui/internal/constants"
+	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 )
@@ -18,7 +19,7 @@ func RenderShellDialogBox(shell string, termW int, overlayColor string, cursorVi
 		dialogW = 60
 	}
 	if shell == "" {
-		shell = "/bin/sh"
+		shell = config.DefaultShell
 	}
 	cursor := BlockCursor
 	if len(cursorVisible) > 0 && !cursorVisible[0] {

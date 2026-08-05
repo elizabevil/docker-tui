@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 // TestListImagesManifest verifies that ListImages properly populates Arch, IsManifest,
@@ -32,11 +33,11 @@ func TestListImagesManifest(t *testing.T) {
 	t.Logf("Found %d images", len(images))
 	for _, img := range images {
 		if img.Arch == "" {
-			t.Errorf("Image %s has empty Arch", img.ID[:12])
+			t.Errorf("Image %s has empty Arch", utils.ShortID(img.ID))
 		}
 
 		if img.IsManifest {
-			t.Logf("  Manifest list: %s (%d platforms)", img.ID[:12], len(img.Manifests))
+			t.Logf("  Manifest list: %s (%d platforms)", utils.ShortID(img.ID), len(img.Manifests))
 		}
 		if len(img.Manifests) > 0 {
 			for _, m := range img.Manifests {
@@ -60,7 +61,7 @@ func TestImageInspectArch(t *testing.T) {
 
 	detail, err := client.Images().Inspect(context.Background(), images[0])
 	if err != nil {
-		t.Fatalf("Inspect(%s) failed: %v", images[0].ID[:12], err)
+		t.Fatalf("Inspect(%s) failed: %v", utils.ShortID(images[0].ID), err)
 	}
 	if detail.Architecture == "" {
 		t.Error("ImageDetail.Architecture is empty")

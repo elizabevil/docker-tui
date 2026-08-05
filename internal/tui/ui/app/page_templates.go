@@ -18,6 +18,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/networks"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/processes"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/volumes"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 type pageTemplateKind string
@@ -28,6 +29,18 @@ const (
 	detailPageTemplate pageTemplateKind = "detail"
 	logPageTemplate    pageTemplateKind = "log"
 	helpPageTemplate   pageTemplateKind = "help"
+)
+
+// Title prefixes used in the detail page header. The detail resource
+// title (e.g. "Container Detail: %s (%s)") is rewritten by replacing
+// these prefixes when the user toggles between Section / YAML / JSON
+// views; English and 中文 source views both need replacement so the
+// header advertises the active source instead of the parent resource.
+const (
+	titlePrefixDetailEN  = "Detail:"
+	titlePrefixDetailZH  = "详情:"
+	titlePrefixYAMLShort = "YAML:"
+	titlePrefixJSONShort = "JSON:"
 )
 
 type pageView struct {
@@ -84,12 +97,12 @@ func projectPage(m *state.AppModel, bodyHeight, bodyWidth int) pageView {
 		}
 		// Adjust title based on source view mode
 		switch m.Detail.DetailSourceType {
-		case "yaml":
-			view.title = strings.Replace(view.title, "Detail:", "YAML:", 1)
-			view.title = strings.Replace(view.title, "详情:", "YAML:", 1)
-		case "json":
-			view.title = strings.Replace(view.title, "Detail:", "JSON:", 1)
-			view.title = strings.Replace(view.title, "详情:", "JSON:", 1)
+		case state.DetailSourceYAML:
+			view.title = strings.Replace(view.title, titlePrefixDetailEN, titlePrefixYAMLShort, 1)
+			view.title = strings.Replace(view.title, titlePrefixDetailZH, titlePrefixYAMLShort, 1)
+		case state.DetailSourceJSON:
+			view.title = strings.Replace(view.title, titlePrefixDetailEN, titlePrefixJSONShort, 1)
+			view.title = strings.Replace(view.title, titlePrefixDetailZH, titlePrefixJSONShort, 1)
 		}
 		view.summary = ""
 		if m.Navigation.Mode == state.ModeExecPassthrough {
@@ -145,8 +158,5 @@ func renderListPage(m *state.AppModel, panelHeight, contentWidth int) string {
 }
 
 func componentShortID(id string) string {
-	if len(id) > 12 {
-		return id[:12]
-	}
-	return id
+	return utils.ShortID(id)
 }

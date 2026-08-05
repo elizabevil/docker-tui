@@ -3,13 +3,18 @@ package keyboard
 import (
 	"unicode"
 
+	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
 )
 
-var execShellOptions = []string{"/bin/sh", "/bin/bash", "/bin/ash"}
+// execShellOptions mirrors config.DefaultShellOptions for the keyboard
+// handler that picks a shell by index. The exec dialog uses the same
+// list via the UI package, so any change to config.DefaultShellOptions
+// automatically flows to both keyboard + UI sides.
+var execShellOptions = config.DefaultShellOptions
 
 // handleExecDialogKeys routes keys while DialogState owns focus and input.
 func handleExecDialogKeys(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {

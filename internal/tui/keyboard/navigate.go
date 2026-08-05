@@ -1,6 +1,7 @@
 package keyboard
 
 import (
+	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/tui/filter"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
@@ -118,7 +119,7 @@ func BackFromCommand(m *state.AppModel) {
 
 // ToExec opens the exec shell dialog.
 func ToExec(m *state.AppModel) {
-	m.Dialog.Open(state.DialogSpec{Kind: state.DialogExec, Input: "/bin/sh"})
+	m.Dialog.Open(state.DialogSpec{Kind: state.DialogExec, Input: config.DefaultShell})
 	m.Navigation.Mode = m.Dialog.Kind.Mode()
 }
 

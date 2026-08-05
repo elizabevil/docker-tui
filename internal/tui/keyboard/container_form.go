@@ -14,10 +14,12 @@ import (
 	"time"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
+	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
+	"github.com/elizabevil/docker-tui/internal/utils"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -80,10 +82,7 @@ func openImageSaveForm(m *state.AppModel, image *runtimeapi.ImageSummary) (*stat
 	}
 	cwd := workingDir()
 	ref := fullImageRef(image)
-	shortID := strings.TrimPrefix(image.ID, "sha256:")
-	if len(shortID) > 12 {
-		shortID = shortID[:12]
-	}
+	shortID := utils.ShortID(image.ID)
 	path := state.DefaultImageSaveName(cwd, ref, shortID, time.Now())
 	field := state.FormField{Key: fieldImagePath, Label: i18n.T("image.save.form.path"), Kind: state.FormPath, PathSource: state.PathLocal, PathMode: state.PathSaveFile, Required: true}
 	field.Input.Set(path)
@@ -564,7 +563,7 @@ func listContainerPath(ctx context.Context, service runtimeapi.ExecService, cont
 		hiddenArg = "1"
 	}
 	session, err := service.Open(ctx, containerID, runtimeapi.ExecOptions{
-		Command: []string{"/bin/sh", "-c", containerPathListScript, "dtui-path", dir, hiddenArg},
+		Command: []string{config.DefaultShell, "-c", containerPathListScript, "dtui-path", dir, hiddenArg},
 		TTY:     true, AttachStdout: true,
 	})
 	if err != nil {
@@ -1095,12 +1094,9 @@ func workingDir() string {
 	return wd
 }
 
-// shortContainerID abbreviates a container ID to its first 12 characters.
+// shortContainerID abbreviates a container ID to its first ShortIDLen characters.
 func shortContainerID(id string) string {
-	if len(id) > 12 {
-		return id[:12]
-	}
-	return id
+	return utils.ShortID(id)
 }
 
 // prefillDefaultDestination sets the default local tar name for the Copy form

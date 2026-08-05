@@ -8,6 +8,7 @@ import (
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keyboard"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
+	"github.com/elizabevil/docker-tui/internal/utils"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -265,8 +266,5 @@ func errorText(err error) string {
 }
 
 func shortAuditID(id string) string {
-	if len(id) > 12 {
-		return id[:12]
-	}
-	return id
+	return utils.ShortID(id)
 }

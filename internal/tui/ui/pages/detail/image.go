@@ -106,7 +106,7 @@ func buildImageDetailSections(content string) []detailSection {
 	}
 
 	lines := strings.Split(content, "\n")
-	current := "summary"
+	current := imgSectionSummary
 	kv := make(map[string]string)
 	env := make([]string, 0, 16)
 	vols := make([]string, 0, 8)
@@ -119,46 +119,28 @@ func buildImageDetailSections(content string) []detailSection {
 			continue
 		}
 
-		switch line {
-		case "── System ──":
-			current = "system"
-			continue
-		case "── Runtime ──", "── Entrypoint / Cmd ──":
-			current = "config"
-			continue
-		case "── Volumes ──", "── Healthcheck ──":
-			if line == "── Volumes ──" {
-				current = "volumes"
-			} else {
-				current = "health"
-			}
-			continue
-		case "── Storage ──":
-			current = "storage"
-			continue
-		case "── Labels ──":
-			current = "labels"
+		if section, ok := classifyImageHeader(line); ok {
+			current = section
 			continue
 		}
 
-		if strings.HasPrefix(line, "── Environment (") && strings.HasSuffix(line, " vars) ──") {
-			current = "env"
+		if strings.HasPrefix(line, imgEnvironmentHeaderPrefix) &&
+			strings.HasSuffix(line, imgEnvironmentHeaderSuffix) {
+			current = imgSectionEnv
 			continue
 		}
 
-		if current == "env" {
+		switch current {
+		case imgSectionEnv:
 			env = append(env, line)
 			continue
-		}
-		if current == "volumes" {
+		case imgSectionVolumes:
 			vols = append(vols, line)
 			continue
-		}
-		if current == "health" {
+		case imgSectionHealth:
 			health = append(health, line)
 			continue
-		}
-		if current == "labels" {
+		case imgSectionLabels:
 			labels = append(labels, line)
 			continue
 		}
@@ -170,19 +152,19 @@ func buildImageDetailSections(content string) []detailSection {
 		}
 
 		switch current {
-		case "summary":
+		case imgSectionSummary:
 			if !strings.Contains(line, ":") {
 				sections[0].Lines = append(sections[0].Lines, line)
 			}
-		case "system":
+		case imgSectionSystem:
 			if !strings.Contains(line, ":") {
 				sections[1].Lines = append(sections[1].Lines, line)
 			}
-		case "config":
+		case imgSectionConfig:
 			if !strings.Contains(line, ":") {
 				sections[2].Lines = append(sections[2].Lines, line)
 			}
-		case "storage":
+		case imgSectionStorage:
 			if !strings.Contains(line, ":") {
 				sections[3].Lines = append(sections[3].Lines, line)
 			}

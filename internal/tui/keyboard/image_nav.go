@@ -6,6 +6,7 @@ import (
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
+	"github.com/elizabevil/docker-tui/internal/utils"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -77,10 +78,10 @@ func imageSubContainerID(m *state.AppModel) string {
 	if m.Connection.Engine == nil || m.Resources.Images.ContainersViewID == "" {
 		return ""
 	}
-	imgShort := m.Resources.Images.ContainersViewID[:12]
+	imgShort := utils.ShortID(m.Resources.Images.ContainersViewID)
 	var imgNames []string
 	for _, item := range m.Resources.Images.Items {
-		if item.ID == m.Resources.Images.ContainersViewID || item.ID[:12] == imgShort {
+		if item.ID == m.Resources.Images.ContainersViewID || utils.ShortID(item.ID) == imgShort {
 			imgNames = append(imgNames, item.RepoTags...)
 			break
 		}
@@ -137,11 +138,11 @@ func doImageContainerLog(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		return m, nil
 	}
 	// Find the container at ContainerCursor matching ContainersViewID
-	imgShort := m.Resources.Images.ContainersViewID[:12]
+	imgShort := utils.ShortID(m.Resources.Images.ContainersViewID)
 	var matchedID string
 	var imgNames []string
 	for _, item := range m.Resources.Images.Items {
-		if item.ID == m.Resources.Images.ContainersViewID || item.ID[:12] == imgShort {
+		if item.ID == m.Resources.Images.ContainersViewID || utils.ShortID(item.ID) == imgShort {
 			imgNames = append(imgNames, item.RepoTags...)
 			break
 		}
