@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 func ConfigDir() (string, error) {
@@ -258,7 +260,7 @@ func ValidateTheme(theme *Theme) error {
 	}
 	colors := []Color{theme.Palette.Primary, theme.Palette.Success, theme.Palette.Warning, theme.Palette.Danger, theme.Palette.Info, theme.Palette.Accent, theme.Palette.AccentSecondary, theme.Palette.Foreground, theme.Palette.ForegroundMuted, theme.Palette.BackgroundSubtle, theme.Palette.BackgroundDeep, theme.Palette.Background}
 	for _, color := range colors {
-		if !isHexColor(string(color)) {
+		if !isValidColor(string(color)) {
 			return fmt.Errorf(errThemePaletteColorFormat, color)
 		}
 	}
@@ -297,7 +299,7 @@ func isColorRef(ref ColorRef) bool {
 		return false
 	}
 	if ref.Value != Color(emptyValue) {
-		return isHexColor(string(ref.Value))
+		return isValidColor(string(ref.Value))
 	}
 	switch ref.Token {
 	case ColorTokenPrimary, ColorTokenSuccess, ColorTokenWarning, ColorTokenDanger, ColorTokenInfo, ColorTokenAccent, ColorTokenAccentSecondary, ColorTokenForeground, ColorTokenForegroundMuted, ColorTokenBackground, ColorTokenBackgroundSubtle, ColorTokenBackgroundDeep, ColorTokenTransparent:
@@ -307,20 +309,12 @@ func isColorRef(ref ColorRef) bool {
 	}
 }
 
-func isHexColor(value string) bool {
-	if len(value) != 4 && len(value) != 7 && len(value) != 9 {
-		return false
-	}
-	if value[0] != '#' {
-		return false
-	}
-	for _, char := range value[1:] {
-		if char < '0' || char > '9' {
-			lower := char | 0x20
-			if lower < 'a' || lower > 'f' {
-				return false
-			}
-		}
-	}
-	return true
+// isValidColor reports whether value is a supported color format. It
+// delegates to utils.ParseColor, which accepts palette names, standard
+// CSS color names, #hex (3/4/6/8 digits), rgb()/rgba() functions, and
+// ANSI 0-255 color indices — matching the formats the style layer can
+// render (see design/current-design.md §3.2).
+func isValidColor(value string) bool {
+	_, ok := utils.ParseColor(value)
+	return ok
 }

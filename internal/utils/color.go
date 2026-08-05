@@ -48,13 +48,21 @@ func ParseColor(value string) (color.Color, bool) {
 var standardNamedColors = map[string]color.Color{
 	constants.ColorBlack:   color.NRGBA{R: 0x00, G: 0x00, B: 0x00, A: 0xff},
 	constants.ColorSilver:  color.NRGBA{R: 0xc0, G: 0xc0, B: 0xc0, A: 0xff},
+	constants.ColorGray:    color.NRGBA{R: 0x80, G: 0x80, B: 0x80, A: 0xff},
+	constants.ColorGrey:    color.NRGBA{R: 0x80, G: 0x80, B: 0x80, A: 0xff},
+	constants.ColorWhite:   color.NRGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff},
 	constants.ColorMaroon:  color.NRGBA{R: 0x80, G: 0x00, B: 0x00, A: 0xff},
-	constants.ColorOlive:   color.NRGBA{R: 0x80, G: 0x80, B: 0x00, A: 0xff},
-	constants.ColorLime:    color.NRGBA{R: 0x00, G: 0xff, B: 0x00, A: 0xff},
-	constants.ColorAqua:    color.NRGBA{R: 0x00, G: 0xff, B: 0xff, A: 0xff},
-	constants.ColorTeal:    color.NRGBA{R: 0x00, G: 0x80, B: 0x80, A: 0xff},
-	constants.ColorNavy:    color.NRGBA{R: 0x00, G: 0x00, B: 0x80, A: 0xff},
+	constants.ColorRed:     color.NRGBA{R: 0xff, G: 0x00, B: 0x00, A: 0xff},
+	constants.ColorPurple:  color.NRGBA{R: 0x80, G: 0x00, B: 0x80, A: 0xff},
 	constants.ColorFuchsia: color.NRGBA{R: 0xff, G: 0x00, B: 0xff, A: 0xff},
+	constants.ColorGreen:   color.NRGBA{R: 0x00, G: 0x80, B: 0x00, A: 0xff},
+	constants.ColorLime:    color.NRGBA{R: 0x00, G: 0xff, B: 0x00, A: 0xff},
+	constants.ColorOlive:   color.NRGBA{R: 0x80, G: 0x80, B: 0x00, A: 0xff},
+	constants.ColorYellow:  color.NRGBA{R: 0xff, G: 0xff, B: 0x00, A: 0xff},
+	constants.ColorNavy:    color.NRGBA{R: 0x00, G: 0x00, B: 0x80, A: 0xff},
+	constants.ColorBlue:    color.NRGBA{R: 0x00, G: 0x00, B: 0xff, A: 0xff},
+	constants.ColorTeal:    color.NRGBA{R: 0x00, G: 0x80, B: 0x80, A: 0xff},
+	constants.ColorAqua:    color.NRGBA{R: 0x00, G: 0xff, B: 0xff, A: 0xff},
 }
 
 func parseHexColor(value string) (color.Color, bool) {

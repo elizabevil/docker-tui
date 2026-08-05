@@ -224,3 +224,59 @@ func TestRuntimeHealthDurations(t *testing.T) {
 		t.Fatalf("durations = %s, %s", health.Interval(), health.Timeout())
 	}
 }
+
+func TestValidateThemeAcceptsAllColorFormats(t *testing.T) {
+	formats := []string{
+		"#abc",
+		"#abcd",
+		"#aabbcc",
+		"#aabbccdd",
+		"rgb(250, 240, 230)",
+		"rgba(250,240,230,.5)",
+		"grey",
+		"white",
+		"63",
+		"255",
+	}
+	for _, format := range formats {
+		theme := DefaultTheme()
+		theme.Palette.Primary = Color(format)
+		if err := ValidateTheme(theme); err != nil {
+			t.Errorf("ValidateTheme rejected palette color %q: %v", format, err)
+		}
+	}
+}
+
+func TestValidateThemeRejectsInvalidColorFormats(t *testing.T) {
+	formats := []string{
+		"",
+		"#12",
+		"#GGGGGG",
+		"rgb(256,0,0)",
+		"rgba(0,0,0,2)",
+		"256",
+		"notacolor",
+	}
+	for _, format := range formats {
+		theme := DefaultTheme()
+		theme.Palette.Primary = Color(format)
+		if err := ValidateTheme(theme); err == nil {
+			t.Errorf("ValidateTheme accepted invalid palette color %q", format)
+		}
+	}
+}
+
+func TestValidateThemeAcceptsValueRefsInAllFormats(t *testing.T) {
+	for _, format := range []string{"#abc", "rgb(250,240,230)", "grey", "63"} {
+		theme := DefaultTheme()
+		theme.Main.RowSelected = ValueRef(Color(format))
+		if err := ValidateTheme(theme); err != nil {
+			t.Errorf("ValidateTheme rejected rowSelected value %q: %v", format, err)
+		}
+	}
+	theme := DefaultTheme()
+	theme.Main.RowSelected = ValueRef(Color("notacolor"))
+	if err := ValidateTheme(theme); err == nil {
+		t.Error("ValidateTheme accepted invalid rowSelected value")
+	}
+}

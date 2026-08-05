@@ -22,14 +22,23 @@ const (
 )
 
 // Standard CSS color names supported by color parsing (internal/utils).
+// The 16 basic HTML color names plus the "grey" spelling alias.
 const (
 	ColorBlack   = "black"
 	ColorSilver  = "silver"
+	ColorGray    = "gray"
+	ColorGrey    = "grey"
+	ColorWhite   = "white"
 	ColorMaroon  = "maroon"
-	ColorOlive   = "olive"
-	ColorLime    = "lime"
-	ColorAqua    = "aqua"
-	ColorTeal    = "teal"
-	ColorNavy    = "navy"
+	ColorRed     = "red"
+	ColorPurple  = "purple"
 	ColorFuchsia = "fuchsia"
+	ColorGreen   = "green"
+	ColorLime    = "lime"
+	ColorOlive   = "olive"
+	ColorYellow  = "yellow"
+	ColorNavy    = "navy"
+	ColorBlue    = "blue"
+	ColorTeal    = "teal"
+	ColorAqua    = "aqua"
 )

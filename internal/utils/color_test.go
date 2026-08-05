@@ -15,6 +15,11 @@ func TestParseColorCommonFormats(t *testing.T) {
 		"rgb(250, 240, 230)":   {R: 0xfa, G: 0xf0, B: 0xe6, A: 0xff},
 		"rgba(250,240,230,.5)": {R: 0xfa, G: 0xf0, B: 0xe6, A: 0x80},
 		"black":                {R: 0x00, G: 0x00, B: 0x00, A: 0xff},
+		"grey":                 {R: 0x80, G: 0x80, B: 0x80, A: 0xff},
+		"gray":                 {R: 0x80, G: 0x80, B: 0x80, A: 0xff},
+		"white":                {R: 0xff, G: 0xff, B: 0xff, A: 0xff},
+		"red":                  {R: 0xff, G: 0x00, B: 0x00, A: 0xff},
+		"blue":                 {R: 0x00, G: 0x00, B: 0xff, A: 0xff},
 	}
 	for input, want := range tests {
 		parsed, ok := ParseColor(input)

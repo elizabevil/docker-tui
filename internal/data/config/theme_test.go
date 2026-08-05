@@ -26,7 +26,6 @@ func TestEmbeddedDefaultThemeBackgroundExperiment(t *testing.T) {
 	}
 	theme := loaded.Theme
 	transparent := TokenRef(ColorTokenTransparent)
-	headerBackground := ValueRef(Color("#2b2d30cc"))
 	if theme.Palette.Background != Color("#18191b") {
 		t.Fatalf("app background = %q", theme.Palette.Background)
 	}
@@ -39,10 +38,9 @@ func TestEmbeddedDefaultThemeBackgroundExperiment(t *testing.T) {
 		theme.Footer.ShortcutBackground != transparent {
 		t.Fatalf("panel/footer backgrounds should default to transparent: %#v", theme)
 	}
-	if theme.Main.RowSelected != TokenRef(ColorTokenBackgroundSubtle) {
+	if theme.Main.RowSelected != ValueRef(Color("grey")) {
 		t.Fatalf("rowSelected = %+v", theme.Main.RowSelected)
 	}
-	_ = headerBackground
 }
 
 func TestThemePatchPreservesOmittedProperties(t *testing.T) {

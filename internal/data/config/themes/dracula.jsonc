@@ -19,70 +19,162 @@
       "background": "#21222c"
     },
     "border": {
-      "active": { "token": "accentSecondary" },
-      "inactive": { "token": "foregroundMuted" },
-      "focused": { "token": "success" },
+      "active": {
+        "token": "accentSecondary"
+      },
+      "inactive": {
+        "token": "foregroundMuted"
+      },
+      "focused": {
+        "token": "success"
+      },
       "kind": "rounded"
     },
     "header": {
-      "background": { "token": "transparent" },
-      "label": { "token": "foregroundMuted" },
-      "value": { "token": "foreground" },
-      "logo": { "token": "accentSecondary" }
+      "background": {
+        "token": "transparent"
+      },
+      "label": {
+        "token": "foregroundMuted"
+      },
+      "value": {
+        "token": "foreground"
+      },
+      "logo": {
+        "token": "accentSecondary"
+      }
     },
     "main": {
-      "borderActive": { "token": "accentSecondary" },
-      "borderInactive": { "token": "foregroundMuted" },
-      "title": { "token": "accentSecondary" },
-      "tableHeader": { "token": "primary" },
-      "rowSelected": { "token": "accentSecondary" },
-      "rowText": { "token": "foreground" },
-      "footer": { "token": "foregroundMuted" },
-      "actionBarBackground": { "token": "transparent" },
-      "messageRailBackground": { "token": "transparent" },
-      "queryBarBackground": { "token": "transparent" }
+      "borderActive": {
+        "token": "accentSecondary"
+      },
+      "borderInactive": {
+        "token": "foregroundMuted"
+      },
+      "title": {
+        "token": "accentSecondary"
+      },
+      "tableHeader": {
+        "token": "primary"
+      },
+      "rowSelected": {
+        "token": "accentSecondary"
+      },
+      "rowText": {
+        "token": "foreground"
+      },
+      "footer": {
+        "token": "foregroundMuted"
+      },
+      "actionBarBackground": {
+        "token": "transparent"
+      },
+      "messageRailBackground": {
+        "token": "transparent"
+      },
+      "queryBarBackground": {
+        "token": "transparent"
+      }
     },
     "footer": {
-      "statusBackground": { "token": "transparent" },
-      "shortcutBackground": { "token": "transparent" },
-      "key": { "token": "foreground" },
-      "description": { "token": "foregroundMuted" },
-      "separator": { "token": "foregroundMuted" }
+      "statusBackground": {
+        "token": "transparent"
+      },
+      "shortcutBackground": {
+        "token": "transparent"
+      },
+      "key": {
+        "token": "foreground"
+      },
+      "description": {
+        "token": "foregroundMuted"
+      },
+      "separator": {
+        "token": "foregroundMuted"
+      }
     },
     "dialog": {
-      "border": { "token": "danger" },
-      "title": { "token": "danger" },
-      "body": { "token": "foreground" },
-      "optionActive": { "token": "primary" },
-      "optionInactive": { "token": "foregroundMuted" },
-      "overlay": { "token": "background" },
+      "border": {
+        "token": "danger"
+      },
+      "title": {
+        "token": "danger"
+      },
+      "body": {
+        "token": "foreground"
+      },
+      "optionActive": {
+        "token": "primary"
+      },
+      "optionInactive": {
+        "token": "foregroundMuted"
+      },
+      "overlay": {
+        "token": "background"
+      },
       "overlayOpacity": 80
     },
     "toast": {
-      "success": { "token": "success" },
-      "error": { "token": "danger" },
-      "background": { "token": "background" }
+      "success": {
+        "token": "success"
+      },
+      "error": {
+        "token": "danger"
+      },
+      "background": {
+        "token": "background"
+      }
     },
     "text": {
-      "info": { "token": "primary" },
-      "error": { "token": "danger" },
-      "success": { "token": "success" },
-      "warning": { "token": "warning" },
-      "dim": { "token": "foregroundMuted" },
-      "helpKey": { "token": "primary" },
-      "helpDescription": { "token": "foreground" }
+      "info": {
+        "token": "primary"
+      },
+      "error": {
+        "token": "danger"
+      },
+      "success": {
+        "token": "success"
+      },
+      "warning": {
+        "token": "warning"
+      },
+      "dim": {
+        "token": "foregroundMuted"
+      },
+      "helpKey": {
+        "token": "primary"
+      },
+      "helpDescription": {
+        "token": "foreground"
+      }
     },
     "table": {
-      "markedBackground": { "value": "#463f16" },
-      "columnForeground": { "value": "#ECEFF1" },
-      "nameForeground": { "value": "#FAF0E6" }
+      "markedBackground": {
+        "value": "#463f16"
+      },
+      "columnForeground": {
+        "value": "#ECEFF1"
+      },
+      "nameForeground": {
+        "value": "#FAF0E6"
+      }
     },
     "safeFallback": {
-      "normal": { "token": "foreground" },
-      "bold": { "token": "foreground" },
-      "dim": { "token": "foregroundMuted" },
-      "accent": { "token": "primary" },
-      "error": { "token": "danger" }
+      "normal": {
+        "token": "foreground"
+      },
+      "bold": {
+        "token": "foreground"
+      },
+      "dim": {
+        "token": "foregroundMuted"
+      },
+      "accent": {
+        "token": "primary"
+      },
+      "error": {
+        "token": "danger"
+      }
     }
   }
 }
