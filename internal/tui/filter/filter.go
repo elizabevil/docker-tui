@@ -154,6 +154,33 @@ func (c *Controller) Clear() {
 	c.clampCursor()
 }
 
+// ClearAll wipes the filter on every panel (containers, images,
+// volumes, networks, audit, compose) and resets each panel's cursor /
+// view-offset. Bound to ActionClearFilters; useful as a one-key
+// "reset" when the user has accumulated several narrow filters.
+func (c *Controller) ClearAll() {
+	if c.m == nil {
+		return
+	}
+	c.m.Navigation.FilterInput.Reset()
+	c.m.Resources.Containers.SetFilter("")
+	c.m.Resources.Images.SetFilter("")
+	c.m.Resources.Volumes.SetFilter("")
+	c.m.Resources.Networks.SetFilter("")
+	c.m.Audit.SetFilter("")
+	c.m.Compose.ComposeServiceFilter = ""
+	c.m.Compose.ComposeProjectFilter = ""
+	c.m.Resources.Containers.Cursor = 0
+	c.m.Resources.Containers.ViewOffset = 0
+	c.m.Resources.Images.Cursor = 0
+	c.m.Resources.Images.ViewOffset = 0
+	c.m.Resources.Volumes.Cursor = 0
+	c.m.Resources.Volumes.ViewOffset = 0
+	c.m.Resources.Networks.Cursor = 0
+	c.m.Resources.Networks.ViewOffset = 0
+	c.m.Audit.Cursor = 0
+}
+
 // Close clears the filter and exits filter input mode (or, if called
 // from a non-input mode, simply clears and leaves the mode alone after
 // resetting the input buffer). Also clears the FilterExitPending flag

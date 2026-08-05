@@ -53,6 +53,7 @@ const (
 	ActionEvents             KeyAction = "events"
 	ActionRefreshConnections KeyAction = "refreshConnections"
 	ActionActionBar          KeyAction = "actionBar"
+	ActionClearFilters       KeyAction = "clearFilters"
 	ActionContainerRename    KeyAction = "containerRename"
 	ActionContainerTop       KeyAction = "containerTop"
 	ActionContainerPort      KeyAction = "containerPort"

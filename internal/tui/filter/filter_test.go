@@ -158,3 +158,53 @@ func TestController_Clear_Compose(t *testing.T) {
 		t.Fatalf("ComposeServiceFilter=%q after Clear, want empty", m.Compose.ComposeServiceFilter)
 	}
 }
+
+func TestController_ClearAll(t *testing.T) {
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	m.Navigation.ActivePanel = state.PanelContainers
+	m.Resources.Containers.SetFilter("c-filter")
+	m.Resources.Images.SetFilter("i-filter")
+	m.Resources.Volumes.SetFilter("v-filter")
+	m.Resources.Networks.SetFilter("n-filter")
+	m.Audit.SetFilter("a-filter")
+	m.Compose.ComposeServiceFilter = "svc"
+	m.Compose.ComposeProjectFilter = "proj"
+	m.Resources.Containers.Cursor = 5
+	m.Resources.Images.Cursor = 3
+	m.Navigation.FilterInput.Text = "stale"
+
+	c := New(m)
+	c.ClearAll()
+
+	checks := []struct {
+		name  string
+		got   string
+	}{
+		{"Containers", m.Resources.Containers.Filter},
+		{"Images", m.Resources.Images.Filter},
+		{"Volumes", m.Resources.Volumes.Filter},
+		{"Networks", m.Resources.Networks.Filter},
+		{"Audit", m.Audit.FilterText()},
+	}
+	for _, c := range checks {
+		if c.got != "" {
+			t.Errorf("%s.Filter=%q after ClearAll, want empty", c.name, c.got)
+		}
+	}
+	if m.Compose.ComposeServiceFilter != "" {
+		t.Errorf("ComposeServiceFilter=%q, want empty", m.Compose.ComposeServiceFilter)
+	}
+	if m.Compose.ComposeProjectFilter != "" {
+		t.Errorf("ComposeProjectFilter=%q, want empty", m.Compose.ComposeProjectFilter)
+	}
+	if m.Resources.Containers.Cursor != 0 || m.Resources.Images.Cursor != 0 {
+		t.Errorf("cursors not reset: containers=%d images=%d",
+			m.Resources.Containers.Cursor, m.Resources.Images.Cursor)
+	}
+	if m.Navigation.FilterInput.Text != "" {
+		t.Errorf("FilterInput.Text=%q, want empty", m.Navigation.FilterInput.Text)
+	}
+	if c.HasActive() {
+		t.Error("HasActive()=true after ClearAll")
+	}
+}

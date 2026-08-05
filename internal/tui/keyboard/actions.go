@@ -27,6 +27,11 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 	case keys.ActionFilter:
 		return m, ToFilter(m)
 
+	case keys.ActionClearFilters:
+		filter.New(m).ClearAll()
+		ShowToastNow(m, "✓ filters cleared")
+		return m, nil
+
 	case keys.ActionRefresh:
 		if m.Connection.Engine != nil {
 			m.Resources.Containers.Loading = true
