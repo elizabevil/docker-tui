@@ -32,7 +32,7 @@ func moveCursor(m *state.AppModel, delta int) {
 	var items int
 	switch m.Navigation.ActivePanel {
 	case state.PanelContainers:
-		items = m.Resources.Containers.Len()
+		items = len(m.Resources.Containers.FilteredItems())
 		m.Resources.Containers.Cursor = clamp(m.Resources.Containers.Cursor+delta, items)
 	case state.PanelImages:
 		if m.Resources.Images.ContainersViewID != "" {
@@ -41,14 +41,14 @@ func moveCursor(m *state.AppModel, delta int) {
 				m.Resources.Images.ContainerCursor = 0
 			}
 		} else {
-			items = m.Resources.Images.Len()
+			items = len(m.Resources.Images.FilteredItems())
 			m.Resources.Images.Cursor = clamp(m.Resources.Images.Cursor+delta, items)
 		}
 	case state.PanelVolumes:
-		items = m.Resources.Volumes.Len()
+		items = len(m.Resources.Volumes.FilteredItems())
 		m.Resources.Volumes.Cursor = clamp(m.Resources.Volumes.Cursor+delta, items)
 	case state.PanelNetworks:
-		items = m.Resources.Networks.Len()
+		items = len(m.Resources.Networks.FilteredItems())
 		m.Resources.Networks.Cursor = clamp(m.Resources.Networks.Cursor+delta, items)
 	case state.PanelCompose:
 		if m.Compose.ComposeFocus == 1 {
@@ -84,6 +84,7 @@ func ApplyFilter(m *state.AppModel) {
 	}
 	if f := activeTableFilter(m); f != nil {
 		f.SetFilter(m.Navigation.FilterInput.Text)
+		clampFilterCursor(m)
 	}
 }
 
@@ -107,6 +108,29 @@ func activeTableFilter(m *state.AppModel) state.TableFilter {
 	}
 }
 
+
+// clampFilterCursor 筛选变化时把当前面板的 cursor 复位为 0,避免光标超过过滤后可见行数。
+func clampFilterCursor(m *state.AppModel) {
+	if m == nil {
+		return
+	}
+	switch m.Navigation.ActivePanel {
+	case state.PanelContainers:
+		m.Resources.Containers.Cursor = 0
+		m.Resources.Containers.ViewOffset = 0
+	case state.PanelImages:
+		m.Resources.Images.Cursor = 0
+		m.Resources.Images.ViewOffset = 0
+	case state.PanelVolumes:
+		m.Resources.Volumes.Cursor = 0
+		m.Resources.Volumes.ViewOffset = 0
+	case state.PanelNetworks:
+		m.Resources.Networks.Cursor = 0
+		m.Resources.Networks.ViewOffset = 0
+	case state.PanelAudit:
+		m.Audit.Cursor = 0
+	}
+}
 func PanelFromMode(mode state.AppMode) state.PanelType {
 	switch mode {
 	case state.ModeHelp:

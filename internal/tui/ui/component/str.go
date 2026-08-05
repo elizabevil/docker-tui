@@ -16,4 +16,8 @@ const (
 	// ButtonIndicator is the right-pointing triangle used as a button / option marker
 	// (e.g. exec, choice, selection, form dialogs).
 	ButtonIndicator = "\u25b6"
+
+	// LinkUp is the U+25CF BLACK CIRCLE used to indicate an active link
+	// (rendered with the Success color in the header).
+	LinkUp = "\u25cf"
 )

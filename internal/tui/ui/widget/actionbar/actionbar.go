@@ -62,7 +62,7 @@ func renderBox(items []actionmodel.ActionItem, selected int, filtering bool, fil
 			if item.Disabled {
 				line = component.GetStyle("dim").Render(line)
 			} else if index == selected {
-				line = component.GetStyle("selectedRow").Render(line)
+				line = component.GetStyle("selectedRow").Width(innerWidth).Render(line)
 			}
 			lines = append(lines, line)
 		}

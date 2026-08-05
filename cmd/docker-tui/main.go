@@ -124,11 +124,6 @@ func runTUI(ctx *orpheus.Context) error {
 			"dtui session started",
 		)
 	}
-	m.Connection.Pool = pool
-	m.Dependencies.Theme = theme
-	m.Viewport.HeaderVisible = true
-	m.Connection.Connecting = true
-	m.Connection.RuntimeSelectorDisabled = dockerHost != ""
 	p := tea.NewProgram(&mainModel{model: m, initialConnection: initialConnection})
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("TUI error: %w", err)
@@ -147,7 +142,6 @@ const initialResizeSettleDelay = 150 * time.Millisecond
 func (m *mainModel) Init() tea.Cmd {
 	return tea.Batch(
 		tea.RequestWindowSize,
-		requestWindowSizeAfter(initialResizeSettleDelay),
 		func() tea.Msg { return state.HostStatsTick{} },
 		func() tea.Msg { return state.RuntimeHealthTick{} },
 		cursorBlinkCmd(),

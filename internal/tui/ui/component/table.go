@@ -136,7 +136,6 @@ func RenderTable(d TableData) string {
 	}
 
 	// 表头（与 page info 之间空行分隔）
-	sb.WriteString("\n")
 
 	// Header line
 	sb.WriteString(rr.RenderHeader(headers))

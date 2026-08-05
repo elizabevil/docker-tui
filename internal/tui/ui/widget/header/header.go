@@ -64,6 +64,20 @@ func Render(app *state.AppModel, usableW int) string {
 	if app.Connection.Engine != nil {
 		hostStr = app.Connection.Engine.Identity().Endpoint
 	}
+	var linkStatus string
+	if app.Connection.Connected {
+		linkStatus = component.LinkUp
+	} else if app.Connection.Connecting {
+		linkStatus = "..."
+	} else {
+		linkStatus = "—"
+	}
+	latencyStr := "—"
+	if app.Connection.Pool != nil {
+		if entry := app.Connection.Pool.Active(); entry != nil && entry.Latency > 0 {
+			latencyStr = fmt.Sprintf("%dms", entry.Latency.Milliseconds())
+		}
+	}
 	cpuC := cpuLoadColor(app.Metrics.HostCPU)
 	headerBg := component.GetStyle("headerBar").GetBackground()
 	tz := currentTimezone()
@@ -109,10 +123,11 @@ func Render(app *state.AppModel, usableW int) string {
 			eng += " [" + i18n.T(securityKey) + "]"
 		}
 	}
-	colConn := fmt.Sprintf("%s%s\n%s%s\n%s%s",
+	colConn := fmt.Sprintf("%s%s\n%s%s\n%s%s\n%s%s",
 		lbl("Engine"), val(eng+" "+app.Connection.EngineVersion),
 		lbl("Socket"), val(hostStr),
-		lbl("Language"), val(lang),
+		lbl("Link"), renderLink(linkStatus),
+		lbl("Latency"), val(latencyStr),
 	)
 
 	// ── Column widths from config weights ─────────────────────
@@ -162,6 +177,21 @@ func Render(app *state.AppModel, usableW int) string {
 	headerStyle := lipgloss.NewStyle().Width(usableW)
 	return headerStyle.Render(rendered)
 }
+
+// renderLink 渲染 link 状态字符: ● 绿色(Success) / ○ 红色(Danger) / 文字(中性)
+func renderLink(status string) string {
+	switch status {
+	case component.LinkUp:
+		return component.GetStyle("headerBar").Render(utils.PadVisible(
+			lipgloss.NewStyle().Foreground(style.Colors.Success).Render(status), 18))
+	case "\u25cb":
+		return component.GetStyle("headerBar").Render(utils.PadVisible(
+			lipgloss.NewStyle().Foreground(style.Colors.Danger).Render(status), 18))
+	default:
+		return component.GetStyle("headerBar").Render(utils.PadVisible(status, 18))
+	}
+}
+
 
 // renderKeyStrokeColumn 显示快捷键日志（简化版，仅收集期间显示）。
 func renderKeyStrokeColumn(app *state.AppModel, colW, ratio int) string {
