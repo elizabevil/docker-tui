@@ -6,6 +6,7 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
+	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 	"github.com/elizabevil/docker-tui/internal/utils"
 
 	"charm.land/lipgloss/v2"
@@ -71,7 +72,7 @@ func TestFormDialogSelectCollapsedWithMarker(t *testing.T) {
 	if !strings.Contains(out, "always") {
 		t.Fatal("collapsed select must show the selected option")
 	}
-	if !strings.Contains(out, "\u25be") {
+	if !strings.Contains(out, component.TriangleDownSmall) {
 		t.Fatal("select cell must carry a dropdown marker")
 	}
 }
@@ -97,7 +98,7 @@ func TestFormDialogDoesNotHighlightButtonsWhileFieldFocused(t *testing.T) {
 	})
 	m.Form.FieldFocus = 0
 	out := stripANSI(FormDialog(m, "", LoadDialogConfig(), 0, 0))
-	if strings.Contains(out, "\u25b6") {
+	if strings.Contains(out, component.ButtonIndicator) {
 		t.Fatalf("field focus leaked into button selection: %q", out)
 	}
 }
@@ -231,7 +232,7 @@ func TestFormDialogNoPopupWhenClosed(t *testing.T) {
 		Fields: []state.FormField{{Key: "destination", Label: "Local destination", Kind: state.FormPath}},
 	})
 	out := FormDialog(m, "", LoadDialogConfig(), 0, 0)
-	if strings.Contains(out, ">") && !strings.Contains(out, "\u25b6") {
+	if strings.Contains(out, ">") && !strings.Contains(out, component.ButtonIndicator) {
 		t.Fatal("closed popup must not render cursor rows")
 	}
 }
@@ -332,7 +333,7 @@ func TestLongPathCursorStaysVisible(t *testing.T) {
 	m.Form.FieldFocus = 0
 	out := FormDialog(m, "", LoadDialogConfig(), 0, 0)
 	clean := stripANSI(out)
-	if !strings.Contains(clean, "\u258f") {
+	if !strings.Contains(clean, component.NarrowCursor) {
 		t.Fatal("focused long path must still show an end caret")
 	}
 	// The rendered line must fit within the dialog's outer width.
@@ -354,8 +355,8 @@ func TestEditablePathCursorDoesNotShiftCharacters(t *testing.T) {
 	}
 
 	field := state.FormField{Kind: state.FormPath, Input: state.NewQueryInput(path)}
-	if got := stripANSI(renderEditableValue(&field, true, 80)); got != path+"\u258f" {
-		t.Fatalf("end cursor render = %q, want %q", got, path+"\u258f")
+	if got := stripANSI(renderEditableValue(&field, true, 80)); got != path+component.NarrowCursor {
+		t.Fatalf("end cursor render = %q, want %q", got, path+component.NarrowCursor)
 	}
 }
 

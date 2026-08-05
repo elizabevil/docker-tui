@@ -193,7 +193,7 @@ func renderLink(status string) string {
 	case component.LinkUp:
 		return component.GetStyle(component.StyleHeaderBar).Render(utils.PadVisible(
 			lipgloss.NewStyle().Foreground(style.Colors.Success).Render(status), 18))
-	case "\u25cb":
+	case component.BulletEmpty:
 		return component.GetStyle(component.StyleHeaderBar).Render(utils.PadVisible(
 			lipgloss.NewStyle().Foreground(style.Colors.Danger).Render(status), 18))
 	default:

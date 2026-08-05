@@ -76,7 +76,7 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 				return utils.ShortID(net.ID)
 			case "name":
 				if net.Internal {
-					return net.Name + " \u26b2"
+					return net.Name + " " + component.NetInternal
 				}
 				return net.Name
 			case "driver":

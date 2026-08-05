@@ -128,7 +128,7 @@ func renderDocument(m *state.AppModel, bodyLines []state.DetailDocumentLine, pan
 		var renderedLine string
 		switch line.Kind {
 		case state.DetailLineSection:
-			renderedLine = sectionStyle.Render(fmt.Sprintf("  \u2500\u2500 %s ", line.Left))
+			renderedLine = sectionStyle.Render(fmt.Sprintf("  %s%s %s ", component.BoxHorizontal, component.BoxHorizontal, line.Left))
 		case state.DetailLineSubtitle:
 			renderedLine = "    " + dimStyle.Render(line.Left)
 		case state.DetailLineValue:
@@ -251,9 +251,10 @@ func buildDetailSections(content string) []detailSection {
 
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "\u2500\u2500") && strings.HasSuffix(trimmed, "\u2500\u2500") {
+		hdr := component.BoxHorizontal + component.BoxHorizontal
+		if strings.HasPrefix(trimmed, hdr) && strings.HasSuffix(trimmed, hdr) {
 			flush()
-			title := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(trimmed, "\u2500\u2500"), "\u2500\u2500"))
+			title := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(trimmed, hdr), hdr))
 			current = detailSection{Title: title, Lines: make([]string, 0, 16)}
 			continue
 		}

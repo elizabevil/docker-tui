@@ -216,7 +216,7 @@ func renderFormValue(f *state.FormField, focused bool, valueWidth int, cursorVis
 	case state.FormBool:
 		mark := " "
 		if f.Toggle {
-			mark = "\u2713"
+			mark = component.MarkCheck
 		}
 		cell := "[" + mark + "]"
 		if focused {
@@ -257,7 +257,7 @@ func renderEditableValue(f *state.FormField, focused bool, valueWidth int, curso
 	before := lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleHelpDescription).GetForeground()).Render(string(runes[start:cursor]))
 	visible := len(cursorVisible) == 0 || cursorVisible[0]
 	caret := lipgloss.NewStyle().Foreground(component.GetStyle(component.StylePanelTitle).GetForeground()).Bold(true).Underline(true)
-	current := "\u258f"
+	current := component.NarrowCursor
 	if cursor < len(runes) {
 		current = string(runes[cursor])
 	}
@@ -278,7 +278,7 @@ func renderEditableValue(f *state.FormField, focused bool, valueWidth int, curso
 // renderSelectCell renders the collapsed value plus a dropdown marker for a
 // single- or multi-select field (BR-041 §8.1, §8.2).
 func renderSelectCell(f *state.FormField, focused bool, valueWidth int) (value, marker string) {
-	marker = "\u25be"
+	marker = component.TriangleDownSmall
 	var text string
 	switch f.Kind {
 	case state.FormMultiSelect:

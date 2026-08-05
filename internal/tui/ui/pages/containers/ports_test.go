@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	dockerclient "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 )
 
 func TestFormatPortsPreservesBindings(t *testing.T) {
@@ -24,7 +25,7 @@ func TestFormatPortsPreservesBindings(t *testing.T) {
 }
 
 func TestFormatPortsEmpty(t *testing.T) {
-	if got := FormatPorts(nil, false); len(got) != 1 || got[0] != "\u2014" {
+	if got := FormatPorts(nil, false); len(got) != 1 || got[0] != component.StrDash {
 		t.Fatalf("empty ports = %#v", got)
 	}
 }

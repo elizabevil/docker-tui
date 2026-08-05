@@ -132,7 +132,7 @@ func renderContainers(cm *state.ContainerListModel, width int, volName string, p
 			case "image":
 				cells[j] = utils.ShortImage(c.Image)
 			case "state":
-				cells[j] = "\u25cf " + c.State
+				cells[j] = component.LinkUp + " " + c.State
 			case "created":
 				cells[j] = created
 			}

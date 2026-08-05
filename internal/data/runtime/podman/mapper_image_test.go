@@ -3,6 +3,7 @@ package podman
 import (
 	"testing"
 
+	"github.com/elizabevil/docker-tui/internal/constants"
 	"github.com/elizabevil/docker-tui/internal/driver/podman/dto"
 )
 
@@ -29,7 +30,7 @@ func TestMapImageSummariesBasic(t *testing.T) {
 
 func TestMapImageSummariesUsesUnknownArchitecture(t *testing.T) {
 	result := MapImageSummaries([]dto.ImageItem{{ID: "sha256:123"}})
-	if result[0].OS != "\u2014" || result[0].Arch != "\u2014" {
+	if result[0].OS != constants.EmDash || result[0].Arch != constants.EmDash {
 		t.Fatalf("expected unknown platform markers, got %q/%q", result[0].OS, result[0].Arch)
 	}
 }
