@@ -27,9 +27,11 @@ requirement/
 ├── R04-runtime/                    # 运行时能力
 │   ├── README.md
 │   └── R04-01-docker-podman-capabilities.md
-└── R05-events-network/             # 事件流与网络
-    ├── README.md
-    └── R05-01-events-network-connect.md
+├── R05-events-network/             # 事件流与网络
+│   ├── README.md
+│   └── R05-01-events-network-connect.md
+└── R06-operation/                  # Operation 一等公民(横切:贯穿容器/镜像域)
+    └── R06-01-operation-as-domain.md
 ```
 
 ## 角色
