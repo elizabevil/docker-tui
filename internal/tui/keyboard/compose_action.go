@@ -183,7 +183,7 @@ func doComposeDown(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		}
 		var failures []error
 		for _, c := range containers {
-			msg := containerRemoveCmd(engine, c.ID, true, false, false)()
+			msg := containerRemoveCmd(engine, c.ID, runtime.LifecycleOptions{Force: true})()
 			if v, ok := msg.(state.ContainerActioned); ok {
 				if v.Success {
 					result.Success++
@@ -200,7 +200,7 @@ func doComposeDown(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 			}
 		}
 		for _, name := range volumes {
-			msg := volumeRemoveCmd(engine, name, true)()
+			msg := volumeRemoveCmd(engine, name, runtime.LifecycleOptions{Force: true})()
 			if v, ok := msg.(state.GenericActioned); ok {
 				if v.Success {
 					result.Success++

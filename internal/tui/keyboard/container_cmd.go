@@ -71,14 +71,10 @@ func FetchContainerProcesses(service runtimeapi.ContainerService, id string) tea
 	return fetchContainerProcesses(service, id)
 }
 
-func containerRemoveCmd(client runtimeapi.Engine, id string, force, removeVolumes, removeLinks bool) tea.Cmd {
+func containerRemoveCmd(client runtimeapi.Engine, id string, opts runtimeapi.LifecycleOptions) tea.Cmd {
 	return func() tea.Msg {
 		_, err := client.Actions().Execute(context.Background(), containerRef(id), runtimeapi.ActionRemove,
-			runtimeapi.ActionOptions{Lifecycle: runtimeapi.LifecycleOptions{
-				Force:         force,
-				RemoveVolumes: removeVolumes,
-				RemoveLinks:   removeLinks,
-			}})
+			runtimeapi.ActionOptions{Lifecycle: opts})
 		return state.ContainerActioned{Action: state.ActionRemoved, ID: id, Success: err == nil, Error: err}
 	}
 }

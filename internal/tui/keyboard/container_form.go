@@ -1246,12 +1246,16 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 			clearContainerForm(m)
 			return m, nil
 		}
-		force := formBoolValue(m.Form.Get(fieldContainerRemoveForce))
+force := formBoolValue(m.Form.Get(fieldContainerRemoveForce))
 		removeVolumes := formBoolValue(m.Form.Get(fieldContainerRemoveVolumes))
 		removeLinks := formBoolValue(m.Form.Get(fieldContainerRemoveLinks))
 		trace := beginAudit(m, "resource.container.delete", containerTarget(m, id), "Remove container "+name)
 		clearContainerForm(m)
-		return m, withContainerAudit(containerRemoveCmd(m.Connection.Engine, id, force, removeVolumes, removeLinks), trace)
+		return m, withContainerAudit(containerRemoveCmd(m.Connection.Engine, id, runtimeapi.LifecycleOptions{
+			Force:         force,
+			RemoveVolumes: removeVolumes,
+			RemoveLinks:   removeLinks,
+		}), trace)
 
 	case state.FormVolumeRemove:
 		if m.Navigation.ActivePanel != state.PanelVolumes || id == "" {
@@ -1261,7 +1265,7 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		force := formBoolValue(m.Form.Get(fieldVolumeRemoveForce))
 		trace := beginAudit(m, "resource.volume.delete", audit.VolumeTarget{Name: name, Meta: audit.VolumeMeta{Driver: volumeDriver(m, name)}}, "Remove volume "+name)
 		clearContainerForm(m)
-		return m, withGenericAudit(volumeRemoveCmd(m.Connection.Engine, id, force), trace)
+		return m, withGenericAudit(volumeRemoveCmd(m.Connection.Engine, id, runtimeapi.LifecycleOptions{Force: force}), trace)
 	}
 	clearContainerForm(m)
 	return m, nil

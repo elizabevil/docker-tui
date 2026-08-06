@@ -11,9 +11,9 @@ import (
 )
 
 // volumeRemoveCmd returns a tea.Cmd that removes a volume.
-func volumeRemoveCmd(client runtimeapi.Engine, name string, force bool) tea.Cmd {
+func volumeRemoveCmd(client runtimeapi.Engine, name string, opts runtimeapi.LifecycleOptions) tea.Cmd {
 	return func() tea.Msg {
-		err := client.Volumes().Remove(context.Background(), name, force)
+		err := client.Volumes().Remove(context.Background(), name, opts.Force)
 		return state.GenericActioned{Action: state.ActionRemoved, ID: name, Success: err == nil, Error: err}
 	}
 }
