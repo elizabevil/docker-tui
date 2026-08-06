@@ -128,6 +128,50 @@ type SafeFallbackStyles struct {
 	Error  ColorRef `json:"error" yaml:"error"`
 }
 
+// ActionWindow groups the background + border colours of the window chrome
+// used by any Operation whose body fills a window (Form / Page / Async).
+type ActionWindow struct {
+	Background ColorRef `json:"background" yaml:"background"`
+	Border     ColorRef `json:"border" yaml:"border"`
+}
+
+// ActionFormInput groups the foreground + background colours of the
+// editable form input fields inside the window. Only consumed when the
+// Operation Mode is Form.
+type ActionFormInput struct {
+	Foreground ColorRef `json:"foreground" yaml:"foreground"`
+	Background ColorRef `json:"background" yaml:"background"`
+}
+
+// ActionButton groups the foreground + background colours of an action
+// button (Confirm or Cancel) inside the window. Only consumed when the
+// Operation Mode is Form or Async.
+type ActionButton struct {
+	Foreground ColorRef `json:"foreground" yaml:"foreground"`
+	Background ColorRef `json:"background" yaml:"background"`
+}
+
+// ActionScopeStyles is the per-scope visual contract: one entry per
+// resource scope (Container / Image / ...). The four slots are reused
+// across all scopes so each Operation Mode (Form / Page / Async) can
+// pull from the same shape regardless of scope.
+type ActionScopeStyles struct {
+	Window    ActionWindow    `json:"window" yaml:"window"`
+	FormInput ActionFormInput `json:"formInput" yaml:"formInput"`
+	Confirm   ActionButton    `json:"confirm" yaml:"confirm"`
+	Cancel    ActionButton    `json:"cancel" yaml:"cancel"`
+}
+
+// ActionStyles is the visual contract for any Operation, grouped by
+// resource Scope. It supersedes the earlier single-scope
+// ContainerOperationStyles; the Skin-vs-Skeleton separation is enforced
+// by JSON schema (themes only define colours, operations/*.jsonc — once
+// introduced — will only define behaviour).
+type ActionStyles struct {
+	Container ActionScopeStyles `json:"container" yaml:"container"`
+	Image     ActionScopeStyles `json:"image" yaml:"image"`
+}
+
 // Theme is a complete visual configuration with fixed component scopes.
 type Theme struct {
 	Palette      Palette            `json:"palette" yaml:"palette"`
@@ -140,6 +184,7 @@ type Theme struct {
 	Text         TextStyles         `json:"text" yaml:"text"`
 	Table        TableStyles        `json:"table" yaml:"table"`
 	SafeFallback SafeFallbackStyles `json:"safeFallback" yaml:"safeFallback"`
+	Action       ActionStyles       `json:"action" yaml:"action"`
 }
 
 type ThemeMetadata struct {
@@ -238,6 +283,33 @@ type SafeFallbackStylesPatch struct {
 	Error  *ColorRef `json:"error,omitempty" yaml:"error,omitempty"`
 }
 
+type ActionWindowPatch struct {
+	Background *ColorRef `json:"background,omitempty" yaml:"background,omitempty"`
+	Border     *ColorRef `json:"border,omitempty" yaml:"border,omitempty"`
+}
+
+type ActionFormInputPatch struct {
+	Foreground *ColorRef `json:"foreground,omitempty" yaml:"foreground,omitempty"`
+	Background *ColorRef `json:"background,omitempty" yaml:"background,omitempty"`
+}
+
+type ActionButtonPatch struct {
+	Foreground *ColorRef `json:"foreground,omitempty" yaml:"foreground,omitempty"`
+	Background *ColorRef `json:"background,omitempty" yaml:"background,omitempty"`
+}
+
+type ActionScopeStylesPatch struct {
+	Window    *ActionWindowPatch    `json:"window,omitempty" yaml:"window,omitempty"`
+	FormInput *ActionFormInputPatch `json:"formInput,omitempty" yaml:"formInput,omitempty"`
+	Confirm   *ActionButtonPatch    `json:"confirm,omitempty" yaml:"confirm,omitempty"`
+	Cancel    *ActionButtonPatch    `json:"cancel,omitempty" yaml:"cancel,omitempty"`
+}
+
+type ActionStylesPatch struct {
+	Container *ActionScopeStylesPatch `json:"container,omitempty" yaml:"container,omitempty"`
+	Image     *ActionScopeStylesPatch `json:"image,omitempty" yaml:"image,omitempty"`
+}
+
 type ThemePatch struct {
 	Palette      *PalettePatch            `json:"palette,omitempty" yaml:"palette,omitempty"`
 	Border       *BorderStylesPatch       `json:"border,omitempty" yaml:"border,omitempty"`
@@ -249,6 +321,7 @@ type ThemePatch struct {
 	Text         *TextStylesPatch         `json:"text,omitempty" yaml:"text,omitempty"`
 	Table        *TableStylesPatch        `json:"table,omitempty" yaml:"table,omitempty"`
 	SafeFallback *SafeFallbackStylesPatch `json:"safeFallback,omitempty" yaml:"safeFallback,omitempty"`
+	Action       *ActionStylesPatch       `json:"action,omitempty" yaml:"action,omitempty"`
 }
 
 func DefaultTheme() *Theme {
@@ -275,6 +348,31 @@ func DefaultTheme() *Theme {
 		Text:         TextStyles{Info: TokenRef(ColorTokenInfo), Error: TokenRef(ColorTokenDanger), Success: TokenRef(ColorTokenSuccess), Warning: TokenRef(ColorTokenWarning), Dim: TokenRef(ColorTokenForegroundMuted), HelpKey: TokenRef(ColorTokenPrimary), HelpDescription: TokenRef(ColorTokenForeground)},
 		Table:        TableStyles{MarkedBackground: ValueRef(FallbackColorTableMarkedBackground), ColumnForeground: ValueRef(FallbackColorTableColumnForeground), NameForeground: ValueRef(FallbackColorTableNameForeground)},
 		SafeFallback: SafeFallbackStyles{Normal: TokenRef(ColorTokenForeground), Bold: TokenRef(ColorTokenForeground), Dim: TokenRef(ColorTokenForegroundMuted), Accent: TokenRef(ColorTokenPrimary), Error: TokenRef(ColorTokenDanger)},
+		Action: ActionStyles{
+			Container: defaultActionScopeStyles(),
+			Image:     defaultActionScopeStyles(),
+		},
+	}
+}
+
+func defaultActionScopeStyles() ActionScopeStyles {
+	return ActionScopeStyles{
+		Window: ActionWindow{
+			Background: TokenRef(ColorTokenBackgroundSubtle),
+			Border:     TokenRef(ColorTokenPrimary),
+		},
+		FormInput: ActionFormInput{
+			Foreground: TokenRef(ColorTokenForeground),
+			Background: TokenRef(ColorTokenBackgroundDeep),
+		},
+		Confirm: ActionButton{
+			Foreground: TokenRef(ColorTokenSuccess),
+			Background: TokenRef(ColorTokenTransparent),
+		},
+		Cancel: ActionButton{
+			Foreground: TokenRef(ColorTokenForegroundMuted),
+			Background: TokenRef(ColorTokenTransparent),
+		},
 	}
 }
 
@@ -399,6 +497,33 @@ func (p ThemePatch) Apply(target *Theme) {
 		assign(&target.SafeFallback.Dim, p.SafeFallback.Dim)
 		assign(&target.SafeFallback.Accent, p.SafeFallback.Accent)
 		assign(&target.SafeFallback.Error, p.SafeFallback.Error)
+	}
+	if p.Action != nil {
+		if p.Action.Container != nil {
+			applyActionScopePatch(&target.Action.Container, p.Action.Container)
+		}
+		if p.Action.Image != nil {
+			applyActionScopePatch(&target.Action.Image, p.Action.Image)
+		}
+	}
+}
+
+func applyActionScopePatch(target *ActionScopeStyles, p *ActionScopeStylesPatch) {
+	if p.Window != nil {
+		assign(&target.Window.Background, p.Window.Background)
+		assign(&target.Window.Border, p.Window.Border)
+	}
+	if p.FormInput != nil {
+		assign(&target.FormInput.Foreground, p.FormInput.Foreground)
+		assign(&target.FormInput.Background, p.FormInput.Background)
+	}
+	if p.Confirm != nil {
+		assign(&target.Confirm.Foreground, p.Confirm.Foreground)
+		assign(&target.Confirm.Background, p.Confirm.Background)
+	}
+	if p.Cancel != nil {
+		assign(&target.Cancel.Foreground, p.Cancel.Foreground)
+		assign(&target.Cancel.Background, p.Cancel.Background)
 	}
 }
 

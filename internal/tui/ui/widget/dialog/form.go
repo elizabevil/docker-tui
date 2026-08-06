@@ -2,6 +2,7 @@ package dialog
 
 import (
 	"fmt"
+	"image/color"
 
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
@@ -25,6 +26,9 @@ func FormDialog(m *state.AppModel, overlayColor string, cfg DialogConfig, bodyW,
 	enterKey := i18n.T("key.sym_enter")
 	escKey := i18n.T("key.sym_esc")
 
+	opStyles := containerOperationStyles(form.Kind)
+	titleColor := component.GetStyle(component.StylePanelTitle).GetForeground()
+
 	parts := []string{
 		lipgloss.NewStyle().Width(innerWidth).Align(lipgloss.Left).
 			Render(component.GetStyle(component.StylePanelTitle).Render(form.Title)),
@@ -34,11 +38,15 @@ func FormDialog(m *state.AppModel, overlayColor string, cfg DialogConfig, bodyW,
 	labelWidth, valueWidth := formLayout(form.Fields, innerWidth)
 	popupInnerW := labelWidth + valueWidth + 1
 	parts = appendFormLoading(parts, form)
-	parts = appendFormFields(parts, form, labelWidth, valueWidth, popupInnerW, !m.CursorBlinkHidden)
+	parts = appendFormFields(parts, form, labelWidth, valueWidth, popupInnerW, !m.CursorBlinkHidden, opStyles)
 	parts = append(parts, "")
 
 	cancelBtn := NewButton(escKey, form.CancelLabel)
+	cancelBtn.Foreground = opStyles.Cancel.Foreground
+	cancelBtn.Background = opStyles.Cancel.Background
 	confirmBtn := NewButton(enterKey, form.ConfirmLabel)
+	confirmBtn.Foreground = opStyles.Confirm.Foreground
+	confirmBtn.Background = opStyles.Confirm.Background
 	if form.FieldFocus == form.CancelSlot() && !form.Popup.Open {
 		cancelBtn.State = ButtonFocused
 	}
@@ -54,18 +62,92 @@ func FormDialog(m *state.AppModel, overlayColor string, cfg DialogConfig, bodyW,
 	}
 	parts = append(parts, buttons, "", component.GetStyle(component.StyleDim).Render(i18n.T(hintKey)))
 
-	box := DialogBox(DialogStyle{
+	dialogStyle := DialogStyle{
 		Width:        dialogW,
 		Height:       dialogH,
 		MaxWidth:     cfg.PanelSize.MaxWidth,
-		TitleColor:   component.GetStyle(component.StylePanelTitle).GetForeground(),
+		TitleColor:   titleColor,
 		OverlayColor: overlayColor,
 		LeftAligned:  true,
-	}, parts...)
+	}
+	if opStyles.Window != (opStylesWindow{}) {
+		dialogStyle.Background = opStyles.Window.Background
+		dialogStyle.BorderColor = opStyles.Window.Border
+	}
+	box := DialogBox(dialogStyle, parts...)
 	if form.Popup.Open && form.Popup.Kind == state.PopupPath {
 		box = renderFormPopup(form, box, dialogW, dialogH)
 	}
 	return box
+}
+
+// opStylesWindow bundles a single container-operation window's background
+// + border so the dialog can be drawn with one consistent chrome. The zero
+// value is a sentinel meaning "use the existing default dialog chrome".
+type opStylesWindow struct {
+	Background color.Color
+	Border     color.Color
+}
+
+// opStylesButton bundles the foreground + background colour for a single
+// action button (Confirm or Cancel).
+type opStylesButton struct {
+	Foreground color.Color
+	Background color.Color
+}
+
+// formOperationStyles is the resolved style bundle for one of the eight
+// Action Bar container actions (or the zero-value fallback for forms that
+// aren't part of the set).
+type formOperationStyles struct {
+	Window  opStylesWindow
+	Confirm opStylesButton
+	Cancel  opStylesButton
+}
+
+// containerOperationStyles resolves the per-form-kind style bundle. The four
+// form-based container actions (Copy / Update / Export / Commit) consume the
+// theme.action.container slots; any other form falls back to the zero value
+// (no overrides), so the existing default dialog chrome remains unchanged.
+//
+// This dispatch is the container-scope branch of the broader Operation
+// theme contract (see R06-01); when image-scope forms are added later,
+// a parallel branch selecting theme.action.image is the one-line extension.
+func containerOperationStyles(kind state.FormKind) formOperationStyles {
+	if !isContainerOperationForm(kind) {
+		return formOperationStyles{}
+	}
+	windowStyle := component.GetStyle(component.StyleActionContainerWindow)
+	borderStyle := component.GetStyle(component.StyleActionContainerWindowBorder)
+	confirmStyle := component.GetStyle(component.StyleActionContainerConfirm)
+	cancelStyle := component.GetStyle(component.StyleActionContainerCancel)
+	return formOperationStyles{
+		Window: opStylesWindow{
+			Background: windowStyle.GetBackground(),
+			Border:     borderStyle.GetForeground(),
+		},
+		Confirm: opStylesButton{
+			Foreground: confirmStyle.GetForeground(),
+			Background: confirmStyle.GetBackground(),
+		},
+		Cancel: opStylesButton{
+			Foreground: cancelStyle.GetForeground(),
+			Background: cancelStyle.GetBackground(),
+		},
+	}
+}
+
+// isContainerOperationForm reports whether the given FormKind belongs to the
+// four form-based container-scope Operations (Copy / Update / Export /
+// Commit). It gates the application of theme.action.container.* slots in
+// FormDialog.
+func isContainerOperationForm(kind state.FormKind) bool {
+	switch kind {
+	case state.FormContainerCopy, state.FormContainerUpdate,
+		state.FormContainerExport, state.FormContainerCommit:
+		return true
+	}
+	return false
 }
 
 func formDialogSize(m *state.AppModel, cfg DialogConfig, bodyW, bodyH int) (dialogW, dialogH int) {
@@ -132,13 +214,13 @@ func appendFormLoading(parts []string, form state.FormState) []string {
 	return append(parts, component.GetStyle(component.StyleDim).Render(i18n.T("container.update.form.loading")))
 }
 
-func appendFormFields(parts []string, form state.FormState, labelWidth, valueWidth, popupInnerW int, cursorVisible bool) []string {
+func appendFormFields(parts []string, form state.FormState, labelWidth, valueWidth, popupInnerW int, cursorVisible bool, opStyles formOperationStyles) []string {
 	for i := range form.Fields {
 		f := form.Fields[i]
 		if f.Hidden() {
 			continue
 		}
-		parts = append(parts, renderFormField(form, f, i, labelWidth, valueWidth, cursorVisible))
+		parts = append(parts, renderFormField(form, f, i, labelWidth, valueWidth, cursorVisible, opStyles))
 		if form.Popup.Open && form.Popup.Field == i && form.Popup.Kind != state.PopupPath {
 			parts = appendFormPopupRows(parts, form, f, popupInnerW)
 		}
@@ -202,7 +284,7 @@ func formLayout(fields []state.FormField, innerWidth int) (labelWidth, valueWidt
 }
 
 // renderFormField draws one two-column row for a form field.
-func renderFormField(form state.FormState, f state.FormField, index, labelWidth, valueWidth int, cursorVisible ...bool) string {
+func renderFormField(form state.FormState, f state.FormField, index, labelWidth, valueWidth int, cursorVisible bool, opStyles formOperationStyles) string {
 	focused := form.FieldFocus == index
 	df, _ := f.(FormField)
 
@@ -229,7 +311,8 @@ func renderFormField(form state.FormState, f state.FormField, index, labelWidth,
 
 	value := ""
 	if df != nil {
-		value = df.Render(focused, valueWidth, cursorVisible...)
+		value = df.Render(focused, valueWidth, cursorVisible)
+		value = wrapFormInputValue(value, valueWidth, opStyles)
 	}
 	row := label + " " + value
 	if len(wrapLines) > 0 {
@@ -243,4 +326,39 @@ func renderFormField(form state.FormState, f state.FormField, index, labelWidth,
 		row += "\n" + pad + lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDialogError).GetForeground()).Render(f.Error())
 	}
 	return row
+}
+
+// wrapFormInputValue applies the formInput style (foreground / background)
+// to a rendered value cell. The zero-value opStyles is a no-op so existing
+// forms keep their original look; the container-operation forms override the
+// default FormInput slot with their own StyleContainerOperationFormInput
+// so the value cell matches the surrounding window chrome.
+func wrapFormInputValue(value string, width int, opStyles formOperationStyles) string {
+	if value == "" || width <= 0 {
+		return value
+	}
+	style := component.GetStyle(component.StyleFormInput)
+	fg := style.GetForeground()
+	bg := style.GetBackground()
+	if isContainerOperationFormFromStyles(opStyles) {
+		formInput := component.GetStyle(component.StyleActionContainerFormInput)
+		fg = formInput.GetForeground()
+		bg = formInput.GetBackground()
+	}
+	s := lipgloss.NewStyle()
+	if fg != nil {
+		s = s.Foreground(fg)
+	}
+	if bg != nil {
+		s = s.Background(bg)
+	}
+	return s.Width(width).Render(value)
+}
+
+// isContainerOperationFormFromStyles mirrors isContainerOperationForm but
+// for the resolved style bundle: any non-zero Confirm field means the form
+// is one of the four container-operation forms (Copy / Update / Export /
+// Commit) and should consume the containerOperation.* theme slots.
+func isContainerOperationFormFromStyles(opStyles formOperationStyles) bool {
+	return opStyles.Confirm != (opStylesButton{})
 }

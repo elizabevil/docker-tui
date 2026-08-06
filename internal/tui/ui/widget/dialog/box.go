@@ -12,12 +12,14 @@ import (
 
 // DialogStyle groups visual parameters for a dialog box.
 type DialogStyle struct {
-	Width        int
-	Height       int
-	MaxWidth     int
-	TitleColor   color.Color
-	OverlayColor string
-	LeftAligned  bool
+	Width           int
+	Height          int
+	MaxWidth        int
+	TitleColor      color.Color
+	BorderColor     color.Color
+	Background      color.Color
+	OverlayColor    string
+	LeftAligned     bool
 }
 
 // DialogBox renders a bordered dialog container.
@@ -41,9 +43,15 @@ func DialogBox(style DialogStyle, parts ...string) string {
 	if style.MaxWidth > 0 {
 		s = s.MaxWidth(style.MaxWidth)
 	}
-	bodyBg := component.GetStyle(component.StyleDialogBodyBackground).GetBackground()
-	if bodyBg != nil {
-		s = s.Background(bodyBg)
+	if style.BorderColor != nil {
+		s = s.BorderForeground(style.BorderColor)
+	}
+	bg := style.Background
+	if bg == nil {
+		bg = component.GetStyle(component.StyleDialogBodyBackground).GetBackground()
+	}
+	if bg != nil {
+		s = s.Background(bg)
 	}
 
 	if style.Height > 0 {

@@ -1,0 +1,29 @@
+// operations/scopes/image.jsonc
+//
+// Every Image-scope Operation is fully self-contained here. Currently
+// `history` is the only entry; future Operations (imageImport /
+// imageExport / imageTag / imagePush / imageSave / imageLoad / imagePrune)
+// add new objects below without touching any other file.
+//
+// Tokens (closed universe, enforced at load):
+//   Requires (AND, all must be true to enable):
+//     "engine"    — m.Connection.Engine must be set
+//     "image"     — active panel is images and a row is selected
+//   DisabledWhen (OR, any true disables):
+//     "manifest"  — selected image summary IsManifest flag is true
+
+{
+  "scope": "image",
+  "operations": [
+    {
+      "kind":         "history",
+      "action":       "imageHistory",
+      "mode":         "page",
+      "page":         { "body": "historyLayers" },
+      "label":        "Image History",
+      "description":  "View per-layer build history",
+      "requires":     ["engine", "image"],
+      "disabledWhen": ["manifest"]
+    }
+  ]
+}

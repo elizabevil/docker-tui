@@ -19,14 +19,18 @@ const (
 )
 
 const (
-	defaultGeneralFile  = "general.jsonc"
-	defaultUIFile       = "ui.jsonc"
-	defaultDockerFile   = "docker.jsonc"
-	defaultRuntimeFile  = "runtime.jsonc"
-	defaultLogsFile     = "logs.jsonc"
-	defaultLayoutFile   = "layout.jsonc"
-	defaultCommandsFile = "commands.jsonc"
-	defaultKeymapFile   = "keymap.jsonc"
+	defaultGeneralFile       = "general.jsonc"
+	defaultUIFile            = "ui.jsonc"
+	defaultDockerFile        = "docker.jsonc"
+	defaultRuntimeFile       = "runtime.jsonc"
+	defaultLogsFile          = "logs.jsonc"
+	defaultLayoutFile        = "layout.jsonc"
+	defaultCommandsFile      = "commands.jsonc"
+	defaultKeymapFile        = "keymap.jsonc"
+	operationsScopesDir      = "operations/scopes"
+	operationsFileExt        = ".jsonc"
+	operationsKindScopeSep   = "::"
+	operationsSlash          = "/"
 )
 
 const (

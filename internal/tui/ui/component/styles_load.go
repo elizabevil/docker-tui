@@ -65,6 +65,16 @@ const (
 	StyleDialogConfirm        StyleName = "dialogConfirm"
 	StyleDialogError          StyleName = "dialogError"
 	StyleDialogWarning        StyleName = "dialogWarning"
+	StyleActionContainerWindow       StyleName = "actionContainerWindow"
+	StyleActionContainerWindowBorder StyleName = "actionContainerWindowBorder"
+	StyleActionContainerFormInput    StyleName = "actionContainerFormInput"
+	StyleActionContainerConfirm      StyleName = "actionContainerConfirm"
+	StyleActionContainerCancel       StyleName = "actionContainerCancel"
+	StyleActionImageWindow           StyleName = "actionImageWindow"
+	StyleActionImageWindowBorder     StyleName = "actionImageWindowBorder"
+	StyleActionImageFormInput        StyleName = "actionImageFormInput"
+	StyleActionImageConfirm          StyleName = "actionImageConfirm"
+	StyleActionImageCancel           StyleName = "actionImageCancel"
 )
 
 // allStyleNames 列出全部已注册样式名,供测试断言 lookup 无遗漏。
@@ -80,6 +90,8 @@ var allStyleNames = []StyleName{
 	StyleHeaderLabel, StyleKeyBadge, StyleKeyLast, StyleFooter, StyleShortcutBar,
 	StyleActionBar, StyleActionBarBorder, StyleFormInput, StyleMessageRail, StyleQueryBar, StyleSelectedRow,
 	StyleDialogConfirm, StyleDialogError, StyleDialogWarning,
+	StyleActionContainerWindow, StyleActionContainerWindowBorder, StyleActionContainerFormInput, StyleActionContainerConfirm, StyleActionContainerCancel,
+	StyleActionImageWindow, StyleActionImageWindowBorder, StyleActionImageFormInput, StyleActionImageConfirm, StyleActionImageCancel,
 }
 
 type globalStyleRefs struct {
@@ -131,6 +143,16 @@ type globalStyleRefs struct {
 	DialogConfirm        styleRef `json:"dialogConfirm"`
 	DialogError          styleRef `json:"dialogError"`
 	DialogWarning        styleRef `json:"dialogWarning"`
+	ActionContainerWindow       styleRef `json:"actionContainerWindow"`
+	ActionContainerWindowBorder styleRef `json:"actionContainerWindowBorder"`
+	ActionContainerFormInput    styleRef `json:"actionContainerFormInput"`
+	ActionContainerConfirm      styleRef `json:"actionContainerConfirm"`
+	ActionContainerCancel       styleRef `json:"actionContainerCancel"`
+	ActionImageWindow           styleRef `json:"actionImageWindow"`
+	ActionImageWindowBorder     styleRef `json:"actionImageWindowBorder"`
+	ActionImageFormInput        styleRef `json:"actionImageFormInput"`
+	ActionImageConfirm          styleRef `json:"actionImageConfirm"`
+	ActionImageCancel           styleRef `json:"actionImageCancel"`
 }
 
 // styleRef 是 utils.StyleRef 的本地别名。组件层沿用短名以保留
@@ -224,6 +246,16 @@ func ApplyThemeStyles(theme *config.Theme) {
 	rawStyles.DialogConfirm = styleRef{Color: resolveForeground(theme.Text.Success), Background: resolveBackground(theme.Toast.Background), Bold: true}
 	rawStyles.DialogError = styleRef{Color: resolveForeground(theme.Text.Error), Background: resolveBackground(theme.Toast.Background)}
 	rawStyles.DialogWarning = styleRef{Color: resolveForeground(theme.Text.Warning), Background: resolveBackground(theme.Toast.Background)}
+	rawStyles.ActionContainerWindow = styleRef{Background: resolveBackground(theme.Action.Container.Window.Background)}
+	rawStyles.ActionContainerWindowBorder = styleRef{Color: resolveForeground(theme.Action.Container.Window.Border)}
+	rawStyles.ActionContainerFormInput = styleRef{Color: resolveForeground(theme.Action.Container.FormInput.Foreground), Background: resolveBackground(theme.Action.Container.FormInput.Background)}
+	rawStyles.ActionContainerConfirm = styleRef{Color: resolveForeground(theme.Action.Container.Confirm.Foreground), Background: resolveBackground(theme.Action.Container.Confirm.Background), Bold: true}
+	rawStyles.ActionContainerCancel = styleRef{Color: resolveForeground(theme.Action.Container.Cancel.Foreground), Background: resolveBackground(theme.Action.Container.Cancel.Background)}
+	rawStyles.ActionImageWindow = styleRef{Background: resolveBackground(theme.Action.Image.Window.Background)}
+	rawStyles.ActionImageWindowBorder = styleRef{Color: resolveForeground(theme.Action.Image.Window.Border)}
+	rawStyles.ActionImageFormInput = styleRef{Color: resolveForeground(theme.Action.Image.FormInput.Foreground), Background: resolveBackground(theme.Action.Image.FormInput.Background)}
+	rawStyles.ActionImageConfirm = styleRef{Color: resolveForeground(theme.Action.Image.Confirm.Foreground), Background: resolveBackground(theme.Action.Image.Confirm.Background), Bold: true}
+	rawStyles.ActionImageCancel = styleRef{Color: resolveForeground(theme.Action.Image.Cancel.Foreground), Background: resolveBackground(theme.Action.Image.Cancel.Background)}
 
 	tableCfg.RowStyles.Selected.Color = resolveForeground(theme.Main.RowText)
 	tableCfg.RowStyles.Selected.Background = resolveBackground(theme.Main.RowSelected)
@@ -469,6 +501,26 @@ func (s globalStyleRefs) lookup(name StyleName) (styleRef, bool) {
 		return s.DialogError, true
 	case StyleDialogWarning:
 		return s.DialogWarning, true
+	case StyleActionContainerWindow:
+		return s.ActionContainerWindow, true
+	case StyleActionContainerWindowBorder:
+		return s.ActionContainerWindowBorder, true
+	case StyleActionContainerFormInput:
+		return s.ActionContainerFormInput, true
+	case StyleActionContainerConfirm:
+		return s.ActionContainerConfirm, true
+	case StyleActionContainerCancel:
+		return s.ActionContainerCancel, true
+	case StyleActionImageWindow:
+		return s.ActionImageWindow, true
+	case StyleActionImageWindowBorder:
+		return s.ActionImageWindowBorder, true
+	case StyleActionImageFormInput:
+		return s.ActionImageFormInput, true
+	case StyleActionImageConfirm:
+		return s.ActionImageConfirm, true
+	case StyleActionImageCancel:
+		return s.ActionImageCancel, true
 	default:
 		return styleRef{}, false
 	}

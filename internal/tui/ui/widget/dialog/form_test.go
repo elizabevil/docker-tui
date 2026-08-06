@@ -109,7 +109,7 @@ func TestFormLayoutWidthsOutsideIn(t *testing.T) {
 func TestRenderFormFieldShowsHelperText(t *testing.T) {
 	field := NewIntField(IntFieldConfig{Key: "memory", Label: "Memory", HelperText: "MB"})
 	form := state.FormState{Fields: []state.FormField{field}}
-	row := stripANSI(renderFormField(form, field, 0, 24, 40))
+	row := stripANSI(renderFormField(form, field, 0, 24, 40, true, formOperationStyles{}))
 	if !strings.Contains(row, " (MB)") {
 		t.Fatalf("renderFormField must append HelperText in parentheses: %q", row)
 	}
@@ -118,7 +118,7 @@ func TestRenderFormFieldShowsHelperText(t *testing.T) {
 func TestRenderFormFieldOmitsHelperTextWhenEmpty(t *testing.T) {
 	field := NewIntField(IntFieldConfig{Key: "memory", Label: "Memory"})
 	form := state.FormState{Fields: []state.FormField{field}}
-	row := stripANSI(renderFormField(form, field, 0, 24, 40))
+	row := stripANSI(renderFormField(form, field, 0, 24, 40, true, formOperationStyles{}))
 	if strings.Contains(row, "()") {
 		t.Fatalf("empty HelperText must not render stray parens: %q", row)
 	}
@@ -236,7 +236,7 @@ func TestRenderPathValueFocusedKeepsCursorWindow(t *testing.T) {
 func TestFocusedFormFieldHasBackground(t *testing.T) {
 	field := NewPathField(PathFieldConfig{Key: "destination", Label: "Local destination (tar)", Text: "/home/debi/archive.tar"})
 	form := state.FormState{Fields: []state.FormField{field}, FieldFocus: 0}
-	row := renderFormField(form, field, 0, 24, 50)
+	row := renderFormField(form, field, 0, 24, 50, true, formOperationStyles{})
 	if !strings.Contains(row, "\x1b[48") {
 		t.Fatalf("focused form row must paint the input cell background: %q", row)
 	}

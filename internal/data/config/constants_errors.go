@@ -66,6 +66,17 @@ const (
 	errThemeNameRequired                = "theme name is required"
 	errThemeNameInvalidFormat           = "theme name %q contains invalid characters"
 	errValidateResolvedThemeFormat      = "validate resolved theme: %w"
+	errOperationsReadEmbeddedFormat     = "read embedded operations file %s: %w"
+	errOperationsParseEmbeddedFormat    = "parse embedded operations file %s: %w"
+	errOperationsDuplicateActionFormat  = "operations action %q appears in both %s and %s"
+	errOperationsDuplicateKindFormat    = "operations scope %q declares duplicate kind %q"
+	errOperationsUnknownRequirementFormat = "operations %s::%s declares unknown requirement %q"
+	errOperationsMissingModeBodyFormat = "operations %s::%s mode=%s but body sub-object missing"
+	errOperationsUnexpectedModeBodyFormat = "operations %s::%s declares %s body but mode=%s"
+	errOperationsEmptyKindFormat        = "operations scope %s declares an entry with empty kind"
+	errOperationsEmptyActionFormat      = "operations scope %s declares an entry with empty action"
+	errOperationsReadScopeDirFormat     = "read operations scope dir %s: %w"
+	errOperationsScopeCollisionFormat   = "%s: %s"
 )
 
 const (

@@ -132,27 +132,18 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 		return openHistoryPage(m)
 	case keys.ActionEvents:
 		return openEventsPage(m)
-	case keys.ActionContainerDiff:
-		return doContainerDiff(m)
-	case keys.ActionContainerWait:
-		return doContainerWait(m)
 
 	case keys.ActionActionBar:
 		return doActionBar(m)
-	case keys.ActionContainerRename:
-		return openRenameDialog(m)
-	case keys.ActionContainerTop:
-		return openTopView(m)
-	case keys.ActionContainerPort:
-		return openPortDetail(m)
-	case keys.ActionContainerCopy:
-		return openContainerCopyForm(m)
-	case keys.ActionContainerUpdate:
-		return openContainerUpdateForm(m)
-	case keys.ActionContainerExport:
-		return openContainerExportForm(m)
-	case keys.ActionContainerCommit:
-		return openContainerCommitForm(m)
+	}
+
+	// R06-03: every Operation-tagged KeyAction routes through the
+	// dispatcher (registry + scope JSONC → Mode-specific handler). The
+	// branch above still owns the non-Operation actions (Quit, Help,
+	// Panel navigation, ImageTransfer*, Volume / Network primitives)
+	// because they are not declared as Operations in the registry.
+	if m2, c, ok := dispatchOperation(string(action), m); ok {
+		return m2, c
 	}
 
 	return m, tea.Batch(cmds...)

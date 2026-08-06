@@ -21,9 +21,9 @@ import (
 //	ActionRename  — Name (required)
 //	ActionRemove  — Force, RemoveVolumes
 //
-// Bundling the four fields into one struct keeps the dispatcher
-// signature within the 5-parameter limit and makes the call site
-// self-documenting (opts vs ctx,id,action,timeout,force,signal,name).
+// Bundling the fields into one struct keeps the dispatcher signature
+// readable and makes the call site self-documenting. Use Query to
+// produce the URL query values for a given action.
 type ContainerActionOptions struct {
 	// Timeout applies to stop / restart. Zero means "engine default".
 	Timeout time.Duration
@@ -37,24 +37,75 @@ type ContainerActionOptions struct {
 	RemoveVolumes bool
 }
 
+// Query returns the URL query parameters built from the fields relevant
+// to the given action. Zero values are skipped; Force is always emitted
+// for ActionRemove because the endpoint treats an absent value as
+// implementation-defined.
+func (o ContainerActionOptions) Query(action string) url.Values {
+	q := make(url.Values)
+	switch action {
+	case ActionStop:
+		o.setTimeout(q)
+		o.setSignal(q)
+	case ActionRestart:
+		o.setTimeout(q)
+	case ActionKill:
+		o.setSignal(q)
+	case ActionRename:
+		o.setName(q)
+	case ActionRemove:
+		o.setForce(q)
+		o.setRemoveVolumes(q)
+	}
+	return q
+}
+
+// setTimeout sets the "timeout" parameter when Timeout is non-zero.
+func (o ContainerActionOptions) setTimeout(q url.Values) {
+	if o.Timeout > 0 {
+		q.Set("timeout", strconv.FormatInt(int64(o.Timeout/time.Second), 10))
+	}
+}
+
+// setSignal sets the "signal" parameter when Signal is non-empty.
+func (o ContainerActionOptions) setSignal(q url.Values) {
+	if o.Signal != "" {
+		q.Set("signal", o.Signal)
+	}
+}
+
+// setName sets the "name" parameter when Name is non-empty.
+func (o ContainerActionOptions) setName(q url.Values) {
+	if o.Name != "" {
+		q.Set("name", o.Name)
+	}
+}
+
+// setForce always sets the "force" parameter; zero Force renders "false".
+func (o ContainerActionOptions) setForce(q url.Values) {
+	q.Set("force", strconv.FormatBool(o.Force))
+}
+
+// setRemoveVolumes sets the "v" parameter when RemoveVolumes is true.
+func (o ContainerActionOptions) setRemoveVolumes(q url.Values) {
+	if o.RemoveVolumes {
+		q.Set("v", "1")
+	}
+}
+
 // ExecuteContainerAction performs a lifecycle action on a container via
 // the Podman Libpod REST API. Action is a podman-native action name;
 // callers in the runtime package map domain actions to these.
 func (c *RESTClient) ExecuteContainerAction(ctx context.Context, id, action string, opts ContainerActionOptions) error {
-	query := make(url.Values)
 	switch action {
 	case ActionStart:
 		return c.Post(ctx, ContainerStartPath(id), nil, nil, nil)
 	case ActionStop:
-		setPodmanTimeout(query, opts.Timeout)
-		setPodmanSignal(query, opts.Signal)
-		return c.Post(ctx, ContainerStopPath(id), query, nil, nil)
+		return c.Post(ctx, ContainerStopPath(id), opts.Query(action), nil, nil)
 	case ActionRestart:
-		setPodmanTimeout(query, opts.Timeout)
-		return c.Post(ctx, ContainerRestartPath(id), query, nil, nil)
+		return c.Post(ctx, ContainerRestartPath(id), opts.Query(action), nil, nil)
 	case ActionKill:
-		setPodmanSignal(query, opts.Signal)
-		return c.Post(ctx, ContainerKillPath(id), query, nil, nil)
+		return c.Post(ctx, ContainerKillPath(id), opts.Query(action), nil, nil)
 	case ActionPause:
 		return c.Post(ctx, ContainerPausePath(id), nil, nil, nil)
 	case ActionUnpause:
@@ -63,27 +114,10 @@ func (c *RESTClient) ExecuteContainerAction(ctx context.Context, id, action stri
 		if opts.Name == "" {
 			return newPodmanError(KindInvalid, "container.rename", fmt.Errorf("name is required"))
 		}
-		query.Set("name", opts.Name)
-		return c.Post(ctx, ContainerRenamePath(id), query, nil, nil)
+		return c.Post(ctx, ContainerRenamePath(id), opts.Query(action), nil, nil)
 	case ActionRemove:
-		query.Set("force", strconv.FormatBool(opts.Force))
-		if opts.RemoveVolumes {
-			query.Set("v", "1")
-		}
-		return c.DeleteWithQuery(ctx, ContainerRemovePath(id), query)
+		return c.DeleteWithQuery(ctx, ContainerRemovePath(id), opts.Query(action))
 	default:
 		return newPodmanError(KindInvalid, "container."+action, fmt.Errorf("unsupported action: %s", action))
-	}
-}
-
-func setPodmanTimeout(query url.Values, timeout time.Duration) {
-	if timeout > 0 {
-		query.Set("timeout", strconv.FormatInt(int64(timeout/time.Second), 10))
-	}
-}
-
-func setPodmanSignal(query url.Values, signal string) {
-	if signal != "" {
-		query.Set("signal", signal)
 	}
 }

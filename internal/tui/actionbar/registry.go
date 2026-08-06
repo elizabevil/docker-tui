@@ -3,6 +3,7 @@ package actionbar
 import (
 	"strings"
 
+	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
@@ -10,6 +11,9 @@ import (
 // ActionItem describes a complex operation exposed through Action Bar.
 // Key is normally empty: actions with direct shortcuts belong in the footer,
 // while Action Bar is reserved for dialog, workflow, or multi-step actions.
+//
+// The item list is built from the loaded Operations registry
+// (R06-03); this struct only carries the display-time view.
 type ActionItem struct {
 	Key         string
 	Label       string
@@ -18,11 +22,38 @@ type ActionItem struct {
 	Disabled    bool
 }
 
+// scopeForPanel maps the active panel to the resource scope the action
+// bar should project. Adding a new resource scope (Volume / Network /
+// Compose) is a one-line addition here plus a matching scope file in
+// config/defaults/operations/scopes/.
+func scopeForPanel(panel state.PanelType) (config.OperationScope, bool) {
+	switch panel {
+	case state.PanelContainers:
+		return config.OperationScopeContainer, true
+	case state.PanelImages:
+		return config.OperationScopeImage, true
+	default:
+		return "", false
+	}
+}
+
+// VisibleItems returns the action bar items for the active panel,
+// filtered by the fuzzy-search buffer. The list is sourced from the
+// loaded Operations registry; per-panel selection + disabled
+// evaluation are the only logic remaining here.
 func VisibleItems(m *state.AppModel) []ActionItem {
 	if m == nil {
 		return nil
 	}
-	raw := actionsForPanel(m)
+	scope, ok := scopeForPanel(m.Navigation.ActivePanel)
+	if !ok {
+		return nil
+	}
+	ops, err := config.CachedLoadOperations()
+	if err != nil {
+		return nil
+	}
+	raw := buildItemsForScope(m, ops, scope)
 	filter := strings.ToLower(strings.TrimSpace(m.Navigation.ActionBar.Filter))
 	if filter == "" {
 		return raw
@@ -37,70 +68,71 @@ func VisibleItems(m *state.AppModel) []ActionItem {
 	return out
 }
 
-func actionsForPanel(m *state.AppModel) []ActionItem {
-	switch m.Navigation.ActivePanel {
-	case state.PanelImages:
-		return imageActions(m)
-	case state.PanelContainers:
-		return containerActions(m)
+// buildItemsForScope projects an Operations slice into the action bar
+// display shape, evaluating Requires and DisabledWhen against the
+// live AppModel.
+func buildItemsForScope(m *state.AppModel, ops *config.Operations, scope config.OperationScope) []ActionItem {
+	specs := ops.ForScope(scope)
+	items := make([]ActionItem, 0, len(specs))
+	for _, spec := range specs {
+		items = append(items, ActionItem{
+			Label:       spec.Label,
+			Action:      keys.KeyAction(spec.Action),
+			Description: spec.Description,
+			Disabled:    !evaluateEnabled(spec, m),
+		})
+	}
+	return items
+}
+
+// evaluateEnabled returns true when the Operation should be available
+// in the action bar. The decision combines two checks:
+//
+//	Requires    — AND-combined positives. ALL must be satisfied.
+//	DisabledWhen — OR-combined negatives. ANY satisfied means disabled.
+//
+// Token semantics (closed universe, enforced at load):
+//
+//	"engine"     — m.Connection.Engine != nil
+//	"container"  — active panel is containers and a row is selected
+//	"image"      — active panel is images and a row is selected
+//	"running"    — selected container is in ContainerStateRunning
+//	"manifest"   — selected image summary's IsManifest flag is true
+//
+// Both lists empty → always enabled.
+func evaluateEnabled(spec config.OperationSpec, m *state.AppModel) bool {
+	for _, req := range spec.Requires {
+		if !positiveSatisfied(req, m) {
+			return false
+		}
+	}
+	for _, neg := range spec.DisabledWhen {
+		if positiveSatisfied(neg, m) {
+			return false
+		}
+	}
+	return true
+}
+
+// positiveSatisfied returns true when the named Requirement is met.
+// The token set is closed at load time so this is a flat switch —
+// any unknown token fails closed (returns false) so a JSONC typo
+// disables the action instead of leaking into the UI.
+func positiveSatisfied(req config.Requirement, m *state.AppModel) bool {
+	switch req {
+	case config.RequirementEngine:
+		return m.Connection.Engine != nil
+	case config.RequirementContainer:
+		return m.Navigation.ActivePanel == state.PanelContainers && m.Resources.Containers.Selected() != nil
+	case config.RequirementImage:
+		return m.Navigation.ActivePanel == state.PanelImages && m.Resources.Images.Selected() != nil
+	case config.RequirementRunning:
+		c := m.Resources.Containers.Selected()
+		return c != nil && c.State == state.ContainerStateRunning
+	case config.RequirementManifest:
+		img := m.Resources.Images.Selected()
+		return img != nil && img.IsManifest
 	default:
-		return nil
-	}
-}
-
-func containerActions(m *state.AppModel) []ActionItem {
-	container := m.Resources.Containers.Selected()
-	missingContainer := container == nil
-	missingEngine := m.Connection.Engine == nil
-	topDisabled := missingEngine || missingContainer || container.State != state.ContainerStateRunning
-	return []ActionItem{
-		{
-			Label: "Rename", Action: keys.ActionContainerRename,
-			Description: "Open the container rename dialog", Disabled: missingEngine || missingContainer,
-		},
-		{
-			Label: "Top", Action: keys.ActionContainerTop,
-			Description: "Open the running container process view", Disabled: topDisabled,
-		},
-		{
-			Label: "Port", Action: keys.ActionContainerPort,
-			Description: "Open structured container port mappings", Disabled: missingContainer,
-		},
-		{
-			Label: "Filesystem Diff", Action: keys.ActionContainerDiff,
-			Description: "Inspect filesystem changes from the base image", Disabled: missingEngine || missingContainer,
-		},
-		{
-			Label: "Wait", Action: keys.ActionContainerWait,
-			Description: "Wait until the container is no longer running", Disabled: missingEngine || missingContainer,
-		},
-		{
-			Label: "Copy", Action: keys.ActionContainerCopy,
-			Description: "Copy a file or directory out of the container as a tar", Disabled: missingEngine || missingContainer,
-		},
-		{
-			Label: "Update", Action: keys.ActionContainerUpdate,
-			Description: "Change memory, CPU and restart-policy resources", Disabled: missingEngine || missingContainer,
-		},
-		{
-			Label: "Export", Action: keys.ActionContainerExport,
-			Description: "Export the container filesystem as a tar", Disabled: missingEngine || missingContainer,
-		},
-		{
-			Label: "Commit", Action: keys.ActionContainerCommit,
-			Description: "Snapshot the container as a new image", Disabled: missingEngine || missingContainer,
-		},
-	}
-}
-
-func imageActions(m *state.AppModel) []ActionItem {
-	summary := m.Resources.Images.Selected()
-	missingImage := summary == nil
-	missingEngine := m.Connection.Engine == nil
-	return []ActionItem{
-		{
-			Label: "Image History", Action: keys.ActionImageHistory,
-			Description: "View per-layer build history", Disabled: missingEngine || missingImage || summary.IsManifest,
-		},
+		return false
 	}
 }

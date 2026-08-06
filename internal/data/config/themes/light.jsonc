@@ -181,6 +181,76 @@
       "error": {
         "token": "danger"
       }
+    },
+    "action": {
+      "container": {
+        "window": {
+          "background": {
+            "token": "backgroundSubtle"
+          },
+          "border": {
+            "value": "#3875d7"
+          }
+        },
+        "formInput": {
+          "foreground": {
+            "token": "foreground"
+          },
+          "background": {
+            "value": "#f0f0f0"
+          }
+        },
+        "confirm": {
+          "foreground": {
+            "value": "#8a3fa0"
+          },
+          "background": {
+            "token": "transparent"
+          }
+        },
+        "cancel": {
+          "foreground": {
+            "token": "foregroundMuted"
+          },
+          "background": {
+            "token": "transparent"
+          }
+        }
+      },
+      "image": {
+        "window": {
+          "background": {
+            "token": "backgroundSubtle"
+          },
+          "border": {
+            "token": "primary"
+          }
+        },
+        "formInput": {
+          "foreground": {
+            "token": "foreground"
+          },
+          "background": {
+            "token": "backgroundDeep"
+          }
+        },
+        "confirm": {
+          "foreground": {
+            "token": "success"
+          },
+          "background": {
+            "token": "transparent"
+          }
+        },
+        "cancel": {
+          "foreground": {
+            "token": "foregroundMuted"
+          },
+          "background": {
+            "token": "transparent"
+          }
+        }
+      }
     }
   }
 }

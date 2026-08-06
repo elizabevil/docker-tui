@@ -6,6 +6,16 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
+// ── FormInfo banner icons ───────────────────────────────────────
+const (
+	// IconInfo is the U+2139 INFORMATION SOURCE prefix rendered by
+	// FormDisplayInfo banners.
+	IconInfo = "\u2139"
+	// IconWarning is the U+26A0 WARNING SIGN prefix rendered by
+	// FormDisplayWarning banners.
+	IconWarning = "\u26a0"
+)
+
 // FormDisplayLevel is the severity of a FormInfo banner.
 type FormDisplayLevel int
 
@@ -69,14 +79,9 @@ func (i FormInfo) Render(width int) string {
 	if width <= 0 {
 		width = 40
 	}
-	icon := "\u2139" // ℹ
-	styleName := component.StyleDialogError
-	if i.Level == FormDisplayInfo {
-		icon = "\u2139"
-		styleName = component.StyleDialogConfirm
-	} else {
-		icon = "\u26a0" // ⚠
-		styleName = component.StyleDialogWarning
+	icon, styleName := IconInfo, component.StyleDialogConfirm
+	if i.Level == FormDisplayWarning {
+		icon, styleName = IconWarning, component.StyleDialogWarning
 	}
 	body := lipgloss.NewStyle().Width(width - 2).Render(icon + " " + i.Text)
 	return component.GetStyle(styleName).Render(body)

@@ -1,6 +1,8 @@
 package dialog
 
 import (
+	"image/color"
+
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 
 	"charm.land/lipgloss/v2"
@@ -26,10 +28,16 @@ const (
 // It renders a key hint, an indicator triangle, and a label, matching the
 // existing dialog language. The Button itself carries no behavior: the caller
 // decides what a focus / activation means.
+//
+// Optional Foreground and Background override the state-based default colour
+// slots; they are typically wired to the per-form-kind Confirm / Cancel
+// theme slots so the button row matches the surrounding window chrome.
 type Button struct {
-	Key   string // key hint shown before the indicator (e.g. "esc", "enter")
-	Label string // human-readable action label
-	State ButtonState
+	Key         string
+	Label       string
+	State       ButtonState
+	Foreground  color.Color
+	Background  color.Color
 }
 
 // NewButton creates a Button with the given key hint and label.
@@ -52,6 +60,12 @@ func (b Button) Render() string {
 			Bold(true)
 	case ButtonDisabled:
 		style = style.Faint(true)
+	}
+	if b.Foreground != nil {
+		style = style.Foreground(b.Foreground)
+	}
+	if b.Background != nil {
+		style = style.Background(b.Background)
 	}
 	label := b.Label
 	if b.State == ButtonFocused || b.State == ButtonDanger {

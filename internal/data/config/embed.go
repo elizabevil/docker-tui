@@ -8,7 +8,7 @@ import (
 //go:embed themes/*.jsonc
 var embeddedThemes embed.FS
 
-//go:embed defaults/*.jsonc
+//go:embed defaults/*.jsonc defaults/operations/scopes/*.jsonc
 var embeddedDefaults embed.FS
 
 func DefaultsFS() fs.FS {

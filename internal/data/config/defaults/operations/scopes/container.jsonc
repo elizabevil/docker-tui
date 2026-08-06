@@ -1,0 +1,105 @@
+// operations/scopes/container.jsonc
+//
+// Every Container-scope Operation is fully self-contained here: each
+// entry carries Kind / Action / Mode / body sub-object / Label /
+// Description / Requires. There is no global registry to keep in sync
+// — adding an Operation is one new object here plus (for new modes
+// or body values) one new switch arm in operation_dispatch.go.
+//
+// Mode ↔ body sub-object contract:
+//   mode = form   → "form":   { "kind": "<FormKind name>" }
+//   mode = page   → "page":   { "body": "<page renderer>" }
+//   mode = async  → "async":  { "body": "<async renderer>" }
+//
+// Requires tokens (closed universe, enforced at load):
+//   "engine"     — m.Connection.Engine must be set
+//   "container"  — active panel is containers and a row is selected
+//   "running"    — selected container's state == ContainerStateRunning
+// Multiple Requires are AND-combined.
+
+{
+  "scope": "container",
+  "operations": [
+    {
+      "kind":   "rename",
+      "action": "containerRename",
+      "mode":   "form",
+      "form":   { "kind": "containerRename" },
+      "label":  "Rename",
+      "description": "Open the container rename dialog",
+      "requires": ["engine", "container"]
+    },
+    {
+      "kind":   "top",
+      "action": "containerTop",
+      "mode":   "page",
+      "page":   { "body": "processes" },
+      "label":  "Top",
+      "description": "Open the running container process view",
+      "requires": ["engine", "container", "running"]
+    },
+    {
+      "kind":   "port",
+      "action": "containerPort",
+      "mode":   "page",
+      "page":   { "body": "portBindings" },
+      "label":  "Port",
+      "description": "Open structured container port mappings",
+      "requires": ["container"]
+    },
+    {
+      "kind":   "diff",
+      "action": "containerDiff",
+      "mode":   "page",
+      "page":   { "body": "diffChanges" },
+      "label":  "Filesystem Diff",
+      "description": "Inspect filesystem changes from the base image",
+      "requires": ["engine", "container"]
+    },
+    {
+      "kind":   "wait",
+      "action": "containerWait",
+      "mode":   "async",
+      "async":  { "body": "wait" },
+      "label":  "Wait",
+      "description": "Wait until the container is no longer running",
+      "requires": ["engine", "container"]
+    },
+    {
+      "kind":   "copy",
+      "action": "containerCopy",
+      "mode":   "form",
+      "form":   { "kind": "containerCopy" },
+      "label":  "Copy",
+      "description": "Copy a file or directory out of the container as a tar",
+      "requires": ["engine", "container"]
+    },
+    {
+      "kind":   "update",
+      "action": "containerUpdate",
+      "mode":   "form",
+      "form":   { "kind": "containerUpdate" },
+      "label":  "Update",
+      "description": "Change memory, CPU and restart-policy resources",
+      "requires": ["engine", "container"]
+    },
+    {
+      "kind":   "export",
+      "action": "containerExport",
+      "mode":   "form",
+      "form":   { "kind": "containerExport" },
+      "label":  "Export",
+      "description": "Export the container filesystem as a tar",
+      "requires": ["engine", "container"]
+    },
+    {
+      "kind":   "commit",
+      "action": "containerCommit",
+      "mode":   "form",
+      "form":   { "kind": "containerCommit" },
+      "label":  "Commit",
+      "description": "Snapshot the container as a new image",
+      "requires": ["engine", "container"]
+    }
+  ]
+}
