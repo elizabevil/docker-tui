@@ -8,13 +8,15 @@ import (
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keyboard"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
+	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 	"github.com/elizabevil/docker-tui/internal/utils"
 
 	tea "charm.land/bubbletea/v2"
 )
 
 func handleContainerBatchActioned(m *state.AppModel, msg state.ContainerBatchActioned) (*state.AppModel, tea.Cmd) {
-	display := fmt.Sprintf("%s %d, %s %d, %s %d", i18n.T("batch.succeeded"), msg.Success, i18n.T("batch.skipped"), msg.Skipped, i18n.T("batch.failed"), msg.Failed)
+	toast := component.NewBulkActionToast(msg.Success, msg.Skipped, msg.Failed)
+	display := toast.Text(i18n.T("batch.succeeded"), i18n.T("batch.skipped"), i18n.T("batch.failed"))
 	result := audit.ResultSucceeded
 	if msg.Failed > 0 {
 		result = audit.ResultFailed
@@ -30,16 +32,30 @@ func handleContainerBatchActioned(m *state.AppModel, msg state.ContainerBatchAct
 	return m, nil
 }
 
+// handleBatchProgressed tracks the live progress of an in-flight batch
+// operation. It updates the Feedback batch progress slot; the message rail
+// renders the BatchProgressIndicator from it.
+func handleBatchProgressed(m *state.AppModel, msg state.BatchProgressed) (*state.AppModel, tea.Cmd) {
+	m.Feedback.BatchProgress = &state.BatchProgressState{
+		Scope:   msg.Scope,
+		Action:  msg.Action,
+		Total:   msg.Total,
+		Current: msg.Current,
+		Success: msg.Success,
+		Failed:  msg.Failed,
+		Skipped: msg.Skipped,
+	}
+	return m, nil
+}
+
 // handleBatchActioned processes the aggregate batch summary emitted by
 // container / image / volume / network / compose batch and bulk operations.
 // TASK-010: collect per-target results into one summary so the user sees
 // "succeeded/skipped/failed" instead of N independent toasts.
 func handleBatchActioned(m *state.AppModel, msg state.BatchActioned) (*state.AppModel, tea.Cmd) {
-	display := fmt.Sprintf("%s %d, %s %d, %s %d",
-		i18n.T("batch.succeeded"), msg.Success,
-		i18n.T("batch.skipped"), msg.Skipped,
-		i18n.T("batch.failed"), msg.Failed,
-	)
+	toast := component.NewBulkActionToast(msg.Success, msg.Skipped, msg.Failed)
+	display := toast.Text(i18n.T("batch.succeeded"), i18n.T("batch.skipped"), i18n.T("batch.failed"))
+	m.Feedback.BatchProgress = nil
 	result := audit.ResultSucceeded
 	switch {
 	case msg.Failed > 0 && msg.Success > 0:

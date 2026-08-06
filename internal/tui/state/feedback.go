@@ -29,6 +29,19 @@ type FeedbackState struct {
 	ToastLevel            NotificationLevel
 	ToastTimer            int
 	ToastGeneration       uint64
+	BatchProgress         *BatchProgressState
+}
+
+// BatchProgressState tracks the live progress of a fan-out batch operation.
+// A non-nil pointer means a batch is in flight.
+type BatchProgressState struct {
+	Scope   string
+	Action  string
+	Total   int
+	Current int
+	Success int
+	Failed  int
+	Skipped int
 }
 
 func NewFeedbackState() FeedbackState {

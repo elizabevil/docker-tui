@@ -98,6 +98,8 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		return handleContainerBatchActioned(m, msg)
 	case state.BatchActioned:
 		return handleBatchActioned(m, msg)
+	case state.BatchProgressed:
+		return handleBatchProgressed(m, msg)
 	case state.ContainerProcessesLoaded:
 		return handleContainerProcessesLoaded(m, msg)
 	case state.ContainerProcessesTick:

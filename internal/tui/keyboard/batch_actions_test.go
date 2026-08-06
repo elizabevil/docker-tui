@@ -14,16 +14,38 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// runBatch executes cmd and asserts the returned message is a BatchActioned.
+// runBatch executes a synchronous batch command and asserts it returns a
+// BatchActioned summary. Used by paths that aggregate in one cmd (compose,
+// bulk delete). The sequence-based path (executeBatchAction) is driven via
+// runBatchSequence instead.
 func runBatch(t *testing.T, cmd tea.Cmd) state.BatchActioned {
 	t.Helper()
 	if cmd == nil {
 		t.Fatal("expected batch command, got nil")
 	}
-	msg := cmd()
-	batch, ok := msg.(state.BatchActioned)
+	batch, ok := cmd().(state.BatchActioned)
 	if !ok {
-		t.Fatalf("cmd returned %T, want state.BatchActioned", msg)
+		t.Fatalf("cmd returned %T, want state.BatchActioned", cmd())
+	}
+	return batch
+}
+
+// runBatchSequence drives the per-target commands of a batch action in order
+// and returns the final BatchActioned summary, mirroring how the runtime
+// executes a tea.Sequence. cmds come from batchProgressCmds, so no framework
+// internals are touched.
+func runBatchSequence(t *testing.T, cmds []tea.Cmd) state.BatchActioned {
+	t.Helper()
+	if len(cmds) == 0 {
+		t.Fatal("expected batch sequence, got no commands")
+	}
+	var last tea.Msg
+	for _, sub := range cmds {
+		last = sub()
+	}
+	batch, ok := last.(state.BatchActioned)
+	if !ok {
+		t.Fatalf("last sequence message is %T, want state.BatchActioned", last)
 	}
 	return batch
 }
@@ -49,7 +71,8 @@ func markIDs(m *state.AppModel, ids ...string) {
 
 // TestExecuteBatchActionAggregatesResults verifies that a container batch
 // start returns one BatchActioned message with the per-target breakdown
-// instead of N independent messages.
+// instead of N independent messages. The per-target commands come from
+// batchProgressCmds and are driven in order like the runtime does.
 func TestExecuteBatchActionAggregatesResults(t *testing.T) {
 	eng := newMockEngine()
 	eng.Fail("b", errors.New("simulated engine error"))
@@ -62,9 +85,11 @@ func TestExecuteBatchActionAggregatesResults(t *testing.T) {
 	}
 	markIDs(m, "a", "b")
 
-	trace := beginAudit(m, "resource.container.start", audit.ContainerTarget{Name: "2 containers"}, "Batch start 2 containers")
-	_, cmd := executeBatchAction(m, "start", trace)
-	batch := runBatch(t, cmd)
+	engine := m.Connection.Engine
+	ids := []string{"a", "b"}
+	scope := ContainerBatchScope("container.batch", "start", nil)
+	cmds := batchProgressCmds(engine, ids, scope, "start", audit.Trace{})
+	batch := runBatchSequence(t, cmds)
 
 	if batch.Total != 2 || batch.Success != 1 || batch.Failed != 1 {
 		t.Errorf("unexpected summary: total=%d success=%d failed=%d", batch.Total, batch.Success, batch.Failed)

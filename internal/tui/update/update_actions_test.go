@@ -153,3 +153,58 @@ func TestNetworkDetailLoadedWritesRawJSON(t *testing.T) {
 		t.Fatalf("network raw json not written: %#v", updated.Detail)
 	}
 }
+
+func TestBatchProgressedTracksLiveProgress(t *testing.T) {
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	updated, _ := handleBatchProgressed(app, state.BatchProgressed{
+		Scope:   "container.batch.stop",
+		Action:  "stop",
+		Total:   5,
+		Current: 2,
+		Success: 2,
+	})
+	if updated.Feedback.BatchProgress == nil {
+		t.Fatalf("BatchProgress must be set")
+	}
+	if updated.Feedback.BatchProgress.Current != 2 || updated.Feedback.BatchProgress.Total != 5 {
+		t.Fatalf("progress = %#v, want current=2 total=5", updated.Feedback.BatchProgress)
+	}
+	if updated.Feedback.BatchProgress.Success != 2 {
+		t.Fatalf("success count = %d, want 2", updated.Feedback.BatchProgress.Success)
+	}
+}
+
+func TestBatchActionedClearsProgress(t *testing.T) {
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	app.Feedback.BatchProgress = &state.BatchProgressState{Scope: "container.batch.stop", Total: 2, Current: 2}
+	updated, _ := handleBatchActioned(app, state.BatchActioned{
+		Scope:    "container.batch.stop",
+		Resource: state.ResourceContainer,
+		Total:    2,
+		Success:  2,
+	})
+	if updated.Feedback.BatchProgress != nil {
+		t.Fatalf("BatchProgress must be cleared after completion")
+	}
+	if !strings.Contains(updated.Feedback.ToastMessage, "succeeded 2") {
+		t.Fatalf("summary toast = %q, want succeeded 2", updated.Feedback.ToastMessage)
+	}
+}
+
+func TestBatchActionedPartialShowsAllCounts(t *testing.T) {
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	updated, _ := handleBatchActioned(app, state.BatchActioned{
+		Scope:    "container.batch.kill",
+		Resource: state.ResourceContainer,
+		Total:    5,
+		Success:  3,
+		Skipped:  1,
+		Failed:   1,
+		Error:    errors.New("boom"),
+	})
+	if !strings.Contains(updated.Feedback.ToastMessage, "succeeded 3") ||
+		!strings.Contains(updated.Feedback.ToastMessage, "skipped 1") ||
+		!strings.Contains(updated.Feedback.ToastMessage, "failed 1") {
+		t.Fatalf("summary toast = %q", updated.Feedback.ToastMessage)
+	}
+}

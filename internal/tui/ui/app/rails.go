@@ -56,6 +56,12 @@ func renderMessageRail(m *state.AppModel, width int) string {
 	text := ""
 	var style lipgloss.Style
 	switch {
+	case m.Feedback.BatchProgress != nil:
+		progress := m.Feedback.BatchProgress
+		indicator := component.NewBatchProgressIndicator(progress.Action, progress.Current, progress.Total)
+		railStyle := component.GetStyle(component.StyleMessageRail).
+			Foreground(component.GetStyle(component.StyleToastInfo).GetForeground())
+		return railStyle.Render(wrapMessageRail(indicator.Render(max(1, width)), max(1, width), messageRailHeight))
 	case m.Feedback.ErrorMessage != "":
 		style = component.GetStyle(component.StyleToastError)
 		text = m.Feedback.ErrorMessage

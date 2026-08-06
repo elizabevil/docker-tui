@@ -67,6 +67,20 @@ type (
 		Audit   audit.Trace
 	}
 
+	// BatchProgressed is emitted between individual targets of a fan-out
+	// batch operation so the UI can render live progress (e.g. "2/5
+	// containers stopped"). It carries the aggregate counts seen so far.
+	BatchProgressed struct {
+		Scope   string // e.g. "container.batch.start"
+		Action  string // i18n action label for the indicator, e.g. "stopping"
+		Total   int    // total targets
+		Current int    // targets completed so far
+		Success int
+		Failed  int
+		Skipped int
+		Error   error // joined errors from failed operations so far
+	}
+
 	// BatchActioned is the cross-panel batch summary emitted by
 	// container/image/volume/network batch and compose project operations.
 	// It supersedes the per-target single-action messages for actions that

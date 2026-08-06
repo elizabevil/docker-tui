@@ -72,51 +72,113 @@ func executeBatchAction(m *state.AppModel, action string, trace audit.Trace) (*s
 		return m, nil
 	}
 
-	var cmdFn func(runtimeapi.Engine, string) tea.Cmd
 	switch action {
-	case string(runtimeapi.ActionStart):
-		cmdFn = containerStartCmd
-	case string(runtimeapi.ActionStop):
-		cmdFn = func(c runtimeapi.Engine, id string) tea.Cmd { return containerStopCmd(c, id) }
-	case string(runtimeapi.ActionRestart):
-		cmdFn = func(c runtimeapi.Engine, id string) tea.Cmd { return containerRestartCmd(c, id) }
-	case string(runtimeapi.ActionKill):
-		cmdFn = func(c runtimeapi.Engine, id string) tea.Cmd { return containerKillCmd(c, id) }
+	case string(runtimeapi.ActionStart), string(runtimeapi.ActionStop),
+		string(runtimeapi.ActionRestart), string(runtimeapi.ActionKill):
 	default:
 		ShowToastNow(m, fmt.Sprintf("✕ unknown batch action: %s", action))
 		return m, nil
 	}
 
 	engine := m.Connection.Engine
-	return m, func() tea.Msg {
-		result := state.BatchActioned{
-			Scope:    ContainerBatchScope("container.batch", action, nil),
-			Resource: state.ResourceContainer,
-			Total:    len(ids),
-			Audit:    trace,
+	scope := ContainerBatchScope("container.batch", action, nil)
+	return m, tea.Sequence(batchProgressCmds(engine, ids, scope, action, trace)...)
+}
+
+// batchProgressCmds builds one cmd per target plus a final summary cmd. Each
+// per-target cmd executes the action synchronously and emits BatchProgressed
+// with aggregate counts, so the UI can render live progress. The final cmd
+// emits the aggregate BatchActioned summary.
+func batchProgressCmds(engine runtimeapi.Engine, ids []string, scope, action string, trace audit.Trace) []tea.Cmd {
+	cmds := make([]tea.Cmd, 0, len(ids)+1)
+	progress := &batchProgressAccumulator{scope: scope, total: len(ids), action: action}
+	progressFn := actionProgressCmdFn(action)
+	for _, id := range ids {
+		cmds = append(cmds, func() tea.Msg {
+			msg := progressFn(engine, id)()
+			progress.record(msg, id)
+			return progress.snapshot()
+		})
+	}
+	cmds = append(cmds, func() tea.Msg {
+		return state.BatchActioned{
+			Scope:      scope,
+			Resource:   state.ResourceContainer,
+			Total:      progress.total,
+			Success:    progress.success,
+			Failed:     progress.failed,
+			Skipped:    progress.skipped,
+			FailedIDs:  progress.failedIDs,
+			SkippedIDs: progress.skippedIDs,
+			Audit:      trace,
+			Error:      errors.Join(progress.failures...),
 		}
-		var failures []error
-		for _, id := range ids {
-			msg := cmdFn(engine, id)()
-			switch v := msg.(type) {
-			case state.ContainerActioned:
-				if v.Success {
-					result.Success++
-				} else {
-					result.Failed++
-					result.FailedIDs = append(result.FailedIDs, id)
-					if v.Error != nil {
-						failures = append(failures, v.Error)
-					}
-				}
-			default:
-				// Unknown message — count as failure so the operator sees it.
-				result.Failed++
-				result.FailedIDs = append(result.FailedIDs, id)
+	})
+	return cmds
+}
+
+type batchProgressAccumulator struct {
+	scope      string
+	total      int
+	current    int
+	success    int
+	failed     int
+	skipped    int
+	failedIDs  []string
+	skippedIDs []string
+	failures   []error
+	action     string
+}
+
+func (a *batchProgressAccumulator) record(msg tea.Msg, id string) {
+	a.current++
+	switch v := msg.(type) {
+	case state.ContainerActioned:
+		if v.Success {
+			a.success++
+		} else {
+			a.failed++
+			a.failedIDs = append(a.failedIDs, id)
+			if v.Error != nil {
+				a.failures = append(a.failures, v.Error)
 			}
 		}
-		result.Error = errors.Join(failures...)
-		return result
+	default:
+		a.failed++
+		a.failedIDs = append(a.failedIDs, id)
+	}
+}
+
+func (a *batchProgressAccumulator) snapshot() state.BatchProgressed {
+	return state.BatchProgressed{
+		Scope:   a.scope,
+		Action:  a.action,
+		Total:   a.total,
+		Current: a.current,
+		Success: a.success,
+		Failed:  a.failed,
+		Skipped: a.skipped,
+		Error:   errors.Join(a.failures...),
+	}
+}
+
+// actionProgressCmdFn maps a batch action name to the per-target cmd factory.
+func actionProgressCmdFn(action string) func(runtimeapi.Engine, string) tea.Cmd {
+	switch action {
+	case string(runtimeapi.ActionStart):
+		return containerStartCmd
+	case string(runtimeapi.ActionStop):
+		return func(c runtimeapi.Engine, id string) tea.Cmd { return containerStopCmd(c, id) }
+	case string(runtimeapi.ActionRestart):
+		return func(c runtimeapi.Engine, id string) tea.Cmd { return containerRestartCmd(c, id) }
+	case string(runtimeapi.ActionKill):
+		return func(c runtimeapi.Engine, id string) tea.Cmd { return containerKillCmd(c, id) }
+	default:
+		return func(runtimeapi.Engine, string) tea.Cmd {
+			return func() tea.Msg {
+				return state.ContainerActioned{Success: false}
+			}
+		}
 	}
 }
 
