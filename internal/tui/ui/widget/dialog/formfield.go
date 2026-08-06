@@ -101,7 +101,10 @@ func fitValue(value string, width int) string {
 
 func appendUnitSuffix(value, unit string, width int) string {
 	if unit == "" {
-		return fitValue(value, width)
+		// renderTextCell already fitted the value (truncated single-line for
+		// text kinds, multi-line wrapped for paths). Re-truncating here would
+		// collapse wrapped output — return it unchanged.
+		return value
 	}
 	suffix := " " + unit
 	return fitValue(value, max(1, width-utils.DisplayWidth(suffix))) + suffix
@@ -173,6 +176,7 @@ func (f *TextField) Selected() map[string]bool    { return nil }
 func (f *TextField) SetSelected(_ map[string]bool) {}
 
 func (f *TextField) Label() string   { return f.label }
+func (f *TextField) HelperText() string { return f.helperText }
 func (f *TextField) HelpText() string { return f.helperText }
 
 func (f *TextField) Render(focused bool, width int, cursorVisible ...bool) string {
@@ -254,6 +258,7 @@ func (f *IntField) Min() *float64                 { return f.min }
 func (f *IntField) Max() *float64                 { return f.max }
 
 func (f *IntField) Label() string   { return f.label }
+func (f *IntField) HelperText() string { return f.helperText }
 func (f *IntField) HelpText() string { return f.helperText }
 
 func (f *IntField) Render(focused bool, width int, cursorVisible ...bool) string {
@@ -508,6 +513,7 @@ func (f *SelectField) Selected() map[string]bool { return nil }
 func (f *SelectField) SetSelected(_ map[string]bool) {}
 
 func (f *SelectField) Label() string   { return f.label }
+func (f *SelectField) HelperText() string { return f.helperText }
 func (f *SelectField) HelpText() string { return "single choice dropdown" }
 
 func (f *SelectField) Render(focused bool, width int, _ ...bool) string {
@@ -589,6 +595,7 @@ func (f *MultiSelectField) Selected() map[string]bool { return f.selected }
 func (f *MultiSelectField) SetSelected(v map[string]bool) { f.selected = v }
 
 func (f *MultiSelectField) Label() string   { return f.label }
+func (f *MultiSelectField) HelperText() string { return f.helperText }
 func (f *MultiSelectField) HelpText() string { return "multi-select dropdown" }
 
 func (f *MultiSelectField) Render(focused bool, width int, _ ...bool) string {
@@ -670,6 +677,7 @@ func (f *BoolField) DependsOn() string { return f.dependsOn }
 func (f *BoolField) DependsEq() bool   { return f.dependsEq }
 
 func (f *BoolField) Label() string   { return f.label }
+func (f *BoolField) HelperText() string { return f.helperText }
 func (f *BoolField) HelpText() string { return "boolean checkbox" }
 
 func (f *BoolField) Render(focused bool, width int, _ ...bool) string {
@@ -755,6 +763,7 @@ func (f *RadioGroupField) Selected() map[string]bool { return nil }
 func (f *RadioGroupField) SetSelected(_ map[string]bool) {}
 
 func (f *RadioGroupField) Label() string   { return f.label }
+func (f *RadioGroupField) HelperText() string { return f.helperText }
 func (f *RadioGroupField) HelpText() string { return "radio group (single choice)" }
 
 func (f *RadioGroupField) Render(focused bool, width int, _ ...bool) string {
@@ -832,6 +841,7 @@ func (f *TextMultiLineField) Selected() map[string]bool { return nil }
 func (f *TextMultiLineField) SetSelected(_ map[string]bool) {}
 
 func (f *TextMultiLineField) Label() string   { return f.label }
+func (f *TextMultiLineField) HelperText() string { return f.helperText }
 func (f *TextMultiLineField) HelpText() string { return "multi-line text (first line shown)" }
 
 func (f *TextMultiLineField) Render(focused bool, width int, cursorVisible ...bool) string {
@@ -914,6 +924,7 @@ func (f *TextPasswordField) Selected() map[string]bool { return nil }
 func (f *TextPasswordField) SetSelected(_ map[string]bool) {}
 
 func (f *TextPasswordField) Label() string   { return f.label }
+func (f *TextPasswordField) HelperText() string { return f.helperText }
 func (f *TextPasswordField) HelpText() string { return "password (masked)" }
 
 func (f *TextPasswordField) Render(focused bool, width int, cursorVisible ...bool) string {
