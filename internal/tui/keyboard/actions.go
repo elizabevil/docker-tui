@@ -93,8 +93,6 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 
 	case keys.ActionImagePull:
 		return doImagePull(m)
-	case keys.ActionImagePrune:
-		return doImagePrune(m)
 	case keys.ActionImageRemove:
 		return doImageRemove(m)
 	case keys.ActionImageTag:

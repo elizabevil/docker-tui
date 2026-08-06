@@ -24,6 +24,16 @@
       "description":  "View per-layer build history",
       "requires":     ["engine", "image"],
       "disabledWhen": ["manifest"]
+    },
+    {
+      "kind":         "prune",
+      "action":       "imagePrune",
+      "mode":         "async",
+      "async":        { "body": "imagePrune" },
+      "label":        "Prune",
+      "description":  "Remove dangling images",
+      "requires":     ["engine", "image"],
+      "disabledWhen": []
     }
   ]
 }

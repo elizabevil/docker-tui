@@ -96,8 +96,9 @@ func dispatchPage(spec config.OperationSpec, m *state.AppModel) (*state.AppModel
 }
 
 // dispatchAsync starts the long-running Operation whose async renderer
-// matches spec.Async.Body. Today only "wait" is wired; future entries
-// (imagePrune, volumePrune, ...) add their own cases here.
+// matches spec.Async.Body. Today "wait" and "imagePrune" are wired;
+// future entries (volumePrune, networkPrune, ...) add their own
+// cases here.
 func dispatchAsync(spec config.OperationSpec, m *state.AppModel) (*state.AppModel, tea.Cmd, bool) {
 	if spec.Async == nil {
 		return m, nil, false
@@ -105,6 +106,9 @@ func dispatchAsync(spec config.OperationSpec, m *state.AppModel) (*state.AppMode
 	switch spec.Async.Body {
 	case "wait":
 		m2, c := doContainerWait(m)
+		return m2, c, true
+	case "imagePrune":
+		m2, c := doImagePrune(m)
 		return m2, c, true
 	default:
 		return m, nil, false

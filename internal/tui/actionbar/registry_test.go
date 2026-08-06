@@ -57,11 +57,23 @@ func TestImagesExposeHistoryWhenEligible(t *testing.T) {
 	m.Navigation.ActivePanel = state.PanelImages
 	m.Resources.Images.Items = []runtimeapi.ImageSummary{{ID: "sha256:one", RepoTags: []string{"nginx:latest"}}}
 	items := VisibleItems(m)
-	if len(items) != 1 || items[0].Action != keys.ActionImageHistory || items[0].Disabled {
-		t.Fatalf("image actions = %#v", items)
+	wantActions := []keys.KeyAction{keys.ActionImageHistory, keys.ActionImagePrune}
+	if len(items) != len(wantActions) {
+		t.Fatalf("image actions = %#v, want %d items", items, len(wantActions))
+	}
+	for i, action := range wantActions {
+		if items[i].Action != action || items[i].Disabled {
+			t.Fatalf("item %d = %#v, want action=%q disabled=false", i, items[i], action)
+		}
 	}
 	m.Resources.Images.Items[0].IsManifest = true
-	if items = VisibleItems(m); len(items) != 1 || !items[0].Disabled {
-		t.Fatalf("manifest history should be disabled: %#v", items)
+	if items = VisibleItems(m); len(items) != len(wantActions) {
+		t.Fatalf("image actions after manifest: %#v", items)
+	}
+	if !items[0].Disabled {
+		t.Fatalf("manifest history should be disabled: %#v", items[0])
+	}
+	if items[1].Disabled {
+		t.Fatalf("imagePrune should remain enabled with manifest image: %#v", items[1])
 	}
 }
