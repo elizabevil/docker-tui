@@ -20,9 +20,9 @@ func TestRenderHeaderRespectsTransparentLabelValueTokens(t *testing.T) {
 	}()
 
 	theme := config.DefaultTheme()
-	theme.Header.Background = config.ValueRef(config.Color("#2b2d30cc"))
-	theme.Header.Label = config.TokenRef(config.ColorTokenTransparent)
-	theme.Header.Value = config.TokenRef(config.ColorTokenTransparent)
+	theme.Surfaces.Header = config.ValueRef(config.Color("#2b2d30cc"))
+	theme.Chrome.HeaderLabel = config.TokenRef(config.ColorTokenTransparent)
+	theme.Chrome.HeaderValue = config.TokenRef(config.ColorTokenTransparent)
 	tui.ApplyTheme(theme)
 
 	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
@@ -58,9 +58,9 @@ func TestRenderKeyStrokeInheritsHeaderBackground(t *testing.T) {
 
 	theme := config.DefaultTheme()
 	theme.Palette.Background = config.Color("#18191b")
-	theme.Header.Background = config.ValueRef(config.Color("#2b2d30cc"))
-	theme.Header.Label = config.TokenRef(config.ColorTokenForegroundMuted)
-	theme.Header.Value = config.TokenRef(config.ColorTokenForeground)
+	theme.Surfaces.Header = config.ValueRef(config.Color("#2b2d30cc"))
+	theme.Chrome.HeaderLabel = config.TokenRef(config.ColorTokenForegroundMuted)
+	theme.Chrome.HeaderValue = config.TokenRef(config.ColorTokenForeground)
 	tui.ApplyTheme(theme)
 
 	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
@@ -78,9 +78,9 @@ func TestRenderKeyStrokeInheritsHeaderBackground(t *testing.T) {
 func TestRenderCPUUsesHeaderBackground(t *testing.T) {
 	theme := config.DefaultTheme()
 	theme.Palette.Background = config.Color("#18191b")
-	theme.Header.Background = config.ValueRef(config.Color("#2b2d30cc"))
-	theme.Header.Label = config.TokenRef(config.ColorTokenForegroundMuted)
-	theme.Header.Value = config.TokenRef(config.ColorTokenForeground)
+	theme.Surfaces.Header = config.ValueRef(config.Color("#2b2d30cc"))
+	theme.Chrome.HeaderLabel = config.TokenRef(config.ColorTokenForegroundMuted)
+	theme.Chrome.HeaderValue = config.TokenRef(config.ColorTokenForeground)
 	component.SetRawStylesForTest(component.RawStylesForTest())
 	component.SetSafeFallbackForTest(component.SafeFallbackForTest())
 	tui.ApplyTheme(theme)
@@ -212,9 +212,9 @@ func TestRenderHeaderColumnsUse2Plus2Plus3Plus3Ratio(t *testing.T) {
 func TestRenderKeyStrokeBoxHasMinPadding(t *testing.T) {
 	theme := config.DefaultTheme()
 	theme.Palette.Background = config.Color("#18191b")
-	theme.Header.Background = config.ValueRef(config.Color("#2b2d30cc"))
-	theme.Header.Label = config.TokenRef(config.ColorTokenForegroundMuted)
-	theme.Header.Value = config.TokenRef(config.ColorTokenForeground)
+	theme.Surfaces.Header = config.ValueRef(config.Color("#2b2d30cc"))
+	theme.Chrome.HeaderLabel = config.TokenRef(config.ColorTokenForegroundMuted)
+	theme.Chrome.HeaderValue = config.TokenRef(config.ColorTokenForeground)
 	component.SetRawStylesForTest(component.RawStylesForTest())
 	component.SetSafeFallbackForTest(component.SafeFallbackForTest())
 	tui.ApplyTheme(theme)

@@ -31,18 +31,18 @@ func ApplyTheme(theme *config.Theme) {
 	style.SyncPalette()
 	component.ApplyThemeStyles(theme)
 
-	br := component.ResolveBorder(theme.Border.Kind)
+	br := component.ResolveBorder(theme.Chrome.BorderKind)
 	panelBackground := style.Colors.BG
 	activeBorder := lipgloss.NewStyle().Border(br)
-	activeBorder = style.ApplyForeground(activeBorder, style.Color(theme.ResolveColor(theme.Main.BorderActive)))
+	activeBorder = style.ApplyForeground(activeBorder, style.Color(theme.ResolveColor(theme.Chrome.PanelBorderActive)))
 	activeBorder = style.ApplyBackground(activeBorder, panelBackground)
 	ActiveBorderStyle = activeBorder.Padding(0)
 	inactiveBorder := lipgloss.NewStyle()
-	inactiveBorder = style.ApplyForeground(inactiveBorder, style.Color(theme.ResolveColor(theme.Main.BorderInactive)))
+	inactiveBorder = style.ApplyForeground(inactiveBorder, style.Color(theme.ResolveColor(theme.Chrome.PanelBorderInactive)))
 	inactiveBorder = style.ApplyBackground(inactiveBorder, panelBackground)
 	InactiveBorderStyle = inactiveBorder.Padding(0)
 	focusedBorder := lipgloss.NewStyle().Border(br)
-	focusedBorder = style.ApplyForeground(focusedBorder, style.Color(theme.ResolveColor(theme.Border.Focused)))
+	focusedBorder = style.ApplyForeground(focusedBorder, style.Color(theme.ResolveColor(theme.Chrome.PanelBorderFocused)))
 	focusedBorder = style.ApplyBackground(focusedBorder, panelBackground)
 	FocusedBorderStyle = focusedBorder.Padding(0)
 }

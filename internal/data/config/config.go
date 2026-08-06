@@ -288,27 +288,39 @@ func ValidateTheme(theme *Theme) error {
 	if isTransparentBase(theme.Palette.Foreground) {
 		return fmt.Errorf(errThemePaletteTransparentBase, theme.Palette.Foreground)
 	}
-	switch theme.Border.Kind {
+	switch theme.Chrome.BorderKind {
 	case BorderRounded, BorderSingle, BorderDouble, BorderThick, BorderHidden:
 	default:
 		return errors.New(errThemeBorderKindInvalid)
 	}
-	if theme.Dialog.OverlayOpacity > 100 {
+	if theme.Chrome.DialogOverlayOpacity > 100 {
 		return errors.New(errThemeOverlayOpacityInvalid)
 	}
 	refs := []ColorRef{
-		theme.Border.Active, theme.Border.Inactive, theme.Border.Focused,
-		theme.Header.Background, theme.Header.Label, theme.Header.Value, theme.Header.Logo,
-		theme.Main.BorderActive, theme.Main.BorderInactive, theme.Main.Title, theme.Main.TableHeader,
-		theme.Main.RowSelected, theme.Main.RowText, theme.Main.Footer, theme.Main.PanelBackground,
-		theme.Main.ActionBarBackground, theme.Main.MessageRailBackground, theme.Main.QueryBarBackground,
-		theme.Footer.StatusBackground, theme.Footer.ShortcutBackground, theme.Footer.Key,
-		theme.Footer.Description, theme.Footer.Separator,
-		theme.Dialog.Border, theme.Dialog.Title, theme.Dialog.Body, theme.Dialog.BodyBackground,
-		theme.Dialog.OptionActive, theme.Dialog.OptionInactive, theme.Dialog.Overlay,
-		theme.Toast.Success, theme.Toast.Error, theme.Toast.Background,
-		theme.Text.Info, theme.Text.Error, theme.Text.Success, theme.Text.Warning, theme.Text.Dim,
-		theme.Text.HelpKey, theme.Text.HelpDescription,
+		theme.Chrome.PanelBorderActive, theme.Chrome.PanelBorderInactive, theme.Chrome.PanelBorderFocused,
+		theme.Chrome.PanelTitle, theme.Chrome.PanelFooter, theme.Chrome.PanelRowSelected,
+		theme.Chrome.PanelRowText, theme.Chrome.PanelTableHeader,
+		theme.Chrome.DialogBorder, theme.Chrome.DialogTitle, theme.Chrome.DialogOptionActive,
+		theme.Chrome.DialogOptionInactive, theme.Chrome.DialogOverlay,
+		theme.Chrome.HeaderLabel, theme.Chrome.HeaderValue, theme.Chrome.HeaderLogo,
+		theme.Chrome.FooterKey, theme.Chrome.FooterDescription, theme.Chrome.FooterSeparator,
+		theme.Surfaces.Panel, theme.Surfaces.ActionBar, theme.Surfaces.MessageRail,
+		theme.Surfaces.QueryBar, theme.Surfaces.DialogBody, theme.Surfaces.Header,
+		theme.Surfaces.Footer, theme.Surfaces.Toast, theme.Surfaces.RowSelected,
+		theme.Text.Info, theme.Text.Success, theme.Text.Warning, theme.Text.Error,
+		theme.Text.Dim, theme.Text.HelpKey, theme.Text.HelpDescription, theme.Text.DialogBody,
+		theme.Feedback.ToastSuccess, theme.Feedback.ToastError, theme.Feedback.ToastInfo,
+		theme.Feedback.ToastWarning, theme.Feedback.SafeNormal, theme.Feedback.SafeBold,
+		theme.Feedback.SafeDim, theme.Feedback.SafeAccent, theme.Feedback.SafeError,
+		theme.Data.MarkedBackground, theme.Data.ColumnForeground, theme.Data.NameForeground,
+		theme.Action.Container.Window.Background, theme.Action.Container.Window.Border,
+		theme.Action.Container.FormInput.Foreground, theme.Action.Container.FormInput.Background,
+		theme.Action.Container.Confirm.Foreground, theme.Action.Container.Confirm.Background,
+		theme.Action.Container.Cancel.Foreground, theme.Action.Container.Cancel.Background,
+		theme.Action.Image.Window.Background, theme.Action.Image.Window.Border,
+		theme.Action.Image.FormInput.Foreground, theme.Action.Image.FormInput.Background,
+		theme.Action.Image.Confirm.Foreground, theme.Action.Image.Confirm.Background,
+		theme.Action.Image.Cancel.Foreground, theme.Action.Image.Cancel.Background,
 	}
 	for _, ref := range refs {
 		if !isColorRef(ref) {
@@ -318,19 +330,19 @@ func ValidateTheme(theme *Theme) error {
 	return nil
 }
 
+// isColorRef validates a single ColorRef. The ref is either a known
+// palette token (e.g. "primary", "foregroundMuted") or a literal
+// colour value ParseColor accepts (e.g. "#3875d7", "rgb(250,240,230)",
+// "grey", "63"); anything else is rejected so a typo in JSONC surfaces
+// at load time rather than producing a silent empty colour.
 func isColorRef(ref ColorRef) bool {
-	if (ref.Token == ColorToken(emptyValue)) == (ref.Value == Color(emptyValue)) {
+	if ref == emptyValue {
 		return false
 	}
-	if ref.Value != Color(emptyValue) {
-		return isValidColor(string(ref.Value))
-	}
-	switch ref.Token {
-	case ColorTokenPrimary, ColorTokenSuccess, ColorTokenWarning, ColorTokenDanger, ColorTokenInfo, ColorTokenAccent, ColorTokenAccentSecondary, ColorTokenForeground, ColorTokenForegroundMuted, ColorTokenBackground, ColorTokenBackgroundSubtle, ColorTokenBackgroundDeep, ColorTokenTransparent:
+	if ref.IsToken() {
 		return true
-	default:
-		return false
 	}
+	return isValidColor(string(ref))
 }
 
 // isValidColor reports whether value is a supported color format. It

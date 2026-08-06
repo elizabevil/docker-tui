@@ -137,6 +137,122 @@ type OperationSpec struct {
 	DisabledWhen []Requirement `json:"disabledWhen,omitempty"`
 }
 
+// ActionWindow groups the background + border colours of the window chrome
+// used by any Operation whose body fills a window (Form / Page / Async).
+type ActionWindow struct {
+	Background ColorRef `json:"background" yaml:"background"`
+	Border     ColorRef `json:"border" yaml:"border"`
+}
+
+// ActionFormInput groups the foreground + background colours of the
+// editable form input fields inside the window. Only consumed when the
+// Operation Mode is Form.
+type ActionFormInput struct {
+	Foreground ColorRef `json:"foreground" yaml:"foreground"`
+	Background ColorRef `json:"background" yaml:"background"`
+}
+
+// ActionButton groups the foreground + background colours of an action
+// button (Confirm or Cancel) inside the window. Only consumed when the
+// Operation Mode is Form or Async.
+type ActionButton struct {
+	Foreground ColorRef `json:"foreground" yaml:"foreground"`
+	Background ColorRef `json:"background" yaml:"background"`
+}
+
+// ActionScopeStyles is the per-scope visual contract: one entry per
+// resource scope (Container / Image / ...). The four slots are reused
+// across all scopes so each Operation Mode (Form / Page / Async) can
+// pull from the same shape regardless of scope.
+type ActionScopeStyles struct {
+	Window    ActionWindow    `json:"window" yaml:"window"`
+	FormInput ActionFormInput `json:"formInput" yaml:"formInput"`
+	Confirm   ActionButton    `json:"confirm" yaml:"confirm"`
+	Cancel    ActionButton    `json:"cancel" yaml:"cancel"`
+}
+
+// ActionStyles is the visual contract for any Operation, grouped by
+// resource Scope. It is embedded in the Theme struct under
+// `theme.action.*` so themes can paint each scope's window chrome.
+type ActionStyles struct {
+	Container ActionScopeStyles `json:"container" yaml:"container"`
+	Image     ActionScopeStyles `json:"image" yaml:"image"`
+}
+
+// defaultActionScopeStyles returns the fallback contract for a single
+// Action scope. Identical for container / image today; a future theme
+// divergence is a single constant edit away.
+func defaultActionScopeStyles() ActionScopeStyles {
+	return ActionScopeStyles{
+		Window: ActionWindow{
+			Background: TokenRef(ColorTokenBackgroundSubtle),
+			Border:     TokenRef(ColorTokenPrimary),
+		},
+		FormInput: ActionFormInput{
+			Foreground: TokenRef(ColorTokenForeground),
+			Background: TokenRef(ColorTokenBackgroundDeep),
+		},
+		Confirm: ActionButton{
+			Foreground: TokenRef(ColorTokenSuccess),
+			Background: TokenRef(ColorTokenTransparent),
+		},
+		Cancel: ActionButton{
+			Foreground: TokenRef(ColorTokenForegroundMuted),
+			Background: TokenRef(ColorTokenTransparent),
+		},
+	}
+}
+
+// ActionWindowPatch / ActionFormInputPatch / ActionButtonPatch are the
+// user-override shapes for the matching fields.
+type ActionWindowPatch struct {
+	Background *ColorRef `json:"background,omitempty" yaml:"background,omitempty"`
+	Border     *ColorRef `json:"border,omitempty" yaml:"border,omitempty"`
+}
+
+type ActionFormInputPatch struct {
+	Foreground *ColorRef `json:"foreground,omitempty" yaml:"foreground,omitempty"`
+	Background *ColorRef `json:"background,omitempty" yaml:"background,omitempty"`
+}
+
+type ActionButtonPatch struct {
+	Foreground *ColorRef `json:"foreground,omitempty" yaml:"foreground,omitempty"`
+	Background *ColorRef `json:"background,omitempty" yaml:"background,omitempty"`
+}
+
+type ActionScopeStylesPatch struct {
+	Window    *ActionWindowPatch    `json:"window,omitempty" yaml:"window,omitempty"`
+	FormInput *ActionFormInputPatch `json:"formInput,omitempty" yaml:"formInput,omitempty"`
+	Confirm   *ActionButtonPatch    `json:"confirm,omitempty" yaml:"confirm,omitempty"`
+	Cancel    *ActionButtonPatch    `json:"cancel,omitempty" yaml:"cancel,omitempty"`
+}
+
+type ActionStylesPatch struct {
+	Container *ActionScopeStylesPatch `json:"container,omitempty" yaml:"container,omitempty"`
+	Image     *ActionScopeStylesPatch `json:"image,omitempty" yaml:"image,omitempty"`
+}
+
+// applyActionScopePatch overwrites the matching fields on target with
+// non-nil entries from p.
+func applyActionScopePatch(target *ActionScopeStyles, p *ActionScopeStylesPatch) {
+	if p.Window != nil {
+		assign(&target.Window.Background, p.Window.Background)
+		assign(&target.Window.Border, p.Window.Border)
+	}
+	if p.FormInput != nil {
+		assign(&target.FormInput.Foreground, p.FormInput.Foreground)
+		assign(&target.FormInput.Background, p.FormInput.Background)
+	}
+	if p.Confirm != nil {
+		assign(&target.Confirm.Foreground, p.Confirm.Foreground)
+		assign(&target.Confirm.Background, p.Confirm.Background)
+	}
+	if p.Cancel != nil {
+		assign(&target.Cancel.Foreground, p.Cancel.Foreground)
+		assign(&target.Cancel.Background, p.Cancel.Background)
+	}
+}
+
 // Operations is the resolved, in-memory form of the per-scope JSONC
 // files. Lookups are O(1) for action-based dispatch and O(1) for
 // kind-within-scope lookup.

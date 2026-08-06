@@ -14,7 +14,7 @@ func TestEmbeddedThemesCascadeFromDefault(t *testing.T) {
 			continue
 		}
 		if err := ValidateTheme(loaded.Theme); err != nil {
-			t.Errorf("validate %s: %v", name, err)
+			t.Errorf("validate %s: %v", name, loadErr)
 		}
 	}
 }
@@ -29,17 +29,17 @@ func TestEmbeddedDefaultThemeBackgroundExperiment(t *testing.T) {
 	if theme.Palette.Background != Color("#18191b") {
 		t.Fatalf("app background = %q", theme.Palette.Background)
 	}
-	if theme.Header.Background != transparent || theme.Header.Label != transparent ||
-		theme.Header.Value != transparent {
-		t.Fatalf("header slots should default to transparent: %#v", theme.Header)
+	if theme.Surfaces.Header != transparent ||
+		theme.Surfaces.Panel != transparent ||
+		theme.Surfaces.ActionBar != transparent ||
+		theme.Surfaces.MessageRail != transparent ||
+		theme.Surfaces.QueryBar != transparent ||
+		theme.Surfaces.Footer != transparent ||
+		theme.Surfaces.Toast != transparent {
+		t.Fatalf("surfaces should default to transparent: %#v", theme.Surfaces)
 	}
-	if theme.Main.PanelBackground != transparent ||
-		theme.Footer.StatusBackground != transparent ||
-		theme.Footer.ShortcutBackground != transparent {
-		t.Fatalf("panel/footer backgrounds should default to transparent: %#v", theme)
-	}
-	if theme.Main.RowSelected != ValueRef(Color("grey")) {
-		t.Fatalf("rowSelected = %+v", theme.Main.RowSelected)
+	if theme.Surfaces.RowSelected != "info" {
+		t.Fatalf("rowSelected = %q, want info token", theme.Surfaces.RowSelected)
 	}
 }
 
@@ -50,28 +50,28 @@ func TestThemePatchPreservesOmittedProperties(t *testing.T) {
 	background := TokenRef(ColorTokenBackgroundSubtle)
 	patch := ThemePatch{
 		Palette: &PalettePatch{Primary: &cyan},
-		Main: &MainStylesPatch{
-			PanelBackground:     &background,
-			ActionBarBackground: &background,
+		Surfaces: &SurfacesStylesPatch{
+			Panel:     &background,
+			ActionBar: &background,
 		},
-		Dialog: &DialogStylesPatch{Border: &falseColor},
+		Chrome: &ChromeStylesPatch{DialogBorder: &falseColor},
 	}
 	patch.Apply(theme)
 	if theme.Palette.Primary != cyan || theme.Palette.Success == "" {
 		t.Fatalf("palette patch failed: %#v", theme.Palette)
 	}
-	if theme.Dialog.Border != TokenRef(ColorTokenAccentSecondary) || !isColorRef(theme.Dialog.Body) {
-		t.Fatalf("dialog patch failed: %#v", theme.Dialog)
+	if theme.Chrome.DialogBorder != TokenRef(ColorTokenAccentSecondary) || !isColorRef(theme.Text.DialogBody) {
+		t.Fatalf("dialog patch failed: %#v", theme.Chrome)
 	}
-	if theme.Main.PanelBackground != background || theme.Main.ActionBarBackground != background ||
-		theme.Main.QueryBarBackground != TokenRef(ColorTokenTransparent) {
-		t.Fatalf("main background patch failed: %#v", theme.Main)
+	if theme.Surfaces.Panel != background || theme.Surfaces.ActionBar != background ||
+		theme.Surfaces.QueryBar != TokenRef(ColorTokenTransparent) {
+		t.Fatalf("surfaces patch failed: %#v", theme.Surfaces)
 	}
 }
 
 func TestValidateThemeRejectsUnknownColorReference(t *testing.T) {
 	theme := DefaultTheme()
-	theme.Dialog.Border = ColorRef{Token: ColorToken("missing-token")}
+	theme.Chrome.DialogBorder = ColorRef("missing-token")
 	if err := ValidateTheme(theme); err == nil {
 		t.Fatal("expected invalid color reference to fail")
 	}
@@ -79,9 +79,14 @@ func TestValidateThemeRejectsUnknownColorReference(t *testing.T) {
 
 func TestValidateThemeRejectsAmbiguousColorReference(t *testing.T) {
 	theme := DefaultTheme()
-	theme.Dialog.Border = ColorRef{Token: ColorTokenDanger, Value: FallbackColorDanger}
+	// A literal colour is accepted on its own; the ambiguity only
+	// arises if both Token and Value were set in the old struct form,
+	// which is no longer expressible. This test now exercises the
+	// "invalid token name" branch instead of the now-impossible
+	// ambiguity branch.
+	theme.Chrome.DialogBorder = ColorRef("#not-a-color")
 	if err := ValidateTheme(theme); err == nil {
-		t.Fatal("expected token plus value to fail")
+		t.Fatal("expected invalid colour value to fail")
 	}
 }
 
@@ -93,29 +98,32 @@ func TestResolveColorTransparentReturnsLiteralTransparent(t *testing.T) {
 	}
 }
 
-func TestDialogStylesHasBodyBackground(t *testing.T) {
+func TestSurfacesDialogBodyHasBackground(t *testing.T) {
 	theme := DefaultTheme()
-	if theme.Dialog.BodyBackground.Token == "" {
-		t.Fatal("DefaultTheme().Dialog.BodyBackground is empty; want TokenRef(ColorTokenBackground)")
+	if theme.Surfaces.DialogBody == "" {
+		t.Fatal("DefaultTheme().Surfaces.DialogBody is empty; want TokenRef(ColorTokenBackground)")
 	}
-	if !isColorRef(theme.Dialog.BodyBackground) {
-		t.Fatalf("BodyBackground %+v failed isColorRef", theme.Dialog.BodyBackground)
+	if !isColorRef(theme.Surfaces.DialogBody) {
+		t.Fatalf("DialogBody %q failed isColorRef", theme.Surfaces.DialogBody)
 	}
 }
 
-func TestMainBackgroundsDefaultToTransparent(t *testing.T) {
+func TestSurfacesBackgroundsDefaultToTransparent(t *testing.T) {
 	theme := DefaultTheme()
 	refs := []ColorRef{
-		theme.Main.ActionBarBackground,
-		theme.Main.MessageRailBackground,
-		theme.Main.QueryBarBackground,
+		theme.Surfaces.ActionBar,
+		theme.Surfaces.MessageRail,
+		theme.Surfaces.QueryBar,
+		theme.Surfaces.Footer,
+		theme.Surfaces.Header,
+		theme.Surfaces.Toast,
 	}
 	for _, ref := range refs {
 		if ref != TokenRef(ColorTokenTransparent) {
-			t.Fatalf("main background = %+v, want transparent token", ref)
+			t.Fatalf("surfaces background = %+v, want transparent token", ref)
 		}
 		if !isColorRef(ref) {
-			t.Fatalf("main background %+v failed isColorRef", ref)
+			t.Fatalf("surfaces background %+v failed isColorRef", ref)
 		}
 	}
 }

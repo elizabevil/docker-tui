@@ -123,15 +123,15 @@ func resolveOverlay(theme *config.Theme) string {
 	if theme == nil {
 		theme = config.DefaultTheme()
 	}
-	base := theme.ResolveColor(theme.Dialog.Overlay)
+	base := theme.ResolveColor(theme.Chrome.DialogOverlay)
 	parsed, ok := utils.ParseColor(base)
 	if !ok {
 		fallback := config.DefaultTheme()
-		base = fallback.ResolveColor(fallback.Dialog.Overlay)
+		base = fallback.ResolveColor(fallback.Chrome.DialogOverlay)
 		parsed, _ = utils.ParseColor(base)
 	}
 	rgba := color.NRGBAModel.Convert(parsed).(color.NRGBA) //nolint:errcheck // NRGBAModel.Convert always yields NRGBA.
-	alpha := uint8(int(theme.Dialog.OverlayOpacity) * 255 / 100)
+	alpha := uint8(int(theme.Chrome.DialogOverlayOpacity) * 255 / 100)
 	return fmt.Sprintf("#%02x%02x%02x%02x", rgba.R, rgba.G, rgba.B, alpha)
 }
 

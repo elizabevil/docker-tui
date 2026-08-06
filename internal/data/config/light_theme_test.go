@@ -28,25 +28,25 @@ func TestDefaultThemeBackgroundLoaded(t *testing.T) {
 	}
 }
 
-func TestLightHeaderBackgroundResolvesToPalette(t *testing.T) {
+func TestLightSurfacesHeaderResolvesToPalette(t *testing.T) {
 	resolved, err := LoadResolved(LoadOptions{ThemeName: ThemeName("light")})
 	if err != nil {
 		t.Fatalf("LoadResolved light: %v", err)
 	}
-	got := resolved.Theme.ResolveColor(resolved.Theme.Header.Background)
+	got := resolved.Theme.ResolveColor(resolved.Theme.Surfaces.Header)
 	if want := "#fefefe"; got != want {
-		t.Fatalf("light Header.Background ResolveColor = %q, want %q", got, want)
+		t.Fatalf("light Surfaces.Header ResolveColor = %q, want %q", got, want)
 	}
 }
 
-func TestLightMainPanelBackgroundResolvesToPalette(t *testing.T) {
+func TestLightSurfacesPanelResolvesToPalette(t *testing.T) {
 	resolved, err := LoadResolved(LoadOptions{ThemeName: ThemeName("light")})
 	if err != nil {
 		t.Fatalf("LoadResolved light: %v", err)
 	}
-	got := resolved.Theme.ResolveColor(resolved.Theme.Main.PanelBackground)
+	got := resolved.Theme.ResolveColor(resolved.Theme.Surfaces.Panel)
 	if want := "#fefefe"; got != want {
-		t.Fatalf("light Main.PanelBackground ResolveColor = %q, want %q", got, want)
+		t.Fatalf("light Surfaces.Panel ResolveColor = %q, want %q", got, want)
 	}
 }
 

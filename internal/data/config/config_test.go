@@ -71,9 +71,8 @@ app:
 appearance:
   theme: nord
   overrides:
-    dialog:
-      border:
-        token: primary
+    chrome:
+      dialogBorder: primary
 `)
 	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
@@ -95,8 +94,8 @@ appearance:
 	if resolved.App.Runtime.Health.IntervalSec != 5 || resolved.App.Runtime.Health.TimeoutSec != 2 {
 		t.Fatalf("nested patch lost defaults: %#v", resolved.App.Runtime.Health)
 	}
-	if resolved.ThemeName != ThemeName("nord") || resolved.Theme.Dialog.Border != TokenRef(ColorTokenPrimary) {
-		t.Fatalf("theme cascade failed: name=%q dialog=%#v", resolved.ThemeName, resolved.Theme.Dialog)
+	if resolved.ThemeName != ThemeName("nord") || resolved.Theme.Chrome.DialogBorder != TokenRef(ColorTokenPrimary) {
+		t.Fatalf("theme cascade failed: name=%q dialog=%#v", resolved.ThemeName, resolved.Theme.Chrome)
 	}
 	if resolved.Theme.Palette.Primary != "#81a1c1" {
 		t.Fatalf("selected theme palette not applied: %q", resolved.Theme.Palette.Primary)
@@ -109,9 +108,8 @@ func TestLoadResolvedCLIThemeChangesBaseButKeepsUserOverride(t *testing.T) {
 appearance:
   theme: light
   overrides:
-    dialog:
-      border:
-        token: accentSecondary
+    chrome:
+      dialogBorder: accentSecondary
 `)
 	if err := os.WriteFile(path, data, 0o600); err != nil {
 		t.Fatal(err)
@@ -123,8 +121,8 @@ appearance:
 	if resolved.ThemeName != "nord" || resolved.Theme.Palette.Background != "#242933" {
 		t.Fatalf("CLI theme did not select nord: %#v", resolved.Theme.Palette)
 	}
-	if resolved.Theme.Dialog.Border != TokenRef(ColorTokenAccentSecondary) {
-		t.Fatalf("user property override did not remain highest: %q", resolved.Theme.Dialog.Border)
+	if resolved.Theme.Chrome.DialogBorder != TokenRef(ColorTokenAccentSecondary) {
+		t.Fatalf("user property override did not remain highest: %q", resolved.Theme.Chrome.DialogBorder)
 	}
 }
 
@@ -270,13 +268,13 @@ func TestValidateThemeRejectsInvalidColorFormats(t *testing.T) {
 func TestValidateThemeAcceptsValueRefsInAllFormats(t *testing.T) {
 	for _, format := range []string{"#abc", "rgb(250,240,230)", "grey", "63"} {
 		theme := DefaultTheme()
-		theme.Main.RowSelected = ValueRef(Color(format))
+		theme.Surfaces.RowSelected = ValueRef(Color(format))
 		if err := ValidateTheme(theme); err != nil {
 			t.Errorf("ValidateTheme rejected rowSelected value %q: %v", format, err)
 		}
 	}
 	theme := DefaultTheme()
-	theme.Main.RowSelected = ValueRef(Color("notacolor"))
+	theme.Surfaces.RowSelected = ValueRef(Color("notacolor"))
 	if err := ValidateTheme(theme); err == nil {
 		t.Error("ValidateTheme accepted invalid rowSelected value")
 	}

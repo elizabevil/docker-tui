@@ -15,7 +15,11 @@ import (
 // 拼写错误无法通过编译;运行时未注册值一律回退到 safe fallback。
 type StyleName string
 
-// 已注册的组件样式名,与 globalStyleRefs 的 JSON 键一一对应。
+// ── Component-scoped styles (non-theme-driven) ───────────────────
+// These styles are derived from theme scopes at ApplyThemeStyles
+// time but the consumer side keeps its own names because the
+// component layer predates the theme reorg.
+
 const (
 	StyleSearchBar            StyleName = "searchBar"
 	StyleSearchCursor         StyleName = "searchCursor"
@@ -65,6 +69,7 @@ const (
 	StyleDialogConfirm        StyleName = "dialogConfirm"
 	StyleDialogError          StyleName = "dialogError"
 	StyleDialogWarning        StyleName = "dialogWarning"
+	// Action scope styles — theme.action.<scope>.* wiring.
 	StyleActionContainerWindow       StyleName = "actionContainerWindow"
 	StyleActionContainerWindowBorder StyleName = "actionContainerWindowBorder"
 	StyleActionContainerFormInput    StyleName = "actionContainerFormInput"
@@ -188,7 +193,9 @@ func loadComponentStyles() {
 
 // ApplyThemeStyles projects fixed Theme scopes into the component rendering
 // styles. The assignments are explicit so a theme cannot introduce arbitrary
-// selectors or component names.
+// selectors or component names. Theme reorg (R06-followup): the source is
+// now theme.{chrome, surfaces, text, feedback, data, action} instead of
+// theme.{border, header, main, footer, dialog, toast, text, table, safeFallback}.
 func ApplyThemeStyles(theme *config.Theme) {
 	if theme == nil {
 		return
@@ -199,70 +206,95 @@ func ApplyThemeStyles(theme *config.Theme) {
 	resolveBackground := func(ref config.ColorRef) string {
 		return flattenThemeBackground(theme, ref)
 	}
+	// Search / command palette.
 	rawStyles.SearchBar.Color = resolveForeground(theme.Text.HelpDescription)
 	rawStyles.SearchCursor.Color = resolveForeground(theme.Text.HelpDescription)
 	rawStyles.SearchHint.Color = resolveForeground(theme.Text.Dim)
 	rawStyles.CommandPrefix.Color = resolveForeground(theme.Text.Success)
 	rawStyles.Breadcrumb.Color = resolveForeground(theme.Text.Dim)
 	rawStyles.BreadcrumbActive.Color = resolveForeground(theme.Text.Info)
-	rawStyles.ToastSuccess = styleRef{Color: resolveForeground(theme.Toast.Success), Background: resolveBackground(theme.Toast.Background)}
-	rawStyles.ToastError = styleRef{Color: resolveForeground(theme.Toast.Error), Background: resolveBackground(theme.Toast.Background)}
-	rawStyles.ToastInfo = styleRef{Color: resolveForeground(theme.Text.Info), Background: resolveBackground(theme.Toast.Background)}
-	rawStyles.ToastWarning = styleRef{Color: resolveForeground(theme.Text.Warning), Background: resolveBackground(theme.Toast.Background)}
-	rawStyles.HintKey.Color = resolveForeground(theme.Footer.Key)
-	rawStyles.HintDescription.Color = resolveForeground(theme.Footer.Description)
-	rawStyles.HintSeparator.Color = resolveForeground(theme.Footer.Separator)
-	rawStyles.DialogTitle.Color = resolveForeground(theme.Dialog.Title)
-	rawStyles.DialogBody.Color = resolveForeground(theme.Dialog.Body)
-	rawStyles.DialogBodyBackground = styleRef{Background: resolveBackground(theme.Dialog.BodyBackground)}
-	rawStyles.DialogOption.Color = resolveForeground(theme.Dialog.OptionActive)
-	rawStyles.DialogOptionDisabled.Color = resolveForeground(theme.Dialog.OptionInactive)
-	rawStyles.Panel = styleRef{Background: resolveBackground(theme.Main.PanelBackground)}
-	rawStyles.PanelTitle.Color = resolveForeground(theme.Main.Title)
+	// Feedback → toast.
+	rawStyles.ToastSuccess = styleRef{Color: resolveForeground(theme.Feedback.ToastSuccess), Background: resolveBackground(theme.Surfaces.Toast)}
+	rawStyles.ToastError = styleRef{Color: resolveForeground(theme.Feedback.ToastError), Background: resolveBackground(theme.Surfaces.Toast)}
+	rawStyles.ToastInfo = styleRef{Color: resolveForeground(theme.Feedback.ToastInfo), Background: resolveBackground(theme.Surfaces.Toast)}
+	rawStyles.ToastWarning = styleRef{Color: resolveForeground(theme.Feedback.ToastWarning), Background: resolveBackground(theme.Surfaces.Toast)}
+	// Footer (hintKey / hintDescription / hintSeparator).
+	rawStyles.HintKey.Color = resolveForeground(theme.Chrome.FooterKey)
+	rawStyles.HintDescription.Color = resolveForeground(theme.Chrome.FooterDescription)
+	rawStyles.HintSeparator.Color = resolveForeground(theme.Chrome.FooterSeparator)
+	// Dialog.
+	rawStyles.DialogTitle.Color = resolveForeground(theme.Chrome.DialogTitle)
+	rawStyles.DialogBody.Color = resolveForeground(theme.Text.DialogBody)
+	rawStyles.DialogBodyBackground = styleRef{Background: resolveBackground(theme.Surfaces.DialogBody)}
+	rawStyles.DialogOption.Color = resolveForeground(theme.Chrome.DialogOptionActive)
+	rawStyles.DialogOptionDisabled.Color = resolveForeground(theme.Chrome.DialogOptionInactive)
+	// Panel chrome.
+	rawStyles.Panel = styleRef{Background: resolveBackground(theme.Surfaces.Panel)}
+	rawStyles.PanelTitle.Color = resolveForeground(theme.Chrome.PanelTitle)
+	// Text.
 	rawStyles.Dim.Color = resolveForeground(theme.Text.Dim)
 	rawStyles.HelpKey.Color = resolveForeground(theme.Text.HelpKey)
 	rawStyles.HelpDescription.Color = resolveForeground(theme.Text.HelpDescription)
+	// Detail view.
 	rawStyles.DetailLabel.Color = resolveForeground(theme.Text.Info)
 	rawStyles.DetailSection.Color = resolveForeground(theme.Text.HelpDescription)
 	rawStyles.DetailValue.Color = resolveForeground(theme.Text.HelpDescription)
 	rawStyles.DetailDim.Color = resolveForeground(theme.Text.Dim)
-	rawStyles.DetailSelection = styleRef{Color: resolveForeground(theme.Main.RowText), Background: resolveBackground(theme.Main.RowSelected), Bold: true}
+	rawStyles.DetailSelection = styleRef{Color: resolveForeground(theme.Chrome.PanelRowText), Background: resolveBackground(theme.Surfaces.RowSelected), Bold: true}
+	// Log view.
 	rawStyles.LogTimestamp.Color = resolveForeground(theme.Text.Info)
 	rawStyles.LogText.Color = resolveForeground(theme.Text.HelpDescription)
 	rawStyles.LogStderr.Color = resolveForeground(theme.Text.Error)
-	rawStyles.LogHighlight = styleRef{Color: resolveBackground(theme.Header.Background), Background: resolveBackground(theme.Text.Warning)}
-	rawStyles.Header = styleRef{Color: resolveForeground(theme.Main.TableHeader), Bold: true}
-	rawStyles.HeaderBar = styleRef{Color: resolveForeground(theme.Header.Value), Background: resolveBackground(theme.Header.Background)}
-	rawStyles.HeaderLabel = styleRef{Color: resolveForeground(theme.Header.Label)}
-	rawStyles.KeyBadge = styleRef{Color: resolveForeground(theme.Header.Value), Background: resolveBackground(theme.Header.Background), Bold: true}
-	rawStyles.Footer = styleRef{Color: resolveForeground(theme.Main.Footer)}
-	rawStyles.ShortcutBar = styleRef{Background: resolveBackground(theme.Footer.ShortcutBackground)}
-	rawStyles.ActionBar = styleRef{Color: resolveForeground(theme.Main.RowText), Background: resolveBackground(theme.Main.ActionBarBackground)}
-	rawStyles.ActionBarBorder = styleRef{Color: resolveForeground(theme.Main.BorderActive)}
+	rawStyles.LogHighlight = styleRef{Color: resolveBackground(theme.Surfaces.Header), Background: resolveBackground(theme.Text.Warning)}
+	// Header.
+	rawStyles.Header = styleRef{Color: resolveForeground(theme.Chrome.PanelTableHeader), Bold: true}
+	rawStyles.HeaderBar = styleRef{Color: resolveForeground(theme.Chrome.HeaderValue), Background: resolveBackground(theme.Surfaces.Header)}
+	rawStyles.HeaderLabel = styleRef{Color: resolveForeground(theme.Chrome.HeaderLabel)}
+	rawStyles.KeyBadge = styleRef{Color: resolveForeground(theme.Chrome.HeaderValue), Background: resolveBackground(theme.Surfaces.Header), Bold: true}
+	// Footer.
+	rawStyles.Footer = styleRef{Color: resolveForeground(theme.Chrome.PanelFooter)}
+	rawStyles.ShortcutBar = styleRef{Background: resolveBackground(theme.Surfaces.Footer)}
+	// Action Bar / panels.
+	rawStyles.ActionBar = styleRef{Color: resolveForeground(theme.Chrome.PanelRowText), Background: resolveBackground(theme.Surfaces.ActionBar)}
+	rawStyles.ActionBarBorder = styleRef{Color: resolveForeground(theme.Chrome.PanelBorderActive)}
 	rawStyles.FormInput = styleRef{Background: string(theme.Palette.Background)}
-	rawStyles.MessageRail = styleRef{Background: resolveBackground(theme.Main.MessageRailBackground)}
-	rawStyles.QueryBar = styleRef{Background: resolveBackground(theme.Main.QueryBarBackground)}
-	rawStyles.SelectedRow = styleRef{Color: resolveForeground(theme.Main.RowText), Background: resolveBackground(theme.Main.RowSelected)}
-	rawStyles.DialogConfirm = styleRef{Color: resolveForeground(theme.Text.Success), Background: resolveBackground(theme.Toast.Background), Bold: true}
-	rawStyles.DialogError = styleRef{Color: resolveForeground(theme.Text.Error), Background: resolveBackground(theme.Toast.Background)}
-	rawStyles.DialogWarning = styleRef{Color: resolveForeground(theme.Text.Warning), Background: resolveBackground(theme.Toast.Background)}
-	rawStyles.ActionContainerWindow = styleRef{Background: resolveBackground(theme.Action.Container.Window.Background)}
-	rawStyles.ActionContainerWindowBorder = styleRef{Color: resolveForeground(theme.Action.Container.Window.Border)}
-	rawStyles.ActionContainerFormInput = styleRef{Color: resolveForeground(theme.Action.Container.FormInput.Foreground), Background: resolveBackground(theme.Action.Container.FormInput.Background)}
-	rawStyles.ActionContainerConfirm = styleRef{Color: resolveForeground(theme.Action.Container.Confirm.Foreground), Background: resolveBackground(theme.Action.Container.Confirm.Background), Bold: true}
-	rawStyles.ActionContainerCancel = styleRef{Color: resolveForeground(theme.Action.Container.Cancel.Foreground), Background: resolveBackground(theme.Action.Container.Cancel.Background)}
-	rawStyles.ActionImageWindow = styleRef{Background: resolveBackground(theme.Action.Image.Window.Background)}
-	rawStyles.ActionImageWindowBorder = styleRef{Color: resolveForeground(theme.Action.Image.Window.Border)}
-	rawStyles.ActionImageFormInput = styleRef{Color: resolveForeground(theme.Action.Image.FormInput.Foreground), Background: resolveBackground(theme.Action.Image.FormInput.Background)}
-	rawStyles.ActionImageConfirm = styleRef{Color: resolveForeground(theme.Action.Image.Confirm.Foreground), Background: resolveBackground(theme.Action.Image.Confirm.Background), Bold: true}
-	rawStyles.ActionImageCancel = styleRef{Color: resolveForeground(theme.Action.Image.Cancel.Foreground), Background: resolveBackground(theme.Action.Image.Cancel.Background)}
+	rawStyles.MessageRail = styleRef{Background: resolveBackground(theme.Surfaces.MessageRail)}
+	rawStyles.QueryBar = styleRef{Background: resolveBackground(theme.Surfaces.QueryBar)}
+	rawStyles.SelectedRow = styleRef{Color: resolveForeground(theme.Chrome.PanelRowText), Background: resolveBackground(theme.Surfaces.RowSelected)}
+	// Button styles (Confirm / Error / Warning) — themed via feedback toast colours.
+	rawStyles.DialogConfirm = styleRef{Color: resolveForeground(theme.Feedback.ToastSuccess), Background: resolveBackground(theme.Surfaces.Toast), Bold: true}
+	rawStyles.DialogError = styleRef{Color: resolveForeground(theme.Text.Error), Background: resolveBackground(theme.Surfaces.Toast)}
+	rawStyles.DialogWarning = styleRef{Color: resolveForeground(theme.Text.Warning), Background: resolveBackground(theme.Surfaces.Toast)}
+	// Action scope styles (R06-01 follow-up: theme.action.<scope>.{window, formInput, confirm, cancel}).
+	applyActionScopeTo(&rawStyles.ActionContainerWindow, &rawStyles.ActionContainerWindowBorder,
+		&rawStyles.ActionContainerFormInput, &rawStyles.ActionContainerConfirm, &rawStyles.ActionContainerCancel,
+		theme.Action.Container, resolveForeground, resolveBackground)
+	applyActionScopeTo(&rawStyles.ActionImageWindow, &rawStyles.ActionImageWindowBorder,
+		&rawStyles.ActionImageFormInput, &rawStyles.ActionImageConfirm, &rawStyles.ActionImageCancel,
+		theme.Action.Image, resolveForeground, resolveBackground)
 
-	tableCfg.RowStyles.Selected.Color = resolveForeground(theme.Main.RowText)
-	tableCfg.RowStyles.Selected.Background = resolveBackground(theme.Main.RowSelected)
+	tableCfg.RowStyles.Selected.Color = resolveForeground(theme.Chrome.PanelRowText)
+	tableCfg.RowStyles.Selected.Background = resolveBackground(theme.Surfaces.RowSelected)
 	tableCfg.RowStyles.Selected.Bold = true
 
 	ApplyTableTheme(theme)
 	ApplySafeFallback(theme)
+}
+
+// applyActionScopeTo wires a single resource scope's four slots into
+// the matching StyleName slots. It is the only place the per-scope
+// theme.action.<scope> contract touches the component style cache.
+func applyActionScopeTo(
+	window, windowBorder, formInput, confirm, cancel *styleRef,
+	scope config.ActionScopeStyles,
+	resolveForeground func(config.ColorRef) string,
+	resolveBackground func(config.ColorRef) string,
+) {
+	*window = styleRef{Background: resolveBackground(scope.Window.Background)}
+	*windowBorder = styleRef{Color: resolveForeground(scope.Window.Border)}
+	*formInput = styleRef{Color: resolveForeground(scope.FormInput.Foreground), Background: resolveBackground(scope.FormInput.Background)}
+	*confirm = styleRef{Color: resolveForeground(scope.Confirm.Foreground), Background: resolveBackground(scope.Confirm.Background), Bold: true}
+	*cancel = styleRef{Color: resolveForeground(scope.Cancel.Foreground), Background: resolveBackground(scope.Cancel.Background)}
 }
 
 func flattenThemeBackground(theme *config.Theme, ref config.ColorRef) string {
@@ -331,9 +363,9 @@ func ApplyTableTheme(theme *config.Theme) {
 	if theme == nil {
 		return
 	}
-	tableCfg.RowStyles.Marked.Background = flattenThemeBackground(theme, theme.Table.MarkedBackground)
-	tableCfg.RowStyles.Marked.Color = flattenThemeForeground(theme, theme.Table.NameForeground)
-	tableCfg.ColumnStyles = defaultColumnStyles(flattenThemeForeground(theme, theme.Table.ColumnForeground), flattenThemeForeground(theme, theme.Table.NameForeground))
+	tableCfg.RowStyles.Marked.Background = flattenThemeBackground(theme, theme.Data.MarkedBackground)
+	tableCfg.RowStyles.Marked.Color = flattenThemeForeground(theme, theme.Data.NameForeground)
+	tableCfg.ColumnStyles = defaultColumnStyles(flattenThemeForeground(theme, theme.Data.ColumnForeground), flattenThemeForeground(theme, theme.Data.NameForeground))
 }
 
 type SafeFallbackStyles struct {
@@ -351,11 +383,11 @@ func ApplySafeFallback(theme *config.Theme) {
 		return
 	}
 	safeFallbackRef = SafeFallbackStyles{
-		Normal: lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ResolveColor(theme.SafeFallback.Normal))),
-		Bold:   lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ResolveColor(theme.SafeFallback.Bold))).Bold(true),
-		Dim:    lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ResolveColor(theme.SafeFallback.Dim))).Faint(true),
-		Accent: lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ResolveColor(theme.SafeFallback.Accent))),
-		Error:  lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ResolveColor(theme.SafeFallback.Error))),
+		Normal: lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ResolveColor(theme.Feedback.SafeNormal))),
+		Bold:   lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ResolveColor(theme.Feedback.SafeBold))).Bold(true),
+		Dim:    lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ResolveColor(theme.Feedback.SafeDim))).Faint(true),
+		Accent: lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ResolveColor(theme.Feedback.SafeAccent))),
+		Error:  lipgloss.NewStyle().Foreground(lipgloss.Color(theme.ResolveColor(theme.Feedback.SafeError))),
 	}
 }
 

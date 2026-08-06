@@ -26,8 +26,8 @@ func TestPlaceDialogPreservesContentOutsideDialog(t *testing.T) {
 
 func TestResolveOverlayValidatesAndNormalizesColor(t *testing.T) {
 	theme := config.DefaultTheme()
-	theme.Dialog.Overlay = config.ValueRef(config.Color("#abc"))
-	theme.Dialog.OverlayOpacity = 50
+	theme.Chrome.DialogOverlay = config.ValueRef(config.Color("#abc"))
+	theme.Chrome.DialogOverlayOpacity = 50
 	if got := resolveOverlay(theme); got != "#aabbcc7f" {
 		t.Fatalf("resolved overlay = %q", got)
 	}
@@ -35,7 +35,7 @@ func TestResolveOverlayValidatesAndNormalizesColor(t *testing.T) {
 
 func TestResolveOverlayFallsBackFromInvalidColor(t *testing.T) {
 	theme := config.DefaultTheme()
-	theme.Dialog.Overlay = config.ValueRef(config.Color("not-a-color"))
+	theme.Chrome.DialogOverlay = config.ValueRef(config.Color("not-a-color"))
 	if got := resolveOverlay(theme); got != "#0d1117cc" {
 		t.Fatalf("fallback overlay = %q", got)
 	}

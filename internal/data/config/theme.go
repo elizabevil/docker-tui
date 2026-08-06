@@ -15,17 +15,58 @@ type Color string
 type BorderKind string
 type ThemeName string
 
-type ColorRef struct {
-	Token ColorToken `json:"token,omitempty" yaml:"token,omitempty"`
-	Value Color      `json:"value,omitempty" yaml:"value,omitempty"`
-}
+// ColorRef is a colour reference that can be either a palette token
+// (any string without a "#" prefix) or a literal colour value (any
+// string with a leading "#", e.g. "#3875d7"). The discriminator is
+// purely lexical: a "#" prefix means value, anything else means token.
+//
+// This is a flat string rather than the {"token":..., "value":...}
+// object wrapper the previous revision used because the wrapper was
+// 99% boilerplate around a single field. Flat strings cut every theme
+// JSONC file roughly in half and remove the only place where a JSON
+// authoring mistake (both token and value set) was possible.
+type ColorRef string
 
+// TokenRef returns a ColorRef that resolves through the palette.
 func TokenRef(token ColorToken) ColorRef {
-	return ColorRef{Token: token}
+	return ColorRef(token)
 }
 
+// ValueRef returns a ColorRef that holds a literal colour value.
 func ValueRef(value Color) ColorRef {
-	return ColorRef{Value: value}
+	return ColorRef(value)
+}
+
+// IsToken reports whether the reference is a known palette token
+// (true → resolve through Theme.Palette) or a literal colour value
+// (false → pass through to ParseColor). The check is closed: only
+// strings in the known palette token universe are treated as tokens,
+// everything else is a literal. This means a literal like
+// "rgb(250,240,230)" round-trips without needing a "#" prefix.
+func (r ColorRef) IsToken() bool {
+	switch r.Token() {
+	case ColorTokenPrimary, ColorTokenSuccess, ColorTokenWarning, ColorTokenDanger,
+		ColorTokenInfo, ColorTokenAccent, ColorTokenAccentSecondary,
+		ColorTokenForeground, ColorTokenForegroundMuted,
+		ColorTokenBackground, ColorTokenBackgroundSubtle, ColorTokenBackgroundDeep,
+		ColorTokenTransparent:
+		return true
+	}
+	return false
+}
+
+// Token returns the ColorToken the reference resolves through.
+// Panics if the reference is a literal value rather than a token; call
+// IsToken first when the input is user-supplied.
+func (r ColorRef) Token() ColorToken {
+	return ColorToken(r)
+}
+
+// Value returns the literal colour value. Panics if the reference is
+// a token rather than a literal; call IsToken first when the input is
+// user-supplied.
+func (r ColorRef) Value() Color {
+	return Color(r)
 }
 
 const (
@@ -35,6 +76,11 @@ const (
 	BorderThick   BorderKind = "thick"
 	BorderHidden  BorderKind = "hidden"
 )
+
+// ── Palette ───────────────────────────────────────────────────────
+// Palette is the canonical named colour set. Every other theme field
+// references one of these names via ColorRef.Token, so a single
+// palette change cascades across chrome / surfaces / text / etc.
 
 type Palette struct {
 	Primary          Color `json:"primary" yaml:"primary"`
@@ -51,151 +97,115 @@ type Palette struct {
 	BackgroundDeep   Color `json:"backgroundDeep" yaml:"backgroundDeep"`
 }
 
-type BorderStyles struct {
-	Active   ColorRef   `json:"active" yaml:"active"`
-	Inactive ColorRef   `json:"inactive" yaml:"inactive"`
-	Focused  ColorRef   `json:"focused" yaml:"focused"`
-	Kind     BorderKind `json:"kind" yaml:"kind"`
+// ── Chrome (frame elements) ──────────────────────────────────────
+// Chrome groups every "non-content" frame element: borders, titles,
+// separators, dialog window borders. Theme authors editing the look
+// of the app's framework touch only this section.
+
+type ChromeStyles struct {
+	BorderKind          BorderKind `json:"borderKind" yaml:"borderKind"`
+	PanelBorderActive   ColorRef   `json:"panelBorderActive" yaml:"panelBorderActive"`
+	PanelBorderInactive ColorRef   `json:"panelBorderInactive" yaml:"panelBorderInactive"`
+	PanelBorderFocused  ColorRef   `json:"panelBorderFocused" yaml:"panelBorderFocused"`
+	PanelTitle          ColorRef   `json:"panelTitle" yaml:"panelTitle"`
+	PanelFooter         ColorRef   `json:"panelFooter" yaml:"panelFooter"`
+	PanelRowSelected    ColorRef   `json:"panelRowSelected" yaml:"panelRowSelected"`
+	PanelRowText        ColorRef   `json:"panelRowText" yaml:"panelRowText"`
+	PanelTableHeader    ColorRef   `json:"panelTableHeader" yaml:"panelTableHeader"`
+	DialogBorder        ColorRef   `json:"dialogBorder" yaml:"dialogBorder"`
+	DialogTitle         ColorRef   `json:"dialogTitle" yaml:"dialogTitle"`
+	DialogOptionActive  ColorRef   `json:"dialogOptionActive" yaml:"dialogOptionActive"`
+	DialogOptionInactive ColorRef `json:"dialogOptionInactive" yaml:"dialogOptionInactive"`
+	DialogOverlay       ColorRef   `json:"dialogOverlay" yaml:"dialogOverlay"`
+	DialogOverlayOpacity uint8    `json:"dialogOverlayOpacity" yaml:"dialogOverlayOpacity"`
+	HeaderLabel         ColorRef   `json:"headerLabel" yaml:"headerLabel"`
+	HeaderValue         ColorRef   `json:"headerValue" yaml:"headerValue"`
+	HeaderLogo          ColorRef   `json:"headerLogo" yaml:"headerLogo"`
+	FooterKey           ColorRef   `json:"footerKey" yaml:"footerKey"`
+	FooterDescription   ColorRef   `json:"footerDescription" yaml:"footerDescription"`
+	FooterSeparator     ColorRef   `json:"footerSeparator" yaml:"footerSeparator"`
 }
 
-type HeaderStyles struct {
-	Background ColorRef `json:"background" yaml:"background"`
-	Label      ColorRef `json:"label" yaml:"label"`
-	Value      ColorRef `json:"value" yaml:"value"`
-	Logo       ColorRef `json:"logo" yaml:"logo"`
+// ── Surfaces (background fills) ───────────────────────────────────
+// Surfaces groups every fill colour used as a backdrop: panel
+// background, action bar, message rail, query bar, dialog body,
+// header, footer, toast. Together with chrome's rowSelected, every
+// "what colour is this rectangle" question is answered here.
+
+type SurfacesStyles struct {
+	Panel       ColorRef `json:"panel" yaml:"panel"`
+	ActionBar   ColorRef `json:"actionBar" yaml:"actionBar"`
+	MessageRail ColorRef `json:"messageRail" yaml:"messageRail"`
+	QueryBar    ColorRef `json:"queryBar" yaml:"queryBar"`
+	DialogBody  ColorRef `json:"dialogBody" yaml:"dialogBody"`
+	Header      ColorRef `json:"header" yaml:"header"`
+	Footer      ColorRef `json:"footer" yaml:"footer"`
+	Toast       ColorRef `json:"toast" yaml:"toast"`
+	RowSelected ColorRef `json:"rowSelected" yaml:"rowSelected"`
 }
 
-type MainStyles struct {
-	BorderActive          ColorRef `json:"borderActive" yaml:"borderActive"`
-	BorderInactive        ColorRef `json:"borderInactive" yaml:"borderInactive"`
-	Title                 ColorRef `json:"title" yaml:"title"`
-	TableHeader           ColorRef `json:"tableHeader" yaml:"tableHeader"`
-	RowSelected           ColorRef `json:"rowSelected" yaml:"rowSelected"`
-	RowText               ColorRef `json:"rowText" yaml:"rowText"`
-	Footer                ColorRef `json:"footer" yaml:"footer"`
-	PanelBackground       ColorRef `json:"panelBackground" yaml:"panelBackground"`
-	ActionBarBackground   ColorRef `json:"actionBarBackground" yaml:"actionBarBackground"`
-	MessageRailBackground ColorRef `json:"messageRailBackground" yaml:"messageRailBackground"`
-	QueryBarBackground    ColorRef `json:"queryBarBackground" yaml:"queryBarBackground"`
-}
-
-type FooterStyles struct {
-	StatusBackground   ColorRef `json:"statusBackground" yaml:"statusBackground"`
-	ShortcutBackground ColorRef `json:"shortcutBackground" yaml:"shortcutBackground"`
-	Key                ColorRef `json:"key" yaml:"key"`
-	Description        ColorRef `json:"description" yaml:"description"`
-	Separator          ColorRef `json:"separator" yaml:"separator"`
-}
-
-type DialogStyles struct {
-	Border         ColorRef `json:"border" yaml:"border"`
-	Title          ColorRef `json:"title" yaml:"title"`
-	Body           ColorRef `json:"body" yaml:"body"`
-	BodyBackground ColorRef `json:"bodyBackground" yaml:"bodyBackground"`
-	OptionActive   ColorRef `json:"optionActive" yaml:"optionActive"`
-	OptionInactive ColorRef `json:"optionInactive" yaml:"optionInactive"`
-	Overlay        ColorRef `json:"overlay" yaml:"overlay"`
-	OverlayOpacity uint8    `json:"overlayOpacity" yaml:"overlayOpacity"`
-}
-
-type ToastStyles struct {
-	Success    ColorRef `json:"success" yaml:"success"`
-	Error      ColorRef `json:"error" yaml:"error"`
-	Background ColorRef `json:"background" yaml:"background"`
-}
+// ── Text (foreground typography) ──────────────────────────────────
+// Text groups every foreground colour used for content text:
+// semantic (info/success/warning/error/dim), help, dialog body.
+// Table header / row text live in chrome since they are part of the
+// table widget's chrome.
 
 type TextStyles struct {
 	Info            ColorRef `json:"info" yaml:"info"`
-	Error           ColorRef `json:"error" yaml:"error"`
 	Success         ColorRef `json:"success" yaml:"success"`
 	Warning         ColorRef `json:"warning" yaml:"warning"`
+	Error           ColorRef `json:"error" yaml:"error"`
 	Dim             ColorRef `json:"dim" yaml:"dim"`
 	HelpKey         ColorRef `json:"helpKey" yaml:"helpKey"`
 	HelpDescription ColorRef `json:"helpDescription" yaml:"helpDescription"`
+	DialogBody      ColorRef `json:"dialogBody" yaml:"dialogBody"`
 }
 
-type TableStyles struct {
+// ── Feedback (transient + fallback) ───────────────────────────────
+// Feedback groups the transient notification palette (toasts) and
+// the safe-fallback palette (used when a component style has not
+// been resolved yet). Both are "what does the user see when the
+// normal flow is broken / needs attention" — colocating them makes
+// that obvious.
+
+type FeedbackStyles struct {
+	ToastSuccess ColorRef `json:"toastSuccess" yaml:"toastSuccess"`
+	ToastError   ColorRef `json:"toastError" yaml:"toastError"`
+	ToastInfo    ColorRef `json:"toastInfo" yaml:"toastInfo"`
+	ToastWarning ColorRef `json:"toastWarning" yaml:"toastWarning"`
+	SafeNormal   ColorRef `json:"safeNormal" yaml:"safeNormal"`
+	SafeBold     ColorRef `json:"safeBold" yaml:"safeBold"`
+	SafeDim      ColorRef `json:"safeDim" yaml:"safeDim"`
+	SafeAccent   ColorRef `json:"safeAccent" yaml:"safeAccent"`
+	SafeError    ColorRef `json:"safeError" yaml:"safeError"`
+}
+
+// ── Data (table content) ──────────────────────────────────────────
+// Data groups the table-content palette: marked row background,
+// column foreground, name foreground. The structural table chrome
+// (row selected, table header, row text) lives in chrome + surfaces
+// because those are frame-related; the literal palette tokens for
+// the data inside the table live here.
+
+type DataStyles struct {
 	MarkedBackground ColorRef `json:"markedBackground" yaml:"markedBackground"`
 	ColumnForeground ColorRef `json:"columnForeground" yaml:"columnForeground"`
 	NameForeground   ColorRef `json:"nameForeground" yaml:"nameForeground"`
 }
 
-type SafeFallbackStyles struct {
-	Normal ColorRef `json:"normal" yaml:"normal"`
-	Bold   ColorRef `json:"bold" yaml:"bold"`
-	Dim    ColorRef `json:"dim" yaml:"dim"`
-	Accent ColorRef `json:"accent" yaml:"accent"`
-	Error  ColorRef `json:"error" yaml:"error"`
-}
+// ── Theme (composition) ──────────────────────────────────────────
 
-// ActionWindow groups the background + border colours of the window chrome
-// used by any Operation whose body fills a window (Form / Page / Async).
-type ActionWindow struct {
-	Background ColorRef `json:"background" yaml:"background"`
-	Border     ColorRef `json:"border" yaml:"border"`
-}
-
-// ActionFormInput groups the foreground + background colours of the
-// editable form input fields inside the window. Only consumed when the
-// Operation Mode is Form.
-type ActionFormInput struct {
-	Foreground ColorRef `json:"foreground" yaml:"foreground"`
-	Background ColorRef `json:"background" yaml:"background"`
-}
-
-// ActionButton groups the foreground + background colours of an action
-// button (Confirm or Cancel) inside the window. Only consumed when the
-// Operation Mode is Form or Async.
-type ActionButton struct {
-	Foreground ColorRef `json:"foreground" yaml:"foreground"`
-	Background ColorRef `json:"background" yaml:"background"`
-}
-
-// ActionScopeStyles is the per-scope visual contract: one entry per
-// resource scope (Container / Image / ...). The four slots are reused
-// across all scopes so each Operation Mode (Form / Page / Async) can
-// pull from the same shape regardless of scope.
-type ActionScopeStyles struct {
-	Window    ActionWindow    `json:"window" yaml:"window"`
-	FormInput ActionFormInput `json:"formInput" yaml:"formInput"`
-	Confirm   ActionButton    `json:"confirm" yaml:"confirm"`
-	Cancel    ActionButton    `json:"cancel" yaml:"cancel"`
-}
-
-// ActionStyles is the visual contract for any Operation, grouped by
-// resource Scope. It supersedes the earlier single-scope
-// ContainerOperationStyles; the Skin-vs-Skeleton separation is enforced
-// by JSON schema (themes only define colours, operations/*.jsonc — once
-// introduced — will only define behaviour).
-type ActionStyles struct {
-	Container ActionScopeStyles `json:"container" yaml:"container"`
-	Image     ActionScopeStyles `json:"image" yaml:"image"`
-}
-
-// Theme is a complete visual configuration with fixed component scopes.
 type Theme struct {
-	Palette      Palette            `json:"palette" yaml:"palette"`
-	Border       BorderStyles       `json:"border" yaml:"border"`
-	Header       HeaderStyles       `json:"header" yaml:"header"`
-	Main         MainStyles         `json:"main" yaml:"main"`
-	Footer       FooterStyles       `json:"footer" yaml:"footer"`
-	Dialog       DialogStyles       `json:"dialog" yaml:"dialog"`
-	Toast        ToastStyles        `json:"toast" yaml:"toast"`
-	Text         TextStyles         `json:"text" yaml:"text"`
-	Table        TableStyles        `json:"table" yaml:"table"`
-	SafeFallback SafeFallbackStyles `json:"safeFallback" yaml:"safeFallback"`
-	Action       ActionStyles       `json:"action" yaml:"action"`
+	Palette Palette          `json:"palette" yaml:"palette"`
+	Chrome  ChromeStyles     `json:"chrome" yaml:"chrome"`
+	Surfaces SurfacesStyles  `json:"surfaces" yaml:"surfaces"`
+	Text    TextStyles       `json:"text" yaml:"text"`
+	Feedback FeedbackStyles  `json:"feedback" yaml:"feedback"`
+	Data    DataStyles       `json:"data" yaml:"data"`
+	Action  ActionStyles     `json:"action" yaml:"action"`
 }
 
-type ThemeMetadata struct {
-	Name        string `json:"name" yaml:"name"`
-	Description string `json:"description" yaml:"description"`
-}
-
-type ThemeDocument struct {
-	Meta  ThemeMetadata `json:"meta" yaml:"meta"`
-	Theme ThemePatch    `json:"theme" yaml:"theme"`
-}
+// ── Patches (for ThemePatch.Apply) ─────────────────────────────────
 
 type PalettePatch struct {
 	Primary          *Color `json:"primary,omitempty" yaml:"primary,omitempty"`
@@ -212,142 +222,104 @@ type PalettePatch struct {
 	BackgroundDeep   *Color `json:"backgroundDeep,omitempty" yaml:"backgroundDeep,omitempty"`
 }
 
-type BorderStylesPatch struct {
-	Active   *ColorRef   `json:"active,omitempty" yaml:"active,omitempty"`
-	Inactive *ColorRef   `json:"inactive,omitempty" yaml:"inactive,omitempty"`
-	Focused  *ColorRef   `json:"focused,omitempty" yaml:"focused,omitempty"`
-	Kind     *BorderKind `json:"kind,omitempty" yaml:"kind,omitempty"`
+type ChromeStylesPatch struct {
+	BorderKind           *BorderKind `json:"borderKind,omitempty" yaml:"borderKind,omitempty"`
+	PanelBorderActive    *ColorRef   `json:"panelBorderActive,omitempty" yaml:"panelBorderActive,omitempty"`
+	PanelBorderInactive  *ColorRef   `json:"panelBorderInactive,omitempty" yaml:"panelBorderInactive,omitempty"`
+	PanelBorderFocused   *ColorRef   `json:"panelBorderFocused,omitempty" yaml:"panelBorderFocused,omitempty"`
+	PanelTitle           *ColorRef   `json:"panelTitle,omitempty" yaml:"panelTitle,omitempty"`
+	PanelFooter          *ColorRef   `json:"panelFooter,omitempty" yaml:"panelFooter,omitempty"`
+	PanelRowSelected     *ColorRef   `json:"panelRowSelected,omitempty" yaml:"panelRowSelected,omitempty"`
+	PanelRowText         *ColorRef   `json:"panelRowText,omitempty" yaml:"panelRowText,omitempty"`
+	PanelTableHeader     *ColorRef   `json:"panelTableHeader,omitempty" yaml:"panelTableHeader,omitempty"`
+	DialogBorder         *ColorRef   `json:"dialogBorder,omitempty" yaml:"dialogBorder,omitempty"`
+	DialogTitle          *ColorRef   `json:"dialogTitle,omitempty" yaml:"dialogTitle,omitempty"`
+	DialogOptionActive   *ColorRef   `json:"dialogOptionActive,omitempty" yaml:"dialogOptionActive,omitempty"`
+	DialogOptionInactive *ColorRef   `json:"dialogOptionInactive,omitempty" yaml:"dialogOptionInactive,omitempty"`
+	DialogOverlay        *ColorRef   `json:"dialogOverlay,omitempty" yaml:"dialogOverlay,omitempty"`
+	DialogOverlayOpacity *uint8      `json:"dialogOverlayOpacity,omitempty" yaml:"dialogOverlayOpacity,omitempty"`
+	HeaderLabel          *ColorRef   `json:"headerLabel,omitempty" yaml:"headerLabel,omitempty"`
+	HeaderValue          *ColorRef   `json:"headerValue,omitempty" yaml:"headerValue,omitempty"`
+	HeaderLogo           *ColorRef   `json:"headerLogo,omitempty" yaml:"headerLogo,omitempty"`
+	FooterKey            *ColorRef   `json:"footerKey,omitempty" yaml:"footerKey,omitempty"`
+	FooterDescription    *ColorRef   `json:"footerDescription,omitempty" yaml:"footerDescription,omitempty"`
+	FooterSeparator      *ColorRef   `json:"footerSeparator,omitempty" yaml:"footerSeparator,omitempty"`
 }
-type HeaderStylesPatch struct {
-	Background *ColorRef `json:"background,omitempty" yaml:"background,omitempty"`
-	Label      *ColorRef `json:"label,omitempty" yaml:"label,omitempty"`
-	Value      *ColorRef `json:"value,omitempty" yaml:"value,omitempty"`
-	Logo       *ColorRef `json:"logo,omitempty" yaml:"logo,omitempty"`
+
+type SurfacesStylesPatch struct {
+	Panel       *ColorRef `json:"panel,omitempty" yaml:"panel,omitempty"`
+	ActionBar   *ColorRef `json:"actionBar,omitempty" yaml:"actionBar,omitempty"`
+	MessageRail *ColorRef `json:"messageRail,omitempty" yaml:"messageRail,omitempty"`
+	QueryBar    *ColorRef `json:"queryBar,omitempty" yaml:"queryBar,omitempty"`
+	DialogBody  *ColorRef `json:"dialogBody,omitempty" yaml:"dialogBody,omitempty"`
+	Header      *ColorRef `json:"header,omitempty" yaml:"header,omitempty"`
+	Footer      *ColorRef `json:"footer,omitempty" yaml:"footer,omitempty"`
+	Toast       *ColorRef `json:"toast,omitempty" yaml:"toast,omitempty"`
+	RowSelected *ColorRef `json:"rowSelected,omitempty" yaml:"rowSelected,omitempty"`
 }
-type MainStylesPatch struct {
-	BorderActive          *ColorRef `json:"borderActive,omitempty" yaml:"borderActive,omitempty"`
-	BorderInactive        *ColorRef `json:"borderInactive,omitempty" yaml:"borderInactive,omitempty"`
-	Title                 *ColorRef `json:"title,omitempty" yaml:"title,omitempty"`
-	TableHeader           *ColorRef `json:"tableHeader,omitempty" yaml:"tableHeader,omitempty"`
-	RowSelected           *ColorRef `json:"rowSelected,omitempty" yaml:"rowSelected,omitempty"`
-	RowText               *ColorRef `json:"rowText,omitempty" yaml:"rowText,omitempty"`
-	Footer                *ColorRef `json:"footer,omitempty" yaml:"footer,omitempty"`
-	PanelBackground       *ColorRef `json:"panelBackground,omitempty" yaml:"panelBackground,omitempty"`
-	ActionBarBackground   *ColorRef `json:"actionBarBackground,omitempty" yaml:"actionBarBackground,omitempty"`
-	MessageRailBackground *ColorRef `json:"messageRailBackground,omitempty" yaml:"messageRailBackground,omitempty"`
-	QueryBarBackground    *ColorRef `json:"queryBarBackground,omitempty" yaml:"queryBarBackground,omitempty"`
-}
-type FooterStylesPatch struct {
-	StatusBackground   *ColorRef `json:"statusBackground,omitempty" yaml:"statusBackground,omitempty"`
-	ShortcutBackground *ColorRef `json:"shortcutBackground,omitempty" yaml:"shortcutBackground,omitempty"`
-	Key                *ColorRef `json:"key,omitempty" yaml:"key,omitempty"`
-	Description        *ColorRef `json:"description,omitempty" yaml:"description,omitempty"`
-	Separator          *ColorRef `json:"separator,omitempty" yaml:"separator,omitempty"`
-}
-type DialogStylesPatch struct {
-	Border         *ColorRef `json:"border,omitempty" yaml:"border,omitempty"`
-	Title          *ColorRef `json:"title,omitempty" yaml:"title,omitempty"`
-	Body           *ColorRef `json:"body,omitempty" yaml:"body,omitempty"`
-	BodyBackground *ColorRef `json:"bodyBackground,omitempty" yaml:"bodyBackground,omitempty"`
-	OptionActive   *ColorRef `json:"optionActive,omitempty" yaml:"optionActive,omitempty"`
-	OptionInactive *ColorRef `json:"optionInactive,omitempty" yaml:"optionInactive,omitempty"`
-	Overlay        *ColorRef `json:"overlay,omitempty" yaml:"overlay,omitempty"`
-	OverlayOpacity *uint8    `json:"overlayOpacity,omitempty" yaml:"overlayOpacity,omitempty"`
-}
-type ToastStylesPatch struct {
-	Success    *ColorRef `json:"success,omitempty" yaml:"success,omitempty"`
-	Error      *ColorRef `json:"error,omitempty" yaml:"error,omitempty"`
-	Background *ColorRef `json:"background,omitempty" yaml:"background,omitempty"`
-}
+
 type TextStylesPatch struct {
 	Info            *ColorRef `json:"info,omitempty" yaml:"info,omitempty"`
-	Error           *ColorRef `json:"error,omitempty" yaml:"error,omitempty"`
 	Success         *ColorRef `json:"success,omitempty" yaml:"success,omitempty"`
 	Warning         *ColorRef `json:"warning,omitempty" yaml:"warning,omitempty"`
+	Error           *ColorRef `json:"error,omitempty" yaml:"error,omitempty"`
 	Dim             *ColorRef `json:"dim,omitempty" yaml:"dim,omitempty"`
 	HelpKey         *ColorRef `json:"helpKey,omitempty" yaml:"helpKey,omitempty"`
 	HelpDescription *ColorRef `json:"helpDescription,omitempty" yaml:"helpDescription,omitempty"`
+	DialogBody      *ColorRef `json:"dialogBody,omitempty" yaml:"dialogBody,omitempty"`
 }
 
-type TableStylesPatch struct {
+type FeedbackStylesPatch struct {
+	ToastSuccess *ColorRef `json:"toastSuccess,omitempty" yaml:"toastSuccess,omitempty"`
+	ToastError   *ColorRef `json:"toastError,omitempty" yaml:"toastError,omitempty"`
+	ToastInfo    *ColorRef `json:"toastInfo,omitempty" yaml:"toastInfo,omitempty"`
+	ToastWarning *ColorRef `json:"toastWarning,omitempty" yaml:"toastWarning,omitempty"`
+	SafeNormal   *ColorRef `json:"safeNormal,omitempty" yaml:"safeNormal,omitempty"`
+	SafeBold     *ColorRef `json:"safeBold,omitempty" yaml:"safeBold,omitempty"`
+	SafeDim      *ColorRef `json:"safeDim,omitempty" yaml:"safeDim,omitempty"`
+	SafeAccent   *ColorRef `json:"safeAccent,omitempty" yaml:"safeAccent,omitempty"`
+	SafeError    *ColorRef `json:"safeError,omitempty" yaml:"safeError,omitempty"`
+}
+
+type DataStylesPatch struct {
 	MarkedBackground *ColorRef `json:"markedBackground,omitempty" yaml:"markedBackground,omitempty"`
 	ColumnForeground *ColorRef `json:"columnForeground,omitempty" yaml:"columnForeground,omitempty"`
 	NameForeground   *ColorRef `json:"nameForeground,omitempty" yaml:"nameForeground,omitempty"`
 }
 
-type SafeFallbackStylesPatch struct {
-	Normal *ColorRef `json:"normal,omitempty" yaml:"normal,omitempty"`
-	Bold   *ColorRef `json:"bold,omitempty" yaml:"bold,omitempty"`
-	Dim    *ColorRef `json:"dim,omitempty" yaml:"dim,omitempty"`
-	Accent *ColorRef `json:"accent,omitempty" yaml:"accent,omitempty"`
-	Error  *ColorRef `json:"error,omitempty" yaml:"error,omitempty"`
-}
-
-type ActionWindowPatch struct {
-	Background *ColorRef `json:"background,omitempty" yaml:"background,omitempty"`
-	Border     *ColorRef `json:"border,omitempty" yaml:"border,omitempty"`
-}
-
-type ActionFormInputPatch struct {
-	Foreground *ColorRef `json:"foreground,omitempty" yaml:"foreground,omitempty"`
-	Background *ColorRef `json:"background,omitempty" yaml:"background,omitempty"`
-}
-
-type ActionButtonPatch struct {
-	Foreground *ColorRef `json:"foreground,omitempty" yaml:"foreground,omitempty"`
-	Background *ColorRef `json:"background,omitempty" yaml:"background,omitempty"`
-}
-
-type ActionScopeStylesPatch struct {
-	Window    *ActionWindowPatch    `json:"window,omitempty" yaml:"window,omitempty"`
-	FormInput *ActionFormInputPatch `json:"formInput,omitempty" yaml:"formInput,omitempty"`
-	Confirm   *ActionButtonPatch    `json:"confirm,omitempty" yaml:"confirm,omitempty"`
-	Cancel    *ActionButtonPatch    `json:"cancel,omitempty" yaml:"cancel,omitempty"`
-}
-
-type ActionStylesPatch struct {
-	Container *ActionScopeStylesPatch `json:"container,omitempty" yaml:"container,omitempty"`
-	Image     *ActionScopeStylesPatch `json:"image,omitempty" yaml:"image,omitempty"`
-}
-
+// ThemePatch is the user-override shape; each section is independently
+// patchable so user themes can change only what they care about.
 type ThemePatch struct {
-	Palette      *PalettePatch            `json:"palette,omitempty" yaml:"palette,omitempty"`
-	Border       *BorderStylesPatch       `json:"border,omitempty" yaml:"border,omitempty"`
-	Header       *HeaderStylesPatch       `json:"header,omitempty" yaml:"header,omitempty"`
-	Main         *MainStylesPatch         `json:"main,omitempty" yaml:"main,omitempty"`
-	Footer       *FooterStylesPatch       `json:"footer,omitempty" yaml:"footer,omitempty"`
-	Dialog       *DialogStylesPatch       `json:"dialog,omitempty" yaml:"dialog,omitempty"`
-	Toast        *ToastStylesPatch        `json:"toast,omitempty" yaml:"toast,omitempty"`
-	Text         *TextStylesPatch         `json:"text,omitempty" yaml:"text,omitempty"`
-	Table        *TableStylesPatch        `json:"table,omitempty" yaml:"table,omitempty"`
-	SafeFallback *SafeFallbackStylesPatch `json:"safeFallback,omitempty" yaml:"safeFallback,omitempty"`
-	Action       *ActionStylesPatch       `json:"action,omitempty" yaml:"action,omitempty"`
+	Palette  *PalettePatch  `json:"palette,omitempty" yaml:"palette,omitempty"`
+	Chrome   *ChromeStylesPatch `json:"chrome,omitempty" yaml:"chrome,omitempty"`
+	Surfaces *SurfacesStylesPatch `json:"surfaces,omitempty" yaml:"surfaces,omitempty"`
+	Text     *TextStylesPatch `json:"text,omitempty" yaml:"text,omitempty"`
+	Feedback *FeedbackStylesPatch `json:"feedback,omitempty" yaml:"feedback,omitempty"`
+	Data     *DataStylesPatch `json:"data,omitempty" yaml:"data,omitempty"`
+	Action   *ActionStylesPatch `json:"action,omitempty" yaml:"action,omitempty"`
 }
 
 func DefaultTheme() *Theme {
 	return &Theme{
-		Palette: Palette{Primary: FallbackColorPrimary, Success: FallbackColorSuccess, Warning: FallbackColorWarning, Danger: FallbackColorDanger, Info: FallbackColorInfo, Accent: FallbackColorAccent, AccentSecondary: FallbackColorAccentSecondary, Foreground: FallbackColorForeground, ForegroundMuted: FallbackColorForegroundMuted, Background: FallbackColorBackground, BackgroundSubtle: FallbackColorBackgroundSubtle, BackgroundDeep: FallbackColorBackgroundDeep},
-		Border:  BorderStyles{Active: TokenRef(ColorTokenPrimary), Inactive: TokenRef(ColorTokenForegroundMuted), Focused: TokenRef(ColorTokenSuccess), Kind: BorderRounded},
-		Header:  HeaderStyles{Background: TokenRef(ColorTokenTransparent), Label: TokenRef(ColorTokenForegroundMuted), Value: TokenRef(ColorTokenForeground), Logo: TokenRef(ColorTokenInfo)},
-		Main: MainStyles{
-			BorderActive:          TokenRef(ColorTokenPrimary),
-			BorderInactive:        TokenRef(ColorTokenForegroundMuted),
-			Title:                 TokenRef(ColorTokenPrimary),
-			TableHeader:           TokenRef(ColorTokenInfo),
-			RowSelected:           TokenRef(ColorTokenInfo),
-			RowText:               TokenRef(ColorTokenForeground),
-			Footer:                TokenRef(ColorTokenForegroundMuted),
-			PanelBackground:       TokenRef(ColorTokenBackgroundDeep),
-			ActionBarBackground:   TokenRef(ColorTokenTransparent),
-			MessageRailBackground: TokenRef(ColorTokenTransparent),
-			QueryBarBackground:    TokenRef(ColorTokenTransparent),
+		Palette: Palette{
+			Primary:          FallbackColorPrimary,
+			Success:          FallbackColorSuccess,
+			Warning:          FallbackColorWarning,
+			Danger:           FallbackColorDanger,
+			Info:             FallbackColorInfo,
+			Accent:           FallbackColorAccent,
+			AccentSecondary:  FallbackColorAccentSecondary,
+			Foreground:       FallbackColorForeground,
+			ForegroundMuted:  FallbackColorForegroundMuted,
+			Background:       FallbackColorBackground,
+			BackgroundSubtle: FallbackColorBackgroundSubtle,
+			BackgroundDeep:   FallbackColorBackgroundDeep,
 		},
-		Footer:       FooterStyles{StatusBackground: TokenRef(ColorTokenTransparent), ShortcutBackground: TokenRef(ColorTokenTransparent), Key: TokenRef(ColorTokenForeground), Description: TokenRef(ColorTokenForegroundMuted), Separator: TokenRef(ColorTokenBackgroundDeep)},
-		Dialog:       DialogStyles{Border: TokenRef(ColorTokenDanger), Title: TokenRef(ColorTokenDanger), Body: TokenRef(ColorTokenForeground), BodyBackground: TokenRef(ColorTokenBackground), OptionActive: TokenRef(ColorTokenPrimary), OptionInactive: TokenRef(ColorTokenForegroundMuted), Overlay: TokenRef(ColorTokenBackground), OverlayOpacity: 80},
-		Toast:        ToastStyles{Success: TokenRef(ColorTokenSuccess), Error: TokenRef(ColorTokenDanger), Background: TokenRef(ColorTokenTransparent)},
-		Text:         TextStyles{Info: TokenRef(ColorTokenInfo), Error: TokenRef(ColorTokenDanger), Success: TokenRef(ColorTokenSuccess), Warning: TokenRef(ColorTokenWarning), Dim: TokenRef(ColorTokenForegroundMuted), HelpKey: TokenRef(ColorTokenPrimary), HelpDescription: TokenRef(ColorTokenForeground)},
-		Table:        TableStyles{MarkedBackground: ValueRef(FallbackColorTableMarkedBackground), ColumnForeground: ValueRef(FallbackColorTableColumnForeground), NameForeground: ValueRef(FallbackColorTableNameForeground)},
-		SafeFallback: SafeFallbackStyles{Normal: TokenRef(ColorTokenForeground), Bold: TokenRef(ColorTokenForeground), Dim: TokenRef(ColorTokenForegroundMuted), Accent: TokenRef(ColorTokenPrimary), Error: TokenRef(ColorTokenDanger)},
+		Chrome:   defaultChromeStyles(),
+		Surfaces: defaultSurfacesStyles(),
+		Text:     defaultTextStyles(),
+		Feedback: defaultFeedbackStyles(),
+		Data:     defaultDataStyles(),
 		Action: ActionStyles{
 			Container: defaultActionScopeStyles(),
 			Image:     defaultActionScopeStyles(),
@@ -355,32 +327,89 @@ func DefaultTheme() *Theme {
 	}
 }
 
-func defaultActionScopeStyles() ActionScopeStyles {
-	return ActionScopeStyles{
-		Window: ActionWindow{
-			Background: TokenRef(ColorTokenBackgroundSubtle),
-			Border:     TokenRef(ColorTokenPrimary),
-		},
-		FormInput: ActionFormInput{
-			Foreground: TokenRef(ColorTokenForeground),
-			Background: TokenRef(ColorTokenBackgroundDeep),
-		},
-		Confirm: ActionButton{
-			Foreground: TokenRef(ColorTokenSuccess),
-			Background: TokenRef(ColorTokenTransparent),
-		},
-		Cancel: ActionButton{
-			Foreground: TokenRef(ColorTokenForegroundMuted),
-			Background: TokenRef(ColorTokenTransparent),
-		},
+func defaultChromeStyles() ChromeStyles {
+	return ChromeStyles{
+		BorderKind:           BorderRounded,
+		PanelBorderActive:    TokenRef(ColorTokenPrimary),
+		PanelBorderInactive:  TokenRef(ColorTokenForegroundMuted),
+		PanelBorderFocused:   TokenRef(ColorTokenSuccess),
+		PanelTitle:           TokenRef(ColorTokenPrimary),
+		PanelFooter:          TokenRef(ColorTokenForegroundMuted),
+		PanelRowSelected:     TokenRef(ColorTokenInfo),
+		PanelRowText:         TokenRef(ColorTokenForeground),
+		PanelTableHeader:     TokenRef(ColorTokenInfo),
+		DialogBorder:         TokenRef(ColorTokenDanger),
+		DialogTitle:          TokenRef(ColorTokenDanger),
+		DialogOptionActive:   TokenRef(ColorTokenPrimary),
+		DialogOptionInactive: TokenRef(ColorTokenForegroundMuted),
+		DialogOverlay:        TokenRef(ColorTokenBackground),
+		DialogOverlayOpacity: 80,
+		HeaderLabel:          TokenRef(ColorTokenForegroundMuted),
+		HeaderValue:          TokenRef(ColorTokenForeground),
+		HeaderLogo:           TokenRef(ColorTokenInfo),
+		FooterKey:            TokenRef(ColorTokenForeground),
+		FooterDescription:    TokenRef(ColorTokenForegroundMuted),
+		FooterSeparator:      TokenRef(ColorTokenForegroundMuted),
+	}
+}
+
+func defaultSurfacesStyles() SurfacesStyles {
+	return SurfacesStyles{
+		Panel:       TokenRef(ColorTokenBackgroundDeep),
+		ActionBar:   TokenRef(ColorTokenTransparent),
+		MessageRail: TokenRef(ColorTokenTransparent),
+		QueryBar:    TokenRef(ColorTokenTransparent),
+		DialogBody:  TokenRef(ColorTokenBackground),
+		Header:      TokenRef(ColorTokenTransparent),
+		Footer:      TokenRef(ColorTokenTransparent),
+		Toast:       TokenRef(ColorTokenTransparent),
+		RowSelected: TokenRef(ColorTokenInfo),
+	}
+}
+
+func defaultTextStyles() TextStyles {
+	return TextStyles{
+		Info:            TokenRef(ColorTokenPrimary),
+		Success:         TokenRef(ColorTokenSuccess),
+		Warning:         TokenRef(ColorTokenWarning),
+		Error:           TokenRef(ColorTokenDanger),
+		Dim:             TokenRef(ColorTokenForegroundMuted),
+		HelpKey:         TokenRef(ColorTokenPrimary),
+		HelpDescription: TokenRef(ColorTokenForeground),
+		DialogBody:      TokenRef(ColorTokenForeground),
+	}
+}
+
+func defaultFeedbackStyles() FeedbackStyles {
+	return FeedbackStyles{
+		ToastSuccess: TokenRef(ColorTokenSuccess),
+		ToastError:   TokenRef(ColorTokenDanger),
+		ToastInfo:    TokenRef(ColorTokenInfo),
+		ToastWarning: TokenRef(ColorTokenWarning),
+		SafeNormal:   TokenRef(ColorTokenForeground),
+		SafeBold:     TokenRef(ColorTokenForeground),
+		SafeDim:      TokenRef(ColorTokenForegroundMuted),
+		SafeAccent:   TokenRef(ColorTokenPrimary),
+		SafeError:    TokenRef(ColorTokenDanger),
+	}
+}
+
+func defaultDataStyles() DataStyles {
+	return DataStyles{
+		MarkedBackground: ValueRef(FallbackColorTableMarkedBackground),
+		ColumnForeground: ValueRef(FallbackColorTableColumnForeground),
+		NameForeground:   ValueRef(FallbackColorTableNameForeground),
 	}
 }
 
 func (t *Theme) ResolveColor(ref ColorRef) string {
 	if t == nil {
-		return string(ref.Value)
+		return string(ref)
 	}
-	switch ref.Token {
+	if !ref.IsToken() {
+		return string(ref)
+	}
+	switch ref.Token() {
 	case ColorTokenPrimary:
 		return string(t.Palette.Primary)
 	case ColorTokenSuccess:
@@ -408,7 +437,7 @@ func (t *Theme) ResolveColor(ref ColorRef) string {
 	case ColorTokenTransparent:
 		return string(FallbackColorTransparent)
 	default:
-		return string(ref.Value)
+		return string(ref)
 	}
 }
 
@@ -430,73 +459,65 @@ func (p ThemePatch) Apply(target *Theme) {
 		assign(&target.Palette.BackgroundSubtle, p.Palette.BackgroundSubtle)
 		assign(&target.Palette.BackgroundDeep, p.Palette.BackgroundDeep)
 	}
-	if p.Border != nil {
-		assign(&target.Border.Active, p.Border.Active)
-		assign(&target.Border.Inactive, p.Border.Inactive)
-		assign(&target.Border.Focused, p.Border.Focused)
-		assign(&target.Border.Kind, p.Border.Kind)
+	if p.Chrome != nil {
+		assign(&target.Chrome.BorderKind, p.Chrome.BorderKind)
+		assign(&target.Chrome.PanelBorderActive, p.Chrome.PanelBorderActive)
+		assign(&target.Chrome.PanelBorderInactive, p.Chrome.PanelBorderInactive)
+		assign(&target.Chrome.PanelBorderFocused, p.Chrome.PanelBorderFocused)
+		assign(&target.Chrome.PanelTitle, p.Chrome.PanelTitle)
+		assign(&target.Chrome.PanelFooter, p.Chrome.PanelFooter)
+		assign(&target.Chrome.PanelRowSelected, p.Chrome.PanelRowSelected)
+		assign(&target.Chrome.PanelRowText, p.Chrome.PanelRowText)
+		assign(&target.Chrome.PanelTableHeader, p.Chrome.PanelTableHeader)
+		assign(&target.Chrome.DialogBorder, p.Chrome.DialogBorder)
+		assign(&target.Chrome.DialogTitle, p.Chrome.DialogTitle)
+		assign(&target.Chrome.DialogOptionActive, p.Chrome.DialogOptionActive)
+		assign(&target.Chrome.DialogOptionInactive, p.Chrome.DialogOptionInactive)
+		assign(&target.Chrome.DialogOverlay, p.Chrome.DialogOverlay)
+		assign(&target.Chrome.DialogOverlayOpacity, p.Chrome.DialogOverlayOpacity)
+		assign(&target.Chrome.HeaderLabel, p.Chrome.HeaderLabel)
+		assign(&target.Chrome.HeaderValue, p.Chrome.HeaderValue)
+		assign(&target.Chrome.HeaderLogo, p.Chrome.HeaderLogo)
+		assign(&target.Chrome.FooterKey, p.Chrome.FooterKey)
+		assign(&target.Chrome.FooterDescription, p.Chrome.FooterDescription)
+		assign(&target.Chrome.FooterSeparator, p.Chrome.FooterSeparator)
 	}
-	if p.Header != nil {
-		assign(&target.Header.Background, p.Header.Background)
-		assign(&target.Header.Label, p.Header.Label)
-		assign(&target.Header.Value, p.Header.Value)
-		assign(&target.Header.Logo, p.Header.Logo)
-	}
-	if p.Main != nil {
-		assign(&target.Main.BorderActive, p.Main.BorderActive)
-		assign(&target.Main.BorderInactive, p.Main.BorderInactive)
-		assign(&target.Main.Title, p.Main.Title)
-		assign(&target.Main.TableHeader, p.Main.TableHeader)
-		assign(&target.Main.RowSelected, p.Main.RowSelected)
-		assign(&target.Main.RowText, p.Main.RowText)
-		assign(&target.Main.Footer, p.Main.Footer)
-		assign(&target.Main.PanelBackground, p.Main.PanelBackground)
-		assign(&target.Main.ActionBarBackground, p.Main.ActionBarBackground)
-		assign(&target.Main.MessageRailBackground, p.Main.MessageRailBackground)
-		assign(&target.Main.QueryBarBackground, p.Main.QueryBarBackground)
-	}
-	if p.Footer != nil {
-		assign(&target.Footer.StatusBackground, p.Footer.StatusBackground)
-		assign(&target.Footer.ShortcutBackground, p.Footer.ShortcutBackground)
-		assign(&target.Footer.Key, p.Footer.Key)
-		assign(&target.Footer.Description, p.Footer.Description)
-		assign(&target.Footer.Separator, p.Footer.Separator)
-	}
-	if p.Dialog != nil {
-		assign(&target.Dialog.Border, p.Dialog.Border)
-		assign(&target.Dialog.Title, p.Dialog.Title)
-		assign(&target.Dialog.Body, p.Dialog.Body)
-		assign(&target.Dialog.BodyBackground, p.Dialog.BodyBackground)
-		assign(&target.Dialog.OptionActive, p.Dialog.OptionActive)
-		assign(&target.Dialog.OptionInactive, p.Dialog.OptionInactive)
-		assign(&target.Dialog.Overlay, p.Dialog.Overlay)
-		assign(&target.Dialog.OverlayOpacity, p.Dialog.OverlayOpacity)
-	}
-	if p.Toast != nil {
-		assign(&target.Toast.Success, p.Toast.Success)
-		assign(&target.Toast.Error, p.Toast.Error)
-		assign(&target.Toast.Background, p.Toast.Background)
+	if p.Surfaces != nil {
+		assign(&target.Surfaces.Panel, p.Surfaces.Panel)
+		assign(&target.Surfaces.ActionBar, p.Surfaces.ActionBar)
+		assign(&target.Surfaces.MessageRail, p.Surfaces.MessageRail)
+		assign(&target.Surfaces.QueryBar, p.Surfaces.QueryBar)
+		assign(&target.Surfaces.DialogBody, p.Surfaces.DialogBody)
+		assign(&target.Surfaces.Header, p.Surfaces.Header)
+		assign(&target.Surfaces.Footer, p.Surfaces.Footer)
+		assign(&target.Surfaces.Toast, p.Surfaces.Toast)
+		assign(&target.Surfaces.RowSelected, p.Surfaces.RowSelected)
 	}
 	if p.Text != nil {
 		assign(&target.Text.Info, p.Text.Info)
-		assign(&target.Text.Error, p.Text.Error)
 		assign(&target.Text.Success, p.Text.Success)
 		assign(&target.Text.Warning, p.Text.Warning)
+		assign(&target.Text.Error, p.Text.Error)
 		assign(&target.Text.Dim, p.Text.Dim)
 		assign(&target.Text.HelpKey, p.Text.HelpKey)
 		assign(&target.Text.HelpDescription, p.Text.HelpDescription)
+		assign(&target.Text.DialogBody, p.Text.DialogBody)
 	}
-	if p.Table != nil {
-		assign(&target.Table.MarkedBackground, p.Table.MarkedBackground)
-		assign(&target.Table.ColumnForeground, p.Table.ColumnForeground)
-		assign(&target.Table.NameForeground, p.Table.NameForeground)
+	if p.Feedback != nil {
+		assign(&target.Feedback.ToastSuccess, p.Feedback.ToastSuccess)
+		assign(&target.Feedback.ToastError, p.Feedback.ToastError)
+		assign(&target.Feedback.ToastInfo, p.Feedback.ToastInfo)
+		assign(&target.Feedback.ToastWarning, p.Feedback.ToastWarning)
+		assign(&target.Feedback.SafeNormal, p.Feedback.SafeNormal)
+		assign(&target.Feedback.SafeBold, p.Feedback.SafeBold)
+		assign(&target.Feedback.SafeDim, p.Feedback.SafeDim)
+		assign(&target.Feedback.SafeAccent, p.Feedback.SafeAccent)
+		assign(&target.Feedback.SafeError, p.Feedback.SafeError)
 	}
-	if p.SafeFallback != nil {
-		assign(&target.SafeFallback.Normal, p.SafeFallback.Normal)
-		assign(&target.SafeFallback.Bold, p.SafeFallback.Bold)
-		assign(&target.SafeFallback.Dim, p.SafeFallback.Dim)
-		assign(&target.SafeFallback.Accent, p.SafeFallback.Accent)
-		assign(&target.SafeFallback.Error, p.SafeFallback.Error)
+	if p.Data != nil {
+		assign(&target.Data.MarkedBackground, p.Data.MarkedBackground)
+		assign(&target.Data.ColumnForeground, p.Data.ColumnForeground)
+		assign(&target.Data.NameForeground, p.Data.NameForeground)
 	}
 	if p.Action != nil {
 		if p.Action.Container != nil {
@@ -508,23 +529,17 @@ func (p ThemePatch) Apply(target *Theme) {
 	}
 }
 
-func applyActionScopePatch(target *ActionScopeStyles, p *ActionScopeStylesPatch) {
-	if p.Window != nil {
-		assign(&target.Window.Background, p.Window.Background)
-		assign(&target.Window.Border, p.Window.Border)
-	}
-	if p.FormInput != nil {
-		assign(&target.FormInput.Foreground, p.FormInput.Foreground)
-		assign(&target.FormInput.Background, p.FormInput.Background)
-	}
-	if p.Confirm != nil {
-		assign(&target.Confirm.Foreground, p.Confirm.Foreground)
-		assign(&target.Confirm.Background, p.Confirm.Background)
-	}
-	if p.Cancel != nil {
-		assign(&target.Cancel.Foreground, p.Cancel.Foreground)
-		assign(&target.Cancel.Background, p.Cancel.Background)
-	}
+// loadThemeDocument / loadNamedTheme / ThemeName.Validate / ListThemes
+// — unchanged from the previous round; they live below as plumbing.
+
+type ThemeMetadata struct {
+	Name        string `json:"name" yaml:"name"`
+	Description string `json:"description" yaml:"description"`
+}
+
+type ThemeDocument struct {
+	Meta  ThemeMetadata `json:"meta" yaml:"meta"`
+	Theme ThemePatch    `json:"theme" yaml:"theme"`
 }
 
 type loadedTheme struct {
