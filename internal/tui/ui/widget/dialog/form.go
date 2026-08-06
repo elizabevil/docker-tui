@@ -249,27 +249,8 @@ func renderFormField(form state.FormState, f *state.FormField, index, labelWidth
 		label = lipgloss.NewStyle().Foreground(component.GetStyle(component.StylePanelTitle).GetForeground()).Bold(true).Render(label)
 	}
 
-	var value, marker string
-	if f.Kind == state.FormSelect || f.Kind == state.FormMultiSelect {
-		value, marker = renderSelectCell(f, focused, valueWidth)
-	} else {
-		value = renderFormValue(f, focused, valueWidth, cursorVisible...)
-	}
-
-	unitSuffix := ""
-	if f.Kind != state.FormSelect && f.Kind != state.FormMultiSelect && f.Kind != state.FormBool && f.Unit != "" {
-		unitSuffix = " " + f.Unit
-	}
-	switch {
-	case marker != "" && unitSuffix != "":
-		value = utils.FitVisible(value, max(1, valueWidth-utils.DisplayWidth(unitSuffix)-2)) + unitSuffix + " " + marker
-	case marker != "":
-		value = utils.FitVisible(value, max(1, valueWidth-2)) + " " + marker
-	case unitSuffix != "":
-		value = utils.FitVisible(value, max(1, valueWidth-utils.DisplayWidth(unitSuffix))) + unitSuffix
-	default:
-		value = utils.FitVisible(value, valueWidth)
-	}
+	impl := FormFieldFor(f)
+	value := impl.Render(focused, valueWidth, cursorVisible...)
 	row := label + " " + value
 	if len(wrapLines) > 0 {
 		indent := utils.PadVisible("", labelWidth+1)
@@ -285,18 +266,13 @@ func renderFormField(form state.FormState, f *state.FormField, index, labelWidth
 }
 
 // renderFormValue renders the primitive value of a text/int/path/bool field.
+// Thin wrapper that dispatches on Kind; the Bool branch delegates to
+// renderBoolCell and the text branch to renderEditableValue. Lean impls call
+// those helpers directly.
 func renderFormValue(f *state.FormField, focused bool, valueWidth int, cursorVisible ...bool) string {
 	switch f.Kind {
 	case state.FormBool:
-		mark := " "
-		if f.Toggle {
-			mark = component.MarkCheck
-		}
-		cell := "[" + mark + "]"
-		if focused {
-			return lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDialogConfirm).GetForeground()).Bold(true).Render(cell)
-		}
-		return lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDim).GetForeground()).Render(cell)
+		return renderBoolCell(f.Toggle, focused)
 	default: // FormText, FormInt, FormPath
 		return renderEditableValue(f, focused, valueWidth, cursorVisible...)
 	}
@@ -306,8 +282,15 @@ func renderFormValue(f *state.FormField, focused bool, valueWidth int, cursorVis
 // cursor styles the current rune without consuming another terminal cell, so
 // Left/Right never shifts the path. At end-of-input a one-cell caret is shown.
 func renderEditableValue(f *state.FormField, focused bool, valueWidth int, cursorVisible ...bool) string {
-	runes := []rune(f.Input.Text)
-	cursor := clampCursor(f.Input.Cursor, len(runes))
+	return renderTextCell(f.Input.Text, f.Input.Cursor, f.Kind, focused, valueWidth, cursorVisible...)
+}
+
+// renderTextCell draws a text-like value cell given primitive inputs. kind
+// determines path-specific rendering (FormPath wraps unfocused long paths).
+// This is the canonical implementation that lean FormField impls call.
+func renderTextCell(text string, cursor int, kind state.FormFieldKind, focused bool, valueWidth int, cursorVisible ...bool) string {
+	runes := []rune(text)
+	cursor = clampCursor(cursor, len(runes))
 	start := 0
 	cursorWidth := 1
 	if cursor < len(runes) {
@@ -324,8 +307,8 @@ func renderEditableValue(f *state.FormField, focused bool, valueWidth int, curso
 		end++
 	}
 	base := lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDim).GetForeground())
-	if f.Kind == state.FormPath && !focused {
-		return wrapVisiblePath(valueWidth, string(runes))
+	if kind == state.FormPath && !focused {
+		return wrapVisiblePath(valueWidth, text)
 	}
 	if !focused {
 		// When the user is not editing the field (typical for the default
@@ -333,7 +316,7 @@ func renderEditableValue(f *state.FormField, focused bool, valueWidth int, curso
 		// from the start with a tail ellipsis. This shows the directory the
 		// file will land in, which is the meaningful context, instead of a
 		// window anchored at the cursor that hides the directory part.
-		visible := base.Render(string(runes))
+		visible := base.Render(text)
 		return utils.TruncateVisible(visible, valueWidth)
 	}
 
@@ -357,6 +340,24 @@ func renderEditableValue(f *state.FormField, focused bool, valueWidth int, curso
 	after := lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleHelpDescription).GetForeground()).Render(string(runes[afterStart:end]))
 	truncated := utils.TruncateVisible(before+caret.Render(current)+after, valueWidth)
 	return component.GetStyle(component.StyleFormInput).Render(truncated)
+}
+
+// renderBoolCell renders the styled checkbox for a Bool field.
+func renderBoolCell(toggle, focused bool) string {
+	mark := " "
+	if toggle {
+		mark = component.MarkCheck
+	}
+	cell := "[" + mark + "]"
+	if focused {
+		return lipgloss.NewStyle().
+			Foreground(component.GetStyle(component.StyleDialogConfirm).GetForeground()).
+			Bold(true).
+			Render(cell)
+	}
+	return lipgloss.NewStyle().
+		Foreground(component.GetStyle(component.StyleDim).GetForeground()).
+		Render(cell)
 }
 
 func wrapVisiblePath(valueWidth int, value string) string {
@@ -383,31 +384,37 @@ func wrapVisiblePath(valueWidth int, value string) string {
 }
 
 // renderSelectCell renders the collapsed value plus a dropdown marker for a
-// single- or multi-select field (BR-041 §8.1, §8.2).
+// single- or multi-select field (BR-041 §8.1, §8.2). Thin wrapper around
+// renderSelectCellValue; kept for tests that target *state.FormField.
 func renderSelectCell(f *state.FormField, focused bool, valueWidth int) (value, marker string) {
+	return renderSelectCellValue(f.Options, f.DisplayOptions, f.Index, f.Selected, f.Kind, focused, valueWidth)
+}
+
+// renderSelectCellValue draws the collapsed single- or multi-select cell
+// given primitive inputs. This is the canonical implementation that lean
+// FormField impls call.
+func renderSelectCellValue(options []string, displayOptions []string, index int, selected map[string]bool, kind state.FormFieldKind, focused bool, valueWidth int) (value, marker string) {
 	marker = component.TriangleDownSmall
 	displayed := func(idx int) string {
-		if idx >= 0 && idx < len(f.Options) && idx < len(f.DisplayOptions) && f.DisplayOptions[idx] != "" {
-			return f.DisplayOptions[idx]
+		if idx >= 0 && idx < len(options) && idx < len(displayOptions) && displayOptions[idx] != "" {
+			return displayOptions[idx]
 		}
-		if idx >= 0 && idx < len(f.Options) {
-			return f.Options[idx]
+		if idx >= 0 && idx < len(options) {
+			return options[idx]
 		}
 		return ""
 	}
 	var text string
-	switch f.Kind {
+	switch kind {
 	case state.FormMultiSelect:
-		if len(f.Selected) > 0 {
-			keys := make([]string, 0, len(f.Selected))
-			for k := range f.Selected {
+		if len(selected) > 0 {
+			keys := make([]string, 0, len(selected))
+			for k := range selected {
 				keys = append(keys, k)
 			}
 			sort.Strings(keys)
-			// Map each selected key back to its display label so the
-			// collapsed cell shows the localized names.
-			keyIndex := make(map[string]int, len(f.Options))
-			for i, opt := range f.Options {
+			keyIndex := make(map[string]int, len(options))
+			for i, opt := range options {
 				keyIndex[opt] = i
 			}
 			labels := make([]string, 0, len(keys))
@@ -421,7 +428,7 @@ func renderSelectCell(f *state.FormField, focused bool, valueWidth int) (value, 
 			text = strings.Join(labels, ", ")
 		}
 	default:
-		text = displayed(f.Index)
+		text = displayed(index)
 	}
 	value = utils.TruncateVisible(text, valueWidth)
 	if focused {

@@ -19,6 +19,7 @@ import (
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
+	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/dialog"
 	"github.com/elizabevil/docker-tui/internal/utils"
 
 	tea "charm.land/bubbletea/v2"
@@ -567,43 +568,24 @@ func handleContainerFormKey(key string, m *state.AppModel) (*state.AppModel, tea
 	return m, nil
 }
 
-// handleFormFieldEditKey is the single field-type interaction policy shared
-// by every Form. Navigation and popup activation remain in the form-level
-// state machine; primitive editing and Bool activation are defined here.
+// handleFormFieldEditKey routes per-kind edit keys through the dialog-side
+// FormField interface (UI-improvements commit-4). The keyboard layer keeps
+// navigation, popup activation, and post-edit side effects (completion,
+// prefill, dependency visibility); the kind-specific edit + Bool toggles +
+// Path Ctrl+H live in the registered impl. SyncTo mirrors the impl's lean
+// state back to state.FormField so the submit pipeline reads what was just
+// edited.
 func handleFormFieldEditKey(key string, m *state.AppModel, f *state.FormField) bool {
 	if f == nil {
 		return false
 	}
-	switch f.Kind {
-	case state.FormBool:
-		if keys.IsSpace(key) {
-			f.ToggleBool()
-			m.Form.RecomputeVisibility()
-			return true
-		}
-		// Bool never treats Left/Right or printable input as an edit.
-		return key == keys.KeyLeft || key == keys.KeyRight || len([]rune(key)) == 1
-	case state.FormText, state.FormInt, state.FormPath:
-		switch key {
-		case keys.KeyLeft, keys.KeyRight, keys.KeyHome, keys.KeyEnd,
-			keys.KeyBackspace, keys.KeyDelete, keys.KeySpace:
-			_, changed := editQueryInput(key, &f.Input)
-			if changed {
-				handleFormFieldChanged(m, f)
-			}
-			return true
-		case keys.KeyCtrlH:
-			if f.Kind != state.FormPath {
-				return false
-			}
-			f.ShowHidden = !f.ShowHidden
-			f.Suggestions = nil
-			f.PathError = ""
-			f.PathLoading = false
-			return true
-		}
+	impl := dialog.FormFieldFor(f)
+	handled, updated := impl.HandleKey(key, m)
+	impl.SyncTo(f)
+	if updated {
+		handleFormFieldChanged(m, f)
 	}
-	return false
+	return handled
 }
 
 func handleFormFieldChanged(m *state.AppModel, f *state.FormField) {
@@ -616,6 +598,9 @@ func handleFormFieldChanged(m *state.AppModel, f *state.FormField) {
 		} else {
 			completeForField(m, f)
 		}
+	}
+	if f.Kind == state.FormBool {
+		m.Form.RecomputeVisibility()
 	}
 	if m.Form.Kind == state.FormContainerCopy && f.Key == fieldSourcePath {
 		prefillDefaultDestination(m, m.Form.CWD, shortContainerID(m.Form.TargetID))

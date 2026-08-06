@@ -45,6 +45,12 @@ const (
 	// FormMultiSelect is a many-of-many choice opened into a popup where
 	// Space toggles each item (BR-041 §8.2).
 	FormMultiSelect
+	// FormRadioGroup is an inline single-choice alternative to FormSelect.
+	FormRadioGroup
+	// FormTextMultiLine is a long-text input (first line shown only).
+	FormTextMultiLine
+	// FormTextPassword masks the value with a U+2022 BULLET.
+	FormTextPassword
 )
 
 // PopupKind identifies the sub-layer that is temporarily open above a form.
