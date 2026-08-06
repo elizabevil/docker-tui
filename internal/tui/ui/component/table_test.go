@@ -25,7 +25,7 @@ func TestTableColumnsDoNotOwnBackgrounds(t *testing.T) {
 			t.Fatalf("column %d owns background %q", i, column.Style.Background)
 		}
 	}
-	if GetRowStyle("selected").Background == "" || GetRowStyle("marked").Background == "" {
+	if GetRowStyle(RowStyleSelected).Background == "" || GetRowStyle(RowStyleMarked).Background == "" {
 		t.Fatal("selected and marked rows must retain row-level backgrounds")
 	}
 }

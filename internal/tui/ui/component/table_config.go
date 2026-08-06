@@ -123,16 +123,23 @@ func RowSpacing() int {
 	return n
 }
 
+const (
+	RowStyleSelected = "selected"
+	RowStyleNormal   = "normal"
+	RowStyleAlt      = "alt"
+	RowStyleMarked   = "marked"
+)
+
 // GetRowStyle 返回行状态样式（selected / normal / alt / marked）
 func GetRowStyle(name string) styleRef {
 	switch name {
-	case "selected":
+	case RowStyleSelected:
 		return tableCfg.RowStyles.Selected
-	case "normal":
+	case RowStyleNormal:
 		return tableCfg.RowStyles.Normal
-	case "alt":
+	case RowStyleAlt:
 		return tableCfg.RowStyles.Alt
-	case "marked":
+	case RowStyleMarked:
 		return tableCfg.RowStyles.Marked
 	}
 	return styleRef{}
