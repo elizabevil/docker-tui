@@ -712,3 +712,134 @@ func TestRenderFormFieldShowsUnit(t *testing.T) {
 		t.Fatalf("renderFormField must surface Unit suffix in output: %q", row)
 	}
 }
+
+// TestRenderFormFieldShortHelperTextSingleLine verifies that a HelperText
+// shorter than the label column renders on a single line with the full text
+// preserved (design P: no truncation, wrap only when overflow).
+func TestRenderFormFieldShortHelperTextSingleLine(t *testing.T) {
+	field := state.FormField{Label: "Memory", Kind: state.FormInt, HelperText: "MB"}
+	form := state.FormState{Fields: []state.FormField{field}}
+	row := stripANSI(renderFormField(form, &form.Fields[0], 0, 24, 40))
+	if strings.Contains(row, "\n") {
+		t.Fatalf("short HelperText must not wrap: %q", row)
+	}
+	if !strings.Contains(row, "Memory (MB)") {
+		t.Fatalf("short HelperText must keep full \"Memory (MB)\" label: %q", row)
+	}
+}
+
+// TestRenderFormFieldLongHelperTextWrapsNoTruncate verifies that a HelperText
+// wider than the label column wraps to multiple lines and all characters —
+// head, body, tail — are preserved with no ellipsis (design P).
+func TestRenderFormFieldLongHelperTextWrapsNoTruncate(t *testing.T) {
+	const labelWidth = 8
+	field := state.FormField{
+		Label:      "Memory",
+		Kind:       state.FormInt,
+		HelperText: "limit in MB",
+	}
+	form := state.FormState{Fields: []state.FormField{field}}
+	row := stripANSI(renderFormField(form, &form.Fields[0], 0, labelWidth, 40))
+	lines := strings.Split(row, "\n")
+	if len(lines) < 3 {
+		t.Fatalf("long HelperText must wrap to >=3 lines, got %d: %q", len(lines), row)
+	}
+	// No truncation markers anywhere in the rendered output.
+	for i, line := range lines {
+		if strings.Contains(line, "...") || strings.Contains(line, "…") {
+			t.Fatalf("wrapped HelperText must not be truncated (line %d): %q", i, line)
+		}
+	}
+	// Wrap continuation rows sit beneath the value column: each carries an
+	// indent of labelWidth+1 spaces followed by the wrapped chunk. The chunk
+	// itself must fit the label column width.
+	for i := 1; i < len(lines); i++ {
+		chunk := strings.TrimLeft(lines[i], " ")
+		if chunk == "" {
+			t.Fatalf("wrap continuation %d is empty after indent: %q", i, lines[i])
+		}
+		if w := utils.DisplayWidth(chunk); w > labelWidth {
+			t.Fatalf("wrap chunk %d width = %d, want <= %d: %q", i, w, labelWidth, chunk)
+		}
+	}
+	// Concatenating wrap chunks must reproduce the wrapped text without any
+	// characters dropped. (Line 0 carries the label + value column padding,
+	// so we only assert on the wrap continuation chunks below it.)
+	chunks := make([]string, 0, len(lines)-1)
+	for i := 1; i < len(lines); i++ {
+		chunks = append(chunks, strings.TrimLeft(lines[i], " "))
+	}
+	joined := strings.Join(chunks, "")
+	want := "(limit in MB)"
+	if !strings.Contains(joined, "limit in") || !strings.Contains(joined, "MB)") {
+		t.Fatalf("wrap lost HelperText body/tail: %q (want contains %q)", joined, want)
+	}
+}
+
+// TestRenderFormFieldCJKHelperTextWrapsOnDisplayWidth verifies that the wrap
+// is rune/display-width aware: East Asian wide characters count as two cells,
+// so a string of CJK runes wraps at half the rune count of an ASCII string.
+func TestRenderFormFieldCJKHelperTextWrapsOnDisplayWidth(t *testing.T) {
+	const labelWidth = 6
+	// 8 CJK runes = 16 display cells. At width 6 the wrap should split across
+	// multiple lines (each chunk ≤ 6 cells) preserving every character.
+	const helper = "中文标签提示信息"
+	field := state.FormField{Label: "标签", Kind: state.FormText, HelperText: helper}
+	form := state.FormState{Fields: []state.FormField{field}}
+	row := stripANSI(renderFormField(form, &form.Fields[0], 0, labelWidth, 40))
+	lines := strings.Split(row, "\n")
+	if len(lines) < 3 {
+		t.Fatalf("CJK HelperText must wrap to multiple lines, got %d: %q", len(lines), row)
+	}
+	// Verify chunk widths on wrap continuation rows (skip row 0 which holds
+	// the label + value column).
+	for i := 1; i < len(lines); i++ {
+		chunk := strings.TrimLeft(lines[i], " ")
+		if w := utils.DisplayWidth(chunk); w > labelWidth {
+			t.Fatalf("CJK wrap chunk %d width = %d, want <= %d: %q", i, w, labelWidth, chunk)
+		}
+	}
+	// Every CJK rune from the wrap continuation chunks (combined with the
+	// first line of the label row) must be present, unmodified, in the
+	// rendered output. The first line carries "标签 (" and trailing value
+	// padding; we just confirm the helper body round-trips.
+	combined := strings.TrimLeft(lines[0], " ")
+	for i := 1; i < len(lines); i++ {
+		combined += strings.TrimLeft(lines[i], " ")
+	}
+	for _, r := range helper {
+		if !strings.ContainsRune(combined, r) {
+			t.Fatalf("CJK wrap dropped rune %q: %q", r, combined)
+		}
+	}
+}
+
+// TestRenderFormFieldHelperTextNeverTruncated locks design P: a long
+// HelperText must NEVER be replaced by an ellipsis — it must always wrap.
+func TestRenderFormFieldHelperTextNeverTruncated(t *testing.T) {
+	const labelWidth = 6
+	const helper = "abcdefghijklmnopqrstuvwxyz0123456789-the-very-long-tail"
+	field := state.FormField{Label: "L", Kind: state.FormText, HelperText: helper}
+	// FieldFocus=1 keeps the field unfocused, so renderEditableValue omits the
+	// caret (NarrowCursor) that would otherwise split the rendered text.
+	form := state.FormState{Fields: []state.FormField{field}, FieldFocus: 1}
+	row := stripANSI(renderFormField(form, &form.Fields[0], 0, labelWidth, 40))
+	if strings.Contains(row, "...") || strings.Contains(row, "…") {
+		t.Fatalf("HelperText must never be truncated, got: %q", row)
+	}
+	// The HelperText wrap, driven by utils.WrapCells, must round-trip every
+	// character of the input. Drive the same helper through WrapCells
+	// directly so the test isolates the wrap contract from the rest of the
+	// value-column rendering.
+	full := "L (" + helper + ")"
+	chunks := utils.WrapCells(full, labelWidth)
+	joined := strings.Join(chunks, "")
+	if joined != full {
+		t.Fatalf("WrapCells altered text: got %q, want %q", joined, full)
+	}
+	// And the rendered form must contain at least one wrap continuation
+	// line (proving the renderer actually wraps, not truncates).
+	if !strings.Contains(row, "\n") {
+		t.Fatalf("long HelperText must produce a multi-line row, got: %q", row)
+	}
+}

@@ -85,12 +85,27 @@ func formDialogSize(m *state.AppModel, cfg DialogConfig, bodyW, bodyH int) (dial
 		dialogW = dialogWidth(m.Viewport.Width, cfg)
 		dialogH = dialogHeight(m.Viewport.Height, cfg)
 	}
+	// Compute the label column width so we can count how many rows each
+	// HelperText wrap will add (design P: HelperText wraps, never truncates).
+	var labelW int
+	if innerW := formInnerWidth(dialogW); innerW > 0 && len(m.Form.Fields) > 0 {
+		labelW, _ = formLayout(m.Form.Fields, innerW)
+	}
 	requiredH := 10
 	for i := range m.Form.Fields {
 		if m.Form.Fields[i].Hidden {
 			continue
 		}
 		requiredH++
+		// HelperText wrap continuation lines: the description is wrapped to
+		// the label column width (rune/display-width aware via
+		// utils.WrapCells); extra rows live beneath the value column.
+		if labelW > 0 && m.Form.Fields[i].HelperText != "" {
+			full := m.Form.Fields[i].Label + " (" + m.Form.Fields[i].HelperText + ")"
+			if extra := len(utils.WrapCells(full, labelW)) - 1; extra > 0 {
+				requiredH += extra
+			}
+		}
 		if m.Form.Fields[i].Error != "" {
 			requiredH++
 		}
@@ -213,13 +228,21 @@ func formLayout(fields []state.FormField, innerWidth int) (labelWidth, valueWidt
 
 // renderFormField draws one two-column row for a form field. The focused field
 // is highlighted; any validation error is drawn on a following line aligned to
-// the value column (BR-041 §9.8).
+// the value column (BR-041 §9.8). HelperText is wrapped (never truncated) via
+// utils.WrapCells — long descriptions flow onto rows beneath the value column
+// (design P). All runes are preserved.
 func renderFormField(form state.FormState, f *state.FormField, index, labelWidth, valueWidth int, cursorVisible ...bool) string {
 	focused := form.FieldFocus == index
 
 	labelText := f.Label
+	var wrapLines []string
 	if f.HelperText != "" {
-		labelText = labelText + " (" + f.HelperText + ")"
+		full := labelText + " (" + f.HelperText + ")"
+		lines := utils.WrapCells(full, labelWidth)
+		labelText = lines[0]
+		if len(lines) > 1 {
+			wrapLines = lines[1:]
+		}
 	}
 	label := component.FormRow(labelText, labelWidth, -1, "")
 	if focused {
@@ -248,6 +271,12 @@ func renderFormField(form state.FormState, f *state.FormField, index, labelWidth
 		value = utils.FitVisible(value, valueWidth)
 	}
 	row := label + " " + value
+	if len(wrapLines) > 0 {
+		indent := utils.PadVisible("", labelWidth+1)
+		for _, extra := range wrapLines {
+			row += "\n" + indent + extra
+		}
+	}
 	if f.Error != "" {
 		pad := utils.PadVisible("", labelWidth+1)
 		row += "\n" + pad + lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDialogError).GetForeground()).Render(f.Error)
