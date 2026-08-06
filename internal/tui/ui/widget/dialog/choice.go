@@ -34,7 +34,7 @@ func ChoiceDialog(title, body string, options []ChoiceOption, focus, termW, term
 			optionStyle = optionStyle.Faint(true)
 		} else if i == focus {
 			optionStyle = lipgloss.NewStyle().Foreground(titleColor).Bold(true)
-			label = "[ ▶ " + label + " ]"
+			label = "[ " + component.ButtonIndicator + " " + label + " ]"
 		} else {
 			label = "[   " + label + " ]"
 		}

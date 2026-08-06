@@ -37,10 +37,16 @@ func FormDialog(m *state.AppModel, overlayColor string, cfg DialogConfig, bodyW,
 	parts = appendFormFields(parts, form, labelWidth, valueWidth, popupInnerW, !m.CursorBlinkHidden)
 	parts = append(parts, "")
 
-	cancelBtn := renderFormButton(escKey, form.CancelLabel, form.FieldFocus == form.CancelSlot() && !form.Popup.Open)
-	confirmBtn := renderFormButton(enterKey, form.ConfirmLabel, form.FieldFocus == form.ConfirmSlot() && !form.Popup.Open)
+	cancelBtn := NewButton(escKey, form.CancelLabel)
+	confirmBtn := NewButton(enterKey, form.ConfirmLabel)
+	if form.FieldFocus == form.CancelSlot() && !form.Popup.Open {
+		cancelBtn.State = ButtonFocused
+	}
+	if form.FieldFocus == form.ConfirmSlot() && !form.Popup.Open {
+		confirmBtn.State = ButtonFocused
+	}
 	buttons := lipgloss.NewStyle().Width(innerWidth).Align(lipgloss.Center).Render(
-		cancelBtn + "   " + confirmBtn,
+		cancelBtn.Render() + "   " + confirmBtn.Render(),
 	)
 	hintKey := "form.hint.navigation"
 	if form.Kind == state.FormContainerUpdate {
@@ -154,18 +160,6 @@ func appendFormPopupRows(parts []string, form state.FormState, field state.FormF
 		lines = append(lines, component.FormRow("", 0, innerW, ""))
 	}
 	return append(parts, lines...)
-}
-
-func renderFormButton(key, label string, focused bool) string {
-	if focused {
-		return lipgloss.NewStyle().
-			Foreground(component.GetStyle(component.StyleDialogConfirm).GetForeground()).
-			Bold(true).
-			Render(key + " " + component.ButtonIndicator + " " + label)
-	}
-	return lipgloss.NewStyle().
-		Foreground(component.GetStyle(component.StyleDim).GetForeground()).
-		Render(key + " " + label)
 }
 
 func formInnerWidth(dialogW int) int {
