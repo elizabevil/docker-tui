@@ -1,7 +1,6 @@
 package history
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
@@ -52,7 +51,7 @@ func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
 		rows = append(rows, layerRow(layer))
 	}
 
-	footer := fmt.Sprintf(i18n.T("history.range"), h.ViewOffset+1, h.ViewOffset+len(window), len(items))
+	footer := i18n.T("history.range", h.ViewOffset+1, h.ViewOffset+len(window), len(items))
 	if h.Filter != "" {
 		footer += "   " + i18n.T("history.filter_label") + ": " + h.Filter
 	}
