@@ -496,3 +496,18 @@ func doContainerSort(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	m.Feedback.InfoMessage = fmt.Sprintf("Sort by %s (%v)", labels[m.Resources.Containers.SortBy], m.Resources.Containers.SortAsc)
 	return m, nil
 }
+
+// doContainerRemove opens the Container Remove parameter form for the
+// selected container. The 2-option ChoiceDialog it used to drive was
+// replaced by the Form so the user can pick Force, RemoveVolumes, and
+// RemoveLinks explicitly instead of a single "Force" path.
+func doContainerRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelContainers {
+		return m, nil
+	}
+	ctr := m.Resources.Containers.Selected()
+	if ctr == nil {
+		return m, nil
+	}
+	return openContainerRemoveForm(m, ctr)
+}

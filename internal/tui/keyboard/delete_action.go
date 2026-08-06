@@ -19,23 +19,16 @@ func doDeleteAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	switch m.Navigation.ActivePanel {
 	case state.PanelContainers:
-		ctr := m.Resources.Containers.Selected()
-		if ctr != nil {
-			confirmAction(m, keys.ShowContainerRemove, ctr.ID, fmt.Sprintf("Remove container %s?", ctr.Name))
-		}
+		return doContainerRemove(m)
 	case state.PanelImages:
 		img := m.Resources.Images.Selected()
 		if img != nil {
-			tag := ""
-			if len(img.RepoTags) > 0 {
-				tag = img.RepoTags[0]
-			}
-			confirmAction(m, keys.ShowImageRemove, img.ID, fmt.Sprintf("Remove image %s?", tag))
+			return openImageRemoveForm(m, img)
 		}
 	case state.PanelVolumes:
 		vol := m.Resources.Volumes.Selected()
 		if vol != nil {
-			confirmAction(m, keys.ShowVolumeRemove, vol.Name, fmt.Sprintf("Remove volume %s?", vol.Name))
+			return openVolumeRemoveForm(m, vol)
 		}
 	case state.PanelNetworks:
 		net := m.Resources.Networks.Selected()

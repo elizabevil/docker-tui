@@ -148,6 +148,77 @@ func TestFocusedButtonReportsSlot(t *testing.T) {
 	}
 }
 
+func TestOpenDangerousSpecDefaultsFocusToCancel(t *testing.T) {
+	s := &FormState{}
+	s.Open(FormSpec{
+		Kind:      FormContainerRemove,
+		Dangerous: true,
+		Fields: []FormField{
+			{Key: "force", Kind: FormBool},
+			{Key: "removeVolumes", Kind: FormBool, DependsOn: "force", DependsEq: true},
+		},
+	})
+	if s.FieldFocus != s.CancelSlot() {
+		t.Fatalf("Dangerous form must open on Cancel: focus=%d, want %d", s.FieldFocus, s.CancelSlot())
+	}
+}
+
+func TestOpenNonDangerousSpecDefaultsFocusToFirstField(t *testing.T) {
+	s := &FormState{}
+	s.Open(FormSpec{
+		Kind: FormContainerCopy,
+		Fields: []FormField{
+			{Key: "source", Kind: FormPath},
+			{Key: "destination", Kind: FormPath},
+		},
+	})
+	if s.FieldFocus != 0 {
+		t.Fatalf("non-dangerous form must open on first field: focus=%d, want 0", s.FieldFocus)
+	}
+}
+
+func TestResetClearsFieldEditState(t *testing.T) {
+	s := &FormState{}
+	s.Open(FormSpec{
+		Kind: FormContainerRemove,
+		Fields: []FormField{
+			{Key: "force", Kind: FormBool},
+			{Key: "removeVolumes", Kind: FormBool, DependsOn: "force", DependsEq: true},
+		},
+	})
+	force := s.Get("force")
+	force.Toggle = true
+	force.Touched = true
+	volumes := s.Get("removeVolumes")
+	volumes.Toggle = true
+	volumes.Touched = true
+	volumes.Error = "previous error"
+	s.Popup = FormPopupState{Kind: PopupSelect, Field: 0, Open: true}
+	s.Loading = true
+	s.RecomputeVisibility()
+	if volumes.Hidden {
+		t.Fatal("setup: RemoveVolumes must be visible after Force toggle")
+	}
+
+	s.Reset()
+
+	if force.Toggle || force.Touched {
+		t.Fatalf("Reset must clear Force toggle/touched: toggle=%v touched=%v", force.Toggle, force.Touched)
+	}
+	if volumes.Toggle || volumes.Touched || volumes.Error != "" {
+		t.Fatalf("Reset must clear RemoveVolumes state: toggle=%v touched=%v error=%q", volumes.Toggle, volumes.Touched, volumes.Error)
+	}
+	if s.Popup.Open || s.Loading {
+		t.Fatalf("Reset must clear popup and loading: popup.Open=%v loading=%v", s.Popup.Open, s.Loading)
+	}
+}
+
+func TestFormKindRemoveConstantsAreDistinct(t *testing.T) {
+	if FormImageRemove == FormContainerRemove || FormContainerRemove == FormVolumeRemove || FormImageRemove == FormVolumeRemove {
+		t.Fatalf("Remove FormKinds must be distinct: image=%d container=%d volume=%d", FormImageRemove, FormContainerRemove, FormVolumeRemove)
+	}
+}
+
 func TestMoveFieldTraversesFieldsAndButtons(t *testing.T) {
 	s := &FormState{Fields: []FormField{
 		{Key: "a", Kind: FormText},

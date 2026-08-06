@@ -33,10 +33,14 @@ func imagePruneCmd(client runtimeapi.Engine) tea.Cmd {
 	}
 }
 
-func imageRemoveCmd(client runtimeapi.Engine, id string, force bool) tea.Cmd {
+func imageRemoveCmd(client runtimeapi.Engine, id string, force, pruneChildren bool, platforms []string) tea.Cmd {
 	return func() tea.Msg {
 		_, err := client.Actions().Execute(context.Background(), runtimeapi.ResourceRef{Type: runtimeapi.ResourceImage, ID: id}, runtimeapi.ActionRemove,
-			runtimeapi.ActionOptions{Lifecycle: runtimeapi.LifecycleOptions{Force: force}})
+			runtimeapi.ActionOptions{Lifecycle: runtimeapi.LifecycleOptions{
+				Force:         force,
+				PruneChildren: pruneChildren,
+				Platforms:     platforms,
+			}})
 		return state.ImageActioned{Action: state.ActionRemoved, Ref: id, Success: err == nil, Error: err}
 	}
 }
@@ -86,13 +90,7 @@ func doImageRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if img == nil {
 		return m, nil
 	}
-	tag := ""
-	if len(img.RepoTags) > 0 {
-		tag = img.RepoTags[0]
-	}
-	confirmAction(m, keys.ShowImageRemove, img.ID, fmt.Sprintf("Remove image %s?", tag))
-	m.Confirm.ConfirmAudit = beginAudit(m, "resource.image.delete", imageTarget(m, img.ID), "Remove image "+tag)
-	return m, nil
+	return openImageRemoveForm(m, img)
 }
 
 func doImageDetail(m *state.AppModel) (*state.AppModel, tea.Cmd) {

@@ -66,10 +66,11 @@ func (s PodmanResourceActionService) executeContainer(ctx context.Context, id st
 	default:
 		lc := options.Lifecycle
 		return s.Client.REST.ExecuteContainerAction(ctx, id, string(action), podman.ContainerActionOptions{
-			Timeout: lc.Timeout,
-			Force:   lc.Force,
-			Signal:  lc.Signal,
-			Name:    lc.Name,
+			Timeout:       lc.Timeout,
+			Force:         lc.Force,
+			Signal:        lc.Signal,
+			Name:          lc.Name,
+			RemoveVolumes: lc.RemoveVolumes,
 		})
 	}
 }

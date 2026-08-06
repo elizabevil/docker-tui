@@ -183,7 +183,7 @@ func doComposeDown(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		}
 		var failures []error
 		for _, c := range containers {
-			msg := containerRemoveCmd(engine, c.ID, true)()
+			msg := containerRemoveCmd(engine, c.ID, true, false, false)()
 			if v, ok := msg.(state.ContainerActioned); ok {
 				if v.Success {
 					result.Success++

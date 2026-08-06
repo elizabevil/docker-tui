@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/image"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	ocispec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // resourceActionService implements runtime.ResourceActionService for the
@@ -75,7 +77,11 @@ func (s resourceActionService) executeContainer(ctx context.Context, id string, 
 		}
 		return s.client.cli.ContainerRename(ctx, id, lc.Name)
 	case runtimeapi.ActionRemove:
-		return s.client.cli.ContainerRemove(ctx, id, container.RemoveOptions{Force: lc.Force})
+		return s.client.cli.ContainerRemove(ctx, id, container.RemoveOptions{
+			Force:         lc.Force,
+			RemoveVolumes: lc.RemoveVolumes,
+			RemoveLinks:   lc.RemoveLinks,
+		})
 
 	// TASK-019 advanced container actions. Each reads exactly one of
 	// the typed sub-payloads from the ActionOptions union. The compiler
@@ -160,7 +166,12 @@ func (s resourceActionService) executeImage(ctx context.Context, id string, acti
 	lc := options.Lifecycle
 	switch action {
 	case runtimeapi.ActionRemove:
-		_, err := s.client.cli.ImageRemove(ctx, id, image.RemoveOptions{Force: lc.Force})
+		platforms := parsePlatforms(lc.Platforms)
+		_, err := s.client.cli.ImageRemove(ctx, id, image.RemoveOptions{
+			Force:         lc.Force,
+			PruneChildren: lc.PruneChildren,
+			Platforms:     platforms,
+		})
 		return err
 	case runtimeapi.ActionPull:
 		reader, err := s.client.cli.ImagePull(ctx, id, image.PullOptions{})
@@ -185,4 +196,26 @@ func durationSeconds(timeout time.Duration) *int {
 	}
 	seconds := int(timeout.Seconds())
 	return &seconds
+}
+
+// parsePlatforms converts "os/arch" strings (e.g. "linux/amd64") into the
+// ocispec.Platform slice expected by the Docker SDK. Empty / unparsable
+// entries are skipped so a typo never produces a request that the daemon
+// rejects for the wrong reason.
+func parsePlatforms(values []string) []ocispec.Platform {
+	if len(values) == 0 {
+		return nil
+	}
+	out := make([]ocispec.Platform, 0, len(values))
+	for _, raw := range values {
+		os, arch, ok := strings.Cut(strings.TrimSpace(raw), "/")
+		if !ok || os == "" || arch == "" {
+			continue
+		}
+		out = append(out, ocispec.Platform{OS: os, Architecture: arch})
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }

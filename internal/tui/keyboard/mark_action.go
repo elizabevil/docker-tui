@@ -83,9 +83,9 @@ func doConfirmYes(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case action == keys.ShowContainerRestart:
 		return m, withContainerAudit(containerRestartCmd(m.Connection.Engine, target), trace)
 	case action == keys.ShowContainerRemove:
-		return m, withContainerAudit(containerRemoveCmd(m.Connection.Engine, target, true), trace)
+		return m, withContainerAudit(containerRemoveCmd(m.Connection.Engine, target, true, false, false), trace)
 	case action == keys.ShowImageRemove:
-		return m, withImageAudit(imageRemoveCmd(m.Connection.Engine, target, true), trace)
+		return m, withImageAudit(imageRemoveCmd(m.Connection.Engine, target, true, false, nil), trace)
 	case action == keys.ShowVolumeRemove:
 		return m, withGenericAudit(volumeRemoveCmd(m.Connection.Engine, target, true), trace)
 	case action == keys.ShowNetworkRemove:
@@ -156,9 +156,9 @@ func executeBulkDelete(m *state.AppModel, trace audit.Trace, force ...bool) (*st
 			var msg tea.Msg
 			switch panel {
 			case state.PanelContainers:
-				msg = containerRemoveCmd(engine, id, forceDelete)()
+				msg = containerRemoveCmd(engine, id, forceDelete, false, false)()
 			case state.PanelImages:
-				msg = imageRemoveCmd(engine, id, forceDelete)()
+				msg = imageRemoveCmd(engine, id, forceDelete, false, nil)()
 			case state.PanelVolumes:
 				msg = volumeRemoveCmd(engine, id, forceDelete)()
 			case state.PanelNetworks:

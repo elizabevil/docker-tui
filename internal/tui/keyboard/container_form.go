@@ -40,6 +40,13 @@ const (
 	fieldExportTar       = "exportTar"
 	fieldArchivePath     = "archivePath"
 	fieldImagePath       = "imagePath"
+	fieldImageRemoveForce         = "force"
+	fieldImageRemovePruneChildren = "pruneChildren"
+	fieldImageRemovePlatforms     = "platforms"
+	fieldContainerRemoveForce     = "force"
+	fieldContainerRemoveVolumes   = "removeVolumes"
+	fieldContainerRemoveLinks     = "removeLinks"
+	fieldVolumeRemoveForce        = "force"
 )
 
 const restartPolicyUnchanged = "unchanged"
@@ -252,6 +259,144 @@ func setUntouchedFormText(field *state.FormField, value string) {
 
 func formatResourceValue(value float64) string {
 	return strconv.FormatFloat(value, 'f', -1, 64)
+}
+
+// buildImageRemoveForceField returns the FormBool that drives the Force flag
+// on the Image Remove form. All Force children declare DependsOn=force so
+// RecomputeVisibility hides them while Force is off.
+func buildImageRemoveForceField() state.FormField {
+	return state.FormField{
+		Key:         fieldImageRemoveForce,
+		Label:       i18n.T("image.remove.form.force"),
+		HelperText:  i18n.T("image.remove.form.force_desc"),
+		Kind:        state.FormBool,
+	}
+}
+
+func buildImageRemovePruneChildrenField() state.FormField {
+	return state.FormField{
+		Key:         fieldImageRemovePruneChildren,
+		Label:       i18n.T("image.remove.form.prune_children"),
+		HelperText:  i18n.T("image.remove.form.prune_children_desc"),
+		Kind:        state.FormBool,
+		DependsOn:   fieldImageRemoveForce,
+		DependsEq:   true,
+	}
+}
+
+func buildImageRemovePlatformsField() state.FormField {
+	return state.FormField{
+		Key:         fieldImageRemovePlatforms,
+		Label:       i18n.T("image.remove.form.platforms"),
+		HelperText:  i18n.T("image.remove.form.platforms_desc"),
+		Kind:        state.FormText,
+		DependsOn:   fieldImageRemoveForce,
+		DependsEq:   true,
+	}
+}
+
+func buildContainerRemoveForceField() state.FormField {
+	return state.FormField{
+		Key:         fieldContainerRemoveForce,
+		Label:       i18n.T("container.remove.form.force"),
+		HelperText:  i18n.T("container.remove.form.force_desc"),
+		Kind:        state.FormBool,
+	}
+}
+
+func buildContainerRemoveVolumesField() state.FormField {
+	return state.FormField{
+		Key:         fieldContainerRemoveVolumes,
+		Label:       i18n.T("container.remove.form.volumes"),
+		HelperText:  i18n.T("container.remove.form.volumes_desc"),
+		Kind:        state.FormBool,
+		DependsOn:   fieldContainerRemoveForce,
+		DependsEq:   true,
+	}
+}
+
+func buildContainerRemoveLinksField() state.FormField {
+	return state.FormField{
+		Key:         fieldContainerRemoveLinks,
+		Label:       i18n.T("container.remove.form.links"),
+		HelperText:  i18n.T("container.remove.form.links_desc"),
+		Kind:        state.FormBool,
+		DependsOn:   fieldContainerRemoveForce,
+		DependsEq:   true,
+	}
+}
+
+func buildVolumeRemoveForceField() state.FormField {
+	return state.FormField{
+		Key:         fieldVolumeRemoveForce,
+		Label:       i18n.T("volume.remove.form.force"),
+		HelperText:  i18n.T("volume.remove.form.force_desc"),
+		Kind:        state.FormBool,
+	}
+}
+
+// openImageRemoveForm opens the Image Remove parameter form. Dangerous=true
+// so the dialog opens with Cancel focused (anti-misclick on a destructive
+// action).
+func openImageRemoveForm(m *state.AppModel, img *runtimeapi.ImageSummary) (*state.AppModel, tea.Cmd) {
+	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelImages || img == nil {
+		return m, nil
+	}
+	m.Form.Open(state.FormSpec{
+		Kind:       state.FormImageRemove,
+		Title:      i18n.T("image.remove.form.title"),
+		TargetID:   img.ID,
+		TargetName: tagName(img),
+		CWD:        workingDir(),
+		Dangerous:  true,
+		Fields: []state.FormField{
+			buildImageRemoveForceField(),
+			buildImageRemovePruneChildrenField(),
+			buildImageRemovePlatformsField(),
+		},
+	})
+	m.Navigation.Mode = state.ModeContainerForm
+	return m, nil
+}
+
+func openContainerRemoveForm(m *state.AppModel, ctr *runtimeapi.ContainerSummary) (*state.AppModel, tea.Cmd) {
+	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelContainers || ctr == nil {
+		return m, nil
+	}
+	m.Form.Open(state.FormSpec{
+		Kind:       state.FormContainerRemove,
+		Title:      i18n.T("container.remove.form.title"),
+		TargetID:   ctr.ID,
+		TargetName: ctr.Name,
+		CWD:        workingDir(),
+		Dangerous:  true,
+		Fields: []state.FormField{
+			buildContainerRemoveForceField(),
+			buildContainerRemoveVolumesField(),
+			buildContainerRemoveLinksField(),
+		},
+	})
+	m.Navigation.Mode = state.ModeContainerForm
+	return m, nil
+}
+
+func openVolumeRemoveForm(m *state.AppModel, vol *runtimeapi.Volume) (*state.AppModel, tea.Cmd) {
+	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelVolumes || vol == nil {
+		return m, nil
+	}
+	m.Form.Open(state.FormSpec{
+		Kind:       state.FormVolumeRemove,
+		Title:      i18n.T("volume.remove.form.title"),
+		TargetID:   vol.Name,
+		TargetName: vol.Name,
+		CWD:        workingDir(),
+		Dangerous:  true,
+		Fields: []state.FormField{
+			buildVolumeRemoveForceField(),
+		},
+	})
+	m.Navigation.Mode = state.ModeContainerForm
+	return m, nil
 }
 
 // openContainerCommitForm opens the Commit form. Repository is required; tag,
@@ -1098,9 +1243,91 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		request := runtimeapi.ImageTransferRequest{Operation: runtimeapi.ImageTransferLoad, Path: source}
 		clearContainerForm(m)
 		return beginImageTransfer(m, request)
+
+	case state.FormImageRemove:
+		if m.Navigation.ActivePanel != state.PanelImages || id == "" {
+			clearContainerForm(m)
+			return m, nil
+		}
+		force := formBoolValue(m.Form.Get(fieldImageRemoveForce))
+		pruneChildren := formBoolValue(m.Form.Get(fieldImageRemovePruneChildren))
+		platforms := parsePlatformInput(m.Form.Get(fieldImageRemovePlatforms))
+		trace := beginAudit(m, "resource.image.delete", imageTarget(m, id), "Remove image "+name)
+		clearContainerForm(m)
+		return m, withImageAudit(imageRemoveCmd(m.Connection.Engine, id, force, pruneChildren, platforms), trace)
+
+	case state.FormContainerRemove:
+		if m.Navigation.ActivePanel != state.PanelContainers || id == "" {
+			clearContainerForm(m)
+			return m, nil
+		}
+		force := formBoolValue(m.Form.Get(fieldContainerRemoveForce))
+		removeVolumes := formBoolValue(m.Form.Get(fieldContainerRemoveVolumes))
+		removeLinks := formBoolValue(m.Form.Get(fieldContainerRemoveLinks))
+		trace := beginAudit(m, "resource.container.delete", containerTarget(m, id), "Remove container "+name)
+		clearContainerForm(m)
+		return m, withContainerAudit(containerRemoveCmd(m.Connection.Engine, id, force, removeVolumes, removeLinks), trace)
+
+	case state.FormVolumeRemove:
+		if m.Navigation.ActivePanel != state.PanelVolumes || id == "" {
+			clearContainerForm(m)
+			return m, nil
+		}
+		force := formBoolValue(m.Form.Get(fieldVolumeRemoveForce))
+		trace := beginAudit(m, "resource.volume.delete", audit.VolumeTarget{Name: name, Meta: audit.VolumeMeta{Driver: volumeDriver(m, name)}}, "Remove volume "+name)
+		clearContainerForm(m)
+		return m, withGenericAudit(volumeRemoveCmd(m.Connection.Engine, id, force), trace)
 	}
 	clearContainerForm(m)
 	return m, nil
+}
+
+// formBoolValue returns the Toggle flag of a FormBool field, or false when
+// the field is missing. Keeps the submit-branch reads terse.
+func formBoolValue(f *state.FormField) bool {
+	if f == nil {
+		return false
+	}
+	return f.Toggle
+}
+
+// parsePlatformInput parses a comma-separated "os/arch" field into a slice
+// suitable for runtimeapi.LifecycleOptions.Platforms. Whitespace around each
+// entry is trimmed; empty entries are dropped so "linux/amd64,," stays a
+// one-element list.
+func parsePlatformInput(f *state.FormField) []string {
+	if f == nil {
+		return nil
+	}
+	raw := strings.TrimSpace(f.Text())
+	if raw == "" {
+		return nil
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if v := strings.TrimSpace(p); v != "" {
+			out = append(out, v)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// volumeDriver looks up the driver of the selected volume for the audit
+// trace; returns "" when no match is found so the trace stays well-formed.
+func volumeDriver(m *state.AppModel, name string) string {
+	if m == nil || m.Resources.Volumes == nil {
+		return ""
+	}
+	for _, v := range m.Resources.Volumes.Items {
+		if v.Name == name {
+			return v.Driver
+		}
+	}
+	return ""
 }
 
 func containerCommitFormRequest(m *state.AppModel) (runtimeapi.ContainerCommitOptions, string, error) {

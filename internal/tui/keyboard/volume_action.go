@@ -2,12 +2,9 @@ package keyboard
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
-	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -47,7 +44,9 @@ func volumeInspectCmd(client runtimeapi.Engine, name, title string) tea.Cmd {
 	}
 }
 
-// doVolumeRemove prompts for confirmation and removes the selected volume.
+// doVolumeRemove opens the parameter form for removing the selected volume.
+// Dangerous=true forces the Cancel focus on open so a stray Enter cannot
+// drop the volume before the user opts in.
 func doVolumeRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelVolumes {
 		return m, nil
@@ -56,7 +55,5 @@ func doVolumeRemove(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if vol == nil {
 		return m, nil
 	}
-	confirmAction(m, keys.ShowVolumeRemove, vol.Name, fmt.Sprintf("Remove volume %s?", vol.Name))
-	m.Confirm.ConfirmAudit = beginAudit(m, "resource.volume.delete", audit.VolumeTarget{Name: vol.Name, Meta: audit.VolumeMeta{Driver: vol.Driver}}, "Remove volume "+vol.Name)
-	return m, nil
+	return openVolumeRemoveForm(m, vol)
 }

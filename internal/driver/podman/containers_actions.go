@@ -19,7 +19,7 @@ import (
 //	ActionPause   — no fields used
 //	ActionUnpause — no fields used
 //	ActionRename  — Name (required)
-//	ActionRemove  — Force
+//	ActionRemove  — Force, RemoveVolumes
 //
 // Bundling the four fields into one struct keeps the dispatcher
 // signature within the 5-parameter limit and makes the call site
@@ -33,6 +33,8 @@ type ContainerActionOptions struct {
 	Signal string
 	// Name applies to rename.
 	Name string
+	// RemoveVolumes applies to remove.
+	RemoveVolumes bool
 }
 
 // ExecuteContainerAction performs a lifecycle action on a container via
@@ -66,6 +68,9 @@ func (c *RESTClient) ExecuteContainerAction(ctx context.Context, id, action stri
 		return c.Post(ctx, ContainerRenamePath(id), query, nil, nil)
 	case ActionRemove:
 		query.Set("force", strconv.FormatBool(opts.Force))
+		if opts.RemoveVolumes {
+			query.Set("v", "1")
+		}
 		return c.DeleteWithQuery(ctx, ContainerRemovePath(id), query)
 	default:
 		return newPodmanError(KindInvalid, "container."+action, fmt.Errorf("unsupported action: %s", action))

@@ -19,6 +19,12 @@ const (
 	FormContainerCommit
 	FormImageSave
 	FormImageLoad
+	// FormImageRemove / FormContainerRemove / FormVolumeRemove replace
+	// the 2-option ChoiceDialog with explicit Force + child-flag forms.
+	// FormSpec marks them Dangerous so the dialog opens on Cancel.
+	FormImageRemove
+	FormContainerRemove
+	FormVolumeRemove
 )
 
 // FormFieldKind selects how a form field is edited and rendered.
@@ -173,6 +179,11 @@ type FormSpec struct {
 	CWD          string
 	ConfirmLabel string
 	CancelLabel  string
+	// Dangerous opens the form with the Cancel row focused by default
+	// (instead of the first field), to reduce accidental confirmation
+	// of destructive actions such as Remove / Force Delete. Open() honors
+	// this when computing the initial FieldFocus.
+	Dangerous bool
 }
 
 // ContainerUpdateConfigLoaded carries the current limits fetched for an open
@@ -205,7 +216,8 @@ type FormState struct {
 }
 
 // Open resets the form to a fresh state from a spec. The initial focus is the
-// Cancel row so the safest action is always selected (BR-043 §3.3).
+// Cancel row for Dangerous forms (anti-misclick on destructive actions) and
+// the first field otherwise (BR-043 §3.3 + UI-improvements A decision).
 func (s *FormState) Open(spec FormSpec) {
 	confirm := spec.ConfirmLabel
 	if confirm == "" {
@@ -215,6 +227,13 @@ func (s *FormState) Open(spec FormSpec) {
 	if cancel == "" {
 		cancel = "Cancel"
 	}
+	initialFocus := 0
+	if len(spec.Fields) == 0 {
+		initialFocus = 1 // Cancel row when there are no fields to focus first
+	}
+	if spec.Dangerous {
+		initialFocus = len(spec.Fields) + 1 // Cancel row
+	}
 	*s = FormState{
 		Kind:         spec.Kind,
 		Title:        spec.Title,
@@ -223,10 +242,33 @@ func (s *FormState) Open(spec FormSpec) {
 		Fields:       spec.Fields,
 		ConfirmLabel: confirm,
 		CancelLabel:  cancel,
-		FieldFocus:   len(spec.Fields) + 1, // Cancel row
+		FieldFocus:   initialFocus,
 		CWD:          spec.CWD,
 	}
 	s.RecomputeVisibility()
+}
+
+// Reset clears every field's editable state (Input, Toggle, Selected,
+// Touched, Error, Suggestions, Path loading/tab state) back to its declared
+// default. The field list itself, Focus, Title, and Targets are preserved so
+// the caller can decide whether to close the form. UI-improvements V decision
+// — used by the Cancel handler so the next Open() sees clean state.
+func (s *FormState) Reset() {
+	for i := range s.Fields {
+		f := &s.Fields[i]
+		f.Input = QueryInputState{}
+		f.Toggle = false
+		f.Selected = nil
+		f.Touched = false
+		f.Error = ""
+		f.Suggestions = nil
+		f.PathLoading = false
+		f.PathTabInput = ""
+		f.ShowHidden = false
+		f.PathError = ""
+	}
+	s.Popup = FormPopupState{}
+	s.Loading = false
 }
 
 // Field returns the currently focused field, or nil when the focus is on the

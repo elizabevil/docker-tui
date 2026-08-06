@@ -68,6 +68,14 @@ type LifecycleOptions struct {
 	Signal string
 	// Timeout applies to stop / restart. Zero means "engine default".
 	Timeout time.Duration
+	// RemoveVolumes applies to ActionRemove on a container. Docker only.
+	RemoveVolumes bool
+	// RemoveLinks applies to ActionRemove on a container. Docker only.
+	RemoveLinks bool
+	// PruneChildren applies to ActionRemove on an image. Docker only.
+	PruneChildren bool
+	// Platforms applies to ActionRemove on an image. Docker only; empty = all.
+	Platforms []string
 }
 
 // UpdateOptions carries parameters for ActionUpdate. Each field is a
