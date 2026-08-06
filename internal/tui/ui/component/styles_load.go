@@ -57,6 +57,7 @@ const (
 	StyleFooter               StyleName = "footer"
 	StyleShortcutBar          StyleName = "shortcutBar"
 	StyleActionBar            StyleName = "actionBar"
+	StyleActionBarBorder      StyleName = "actionBarBorder"
 	StyleFormInput            StyleName = "formInput"
 	StyleMessageRail          StyleName = "messageRail"
 	StyleQueryBar             StyleName = "queryBar"
@@ -77,7 +78,7 @@ var allStyleNames = []StyleName{
 	StyleDetailValue, StyleDetailDim, StyleDetailSelection, StyleLogTimestamp,
 	StyleLogText, StyleLogStderr, StyleLogHighlight, StyleHeader, StyleHeaderBar,
 	StyleHeaderLabel, StyleKeyBadge, StyleKeyLast, StyleFooter, StyleShortcutBar,
-	StyleActionBar, StyleFormInput, StyleMessageRail, StyleQueryBar, StyleSelectedRow,
+	StyleActionBar, StyleActionBarBorder, StyleFormInput, StyleMessageRail, StyleQueryBar, StyleSelectedRow,
 	StyleDialogConfirm, StyleDialogError, StyleDialogWarning,
 }
 
@@ -122,6 +123,7 @@ type globalStyleRefs struct {
 	Footer               styleRef `json:"footer"`
 	ShortcutBar          styleRef `json:"shortcutBar"`
 	ActionBar            styleRef `json:"actionBar"`
+	ActionBarBorder      styleRef `json:"actionBarBorder"`
 	FormInput            styleRef `json:"formInput"`
 	MessageRail          styleRef `json:"messageRail"`
 	QueryBar             styleRef `json:"queryBar"`
@@ -131,14 +133,10 @@ type globalStyleRefs struct {
 	DialogWarning        styleRef `json:"dialogWarning"`
 }
 
-// styleRef 定义 JSONC 中单一样式条目的属性。
-// 字段与 styles.jsonc 中的 "styles" 对象一一对应。
-type styleRef struct {
-	Color      string `json:"color,omitempty"`
-	Background string `json:"background,omitempty"`
-	Bold       bool   `json:"bold,omitempty"`
-	Faint      bool   `json:"faint,omitempty"`
-}
+// styleRef 是 utils.StyleRef 的本地别名。组件层沿用短名以保留
+// 字段标注的紧凑布局；类型与 BuildStyle 方法来自 utils，以便其它
+// 包跨包复用相同的颜色解析和 α=0 守卫。
+type styleRef = utils.StyleRef
 
 // rawStyles 存储从 styles.jsonc 加载的原始样式引用。
 // 延迟解析以避开 init() 顺序依赖（style.Colors 在 ApplyTheme 中填充）。
@@ -218,6 +216,7 @@ func ApplyThemeStyles(theme *config.Theme) {
 	rawStyles.Footer = styleRef{Color: resolveForeground(theme.Main.Footer)}
 	rawStyles.ShortcutBar = styleRef{Background: resolveBackground(theme.Footer.ShortcutBackground)}
 	rawStyles.ActionBar = styleRef{Color: resolveForeground(theme.Main.RowText), Background: resolveBackground(theme.Main.ActionBarBackground)}
+	rawStyles.ActionBarBorder = styleRef{Color: resolveForeground(theme.Main.BorderActive)}
 	rawStyles.FormInput = styleRef{Background: string(theme.Palette.Background)}
 	rawStyles.MessageRail = styleRef{Background: resolveBackground(theme.Main.MessageRailBackground)}
 	rawStyles.QueryBar = styleRef{Background: resolveBackground(theme.Main.QueryBarBackground)}
@@ -367,7 +366,7 @@ func RenderBackgroundLayer(content string, background color.Color) string {
 
 func GetStyle(name StyleName) lipgloss.Style {
 	if ref, ok := rawStyles.lookup(name); ok {
-		return buildStyle(ref)
+		return ref.BuildStyle()
 	}
 	return safeFallbackRef.Normal
 }
@@ -454,6 +453,8 @@ func (s globalStyleRefs) lookup(name StyleName) (styleRef, bool) {
 		return s.ShortcutBar, true
 	case StyleActionBar:
 		return s.ActionBar, true
+	case StyleActionBarBorder:
+		return s.ActionBarBorder, true
 	case StyleFormInput:
 		return s.FormInput, true
 	case StyleMessageRail:
@@ -471,33 +472,4 @@ func (s globalStyleRefs) lookup(name StyleName) (styleRef, bool) {
 	default:
 		return styleRef{}, false
 	}
-}
-
-// buildStyle 将 styleRef 转换为 lipgloss.Style，通过当前调色板解析颜色名。
-// 由 getStyleChain 在第 2 层和第 1 层调用。
-func buildStyle(ref styleRef) lipgloss.Style {
-	s := lipgloss.NewStyle()
-	applyChannel := func(value string, set func(c color.Color) lipgloss.Style) {
-		if value == "" {
-			return
-		}
-		parsed, ok := utils.ParseColor(value)
-		if !ok {
-			return
-		}
-		nrgba, ok := color.NRGBAModel.Convert(parsed).(color.NRGBA)
-		if !ok || nrgba.A != 0 {
-			s = set(parsed)
-			return
-		}
-	}
-	applyChannel(ref.Color, s.Foreground)
-	applyChannel(ref.Background, s.Background)
-	if ref.Bold {
-		s = s.Bold(true)
-	}
-	if ref.Faint {
-		s = s.Faint(true)
-	}
-	return s
 }

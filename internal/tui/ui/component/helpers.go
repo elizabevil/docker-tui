@@ -2,7 +2,6 @@ package component
 
 import (
 	"charm.land/lipgloss/v2"
-	"github.com/elizabevil/docker-tui/internal/tui/ui/style"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
@@ -107,21 +106,5 @@ func FirstNonZero[T comparable](vals ...T) T {
 
 // WrapStyle 安全包装 styleRef，空字段不设置。
 func WrapStyle(s lipgloss.Style, ref styleRef) lipgloss.Style {
-	if ref.Color != "" {
-		if c := style.Color(ref.Color); c != nil {
-			s = s.Foreground(c)
-		}
-	}
-	if ref.Background != "" {
-		if c := style.Color(ref.Background); c != nil {
-			s = s.Background(c)
-		}
-	}
-	if ref.Bold {
-		s = s.Bold(true)
-	}
-	if ref.Faint {
-		s = s.Faint(true)
-	}
-	return s
+	return ref.BuildStyle(utils.FromStyle(s))
 }

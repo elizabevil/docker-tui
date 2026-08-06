@@ -31,5 +31,5 @@ func StateColor(containerState string) color.Color {
 // 用于表格单元格，颜色从 table.jsonc 的 stateStyles 读取。
 func RenderStateText(containerState string) string {
 	ref := GetStateStyle(containerState)
-	return buildStyle(ref).Render(containerState)
+	return ref.BuildStyle().Render(containerState)
 }

@@ -6,8 +6,8 @@ import (
 
 	"charm.land/lipgloss/v2"
 
-	actionmodel "github.com/elizabevil/docker-tui/internal/tui/actionbar"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
+	actionmodel "github.com/elizabevil/docker-tui/internal/tui/actionbar"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/widget/dialog"
@@ -74,8 +74,10 @@ func renderBox(items []actionmodel.ActionItem, selected int, filtering bool, fil
 
 	// Outer wrapper: rounded border + 1-cell horizontal padding. No
 	// background so the box integrates with the panel it overlays.
+	borderFg := component.GetStyle(component.StyleActionBarBorder).GetForeground()
 	return barStyle.
 		Border(lipgloss.RoundedBorder()).
+		BorderForeground(borderFg).
 		Padding(0, 1).
 		Width(boxWidth).
 		Render(joined)
@@ -157,10 +159,11 @@ func renderActionBarButtons() string {
 	escKey := i18n.T("key.sym_esc")
 	confirmLabel := i18n.T("key.confirm")
 	cancelLabel := i18n.T("key.cancel")
-	confirm := lipgloss.NewStyle().
+	barStyle := component.GetStyle(component.StyleActionBar)
+	confirm := barStyle.
 		Foreground(component.GetStyle(component.StyleDialogConfirm).GetForeground()).
 		Render(enterKey + " " + component.ButtonIndicator + " " + confirmLabel)
-	cancel := lipgloss.NewStyle().
+	cancel := barStyle.
 		Foreground(component.GetStyle(component.StyleDim).GetForeground()).
 		Render(escKey + " " + cancelLabel)
 	return cancel + "    " + confirm

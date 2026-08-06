@@ -183,7 +183,8 @@ func TestHeaderLabelAndValueBackgroundIsTransparentWhenTokenIsTransparent(t *tes
 }
 
 func TestBuildStyleSkipsBackgroundWhenValueIsTransparent(t *testing.T) {
-	s := buildStyle(styleRef{Color: "foregroundMuted", Background: "transparent"})
+	ref := styleRef{Color: "foregroundMuted", Background: "transparent"}
+	s := ref.BuildStyle()
 	rendered := s.Render("abc")
 	if strings.Contains(rendered, "48;2") {
 		t.Fatalf("transparent label/value rendered a background fill: %q", rendered)

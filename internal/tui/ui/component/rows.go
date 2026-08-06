@@ -37,11 +37,11 @@ func (r *RowRenderer) RenderRow(cells []string, rowIdx int, marked, selected, al
 		// 列宽已在 joinRow 中按 colW + TruncateVisible 严格 padding。
 		// 选中行需要保留列前景色，但不能让单元格 reset 截断整行背景。
 		line := r.joinRow(cells, true)
-		ref := GetRowStyle("selected")
+		ref := GetRowStyle(RowStyleSelected)
 		if marked {
-			ref = GetRowStyle("marked")
+			ref = GetRowStyle(RowStyleMarked)
 		}
-		s := buildStyle(ref).Width(r.rowWidth)
+		s := ref.BuildStyle(utils.WithWidth(r.rowWidth))
 		if r.rowPrefix != "" {
 			// 选中行在 prefix 上保留高亮前缀（rowPrefixSel = "║ "）
 			s = s.PaddingLeft(0)
@@ -53,23 +53,16 @@ func (r *RowRenderer) RenderRow(cells []string, rowIdx int, marked, selected, al
 
 	// 普通行与 alt 行：同样需要 Width + Background，否则 padding 空格
 	// 落回终端默认背景，light 主题下整片表格会变深。
-	style := lipgloss.NewStyle().Width(r.rowWidth)
+	rowStyle := lipgloss.NewStyle().Width(r.rowWidth)
 	if r.Background != "" {
 		if c, ok := utils.ParseColor(r.Background); ok {
-			style = style.Background(c)
+			rowStyle = rowStyle.Background(c)
 		}
 	}
 	if alt {
-		altRef := GetRowStyle("alt")
-		altStyle := buildStyle(altRef)
-		if bg := altStyle.GetBackground(); bg != nil {
-			style = style.Background(bg)
-		}
-		if altRef.Faint {
-			style = style.Faint(true)
-		}
+		rowStyle = GetRowStyle(RowStyleAlt).BuildStyle(utils.FromStyle(rowStyle))
 	}
-	return style.Render(prefix + r.joinRow(cells, false))
+	return rowStyle.Render(prefix + r.joinRow(cells, false))
 }
 
 // joinRow 拼接一行单元格，按列应用独立样式。
@@ -98,19 +91,7 @@ func (r *RowRenderer) joinRow(cells []string, noReset bool) string {
 				clean := utils.StripANSI(display)
 				sb.WriteString(cellStyleANSI(clean, sty))
 			} else {
-				s := lipgloss.NewStyle()
-				if sty.Color != "" {
-					if c := style.Color(sty.Color); c != nil {
-						s = s.Foreground(c)
-					}
-				}
-				if sty.Bold {
-					s = s.Bold(true)
-				}
-				if sty.Faint {
-					s = s.Faint(true)
-				}
-				sb.WriteString(s.Render(display))
+				sb.WriteString(sty.BuildStyle().Render(display))
 			}
 		} else {
 			sb.WriteString(display)
