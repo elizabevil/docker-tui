@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"math"
 	"os"
 	"path"
 	"path/filepath"
@@ -25,7 +24,6 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// Form field keys shared between the keyboard handlers and the renderer.
 const (
 	fieldSourcePath      = "source"
 	fieldDestinationPath = "destination"
@@ -52,18 +50,11 @@ const (
 
 const restartPolicyUnchanged = "unchanged"
 
-// restartChoice pairs a Docker/Podman restart-policy key with its localized
-// display label. The Options slice is the Wire/i18n key submitted to the
-// runtime; the DisplayOptions slice is what the user sees in the form.
 type restartChoice struct {
 	Key   string
 	Label string
 }
 
-// restartPolicyChoices is the canonical order of restart-policy options. The
-// leading "unchanged" entry keeps the current effective policy when no choice
-// is made. Labels are pulled from i18n at package init so changing the active
-// language re-renders the form on the next Open.
 var restartPolicyChoices = []restartChoice{
 	{Key: "unchanged", Label: i18n.T("container.update.form.restart.unchanged")},
 	{Key: "no", Label: i18n.T("container.update.form.restart.no")},
@@ -72,9 +63,6 @@ var restartPolicyChoices = []restartChoice{
 	{Key: "on-failure", Label: i18n.T("container.update.form.restart.on_failure")},
 }
 
-// buildRestartField assembles the FormSelect field for the Update form. The
-// Options slice carries the runtime keys; DisplayOptions carries the
-// localized labels so the user sees "Always" instead of "always".
 func buildRestartField() state.FormField {
 	options := make([]string, len(restartPolicyChoices))
 	display := make([]string, len(restartPolicyChoices))
@@ -82,18 +70,14 @@ func buildRestartField() state.FormField {
 		options[i] = c.Key
 		display[i] = c.Label
 	}
-	return state.FormField{
+	return dialog.NewSelectField(dialog.SelectFieldConfig{
 		Key:            fieldRestartPolicy,
 		Label:          i18n.T("container.update.form.restart"),
-		Kind:           state.FormSelect,
 		Options:        options,
 		DisplayOptions: display,
-	}
+	})
 }
 
-// openContainerCopyForm opens the Copy form for the selected container. The
-// source is a container-side file or directory; the destination is a local tar
-// path on the dtui machine (BR-041 §3.1).
 func openContainerCopyForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	ctr := m.Resources.Containers.Selected()
 	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelContainers || ctr == nil {
@@ -108,12 +92,22 @@ func openContainerCopyForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		TargetName: ctr.Name,
 		CWD:        cwd,
 		Fields: []state.FormField{
-			{Key: fieldSourcePath, Label: i18n.T("container.copy.form.source"), Kind: state.FormPath, PathSource: state.PathContainer, PathMode: state.PathAny, Required: true},
-			{Key: fieldDestinationPath, Label: i18n.T("container.copy.form.destination"), Kind: state.FormPath, PathSource: state.PathLocal, PathMode: state.PathSaveFile, Required: true},
+			dialog.NewPathField(dialog.PathFieldConfig{
+				Key:        fieldSourcePath,
+				Label:      i18n.T("container.copy.form.source"),
+				PathSource: state.PathContainer,
+				PathMode:   state.PathAny,
+				Required:   true,
+			}),
+			dialog.NewPathField(dialog.PathFieldConfig{
+				Key:        fieldDestinationPath,
+				Label:      i18n.T("container.copy.form.destination"),
+				PathSource: state.PathLocal,
+				PathMode:   state.PathSaveFile,
+				Required:   true,
+			}),
 		},
 	})
-	// 打开时生成默认本地目标名（BR-041 §4.1）。目标为 PathSaveFile，
-	// 用户未手工编辑前，源路径变化会触发重新生成；已编辑则不覆盖。
 	prefillDefaultDestination(m, cwd, shortID)
 	m.Navigation.Mode = state.ModeContainerForm
 	return m, nil
@@ -127,8 +121,14 @@ func openImageSaveForm(m *state.AppModel, image *runtimeapi.ImageSummary) (*stat
 	ref := fullImageRef(image)
 	shortID := utils.ShortID(image.ID)
 	path := state.DefaultImageSaveName(cwd, ref, shortID, time.Now())
-	field := state.FormField{Key: fieldImagePath, Label: i18n.T("image.save.form.path"), Kind: state.FormPath, PathSource: state.PathLocal, PathMode: state.PathSaveFile, Required: true}
-	field.Input.Set(path)
+	field := dialog.NewPathField(dialog.PathFieldConfig{
+		Key:        fieldImagePath,
+		Label:      i18n.T("image.save.form.path"),
+		PathSource: state.PathLocal,
+		PathMode:   state.PathSaveFile,
+		Required:   true,
+		Text:       path,
+	})
 	m.Form.Open(state.FormSpec{
 		Kind: state.FormImageSave, Title: i18n.T("image.save.title"), TargetID: ref,
 		TargetName: tagName(image), CWD: cwd, Fields: []state.FormField{field},
@@ -143,13 +143,18 @@ func openImageLoadForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	m.Form.Open(state.FormSpec{
 		Kind: state.FormImageLoad, Title: i18n.T("image.load.title"), CWD: workingDir(),
-		Fields: []state.FormField{{Key: fieldImagePath, Label: i18n.T("image.load.form.path"), Kind: state.FormPath, PathSource: state.PathLocal, PathMode: state.PathFile, Required: true}},
+		Fields: []state.FormField{dialog.NewPathField(dialog.PathFieldConfig{
+			Key:        fieldImagePath,
+			Label:      i18n.T("image.load.form.path"),
+			PathSource: state.PathLocal,
+			PathMode:   state.PathFile,
+			Required:   true,
+		})},
 	})
 	m.Navigation.Mode = state.ModeContainerForm
 	return m, nil
 }
 
-// openContainerExportForm opens the Export form: the local destination tar path.
 func openContainerExportForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	ctr := m.Resources.Containers.Selected()
 	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelContainers || ctr == nil {
@@ -162,20 +167,23 @@ func openContainerExportForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		TargetID:   ctr.ID,
 		TargetName: ctr.Name,
 		CWD:        cwd,
-		Fields: []state.FormField{
-			{Key: fieldDestinationPath, Label: i18n.T("container.export.form.destination"), Kind: state.FormPath, PathSource: state.PathLocal, PathMode: state.PathSaveFile, Required: true},
-		},
+		Fields: []state.FormField{dialog.NewPathField(dialog.PathFieldConfig{
+			Key:        fieldDestinationPath,
+			Label:      i18n.T("container.export.form.destination"),
+			PathSource: state.PathLocal,
+			PathMode:   state.PathSaveFile,
+			Required:   true,
+		})},
 	})
-	// Export 打开时直接生成默认本地目标名（BR-041 §4.2）。
-	if dst := m.Form.Get(fieldDestinationPath); dst != nil && dst.Input.Text == "" {
-		dst.Input.Set(state.DefaultExportName(cwd, ctr.Name, shortContainerID(ctr.ID), time.Now()))
+	if dst := m.Form.Get(fieldDestinationPath); dst != nil && dst.Text() == "" {
+		if pf, ok := dst.(*dialog.PathField); ok {
+			pf.SetText(state.DefaultExportName(cwd, ctr.Name, shortContainerID(ctr.ID), time.Now()))
+		}
 	}
 	m.Navigation.Mode = state.ModeContainerForm
 	return m, nil
 }
 
-// openContainerUpdateForm opens the Update / resource-limit form. Text and
-// int fields left empty leave the corresponding resource untouched.
 func openContainerUpdateForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	ctr := m.Resources.Containers.Selected()
 	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelContainers || ctr == nil {
@@ -188,16 +196,27 @@ func openContainerUpdateForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		TargetID:   ctr.ID,
 		TargetName: ctr.Name,
 		Fields: []state.FormField{
-			{Key: fieldMemory, Label: i18n.T("container.update.form.memory"), Kind: state.FormInt,
-				HelperText: "MB", Unit: "MB",
-				Min: state.FormFieldMin(0),
-				Max: state.FormFieldMax(float64(math.MaxInt64) / (1024 * 1024))},
-			{Key: fieldCPUs, Label: i18n.T("container.update.form.cpus"), Kind: state.FormInt,
-				HelperText: "cores", Unit: "cores",
-				Min: state.FormFieldMin(0),
-				Max: state.FormFieldMax(float64(math.MaxInt64) / 1e9)},
+			dialog.NewIntField(dialog.IntFieldConfig{
+				Key:        fieldMemory,
+				Label:      i18n.T("container.update.form.memory"),
+				HelperText: "MB",
+				Unit:       "MB",
+				Min:        state.FormMin(0),
+				Max:        state.FormMax(1e15),
+			}),
+			dialog.NewIntField(dialog.IntFieldConfig{
+				Key:        fieldCPUs,
+				Label:      i18n.T("container.update.form.cpus"),
+				HelperText: "cores",
+				Unit:       "cores",
+				Min:        state.FormMin(0),
+				Max:        state.FormMax(1e15),
+			}),
 			restart,
-			{Key: fieldMaxRetries, Label: i18n.T("container.update.form.max_retries"), Kind: state.FormInt},
+			dialog.NewIntField(dialog.IntFieldConfig{
+				Key:   fieldMaxRetries,
+				Label: i18n.T("container.update.form.max_retries"),
+			}),
 		},
 	})
 	m.Form.Loading = true
@@ -212,8 +231,6 @@ func containerUpdateConfigCmd(engine runtimeapi.Engine, containerID string) tea.
 	}
 }
 
-// HandleContainerUpdateConfigLoaded pre-fills untouched fields with the
-// container's effective resource configuration.
 func HandleContainerUpdateConfigLoaded(m *state.AppModel, msg state.ContainerUpdateConfigLoaded) (*state.AppModel, tea.Cmd) {
 	if m.Navigation.Mode != state.ModeContainerForm || m.Form.Kind != state.FormContainerUpdate || m.Form.TargetID != msg.ContainerID {
 		return m, nil
@@ -237,14 +254,15 @@ func HandleContainerUpdateConfigLoaded(m *state.AppModel, msg state.ContainerUpd
 	if resources.RestartPolicy == "on-failure" && resources.MaximumRetryCount > 0 {
 		setUntouchedFormText(m.Form.Get(fieldMaxRetries), strconv.Itoa(resources.MaximumRetryCount))
 	}
-	if restart := m.Form.Get(fieldRestartPolicy); restart != nil && !restart.Touched {
+	if restart := m.Form.Get(fieldRestartPolicy); restart != nil && !restart.Touched() {
 		policy := resources.RestartPolicy
 		if policy == "" {
 			policy = "no"
 		}
-		for i, option := range restart.Options {
+		options := restart.Options()
+		for i, option := range options {
 			if option == policy {
-				restart.Index = i
+				restart.SetIndex(i)
 				break
 			}
 		}
@@ -252,93 +270,79 @@ func HandleContainerUpdateConfigLoaded(m *state.AppModel, msg state.ContainerUpd
 	return m, nil
 }
 
-func setUntouchedFormText(field *state.FormField, value string) {
-	if field != nil && !field.Touched {
-		field.Input.Set(value)
+func setUntouchedFormText(field state.FormField, value string) {
+	if field == nil || field.Touched() {
+		return
 	}
+	field.SetText(value)
 }
 
 func formatResourceValue(value float64) string {
 	return strconv.FormatFloat(value, 'f', -1, 64)
 }
 
-// buildImageRemoveForceField returns the FormBool that drives the Force flag
-// on the Image Remove form. All Force children declare DependsOn=force so
-// RecomputeVisibility hides them while Force is off.
 func buildImageRemoveForceField() state.FormField {
-	return state.FormField{
-		Key:         fieldImageRemoveForce,
-		Label:       i18n.T("image.remove.form.force"),
-		HelperText:  i18n.T("image.remove.form.force_desc"),
-		Kind:        state.FormBool,
-	}
+	return dialog.NewBoolField(dialog.BoolFieldConfig{
+		Key:        fieldImageRemoveForce,
+		Label:      i18n.T("image.remove.form.force"),
+		HelperText: i18n.T("image.remove.form.force_desc"),
+	})
 }
 
 func buildImageRemovePruneChildrenField() state.FormField {
-	return state.FormField{
-		Key:         fieldImageRemovePruneChildren,
-		Label:       i18n.T("image.remove.form.prune_children"),
-		HelperText:  i18n.T("image.remove.form.prune_children_desc"),
-		Kind:        state.FormBool,
-		DependsOn:   fieldImageRemoveForce,
-		DependsEq:   true,
-	}
+	return dialog.NewBoolField(dialog.BoolFieldConfig{
+		Key:        fieldImageRemovePruneChildren,
+		Label:      i18n.T("image.remove.form.prune_children"),
+		HelperText: i18n.T("image.remove.form.prune_children_desc"),
+		DependsOn:  fieldImageRemoveForce,
+		DependsEq:  true,
+	})
 }
 
 func buildImageRemovePlatformsField() state.FormField {
-	return state.FormField{
-		Key:         fieldImageRemovePlatforms,
-		Label:       i18n.T("image.remove.form.platforms"),
-		HelperText:  i18n.T("image.remove.form.platforms_desc"),
-		Kind:        state.FormText,
-		DependsOn:   fieldImageRemoveForce,
-		DependsEq:   true,
-	}
+	return dialog.NewTextField(dialog.TextFieldConfig{
+		Key:        fieldImageRemovePlatforms,
+		Label:      i18n.T("image.remove.form.platforms"),
+		HelperText: i18n.T("image.remove.form.platforms_desc"),
+	})
 }
 
 func buildContainerRemoveForceField() state.FormField {
-	return state.FormField{
-		Key:         fieldContainerRemoveForce,
-		Label:       i18n.T("container.remove.form.force"),
-		HelperText:  i18n.T("container.remove.form.force_desc"),
-		Kind:        state.FormBool,
-	}
+	return dialog.NewBoolField(dialog.BoolFieldConfig{
+		Key:        fieldContainerRemoveForce,
+		Label:      i18n.T("container.remove.form.force"),
+		HelperText: i18n.T("container.remove.form.force_desc"),
+	})
 }
 
 func buildContainerRemoveVolumesField() state.FormField {
-	return state.FormField{
-		Key:         fieldContainerRemoveVolumes,
-		Label:       i18n.T("container.remove.form.volumes"),
-		HelperText:  i18n.T("container.remove.form.volumes_desc"),
-		Kind:        state.FormBool,
-		DependsOn:   fieldContainerRemoveForce,
-		DependsEq:   true,
-	}
+	return dialog.NewBoolField(dialog.BoolFieldConfig{
+		Key:        fieldContainerRemoveVolumes,
+		Label:      i18n.T("container.remove.form.volumes"),
+		HelperText: i18n.T("container.remove.form.volumes_desc"),
+		DependsOn:  fieldContainerRemoveForce,
+		DependsEq:  true,
+	})
 }
 
 func buildContainerRemoveLinksField() state.FormField {
-	return state.FormField{
-		Key:         fieldContainerRemoveLinks,
-		Label:       i18n.T("container.remove.form.links"),
-		HelperText:  i18n.T("container.remove.form.links_desc"),
-		Kind:        state.FormBool,
-		DependsOn:   fieldContainerRemoveForce,
-		DependsEq:   true,
-	}
+	return dialog.NewBoolField(dialog.BoolFieldConfig{
+		Key:        fieldContainerRemoveLinks,
+		Label:      i18n.T("container.remove.form.links"),
+		HelperText: i18n.T("container.remove.form.links_desc"),
+		DependsOn:  fieldContainerRemoveForce,
+		DependsEq:  true,
+	})
 }
 
 func buildVolumeRemoveForceField() state.FormField {
-	return state.FormField{
-		Key:         fieldVolumeRemoveForce,
-		Label:       i18n.T("volume.remove.form.force"),
-		HelperText:  i18n.T("volume.remove.form.force_desc"),
-		Kind:        state.FormBool,
-	}
+	return dialog.NewBoolField(dialog.BoolFieldConfig{
+		Key:        fieldVolumeRemoveForce,
+		Label:      i18n.T("volume.remove.form.force"),
+		HelperText: i18n.T("volume.remove.form.force_desc"),
+	})
 }
 
-// openImageRemoveForm opens the Image Remove parameter form. Dangerous=true
-// so the dialog opens with Cancel focused (anti-misclick on a destructive
-// action).
 func openImageRemoveForm(m *state.AppModel, img *runtimeapi.ImageSummary) (*state.AppModel, tea.Cmd) {
 	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelImages || img == nil {
 		return m, nil
@@ -392,16 +396,12 @@ func openVolumeRemoveForm(m *state.AppModel, vol *runtimeapi.Volume) (*state.App
 		TargetName: vol.Name,
 		CWD:        workingDir(),
 		Dangerous:  true,
-		Fields: []state.FormField{
-			buildVolumeRemoveForceField(),
-		},
+		Fields: []state.FormField{buildVolumeRemoveForceField()},
 	})
 	m.Navigation.Mode = state.ModeContainerForm
 	return m, nil
 }
 
-// openContainerCommitForm opens the Commit form. Repository is required; tag,
-// author, comment are optional; pause defaults to true.
 func openContainerCommitForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	ctr := m.Resources.Containers.Selected()
 	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelContainers || ctr == nil {
@@ -417,19 +417,20 @@ func openContainerCommitForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		author = "dtui"
 	}
 	fields := []state.FormField{
-		{Key: fieldRepository, Label: i18n.T("container.commit.form.repository"), Kind: state.FormText},
-		{Key: fieldTag, Label: i18n.T("container.commit.form.tag"), Kind: state.FormText},
-		{Key: fieldAuthor, Label: i18n.T("container.commit.form.author"), Kind: state.FormText},
-		{Key: fieldComment, Label: i18n.T("container.commit.form.comment"), Kind: state.FormText},
-		{Key: fieldPause, Label: i18n.T("container.commit.form.pause"), Kind: state.FormBool, Toggle: true},
-		{Key: fieldExportTar, Label: i18n.T("container.commit.form.export_tar"), Kind: state.FormBool},
-		{Key: fieldArchivePath, Label: i18n.T("container.commit.form.archive"), Kind: state.FormPath, PathSource: state.PathLocal, PathMode: state.PathSaveFile, DependsOn: fieldExportTar, DependsEq: true},
+		dialog.NewTextField(dialog.TextFieldConfig{Key: fieldRepository, Label: i18n.T("container.commit.form.repository"), Text: repository}),
+		dialog.NewTextField(dialog.TextFieldConfig{Key: fieldTag, Label: i18n.T("container.commit.form.tag"), Text: tag}),
+		dialog.NewTextField(dialog.TextFieldConfig{Key: fieldAuthor, Label: i18n.T("container.commit.form.author"), Text: author}),
+		dialog.NewTextField(dialog.TextFieldConfig{Key: fieldComment, Label: i18n.T("container.commit.form.comment"), Text: i18n.T("container.commit.form.comment_default", ctr.Name)}),
+		dialog.NewBoolField(dialog.BoolFieldConfig{Key: fieldPause, Label: i18n.T("container.commit.form.pause"), Toggle: true}),
+		dialog.NewBoolField(dialog.BoolFieldConfig{Key: fieldExportTar, Label: i18n.T("container.commit.form.export_tar")}),
+		dialog.NewPathField(dialog.PathFieldConfig{
+			Key:        fieldArchivePath,
+			Label:      i18n.T("container.commit.form.archive"),
+			PathSource: state.PathLocal,
+			PathMode:   state.PathSaveFile,
+			Text:       state.DefaultImageSaveName(cwd, repository+":"+tag, shortContainerID(ctr.ID), time.Now()),
+		}),
 	}
-	fields[0].Input.Set(repository)
-	fields[1].Input.Set(tag)
-	fields[2].Input.Set(author)
-	fields[3].Input.Set(i18n.T("container.commit.form.comment_default", ctr.Name))
-	fields[6].Input.Set(state.DefaultImageSaveName(cwd, repository+":"+tag, shortContainerID(ctr.ID), time.Now()))
 	m.Form.Open(state.FormSpec{
 		Kind:       state.FormContainerCommit,
 		Title:      i18n.T("container.commit.form.title"),
@@ -463,15 +464,12 @@ func defaultCommitImage(image, containerName string) (repository, tag string) {
 	return repository, tag
 }
 
-// handleContainerFormKey drives the container-action form overlay (BR-041 §3).
-// Tab is reserved for completion; field and button navigation runs entirely on
-// Up/Down/Left/Right. When a popup is open it overrides ordinary field keys.
+// handleContainerFormKey drives the container-action form overlay.
 func handleContainerFormKey(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if m.Form.Popup.Open {
 		return handleFormPopupKey(key, m)
 	}
 
-	// Button row: focus is on Cancel (default) or Confirm (BR-043 §3.3).
 	if m.Form.FocusedButton() != "" {
 		switch key {
 		case keys.KeyTab:
@@ -498,7 +496,7 @@ func handleContainerFormKey(key string, m *state.AppModel) (*state.AppModel, tea
 	}
 
 	f := m.Form.Field()
-	prevFocus := m.Form.FieldFocus // captured for blur-time path absolutization (BR-043 §3.1)
+	prevFocus := m.Form.FieldFocus
 
 	if handled := handleFormFieldEditKey(key, m, f); handled {
 		return m, nil
@@ -512,7 +510,7 @@ func handleContainerFormKey(key string, m *state.AppModel) (*state.AppModel, tea
 	case keys.KeyTab:
 		if m.Form.Kind == state.FormContainerUpdate {
 			m.Form.MoveField(1)
-		} else if f != nil && f.Kind == state.FormPath {
+		} else if f != nil && f.Kind() == state.FormPath {
 			return m, pathTabCycle(m, f)
 		}
 	case keys.KeyShiftTab:
@@ -520,8 +518,8 @@ func handleContainerFormKey(key string, m *state.AppModel) (*state.AppModel, tea
 			m.Form.MoveField(-1)
 		}
 	case keys.KeyCtrlSpace:
-		if f != nil && f.Kind == state.FormPath {
-			if f.PathSource == state.PathContainer {
+		if f != nil && f.Kind() == state.FormPath {
+			if pf, _ := f.(*dialog.PathField); pf != nil && pf.PathSource() == state.PathContainer {
 				return m, requestContainerPathCompletion(m, f, true)
 			} else {
 				openPathPopup(m)
@@ -533,14 +531,14 @@ func handleContainerFormKey(key string, m *state.AppModel) (*state.AppModel, tea
 		if f == nil {
 			return submitContainerForm(m)
 		}
-		switch f.Kind {
+		switch f.Kind() {
 		case state.FormSelect, state.FormMultiSelect:
 			m.Form.OpenPopup()
 		case state.FormPath:
 			if m.Form.Popup.Open {
 				return confirmFormPopup(m)
 			}
-			if len(f.Suggestions) == 1 {
+			if pf, _ := f.(*dialog.PathField); pf != nil && len(pf.Suggestions()) == 1 {
 				applyPathCandidate(m)
 				return m, nil
 			}
@@ -549,83 +547,84 @@ func handleContainerFormKey(key string, m *state.AppModel) (*state.AppModel, tea
 			m.Form.MoveField(1)
 		}
 	default:
-		// Single-rune input on Text/Int/Path fields.
-		if f != nil && (f.Kind == state.FormText || f.Kind == state.FormInt || f.Kind == state.FormPath) {
-			before := f.Input.Text
-			editQueryInput(key, &f.Input)
-			if f.Input.Text != before {
+		if f != nil && (f.Kind() == state.FormText || f.Kind() == state.FormInt || f.Kind() == state.FormPath) {
+			before := f.Text()
+			input := state.QueryInputState{Text: before, Cursor: f.Cursor()}
+			editQueryInput(key, &input)
+			if input.Text != before {
+				f.SetText(input.Text)
+				f.SetCursor(input.Cursor)
 				handleFormFieldChanged(m, f)
 			}
 		}
 	}
 
-	// BR-043 §3.1: on field-exit, rewrite a FormPath field's text to its
-	// absolute form so the display always shows the path that will be used
-	// on submit. Cursor is clamped to the new rune length.
 	if prevFocus != m.Form.FieldFocus && prevFocus >= 0 && prevFocus < len(m.Form.Fields) {
-		absolutizePathFieldOnBlur(&m.Form.Fields[prevFocus], m.Form.CWD)
+		absolutizePathFieldOnBlur(m.Form.Fields[prevFocus], m.Form.CWD)
 	}
 	return m, nil
 }
 
 // handleFormFieldEditKey routes per-kind edit keys through the dialog-side
-// FormField interface (UI-improvements commit-4). The keyboard layer keeps
-// navigation, popup activation, and post-edit side effects (completion,
-// prefill, dependency visibility); the kind-specific edit + Bool toggles +
-// Path Ctrl+H live in the registered impl. SyncTo mirrors the impl's lean
-// state back to state.FormField so the submit pipeline reads what was just
-// edited.
-func handleFormFieldEditKey(key string, m *state.AppModel, f *state.FormField) bool {
+// FormField interface. The keyboard layer keeps navigation, popup activation,
+// and post-edit side effects.
+func handleFormFieldEditKey(key string, m *state.AppModel, f state.FormField) bool {
 	if f == nil {
 		return false
 	}
-	impl := dialog.FormFieldFor(f)
-	handled, updated := impl.HandleKey(key, m)
-	impl.SyncTo(f)
-	if updated {
+	df, ok := f.(dialog.FormField)
+	if !ok {
+		return false
+	}
+	handled, _ := df.HandleKey(key)
+	if handled {
 		handleFormFieldChanged(m, f)
 	}
 	return handled
 }
 
-func handleFormFieldChanged(m *state.AppModel, f *state.FormField) {
-	f.Touched = true
-	if f.Kind == state.FormPath {
-		f.PathLoading = false
-		f.PathTabInput = ""
-		if f.PathSource == state.PathContainer {
-			f.Suggestions = nil
-		} else {
-			completeForField(m, f)
+func handleFormFieldChanged(m *state.AppModel, f state.FormField) {
+	f.SetTouched(true)
+	if f.Kind() == state.FormPath {
+		if pf, ok := f.(*dialog.PathField); ok {
+			pf.SetPathLoading(false)
+			pf.SetPathTabInput("")
+			if pf.PathSource() == state.PathContainer {
+				pf.SetSuggestions(nil)
+			} else {
+				completeForField(m, pf)
+			}
 		}
 	}
-	if f.Kind == state.FormBool {
+	if f.Kind() == state.FormBool {
 		m.Form.RecomputeVisibility()
 	}
-	if m.Form.Kind == state.FormContainerCopy && f.Key == fieldSourcePath {
+	if m.Form.Kind == state.FormContainerCopy && f.Key() == fieldSourcePath {
 		prefillDefaultDestination(m, m.Form.CWD, shortContainerID(m.Form.TargetID))
 	}
 }
 
 // absolutizePathFieldOnBlur rewrites a local FormPath field's text to its
-// absolute form when focus moves away. Expands `~` and `$VAR`, then joins with
-// cwd if still relative. Cursor is clamped to the new rune length. No-op if
-// the field is empty, not a local FormPath, or already absolute.
-func absolutizePathFieldOnBlur(f *state.FormField, cwd string) {
-	if f == nil || f.Kind != state.FormPath || f.PathSource != state.PathLocal || f.Input.Text == "" {
+// absolute form when focus moves away.
+func absolutizePathFieldOnBlur(f state.FormField, cwd string) {
+	if f == nil || f.Kind() != state.FormPath {
+		return
+	}
+	pf, ok := f.(*dialog.PathField)
+	if !ok || pf.PathSource() != state.PathLocal || pf.TextRaw() == "" {
 		return
 	}
 	home, _ := os.UserHomeDir()
-	expanded, err := state.ExpandPath(f.Input.Text, home)
+	expanded, err := state.ExpandPath(pf.TextRaw(), home)
 	if err != nil {
 		return
 	}
 	abs := state.Absolute(expanded, cwd)
-	if abs == f.Input.Text {
+	if abs == pf.TextRaw() {
 		return
 	}
-	cursor := f.Input.Cursor
-	f.Input.Set(abs)
+	cursor := pf.Cursor()
+	pf.SetText(abs)
 	runes := []rune(abs)
 	if cursor < 0 {
 		cursor = 0
@@ -633,69 +632,74 @@ func absolutizePathFieldOnBlur(f *state.FormField, cwd string) {
 	if cursor > len(runes) {
 		cursor = len(runes)
 	}
-	f.Input.Cursor = cursor
+	pf.SetCursor(cursor)
 }
 
-// pathTabCycle implements the path-field Tab state machine (BR-041 §3.3):
-//   - popup already open: forward cycle the popup cursor.
-//   - 1 candidate: apply directly.
-//   - 0 candidates: keep input and focus, show a non-blocking toast.
-//   - many candidates: extend the input to the common prefix, re-complete,
-//     and open the popup if candidates remain.
-func pathTabCycle(m *state.AppModel, f *state.FormField) tea.Cmd {
+// pathTabCycle implements the path-field Tab state machine.
+func pathTabCycle(m *state.AppModel, f state.FormField) tea.Cmd {
 	if m.Form.Popup.Open {
 		m.Form.PopupCursor(1)
 		return nil
 	}
-	if f.PathSource == state.PathContainer {
+	pf, ok := f.(*dialog.PathField)
+	if !ok {
+		return nil
+	}
+	if pf.PathSource() == state.PathContainer {
 		return requestContainerPathCompletion(m, f, false)
 	}
-	completeForField(m, f)
+	completeForField(m, pf)
 	applyPathSuggestions(m, f, false)
 	return nil
 }
 
-func applyPathSuggestions(m *state.AppModel, f *state.FormField, openPopup bool) {
-	switch len(f.Suggestions) {
+func applyPathSuggestions(m *state.AppModel, f state.FormField, openPopup bool) {
+	pf, ok := f.(*dialog.PathField)
+	if !ok {
+		return
+	}
+	switch len(pf.Suggestions()) {
 	case 1:
-		applyPathEntry(f, f.Suggestions[0])
-		f.PathTabInput = ""
+		applyPathEntry(pf, pf.Suggestions()[0])
+		pf.SetPathTabInput("")
 	case 0:
-		f.PathTabInput = ""
+		pf.SetPathTabInput("")
 		ShowToastWarn(m, i18n.T("form.path.no_matches"))
 	default:
-		prefix := commonPathPrefix(f.Suggestions)
-		if !openPopup && len(prefix) > len(f.Input.Text) {
-			f.Input.Set(prefix)
-			f.Touched = true
-			// The next Tab with the newly extended prefix lists candidates,
-			// matching interactive shell completion.
-			f.PathTabInput = prefix
-			if f.PathSource == state.PathLocal {
-				completeForField(m, f)
+		prefix := commonPathPrefix(pf.Suggestions())
+		if !openPopup && len(prefix) > len(pf.TextRaw()) {
+			pf.SetText(prefix)
+			pf.SetTouched(true)
+			pf.SetPathTabInput(prefix)
+			if pf.PathSource() == state.PathLocal {
+				completeForField(m, pf)
 			}
 			return
 		}
-		if openPopup || f.PathTabInput == f.Input.Text {
+		if openPopup || pf.PathTabInput() == pf.TextRaw() {
 			m.Form.OpenPopup()
-			f.PathTabInput = ""
+			pf.SetPathTabInput("")
 		} else {
-			f.PathTabInput = f.Input.Text
+			pf.SetPathTabInput(pf.TextRaw())
 		}
 	}
 }
 
-func requestContainerPathCompletion(m *state.AppModel, f *state.FormField, openPopup bool) tea.Cmd {
-	if f.PathLoading {
+func requestContainerPathCompletion(m *state.AppModel, f state.FormField, openPopup bool) tea.Cmd {
+	pf, ok := f.(*dialog.PathField)
+	if !ok {
+		return nil
+	}
+	if pf.PathLoading() {
 		return nil
 	}
 	if m.Connection.Engine == nil || m.Connection.Engine.Exec() == nil || m.Form.TargetID == "" {
 		ShowToastWarn(m, i18n.T("form.path.container_unavailable"))
 		return nil
 	}
-	f.PathLoading = true
-	f.Suggestions = nil
-	return containerPathCompletionCmd(m.Connection.Engine.Exec(), m.Form.TargetID, f.Key, f.Input.Text, f.PathMode, f.ShowHidden, openPopup)
+	pf.SetPathLoading(true)
+	pf.SetSuggestions(nil)
+	return containerPathCompletionCmd(m.Connection.Engine.Exec(), m.Form.TargetID, f.Key(), pf.TextRaw(), pf.PathMode(), pf.ShowHidden(), openPopup)
 }
 
 func containerPathCompletionCmd(service runtimeapi.ExecService, containerID, fieldKey, input string, mode state.PathMode, showHidden, openPopup bool) tea.Cmd {
@@ -705,9 +709,6 @@ func containerPathCompletionCmd(service runtimeapi.ExecService, containerID, fie
 	}
 }
 
-// containerPathListScript emits one tab-separated line per directory entry:
-// kind|name|mode|owner|group|size|mtime_unix|link_target
-// kind: d (dir) / f (file) / l (symlink). showhidden=1 also lists dotfiles.
 const containerPathListScript = `dir=$1
 showhidden=$2
 hidden_glob=
@@ -766,7 +767,6 @@ func parseContainerPathEntries(output, dir, prefix string, mode state.PathMode) 
 		if line == "" {
 			continue
 		}
-		// Format: kind|name|mode|owner|group|size|mtime|link_target
 		parts := strings.SplitN(line, "|", 8)
 		if len(parts) < 7 || parts[1] == "" {
 			continue
@@ -815,39 +815,40 @@ func parseContainerPathEntries(output, dir, prefix string, mode state.PathMode) 
 	return entries
 }
 
-// HandleContainerPathCompleted applies a non-stale async completion result.
 func HandleContainerPathCompleted(m *state.AppModel, msg state.ContainerPathCompleted) (*state.AppModel, tea.Cmd) {
 	if m.Navigation.Mode != state.ModeContainerForm || m.Form.TargetID != msg.ContainerID {
 		return m, nil
 	}
 	f := m.Form.Get(msg.FieldKey)
-	if f == nil || f.PathSource != state.PathContainer || f.Input.Text != msg.Input || !f.PathLoading {
+	if f == nil {
 		return m, nil
 	}
-	f.PathLoading = false
+	pf, ok := f.(*dialog.PathField)
+	if !ok || pf.PathSource() != state.PathContainer || pf.TextRaw() != msg.Input || !pf.PathLoading() {
+		return m, nil
+	}
+	pf.SetPathLoading(false)
 	if msg.Error != nil {
-		f.Suggestions = nil
-		f.PathError = msg.Error.Error()
+		pf.SetSuggestions(nil)
+		pf.SetPathError(msg.Error.Error())
 		ShowToastWarn(m, i18n.T("form.path.container_failed", msg.Error.Error()))
 		return m, nil
 	}
-	f.PathError = ""
-	f.Suggestions = msg.Entries
+	pf.SetPathError("")
+	pf.SetSuggestions(msg.Entries)
 	applyPathSuggestions(m, f, msg.OpenPopup)
 	return m, nil
 }
 
-// handleFormPopupKey routes keys while a selection or path popup is open:
-// Esc closes, Up/Down/Home/End/PgUp/PgDn navigate, Enter commits, Space
-// toggles multi / commits select, Tab and Shift+Tab cycle the cursor
-// (BR-041 §3.4, §3.5, §3.3). For FormPath the default branch lets the user
-// keep typing to filter (shell-like BrowseMode) and triggers completion.
+// handleFormPopupKey routes keys while a selection or path popup is open.
 func handleFormPopupKey(key string, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	switch key {
 	case keys.KeyEsc:
 		if m.Form.Popup.Kind == state.PopupPath {
 			if f := m.Form.PopupField(); f != nil {
-				f.PathLoading = false
+				if pf, ok := f.(*dialog.PathField); ok {
+					pf.SetPathLoading(false)
+				}
 			}
 		}
 		m.Form.ClosePopup()
@@ -883,25 +884,33 @@ func handleFormPopupKey(key string, m *state.AppModel) (*state.AppModel, tea.Cmd
 		return confirmFormPopup(m)
 	case keys.KeySpace:
 		if f := m.Form.PopupField(); f != nil {
-			if idx := m.Form.Popup.Cursor; idx >= 0 && idx < len(f.Options) {
-				switch f.Kind {
-				case state.FormMultiSelect:
-					m.Form.TogglePopupMulti(f.Options[idx])
-				case state.FormSelect:
-					f.Index = idx
-					f.Touched = true
-					m.Form.ClosePopup()
+			if df, ok := f.(dialog.FormField); ok {
+				if idx := m.Form.Popup.Cursor; idx >= 0 && idx < len(df.Options()) {
+					switch f.Kind() {
+					case state.FormMultiSelect:
+						m.Form.TogglePopupMulti(df.Options()[idx])
+					case state.FormSelect:
+						df.SetIndex(idx)
+						df.SetTouched(true)
+						m.Form.ClosePopup()
+					}
 				}
 			}
 		}
 	default:
 		if m.Form.Popup.Kind == state.PopupPath {
-			if f := m.Form.PopupField(); f != nil && f.Kind == state.FormPath {
-				if isPathEditKey(key) {
-					_, changed := editQueryInput(key, &f.Input)
-					if changed {
-						f.PathError = ""
-						return m, triggerPathBrowseCompletion(m, f)
+			if f := m.Form.PopupField(); f != nil && f.Kind() == state.FormPath {
+				if pf, ok := f.(*dialog.PathField); ok {
+					if isPathEditKey(key) {
+						before := pf.TextRaw()
+						input := state.QueryInputState{Text: before, Cursor: pf.Cursor()}
+						_, changed := editQueryInput(key, &input)
+						if changed {
+							pf.SetText(input.Text)
+							pf.SetCursor(input.Cursor)
+							pf.SetPathError("")
+							return m, triggerPathBrowseCompletion(m, f)
+						}
 					}
 				}
 			}
@@ -910,8 +919,6 @@ func handleFormPopupKey(key string, m *state.AppModel) (*state.AppModel, tea.Cmd
 	return m, nil
 }
 
-// isPathEditKey reports whether key is a printable char, Backspace, or Delete
-// (chars the user can type to filter the path field while the popup is open).
 func isPathEditKey(key string) bool {
 	switch key {
 	case keys.KeyBackspace, keys.KeyDelete:
@@ -923,58 +930,64 @@ func isPathEditKey(key string) bool {
 	return false
 }
 
-// triggerPathBrowseCompletion refreshes the candidate list after the user
-// edits the path field while the popup is open. Container paths fire an async
-// request; Local paths run synchronously. openPopup=true keeps the popup
-// visible (or opens it if not yet).
-func triggerPathBrowseCompletion(m *state.AppModel, f *state.FormField) tea.Cmd {
-	if f.PathSource == state.PathContainer {
+func triggerPathBrowseCompletion(m *state.AppModel, f state.FormField) tea.Cmd {
+	pf, ok := f.(*dialog.PathField)
+	if !ok {
+		return nil
+	}
+	if pf.PathSource() == state.PathContainer {
 		return requestContainerPathCompletion(m, f, true)
 	}
-	completeForField(m, f)
+	completeForField(m, pf)
 	applyPathSuggestions(m, f, true)
 	m.Form.Popup.Cursor = 0
 	return nil
 }
 
-// popupVisibleRows matches the visible-row cap used by renderFormPopup so
-// PgUp/PgDn advance by exactly one window.
 const popupVisibleRows = state.FormPopupVisibleRows
 
-// confirmFormPopup commits the popup selection onto its field and closes the
-// popup. For FormPath the candidate is applied; for Select/MultiSelect the
-// selection/focus updates before closing. Directory entries trigger a
-// drill-down: the field text becomes "<parent>/<name>/" and a fresh
-// completion is requested, so the popup stays open showing the subdir.
 func confirmFormPopup(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	f := m.Form.PopupField()
 	if f == nil {
 		m.Form.ClosePopup()
 		return m, nil
 	}
-	switch f.Kind {
+	switch f.Kind() {
 	case state.FormSelect:
-		if idx := m.Form.Popup.Cursor; idx >= 0 && idx < len(f.Options) {
-			f.Index = idx
-			f.Touched = true
+		df, ok := f.(dialog.FormField)
+		if !ok {
+			m.Form.ClosePopup()
+			return m, nil
+		}
+		options := df.Options()
+		if idx := m.Form.Popup.Cursor; idx >= 0 && idx < len(options) {
+			df.SetIndex(idx)
+			df.SetTouched(true)
 		}
 		m.Form.ClosePopup()
 	case state.FormMultiSelect:
 		m.Form.CommitPopupMulti()
 	case state.FormPath:
-		idx := m.Form.Popup.Cursor
-		if idx < 0 || idx >= len(f.Suggestions) {
+		pf, ok := f.(*dialog.PathField)
+		if !ok {
 			m.Form.ClosePopup()
 			return m, nil
 		}
-		entry := f.Suggestions[idx]
-		applyPathEntry(f, entry)
+		idx := m.Form.Popup.Cursor
+		if idx < 0 || idx >= len(pf.Suggestions()) {
+			m.Form.ClosePopup()
+			return m, nil
+		}
+		entry := pf.Suggestions()[idx]
+		applyPathEntry(pf, entry)
 		if entry.IsDir {
-			if !strings.HasSuffix(f.Input.Text, "/") {
-				f.Input.Text += "/"
+			text := pf.TextRaw()
+			if !strings.HasSuffix(text, "/") {
+				text += "/"
 			}
-			f.Input.Cursor = len([]rune(f.Input.Text))
-			f.Suggestions = nil
+			pf.SetText(text)
+			pf.SetCursor(len([]rune(text)))
+			pf.SetSuggestions(nil)
 			m.Form.Popup.Cursor = 0
 			m.Form.ClosePopup()
 			return m, requestContainerPathCompletion(m, f, true)
@@ -986,32 +999,40 @@ func confirmFormPopup(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 func navigatePathPopupChild(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	f := m.Form.PopupField()
-	if f == nil || m.Form.Popup.Cursor < 0 || m.Form.Popup.Cursor >= len(f.Suggestions) {
+	if f == nil {
 		return m, nil
 	}
-	entry := f.Suggestions[m.Form.Popup.Cursor]
+	pf, ok := f.(*dialog.PathField)
+	if !ok || m.Form.Popup.Cursor < 0 || m.Form.Popup.Cursor >= len(pf.Suggestions()) {
+		return m, nil
+	}
+	entry := pf.Suggestions()[m.Form.Popup.Cursor]
 	if !entry.IsDir {
 		return m, nil
 	}
-	applyPathEntry(f, entry)
+	applyPathEntry(pf, entry)
 	return reloadPathPopup(m, f)
 }
 
 func navigatePathPopupParent(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	f := m.Form.PopupField()
-	if f == nil || f.PathLoading {
+	if f == nil {
+		return m, nil
+	}
+	pf, ok := f.(*dialog.PathField)
+	if !ok || pf.PathLoading() {
 		return m, nil
 	}
 	separator := string(os.PathSeparator)
-	current := f.Input.Text
-	if f.PathSource == state.PathContainer {
+	current := pf.TextRaw()
+	if pf.PathSource() == state.PathContainer {
 		separator = "/"
 		current = strings.ReplaceAll(current, "\\", "/")
 	}
 	hadTrailingSeparator := strings.HasSuffix(current, separator)
 	current = strings.TrimSuffix(current, separator)
 	var parent string
-	if f.PathSource == state.PathContainer {
+	if pf.PathSource() == state.PathContainer {
 		parent = path.Dir(current)
 		if !hadTrailingSeparator {
 			parent = path.Dir(parent)
@@ -1028,49 +1049,46 @@ func navigatePathPopupParent(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if parent != separator && !strings.HasSuffix(parent, separator) {
 		parent += separator
 	}
-	f.Input.Set(parent)
-	f.Touched = true
+	pf.SetText(parent)
+	pf.SetTouched(true)
 	return reloadPathPopup(m, f)
 }
 
-func reloadPathPopup(m *state.AppModel, f *state.FormField) (*state.AppModel, tea.Cmd) {
-	f.PathTabInput = ""
-	if f.PathSource == state.PathContainer {
-		// Preserve the mounted popup while the next directory is loading so its
-		// width and height remain stable throughout navigation.
+func reloadPathPopup(m *state.AppModel, f state.FormField) (*state.AppModel, tea.Cmd) {
+	pf, ok := f.(*dialog.PathField)
+	if !ok {
+		return m, nil
+	}
+	pf.SetPathTabInput("")
+	if pf.PathSource() == state.PathContainer {
 		return m, requestContainerPathCompletion(m, f, true)
 	}
 	m.Form.ClosePopup()
-	completeForField(m, f)
-	if len(f.Suggestions) > 0 {
+	completeForField(m, pf)
+	if len(pf.Suggestions()) > 0 {
 		m.Form.OpenPopup()
 	}
 	return m, nil
 }
 
-// validateFloatField parses a FormField's text as a float64 and checks the
-// field's declared Min / Max bounds. On failure it shows a toast and returns
-// ok=false so the caller can short-circuit submit.
-func validateFloatField(m *state.AppModel, f *state.FormField) (float64, bool) {
+func validateFloatField(m *state.AppModel, f state.FormField) (float64, bool) {
 	value, err := strconv.ParseFloat(f.Text(), 64)
-	if err != nil || math.IsNaN(value) || math.IsInf(value, 0) || value < 0 {
+	if err != nil || value < 0 {
 		ShowToastWarn(m, i18n.T("container.update.form.invalid"))
 		return 0, false
 	}
-	if f.Min != nil && value < *f.Min {
-		ShowToastWarn(m, i18n.T("container.update.form.invalid_range"))
-		return 0, false
-	}
-	if f.Max != nil && value > *f.Max {
-		ShowToastWarn(m, i18n.T("container.update.form.invalid_range"))
-		return 0, false
+	if intf, ok := f.(*dialog.IntField); ok {
+		if min, max := intf.Min(), intf.Max(); min != nil && value < *min {
+			ShowToastWarn(m, i18n.T("container.update.form.invalid_range"))
+			return 0, false
+		} else if max != nil && value > *max {
+			ShowToastWarn(m, i18n.T("container.update.form.invalid_range"))
+			return 0, false
+		}
 	}
 	return value, true
 }
 
-// submitContainerForm validates the active form and, on success, issues the
-// matching runtime Cmd wrapped in an audit trace. Validation failures show a
-// toast and leave the form open for correction.
 func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if m.Connection.Engine == nil {
 		return m, nil
@@ -1099,7 +1117,7 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 			ShowToastWarn(m, i18n.T("form.path.invalid", err.Error()))
 			return m, nil
 		}
-		dst.Input.Set(destination)
+		dst.SetText(destination)
 		if localDestExists(m, destination) {
 			return openOverwriteConfirm(m, keys.ShowContainerCopy, "resource.container.copy", "Copy file from container "+name)
 		}
@@ -1125,7 +1143,7 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 			ShowToastWarn(m, i18n.T("form.path.invalid", err.Error()))
 			return m, nil
 		}
-		dst.Input.Set(destination)
+		dst.SetText(destination)
 		if localDestExists(m, destination) {
 			return openOverwriteConfirm(m, keys.ShowContainerExport, "resource.container.export", "Export container "+name)
 		}
@@ -1139,7 +1157,7 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		}
 		opts := runtimeapi.ContainerUpdateOptions{}
 		changed := false
-		if mem := m.Form.Get(fieldMemory); mem != nil && mem.Touched && mem.Text() != "" {
+		if mem := m.Form.Get(fieldMemory); mem != nil && mem.Touched() && mem.Text() != "" {
 			mb, ok := validateFloatField(m, mem)
 			if !ok {
 				return m, nil
@@ -1148,7 +1166,7 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 			opts.Memory = &bytes
 			changed = true
 		}
-		if cpu := m.Form.Get(fieldCPUs); cpu != nil && cpu.Touched && cpu.Text() != "" {
+		if cpu := m.Form.Get(fieldCPUs); cpu != nil && cpu.Touched() && cpu.Text() != "" {
 			cores, ok := validateFloatField(m, cpu)
 			if !ok {
 				return m, nil
@@ -1157,18 +1175,20 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 			opts.NanoCPUs = &nano
 			changed = true
 		}
-		if restart := m.Form.Get(fieldRestartPolicy); restart != nil && restart.Touched && restart.Option() != restartPolicyUnchanged {
-			policy := restart.Option()
-			opts.RestartPolicy = &policy
-			changed = true
-			if policy == "on-failure" {
-				if retries := m.Form.Get(fieldMaxRetries); retries != nil && retries.Touched && retries.Text() != "" {
-					val, err := strconv.Atoi(retries.Text())
-					if err != nil || val < 0 {
-						ShowToastWarn(m, i18n.T("container.update.form.invalid"))
-						return m, nil
+		if restart := m.Form.Get(fieldRestartPolicy); restart != nil && restart.Touched() {
+			policy := restart.Value().(string)
+			if policy != restartPolicyUnchanged {
+				opts.RestartPolicy = &policy
+				changed = true
+				if policy == "on-failure" {
+					if retries := m.Form.Get(fieldMaxRetries); retries != nil && retries.Touched() && retries.Text() != "" {
+						val, err := strconv.Atoi(retries.Text())
+						if err != nil || val < 0 {
+							ShowToastWarn(m, i18n.T("container.update.form.invalid"))
+							return m, nil
+						}
+						opts.RestartMaxRetries = &val
 					}
-					opts.RestartMaxRetries = &val
 				}
 			}
 		}
@@ -1206,7 +1226,7 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 			ShowToastWarn(m, i18n.T("form.path.invalid", err.Error()))
 			return m, nil
 		}
-		path.Input.Set(destination)
+		path.SetText(destination)
 		if localDestExists(m, destination) {
 			return openImageSaveOverwriteConfirm(m)
 		}
@@ -1246,7 +1266,7 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 			clearContainerForm(m)
 			return m, nil
 		}
-force := formBoolValue(m.Form.Get(fieldContainerRemoveForce))
+		force := formBoolValue(m.Form.Get(fieldContainerRemoveForce))
 		removeVolumes := formBoolValue(m.Form.Get(fieldContainerRemoveVolumes))
 		removeLinks := formBoolValue(m.Form.Get(fieldContainerRemoveLinks))
 		trace := beginAudit(m, "resource.container.delete", containerTarget(m, id), "Remove container "+name)
@@ -1271,20 +1291,14 @@ force := formBoolValue(m.Form.Get(fieldContainerRemoveForce))
 	return m, nil
 }
 
-// formBoolValue returns the Toggle flag of a FormBool field, or false when
-// the field is missing. Keeps the submit-branch reads terse.
-func formBoolValue(f *state.FormField) bool {
+func formBoolValue(f state.FormField) bool {
 	if f == nil {
 		return false
 	}
-	return f.Toggle
+	return f.Toggle()
 }
 
-// parsePlatformInput parses a comma-separated "os/arch" field into a slice
-// suitable for runtimeapi.LifecycleOptions.Platforms. Whitespace around each
-// entry is trimmed; empty entries are dropped so "linux/amd64,," stays a
-// one-element list.
-func parsePlatformInput(f *state.FormField) []string {
+func parsePlatformInput(f state.FormField) []string {
 	if f == nil {
 		return nil
 	}
@@ -1305,8 +1319,6 @@ func parsePlatformInput(f *state.FormField) []string {
 	return out
 }
 
-// volumeDriver looks up the driver of the selected volume for the audit
-// trace; returns "" when no match is found so the trace stays well-formed.
 func volumeDriver(m *state.AppModel, name string) string {
 	if m == nil || m.Resources.Volumes == nil {
 		return ""
@@ -1328,12 +1340,19 @@ func containerCommitFormRequest(m *state.AppModel) (runtimeapi.ContainerCommitOp
 	if tag == "" {
 		tag = "latest"
 	}
+	pause := false
+	if p := m.Form.Get(fieldPause); p != nil {
+		pause = p.Toggle()
+	}
 	opts := runtimeapi.ContainerCommitOptions{
-		Repository: repo.Text(), Tag: tag, Author: m.Form.Get(fieldAuthor).Text(),
-		Comment: m.Form.Get(fieldComment).Text(), Pause: m.Form.Get(fieldPause).Toggle,
+		Repository: repo.Text(),
+		Tag:        tag,
+		Author:     m.Form.Get(fieldAuthor).Text(),
+		Comment:    m.Form.Get(fieldComment).Text(),
+		Pause:      pause,
 	}
 	archivePath := ""
-	if export := m.Form.Get(fieldExportTar); export != nil && export.Toggle {
+	if export := m.Form.Get(fieldExportTar); export != nil && export.Toggle() {
 		archive := m.Form.Get(fieldArchivePath)
 		if archive == nil || archive.Text() == "" {
 			return runtimeapi.ContainerCommitOptions{}, "", fmt.Errorf("archive path is required")
@@ -1342,7 +1361,7 @@ func containerCommitFormRequest(m *state.AppModel) (runtimeapi.ContainerCommitOp
 		if err != nil {
 			return runtimeapi.ContainerCommitOptions{}, "", err
 		}
-		archive.Input.Set(destination)
+		archive.SetText(destination)
 		archivePath = destination
 	}
 	return opts, archivePath, nil
@@ -1354,13 +1373,11 @@ func executeContainerCommitForm(m *state.AppModel, opts runtimeapi.ContainerComm
 	return m, withAdvancedAudit(containerCommitCmd(m.Connection.Engine, id, opts, archivePath), trace)
 }
 
-// clearContainerForm resets the mode and closes the active form.
 func clearContainerForm(m *state.AppModel) {
 	m.Navigation.Mode = state.ModeNormal
 	m.Form.Close()
 }
 
-// workingDir returns the dtui process working directory, falling back to ".".
 func workingDir() string {
 	wd, err := os.Getwd()
 	if err != nil || wd == "" {
@@ -1369,18 +1386,14 @@ func workingDir() string {
 	return wd
 }
 
-// shortContainerID abbreviates a container ID to its first ShortIDLen characters.
 func shortContainerID(id string) string {
 	return utils.ShortID(id)
 }
 
-// prefillDefaultDestination sets the default local tar name for the Copy form
-// when the destination has not been edited. Re-generating on a changed source
-// is deferred to completeForField; here only the initial value is applied.
 func prefillDefaultDestination(m *state.AppModel, cwd, shortID string) {
 	dst := m.Form.Get(fieldDestinationPath)
 	src := m.Form.Get(fieldSourcePath)
-	if dst == nil || dst.Touched {
+	if dst == nil || dst.Touched() {
 		return
 	}
 	base := ""
@@ -1390,38 +1403,38 @@ func prefillDefaultDestination(m *state.AppModel, cwd, shortID string) {
 	if base == "" {
 		base = "container"
 	}
-	dst.Input.Set(state.DefaultCopyName(cwd, m.Form.TargetName, base, shortID, time.Now()))
+	dst.SetText(state.DefaultCopyName(cwd, m.Form.TargetName, base, shortID, time.Now()))
 }
 
-// completeForField refreshes path completion candidates for a focused local
-// path field, using the form CWD. On failure candidates are left empty so the
-// user can keep typing manually (BR-041 §6.3).
-func completeForField(m *state.AppModel, f *state.FormField) {
-	if f == nil || f.Kind != state.FormPath || f.PathSource != state.PathLocal {
+func completeForField(m *state.AppModel, pf *dialog.PathField) {
+	if pf == nil || pf.Kind() != state.FormPath || pf.PathSource() != state.PathLocal {
 		return
 	}
 	provider := state.LocalPathProvider{CWD: m.Form.CWD}
 	cands, err := provider.Complete(state.PathCompletionRequest{
-		Path: f.Input.Text,
-		Mode: f.PathMode,
+		Path: pf.TextRaw(),
+		Mode: pf.PathMode(),
 	})
 	if err != nil {
-		f.Suggestions = nil
-		f.Error = err.Error()
+		pf.SetSuggestions(nil)
+		pf.SetError(err.Error())
 		return
 	}
-	f.Error = ""
-	f.Suggestions = cands
+	pf.SetError("")
+	pf.SetSuggestions(cands)
 }
 
-// openPathPopup opens the candidate popup for the focused local path field.
 func openPathPopup(m *state.AppModel) {
 	f := m.Form.Field()
-	if f == nil || f.Kind != state.FormPath || f.PathSource != state.PathLocal {
+	if f == nil || f.Kind() != state.FormPath {
 		return
 	}
-	completeForField(m, f)
-	if len(f.Suggestions) > 0 {
+	pf, ok := f.(*dialog.PathField)
+	if !ok {
+		return
+	}
+	completeForField(m, pf)
+	if len(pf.Suggestions()) > 0 {
 		m.Form.OpenPopup()
 	}
 }
@@ -1446,34 +1459,33 @@ func commonPathPrefix(entries []state.PathEntry) string {
 	return string(prefix)
 }
 
-// applyPathCandidate fills the focused path field from its suggestions when
-// there is exactly one candidate (Tab completion). Multi-candidate selection
-// is delegated to the popup via confirmFormPopup.
 func applyPathCandidate(m *state.AppModel) {
 	f := m.Form.Field()
-	if f == nil || f.Kind != state.FormPath || f.PathSource != state.PathLocal {
+	if f == nil || f.Kind() != state.FormPath {
 		return
 	}
-	if len(f.Suggestions) == 1 {
-		applyPathEntry(f, f.Suggestions[0])
+	pf, ok := f.(*dialog.PathField)
+	if !ok {
+		return
+	}
+	if len(pf.Suggestions()) == 1 {
+		applyPathEntry(pf, pf.Suggestions()[0])
 	}
 }
 
-func applyPathEntry(f *state.FormField, entry state.PathEntry) {
+func applyPathEntry(pf *dialog.PathField, entry state.PathEntry) {
 	value := entry.Path
 	separator := string(os.PathSeparator)
-	if f.PathSource == state.PathContainer {
+	if pf.PathSource() == state.PathContainer {
 		separator = "/"
 	}
 	if entry.IsDir && !strings.HasSuffix(value, separator) {
 		value += separator
 	}
-	f.Input.Set(value)
-	f.Touched = true
+	pf.SetText(value)
+	pf.SetTouched(true)
 }
 
-// localDestExists reports whether the local destination path already exists.
-// Used to gate overwrite confirmation for Copy/Export (BR-041 §10).
 func localDestExists(m *state.AppModel, dst string) bool {
 	if dst == "" {
 		return false
@@ -1517,9 +1529,6 @@ func normalizeLoadSource(input, cwd string) (string, error) {
 	return source, nil
 }
 
-// openOverwriteConfirm raises the BR-041 §10 confirmation when the Copy/Export
-// destination already exists: default focus on Cancel, with a separate Force
-// option. Cancelling returns to the still-open form.
 func openOverwriteConfirm(m *state.AppModel, action, auditAction, message string) (*state.AppModel, tea.Cmd) {
 	trace := beginAudit(m, auditAction, containerTarget(m, m.Form.TargetID), message)
 	m.Confirm.Open(action, m.Form.TargetID, i18n.T("form.overwrite.confirm"), trace)

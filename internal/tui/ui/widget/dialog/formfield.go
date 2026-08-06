@@ -2,6 +2,7 @@ package dialog
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -13,30 +14,18 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-// FormField is the per-kind interaction policy for a form field. Each kind
-// has a concrete impl that owns its lean data (text + cursor + flags), the
-// rendering, key handling, value access, and validation.
-//
-// UI-improvements §587-820 commit-4 architecture. Each impl declares only the
-// fields it actually needs — the previous back-reference to *state.FormField
-// was removed because state.FormField carries 25+ fields the impl never
-// touches (Placeholder, DependsOn, PathTabInput, …) and the back-reference
-// made every impl type structurally identical.
-//
-// Submit / form-state pipeline still reads from *state.FormField, so each impl
-// exposes SyncTo to write its lean data back after every HandleKey.
+// FormField is the dialog-side form widget. It extends state.FormField with
+// the label/HelperText config getters used by the form-row renderer, plus
+// rendering, popup, and help-text. Path-specific methods (PathSource,
+// Suggestions, …) live on *PathField directly, not on this interface.
 type FormField interface {
-	Kind() state.FormFieldKind
-	Value() any
-	SetValue(v any)
-	Default() any
-	Validate() error
-	Reset()
+	state.FormField
+	Label() string
+	HelperText() string
 	Render(focused bool, width int, cursorVisible ...bool) string
-	HandleKey(key string, m *state.AppModel) (handled bool, updated bool)
+	HandleKey(key string) (handled, updated bool)
 	OpenPopup() (FormPopup, bool)
 	HelpText() string
-	SyncTo(field *state.FormField)
 }
 
 // FormPopup is the per-kind sub-overlay that a FormField can spawn.
@@ -44,60 +33,13 @@ type FormPopup interface {
 	Title() string
 	Size() (int, int)
 	Render(width, height int) string
-	HandleKey(key string) (handled bool, selected bool, selectedValue any)
+	HandleKey(key string) (handled, selected bool, selectedValue any)
 	Highlighted() int
 }
 
-// Registry maps every FormFieldKind to a constructor that copies the
-// *state.FormField source into a fresh lean impl. Add a kind here when you
-// introduce a new FormFieldKind constant in state/form.go.
-var Registry = map[state.FormFieldKind]func(*state.FormField) FormField{
-	state.FormText:          func(src *state.FormField) FormField { return newTextField(src) },
-	state.FormInt:           func(src *state.FormField) FormField { return newIntField(src) },
-	state.FormSelect:        func(src *state.FormField) FormField { return newSelectField(src) },
-	state.FormBool:          func(src *state.FormField) FormField { return newBoolField(src) },
-	state.FormPath:          func(src *state.FormField) FormField { return newPathField(src) },
-	state.FormMultiSelect:   func(src *state.FormField) FormField { return newMultiSelectField(src) },
-	state.FormRadioGroup:    func(src *state.FormField) FormField { return newRadioGroupField(src) },
-	state.FormTextMultiLine: func(src *state.FormField) FormField { return newTextMultiLineField(src) },
-	state.FormTextPassword:  func(src *state.FormField) FormField { return newTextPasswordField(src) },
-}
+const passwordBullet = "•"
 
-// FormFieldFor returns a fresh impl for f. Unknown kinds fall back to
-// TextField so a stale form spec never crashes the dialog.
-func FormFieldFor(f *state.FormField) FormField {
-	if f == nil {
-		return newTextField(nil)
-	}
-	if ctor, ok := Registry[f.Kind]; ok && ctor != nil {
-		return ctor(f)
-	}
-	return newTextField(f)
-}
-
-func fitValue(value string, width int) string {
-	return utils.FitVisible(value, max(1, width))
-}
-
-func appendUnitSuffix(value, unit string, width int) string {
-	if unit == "" {
-		return fitValue(value, width)
-	}
-	suffix := " " + unit
-	return fitValue(value, max(1, width-utils.DisplayWidth(suffix))) + suffix
-}
-
-func appendDropdownMarker(value, marker string, width int) string {
-	if marker == "" {
-		return value
-	}
-	return fitValue(value, max(1, width-2)) + " " + marker
-}
-
-// applyEditKey maps a terminal key string to primitive text/cursor mutations.
-// Mirrors keyboard/editQueryInput so dialog-side impls process keys identically.
-// Syncs the transient state back on handled=true (cursor-only keys like Left
-// don't change text but still advance the impl's cursor).
+// applyEditKey maps a terminal key to text/cursor mutations.
 func applyEditKey(key string, text *string, cursor *int) (bool, bool) {
 	if text == nil {
 		return false, false
@@ -153,67 +95,92 @@ func applyEditKeyRaw(key string, input *state.QueryInputState) (bool, bool) {
 	}
 }
 
+func fitValue(value string, width int) string {
+	return utils.FitVisible(value, max(1, width))
+}
+
+func appendUnitSuffix(value, unit string, width int) string {
+	if unit == "" {
+		return fitValue(value, width)
+	}
+	suffix := " " + unit
+	return fitValue(value, max(1, width-utils.DisplayWidth(suffix))) + suffix
+}
+
+func appendDropdownMarker(value, marker string, width int) string {
+	if marker == "" {
+		return value
+	}
+	return fitValue(value, max(1, width-2)) + " " + marker
+}
+
 // --- TextField ------------------------------------------------------------
 
-// TextField is a free-text input edited by the shared key map.
+// TextField is a free-text input.
 type TextField struct {
-	text        string
-	cursor      int
-	touched     bool
-	required    bool
-	unit        string
-	helperText  string
-	placeholder string
-	errMsg      string
+	key, label, helperText, unit, placeholder string
+	required                                  bool
+	hidden                                    bool
+	errMsg                                    string
+	text                                      string
+	cursor                                    int
+	touched                                   bool
 }
 
-func newTextField(src *state.FormField) *TextField {
-	if src == nil {
-		return &TextField{}
-	}
+// TextFieldConfig builds a TextField.
+type TextFieldConfig struct {
+	Key, Label, HelperText, Unit, Placeholder string
+	Required                                  bool
+	Text                                      string
+	Cursor                                    int
+}
+
+// NewTextField constructs a TextField impl.
+func NewTextField(cfg TextFieldConfig) state.FormField {
 	return &TextField{
-		text:        src.Input.Text,
-		cursor:      src.Input.Cursor,
-		required:    src.Required,
-		unit:        src.Unit,
-		helperText:  src.HelperText,
-		placeholder: src.Placeholder,
-		errMsg:      src.Error,
+		key:         cfg.Key,
+		label:       cfg.Label,
+		helperText:  cfg.HelperText,
+		required:    cfg.Required,
+		unit:        cfg.Unit,
+		placeholder: cfg.Placeholder,
+		text:        cfg.Text,
+		cursor:      cfg.Cursor,
 	}
 }
 
-func (f *TextField) Kind() state.FormFieldKind { return state.FormText }
-func (f *TextField) Value() any                { return f.text }
-func (f *TextField) Default() any              { return "" }
-func (f *TextField) HelpText() string          { return f.helperText }
+func (f *TextField) Kind() state.FormFieldKind      { return state.FormText }
+func (f *TextField) Key() string                   { return f.key }
+func (f *TextField) Hidden() bool                  { return f.hidden }
+func (f *TextField) SetHidden(v bool)              { f.hidden = v }
+func (f *TextField) Error() string                 { return f.errMsg }
+func (f *TextField) SetError(v string)             { f.errMsg = v }
+func (f *TextField) Touched() bool                 { return f.touched }
+func (f *TextField) SetTouched(v bool)             { f.touched = v }
+func (f *TextField) Value() any                    { return strings.TrimSpace(f.text) }
+func (f *TextField) Reset()                        { f.text = ""; f.cursor = 0; f.touched = false; f.errMsg = "" }
+func (f *TextField) Text() string                  { return f.text }
+func (f *TextField) SetText(s string)              { f.text = s }
+func (f *TextField) Cursor() int                   { return f.cursor }
+func (f *TextField) SetCursor(c int)               { f.cursor = c }
+func (f *TextField) Toggle() bool                  { return false }
+func (f *TextField) SetToggle(_ bool)              {}
+func (f *TextField) Options() []string            { return nil }
+func (f *TextField) DisplayOptions() []string     { return nil }
+func (f *TextField) Index() int                   { return 0 }
+func (f *TextField) SetIndex(_ int)               {}
+func (f *TextField) Selected() map[string]bool    { return nil }
+func (f *TextField) SetSelected(_ map[string]bool) {}
 
-func (f *TextField) SetValue(v any) {
-	if s, ok := v.(string); ok {
-		f.text = s
-		f.cursor = len([]rune(s))
-	}
-}
-
-func (f *TextField) Validate() error {
-	if f.required && strings.TrimSpace(f.text) == "" {
-		return fmt.Errorf("value is required")
-	}
-	return nil
-}
-
-func (f *TextField) Reset() {
-	f.text = ""
-	f.cursor = 0
-	f.touched = false
-	f.errMsg = ""
-}
+func (f *TextField) Label() string   { return f.label }
+func (f *TextField) HelpText() string { return f.helperText }
 
 func (f *TextField) Render(focused bool, width int, cursorVisible ...bool) string {
 	value := renderTextCell(f.text, f.cursor, state.FormText, focused, width, cursorVisible...)
 	return appendUnitSuffix(value, f.unit, width)
 }
 
-func (f *TextField) HandleKey(key string, _ *state.AppModel) (bool, bool) {
+func (f *TextField) HandleKey(key string) (bool, bool) {
 	h, c := applyEditKey(key, &f.text, &f.cursor)
 	if c {
 		f.touched = true
@@ -223,56 +190,89 @@ func (f *TextField) HandleKey(key string, _ *state.AppModel) (bool, bool) {
 
 func (f *TextField) OpenPopup() (FormPopup, bool) { return nil, false }
 
-func (f *TextField) SyncTo(field *state.FormField) {
-	field.Input.Text = f.text
-	field.Input.Cursor = f.cursor
-	field.Touched = f.touched
-	field.Error = f.errMsg
-}
-
 // --- IntField -------------------------------------------------------------
 
 // IntField is a free-text field restricted to digits + dec point on submit.
 type IntField struct {
-	text       string
-	cursor     int
-	touched    bool
-	required   bool
-	unit       string
-	helperText string
-	errMsg      string
-	min        *float64
-	max        *float64
+	key, label, helperText, unit, placeholder string
+	required                                  bool
+	hidden                                    bool
+	errMsg                                    string
+	text                                      string
+	cursor                                    int
+	touched                                   bool
+	min, max                                  *float64
 }
 
-func newIntField(src *state.FormField) *IntField {
-	if src == nil {
-		return &IntField{}
-	}
+// IntFieldConfig builds an IntField.
+type IntFieldConfig struct {
+	Key, Label, HelperText, Unit, Placeholder string
+	Required                                  bool
+	Min, Max                                  *float64
+	Text                                      string
+	Cursor                                    int
+}
+
+func NewIntField(cfg IntFieldConfig) state.FormField {
 	return &IntField{
-		text:       src.Input.Text,
-		cursor:     src.Input.Cursor,
-		required:   src.Required,
-		unit:       src.Unit,
-		helperText: src.HelperText,
-		errMsg:     src.Error,
-		min:        src.Min,
-		max:        src.Max,
+		key:         cfg.Key,
+		label:       cfg.Label,
+		helperText:  cfg.HelperText,
+		required:    cfg.Required,
+		unit:        cfg.Unit,
+		placeholder: cfg.Placeholder,
+		text:        cfg.Text,
+		cursor:      cfg.Cursor,
+		min:         cfg.Min,
+		max:         cfg.Max,
 	}
 }
 
-func (f *IntField) Kind() state.FormFieldKind { return state.FormInt }
-func (f *IntField) Value() any                { return f.text }
-func (f *IntField) Default() any              { return "" }
-func (f *IntField) HelpText() string          { return f.helperText }
+func (f *IntField) Kind() state.FormFieldKind      { return state.FormInt }
+func (f *IntField) Key() string                   { return f.key }
+func (f *IntField) Hidden() bool                  { return f.hidden }
+func (f *IntField) SetHidden(v bool)              { f.hidden = v }
+func (f *IntField) Error() string                 { return f.errMsg }
+func (f *IntField) SetError(v string)             { f.errMsg = v }
+func (f *IntField) Touched() bool                 { return f.touched }
+func (f *IntField) SetTouched(v bool)             { f.touched = v }
+func (f *IntField) Value() any                    { return strings.TrimSpace(f.text) }
+func (f *IntField) Reset()                        { f.text = ""; f.cursor = 0; f.touched = false; f.errMsg = "" }
+func (f *IntField) Text() string                  { return f.text }
+func (f *IntField) SetText(s string)              { f.text = s }
+func (f *IntField) Cursor() int                   { return f.cursor }
+func (f *IntField) SetCursor(c int)               { f.cursor = c }
+func (f *IntField) Toggle() bool                  { return false }
+func (f *IntField) SetToggle(_ bool)              {}
+func (f *IntField) Options() []string            { return nil }
+func (f *IntField) DisplayOptions() []string     { return nil }
+func (f *IntField) Index() int                   { return 0 }
+func (f *IntField) SetIndex(_ int)               {}
+func (f *IntField) Selected() map[string]bool    { return nil }
+func (f *IntField) SetSelected(_ map[string]bool) {}
+func (f *IntField) Min() *float64                 { return f.min }
+func (f *IntField) Max() *float64                 { return f.max }
 
-func (f *IntField) SetValue(v any) {
-	if s, ok := v.(string); ok {
-		f.text = s
-		f.cursor = len([]rune(s))
-	}
+func (f *IntField) Label() string   { return f.label }
+func (f *IntField) HelpText() string { return f.helperText }
+
+func (f *IntField) Render(focused bool, width int, cursorVisible ...bool) string {
+	value := renderTextCell(f.text, f.cursor, state.FormInt, focused, width, cursorVisible...)
+	return appendUnitSuffix(value, f.unit, width)
 }
 
+func (f *IntField) HandleKey(key string) (bool, bool) {
+	h, c := applyEditKey(key, &f.text, &f.cursor)
+	if c {
+		f.touched = true
+	}
+	return h, c
+}
+
+func (f *IntField) OpenPopup() (FormPopup, bool) { return nil, false }
+
+// Validate returns a parse / range error. Not on the FormField interface;
+// submit handlers call directly when needed.
 func (f *IntField) Validate() error {
 	raw := strings.TrimSpace(f.text)
 	if raw == "" {
@@ -294,46 +294,22 @@ func (f *IntField) Validate() error {
 	return nil
 }
 
-func (f *IntField) Reset() {
-	f.text = ""
-	f.cursor = 0
-	f.touched = false
-	f.errMsg = ""
-}
-
-func (f *IntField) Render(focused bool, width int, cursorVisible ...bool) string {
-	value := renderTextCell(f.text, f.cursor, state.FormInt, focused, width, cursorVisible...)
-	return appendUnitSuffix(value, f.unit, width)
-}
-
-func (f *IntField) HandleKey(key string, _ *state.AppModel) (bool, bool) {
-	h, c := applyEditKey(key, &f.text, &f.cursor)
-	if c {
-		f.touched = true
-	}
-	return h, c
-}
-
-func (f *IntField) OpenPopup() (FormPopup, bool) { return nil, false }
-
-func (f *IntField) SyncTo(field *state.FormField) {
-	field.Input.Text = f.text
-	field.Input.Cursor = f.cursor
-	field.Touched = f.touched
-	field.Error = f.errMsg
-}
-
 // --- PathField ------------------------------------------------------------
 
-// PathField is a path input with Tab completion (BR-041 §3.3) and Ctrl+H
-// hidden-file toggle.
+// PathField is a SPECIAL form for path inputs. It carries the common
+// text-editing state plus path-specific state. The path-specific methods
+// (PathSource, Suggestions, PathLoading, …) live on *PathField directly —
+// they are NOT on the FormField interface. Callers type-assert to
+// *PathField to access them.
 type PathField struct {
+	key, label, helperText string
+	required               bool
+	hidden                 bool
+	errMsg                 string
+
 	text        string
 	cursor      int
 	touched     bool
-	required    bool
-	helperText  string
-	errMsg      string
 	showHidden  bool
 	suggestions []state.PathEntry
 	loading     bool
@@ -341,48 +317,56 @@ type PathField struct {
 	pathError   string
 	pathSource  state.PathSource
 	pathMode    state.PathMode
+	dependsOn   string
+	dependsEq   bool
 }
 
-func newPathField(src *state.FormField) *PathField {
-	if src == nil {
-		return &PathField{}
-	}
+// PathFieldConfig builds a PathField.
+type PathFieldConfig struct {
+	Key, Label, HelperText string
+	Required               bool
+	PathSource             state.PathSource
+	PathMode               state.PathMode
+	Text                   string
+	Cursor                 int
+	InitialSuggestions     []state.PathEntry
+	InitialLoading         bool
+	InitialShowHidden      bool
+	InitialTabInput        string
+	InitialPathError       string
+	DependsOn              string
+	DependsEq              bool
+}
+
+func NewPathField(cfg PathFieldConfig) state.FormField {
 	return &PathField{
-		text:        src.Input.Text,
-		cursor:      src.Input.Cursor,
-		required:    src.Required,
-		helperText:  src.HelperText,
-		errMsg:      src.Error,
-		touched:     src.Touched,
-		showHidden:  src.ShowHidden,
-		suggestions: src.Suggestions,
-		loading:     src.PathLoading,
-		tabInput:    src.PathTabInput,
-		pathError:   src.PathError,
-		pathSource:  src.PathSource,
-		pathMode:    src.PathMode,
+		key:         cfg.Key,
+		label:       cfg.Label,
+		helperText:  cfg.HelperText,
+		required:    cfg.Required,
+		text:        cfg.Text,
+		cursor:      cfg.Cursor,
+		pathSource:  cfg.PathSource,
+		pathMode:    cfg.PathMode,
+		showHidden:  cfg.InitialShowHidden,
+		suggestions: cfg.InitialSuggestions,
+		loading:     cfg.InitialLoading,
+		tabInput:    cfg.InitialTabInput,
+		pathError:   cfg.InitialPathError,
+		dependsOn:   cfg.DependsOn,
+		dependsEq:   cfg.DependsEq,
 	}
 }
 
 func (f *PathField) Kind() state.FormFieldKind { return state.FormPath }
-func (f *PathField) Value() any                { return f.text }
-func (f *PathField) Default() any              { return "" }
-func (f *PathField) HelpText() string          { return "path with Tab completion" }
-
-func (f *PathField) SetValue(v any) {
-	if s, ok := v.(string); ok {
-		f.text = s
-		f.cursor = len([]rune(s))
-	}
-}
-
-func (f *PathField) Validate() error {
-	if f.required && strings.TrimSpace(f.text) == "" {
-		return fmt.Errorf("path is required")
-	}
-	return nil
-}
-
+func (f *PathField) Key() string              { return f.key }
+func (f *PathField) Hidden() bool             { return f.hidden }
+func (f *PathField) SetHidden(v bool)         { f.hidden = v }
+func (f *PathField) Error() string            { return f.errMsg }
+func (f *PathField) SetError(v string)        { f.errMsg = v }
+func (f *PathField) Touched() bool            { return f.touched }
+func (f *PathField) SetTouched(v bool)        { f.touched = v }
+func (f *PathField) Value() any               { return strings.TrimSpace(f.text) }
 func (f *PathField) Reset() {
 	f.text = ""
 	f.cursor = 0
@@ -394,13 +378,35 @@ func (f *PathField) Reset() {
 	f.showHidden = false
 	f.pathError = ""
 }
+func (f *PathField) Text() string     { return f.text }
+func (f *PathField) SetText(s string) { f.text = s }
+func (f *PathField) Cursor() int      { return f.cursor }
+func (f *PathField) SetCursor(c int)  { f.cursor = c }
+func (f *PathField) Toggle() bool     { return false }
+func (f *PathField) SetToggle(_ bool) {}
+func (f *PathField) Options() []string { return nil }
+func (f *PathField) DisplayOptions() []string { return nil }
+func (f *PathField) Index() int { return 0 }
+func (f *PathField) SetIndex(_ int) {}
+func (f *PathField) Selected() map[string]bool { return nil }
+func (f *PathField) SetSelected(_ map[string]bool) {}
+
+// DependsOn / DependsEq: PathField-specific. The state-level field-hidden
+// walker in state.FormState.RecomputeVisibility uses type-assertion to
+// access these.
+func (f *PathField) DependsOn() string { return f.dependsOn }
+func (f *PathField) DependsEq() bool   { return f.dependsEq }
+
+func (f *PathField) Label() string    { return f.label }
+func (f *PathField) HelperText() string { return f.helperText }
+func (f *PathField) HelpText() string { return "path with Tab completion" }
 
 func (f *PathField) Render(focused bool, width int, cursorVisible ...bool) string {
 	value := renderTextCell(f.text, f.cursor, state.FormPath, focused, width, cursorVisible...)
 	return appendUnitSuffix(value, "", width)
 }
 
-func (f *PathField) HandleKey(key string, _ *state.AppModel) (bool, bool) {
+func (f *PathField) HandleKey(key string) (bool, bool) {
 	if key == keys.KeyCtrlH {
 		f.showHidden = !f.showHidden
 		f.suggestions = nil
@@ -422,84 +428,94 @@ func (f *PathField) OpenPopup() (FormPopup, bool) {
 	return &PathPopup{owner: f}, true
 }
 
-func (f *PathField) SyncTo(field *state.FormField) {
-	field.Input.Text = f.text
-	field.Input.Cursor = f.cursor
-	field.Touched = f.touched
-	field.Error = f.errMsg
-	field.ShowHidden = f.showHidden
-	field.Suggestions = f.suggestions
-	field.PathLoading = f.loading
-	field.PathTabInput = f.tabInput
-	field.PathError = f.pathError
-	field.PathSource = f.pathSource
-	field.PathMode = f.pathMode
-}
+// PathField-specific methods (not on FormField).
+func (f *PathField) PathSource() state.PathSource     { return f.pathSource }
+func (f *PathField) PathMode() state.PathMode         { return f.pathMode }
+func (f *PathField) ShowHidden() bool                 { return f.showHidden }
+func (f *PathField) SetShowHidden(v bool)             { f.showHidden = v }
+func (f *PathField) Suggestions() []state.PathEntry   { return f.suggestions }
+func (f *PathField) SetSuggestions(v []state.PathEntry) { f.suggestions = v }
+func (f *PathField) PathLoading() bool                { return f.loading }
+func (f *PathField) SetPathLoading(v bool)            { f.loading = v }
+func (f *PathField) PathTabInput() string             { return f.tabInput }
+func (f *PathField) SetPathTabInput(v string)         { f.tabInput = v }
+func (f *PathField) PathError() string                { return f.pathError }
+func (f *PathField) SetPathError(v string)            { f.pathError = v }
+func (f *PathField) TextRaw() string                 { return f.text }
 
 // --- SelectField ----------------------------------------------------------
 
-// SelectField is a one-of-many choice opened into a single-column popup.
+// SelectField is a one-of-many choice with a dropdown marker.
 type SelectField struct {
+	key, label, helperText string
+	required               bool
+	hidden                 bool
+	errMsg                 string
+
 	options        []string
 	displayOptions []string
 	index          int
 	touched        bool
-	required       bool
-	helperText     string
-	errMsg         string
 }
 
-func newSelectField(src *state.FormField) *SelectField {
-	if src == nil {
-		return &SelectField{}
-	}
+// SelectFieldConfig builds a SelectField.
+type SelectFieldConfig struct {
+	Key, Label, HelperText string
+	Required               bool
+	Options, DisplayOptions []string
+	Index                   int
+}
+
+func NewSelectField(cfg SelectFieldConfig) state.FormField {
 	return &SelectField{
-		options:        src.Options,
-		displayOptions: src.DisplayOptions,
-		index:          src.Index,
-		required:       src.Required,
-		helperText:     src.HelperText,
-		errMsg:         src.Error,
+		key:            cfg.Key,
+		label:          cfg.Label,
+		helperText:     cfg.HelperText,
+		required:       cfg.Required,
+		options:        cfg.Options,
+		displayOptions: cfg.DisplayOptions,
+		index:          cfg.Index,
 	}
 }
 
 func (f *SelectField) Kind() state.FormFieldKind { return state.FormSelect }
-func (f *SelectField) Value() any                { return selectValue(f.options, f.index) }
-func (f *SelectField) Default() any              { return selectDefault(f.options) }
-func (f *SelectField) HelpText() string          { return "single choice dropdown" }
+func (f *SelectField) Key() string              { return f.key }
+func (f *SelectField) Hidden() bool             { return f.hidden }
+func (f *SelectField) SetHidden(v bool)         { f.hidden = v }
+func (f *SelectField) Error() string            { return f.errMsg }
+func (f *SelectField) SetError(v string)        { f.errMsg = v }
+func (f *SelectField) Touched() bool            { return f.touched }
+func (f *SelectField) SetTouched(v bool)        { f.touched = v }
 
-func (f *SelectField) SetValue(v any) {
-	if s, ok := v.(string); ok {
-		for i, opt := range f.options {
-			if opt == s {
-				f.index = i
-				return
-			}
-		}
+func (f *SelectField) Value() any {
+	if f.index < 0 || f.index >= len(f.options) {
+		return ""
 	}
+	return f.options[f.index]
 }
+func (f *SelectField) Reset() { f.index = 0; f.touched = false; f.errMsg = "" }
+func (f *SelectField) Text() string     { return "" }
+func (f *SelectField) SetText(_ string) {}
+func (f *SelectField) Cursor() int      { return 0 }
+func (f *SelectField) SetCursor(_ int)  {}
+func (f *SelectField) Toggle() bool     { return false }
+func (f *SelectField) SetToggle(_ bool) {}
+func (f *SelectField) Options() []string        { return f.options }
+func (f *SelectField) DisplayOptions() []string { return f.displayOptions }
+func (f *SelectField) Index() int               { return f.index }
+func (f *SelectField) SetIndex(i int)           { f.index = i }
+func (f *SelectField) Selected() map[string]bool { return nil }
+func (f *SelectField) SetSelected(_ map[string]bool) {}
 
-func (f *SelectField) Validate() error {
-	if (f.required && f.index < 0) || f.index >= len(f.options) {
-		return fmt.Errorf("selection required")
-	}
-	return nil
-}
-
-func (f *SelectField) Reset() {
-	f.index = 0
-	f.touched = false
-	f.errMsg = ""
-}
+func (f *SelectField) Label() string   { return f.label }
+func (f *SelectField) HelpText() string { return "single choice dropdown" }
 
 func (f *SelectField) Render(focused bool, width int, _ ...bool) string {
 	value, marker := renderSelectCellValue(f.options, f.displayOptions, f.index, nil, state.FormSelect, focused, width)
 	return appendDropdownMarker(value, marker, width)
 }
 
-func (f *SelectField) HandleKey(string, *state.AppModel) (bool, bool) {
-	return false, false
-}
+func (f *SelectField) HandleKey(string) (bool, bool) { return false, false }
 
 func (f *SelectField) OpenPopup() (FormPopup, bool) {
 	if len(f.options) == 0 {
@@ -508,76 +524,79 @@ func (f *SelectField) OpenPopup() (FormPopup, bool) {
 	return &SelectPopup{options: f.options, multi: false}, true
 }
 
-func (f *SelectField) SyncTo(field *state.FormField) {
-	field.Index = f.index
-	field.Touched = f.touched
-	field.Error = f.errMsg
-}
-
 // --- MultiSelectField -----------------------------------------------------
 
-// MultiSelectField is a many-of-many choice opened into a popup where Space
-// toggles each item (BR-041 §8.2).
+// MultiSelectField is a many-of-many choice where Space toggles each item.
 type MultiSelectField struct {
+	key, label, helperText string
+	required               bool
+	hidden                 bool
+	errMsg                 string
+
 	options        []string
 	displayOptions []string
 	selected       map[string]bool
 	touched        bool
-	required       bool
-	helperText     string
-	errMsg         string
 }
 
-func newMultiSelectField(src *state.FormField) *MultiSelectField {
-	if src == nil {
-		return &MultiSelectField{}
-	}
+// MultiSelectFieldConfig builds a MultiSelectField.
+type MultiSelectFieldConfig struct {
+	Key, Label, HelperText string
+	Required               bool
+	Options, DisplayOptions []string
+	Selected               map[string]bool
+}
+
+func NewMultiSelectField(cfg MultiSelectFieldConfig) state.FormField {
 	return &MultiSelectField{
-		options:        src.Options,
-		displayOptions: src.DisplayOptions,
-		selected:       src.Selected,
-		required:       src.Required,
-		helperText:     src.HelperText,
-		errMsg:         src.Error,
+		key:            cfg.Key,
+		label:          cfg.Label,
+		helperText:     cfg.HelperText,
+		required:       cfg.Required,
+		options:        cfg.Options,
+		displayOptions: cfg.DisplayOptions,
+		selected:       cfg.Selected,
 	}
 }
 
 func (f *MultiSelectField) Kind() state.FormFieldKind { return state.FormMultiSelect }
+func (f *MultiSelectField) Key() string              { return f.key }
+func (f *MultiSelectField) Hidden() bool             { return f.hidden }
+func (f *MultiSelectField) SetHidden(v bool)         { f.hidden = v }
+func (f *MultiSelectField) Error() string            { return f.errMsg }
+func (f *MultiSelectField) SetError(v string)        { f.errMsg = v }
+func (f *MultiSelectField) Touched() bool            { return f.touched }
+func (f *MultiSelectField) SetTouched(v bool)        { f.touched = v }
+
 func (f *MultiSelectField) Value() any {
 	if f.selected == nil {
 		return map[string]bool{}
 	}
 	return f.selected
 }
-func (f *MultiSelectField) Default() any     { return map[string]bool{} }
+func (f *MultiSelectField) Reset() { f.selected = nil; f.touched = false; f.errMsg = "" }
+func (f *MultiSelectField) Text() string     { return "" }
+func (f *MultiSelectField) SetText(_ string) {}
+func (f *MultiSelectField) Cursor() int      { return 0 }
+func (f *MultiSelectField) SetCursor(_ int)  {}
+func (f *MultiSelectField) Toggle() bool     { return false }
+func (f *MultiSelectField) SetToggle(_ bool) {}
+func (f *MultiSelectField) Options() []string        { return f.options }
+func (f *MultiSelectField) DisplayOptions() []string { return f.displayOptions }
+func (f *MultiSelectField) Index() int               { return 0 }
+func (f *MultiSelectField) SetIndex(_ int)           {}
+func (f *MultiSelectField) Selected() map[string]bool { return f.selected }
+func (f *MultiSelectField) SetSelected(v map[string]bool) { f.selected = v }
+
+func (f *MultiSelectField) Label() string   { return f.label }
 func (f *MultiSelectField) HelpText() string { return "multi-select dropdown" }
-
-func (f *MultiSelectField) SetValue(v any) {
-	if m, ok := v.(map[string]bool); ok {
-		out := make(map[string]bool, len(m))
-		for k, sel := range m {
-			out[k] = sel
-		}
-		f.selected = out
-	}
-}
-
-func (f *MultiSelectField) Validate() error { return nil }
-
-func (f *MultiSelectField) Reset() {
-	f.selected = nil
-	f.touched = false
-	f.errMsg = ""
-}
 
 func (f *MultiSelectField) Render(focused bool, width int, _ ...bool) string {
 	value, marker := renderSelectCellValue(f.options, f.displayOptions, 0, f.selected, state.FormMultiSelect, focused, width)
 	return appendDropdownMarker(value, marker, width)
 }
 
-func (f *MultiSelectField) HandleKey(string, *state.AppModel) (bool, bool) {
-	return false, false
-}
+func (f *MultiSelectField) HandleKey(string) (bool, bool) { return false, false }
 
 func (f *MultiSelectField) OpenPopup() (FormPopup, bool) {
 	if len(f.options) == 0 {
@@ -586,61 +605,78 @@ func (f *MultiSelectField) OpenPopup() (FormPopup, bool) {
 	return &SelectPopup{options: f.options, selected: f.selected, multi: true}, true
 }
 
-func (f *MultiSelectField) SyncTo(field *state.FormField) {
-	field.Selected = f.selected
-	field.Touched = f.touched
-	field.Error = f.errMsg
-}
-
 // --- BoolField ------------------------------------------------------------
 
 // BoolField is a checkbox toggled with Space. Recomputes the dependency
 // graph so child fields (DependsOn) show/hide correctly.
 type BoolField struct {
-	toggle     bool
-	touched    bool
-	required   bool
-	helperText string
-	errMsg     string
+	key, label, helperText string
+	required               bool
+	hidden                 bool
+	errMsg                 string
+	dependsOn              string
+	dependsEq              bool
+
+	toggle  bool
+	touched bool
 }
 
-func newBoolField(src *state.FormField) *BoolField {
-	if src == nil {
-		return &BoolField{}
-	}
+// BoolFieldConfig builds a BoolField.
+type BoolFieldConfig struct {
+	Key, Label, HelperText string
+	Required               bool
+	Toggle                 bool
+	DependsOn              string
+	DependsEq              bool
+}
+
+func NewBoolField(cfg BoolFieldConfig) state.FormField {
 	return &BoolField{
-		toggle:     src.Toggle,
-		required:   src.Required,
-		helperText: src.HelperText,
-		errMsg:     src.Error,
+		key:        cfg.Key,
+		label:      cfg.Label,
+		helperText: cfg.HelperText,
+		required:   cfg.Required,
+		toggle:     cfg.Toggle,
+		dependsOn:  cfg.DependsOn,
+		dependsEq:  cfg.DependsEq,
 	}
 }
 
 func (f *BoolField) Kind() state.FormFieldKind { return state.FormBool }
-func (f *BoolField) Value() any                { return f.toggle }
-func (f *BoolField) Default() any              { return false }
-func (f *BoolField) HelpText() string          { return "boolean checkbox" }
+func (f *BoolField) Key() string              { return f.key }
+func (f *BoolField) Hidden() bool             { return f.hidden }
+func (f *BoolField) SetHidden(v bool)         { f.hidden = v }
+func (f *BoolField) Error() string            { return f.errMsg }
+func (f *BoolField) SetError(v string)        { f.errMsg = v }
+func (f *BoolField) Touched() bool            { return f.touched }
+func (f *BoolField) SetTouched(v bool)        { f.touched = v }
+func (f *BoolField) Value() any               { return f.toggle }
+func (f *BoolField) Reset()                   { f.toggle = false; f.touched = false; f.errMsg = "" }
+func (f *BoolField) Text() string             { return "" }
+func (f *BoolField) SetText(_ string)         {}
+func (f *BoolField) Cursor() int              { return 0 }
+func (f *BoolField) SetCursor(_ int)          {}
+func (f *BoolField) Toggle() bool             { return f.toggle }
+func (f *BoolField) SetToggle(v bool)         { f.toggle = v }
+func (f *BoolField) Options() []string        { return nil }
+func (f *BoolField) DisplayOptions() []string { return nil }
+func (f *BoolField) Index() int               { return 0 }
+func (f *BoolField) SetIndex(_ int)           {}
+func (f *BoolField) Selected() map[string]bool { return nil }
+func (f *BoolField) SetSelected(_ map[string]bool) {}
 
-func (f *BoolField) SetValue(v any) {
-	if b, ok := v.(bool); ok {
-		f.toggle = b
-		f.touched = true
-	}
-}
+// DependsOn / DependsEq: BoolField-specific.
+func (f *BoolField) DependsOn() string { return f.dependsOn }
+func (f *BoolField) DependsEq() bool   { return f.dependsEq }
 
-func (f *BoolField) Validate() error { return nil }
-
-func (f *BoolField) Reset() {
-	f.toggle = false
-	f.touched = false
-	f.errMsg = ""
-}
+func (f *BoolField) Label() string   { return f.label }
+func (f *BoolField) HelpText() string { return "boolean checkbox" }
 
 func (f *BoolField) Render(focused bool, width int, _ ...bool) string {
 	return fitValue(renderBoolCell(f.toggle, focused), width)
 }
 
-func (f *BoolField) HandleKey(key string, _ *state.AppModel) (bool, bool) {
+func (f *BoolField) HandleKey(key string) (bool, bool) {
 	if key == keys.KeySpace || key == "space" {
 		f.toggle = !f.toggle
 		f.touched = true
@@ -654,65 +690,75 @@ func (f *BoolField) HandleKey(key string, _ *state.AppModel) (bool, bool) {
 
 func (f *BoolField) OpenPopup() (FormPopup, bool) { return nil, false }
 
-func (f *BoolField) SyncTo(field *state.FormField) {
-	field.Toggle = f.toggle
-	field.Touched = f.touched
-	field.Error = f.errMsg
-}
-
 // --- RadioGroupField ------------------------------------------------------
 
 // RadioGroupField is an inline single-choice alternative to SelectField.
 type RadioGroupField struct {
+	key, label, helperText string
+	required               bool
+	hidden                 bool
+	errMsg                 string
+
 	options        []string
 	displayOptions []string
 	index          int
 	touched        bool
-	required       bool
-	helperText     string
-	errMsg         string
 }
 
-func newRadioGroupField(src *state.FormField) *RadioGroupField {
-	if src == nil {
-		return &RadioGroupField{}
-	}
+// RadioGroupFieldConfig builds a RadioGroupField.
+type RadioGroupFieldConfig struct {
+	Key, Label, HelperText string
+	Required               bool
+	Options, DisplayOptions []string
+	Index                   int
+}
+
+func NewRadioGroupField(cfg RadioGroupFieldConfig) state.FormField {
 	return &RadioGroupField{
-		options:        src.Options,
-		displayOptions: src.DisplayOptions,
-		index:          src.Index,
-		required:       src.Required,
-		helperText:     src.HelperText,
-		errMsg:         src.Error,
+		key:            cfg.Key,
+		label:          cfg.Label,
+		helperText:     cfg.HelperText,
+		required:       cfg.Required,
+		options:        cfg.Options,
+		displayOptions: cfg.DisplayOptions,
+		index:          cfg.Index,
 	}
 }
 
 func (f *RadioGroupField) Kind() state.FormFieldKind { return state.FormRadioGroup }
-func (f *RadioGroupField) Value() any                { return selectValue(f.options, f.index) }
-func (f *RadioGroupField) Default() any              { return selectDefault(f.options) }
-func (f *RadioGroupField) HelpText() string          { return "radio group (single choice)" }
+func (f *RadioGroupField) Key() string              { return f.key }
+func (f *RadioGroupField) Hidden() bool             { return f.hidden }
+func (f *RadioGroupField) SetHidden(v bool)         { f.hidden = v }
+func (f *RadioGroupField) Error() string            { return f.errMsg }
+func (f *RadioGroupField) SetError(v string)        { f.errMsg = v }
+func (f *RadioGroupField) Touched() bool            { return f.touched }
+func (f *RadioGroupField) SetTouched(v bool)        { f.touched = v }
 
-func (f *RadioGroupField) SetValue(v any) {
-	if s, ok := v.(string); ok {
-		for i, opt := range f.options {
-			if opt == s {
-				f.index = i
-				return
-			}
-		}
+func (f *RadioGroupField) Value() any {
+	if f.index < 0 || f.index >= len(f.options) {
+		return ""
 	}
+	return f.options[f.index]
 }
+func (f *RadioGroupField) Reset() { f.index = 0; f.touched = false; f.errMsg = "" }
+func (f *RadioGroupField) Text() string     { return "" }
+func (f *RadioGroupField) SetText(_ string) {}
+func (f *RadioGroupField) Cursor() int      { return 0 }
+func (f *RadioGroupField) SetCursor(_ int)  {}
+func (f *RadioGroupField) Toggle() bool     { return false }
+func (f *RadioGroupField) SetToggle(_ bool) {}
+func (f *RadioGroupField) Options() []string        { return f.options }
+func (f *RadioGroupField) DisplayOptions() []string { return f.displayOptions }
+func (f *RadioGroupField) Index() int               { return f.index }
+func (f *RadioGroupField) SetIndex(i int)           { f.index = i }
+func (f *RadioGroupField) Selected() map[string]bool { return nil }
+func (f *RadioGroupField) SetSelected(_ map[string]bool) {}
 
-func (f *RadioGroupField) Validate() error { return nil }
-
-func (f *RadioGroupField) Reset() {
-	f.index = 0
-	f.touched = false
-	f.errMsg = ""
-}
+func (f *RadioGroupField) Label() string   { return f.label }
+func (f *RadioGroupField) HelpText() string { return "radio group (single choice)" }
 
 func (f *RadioGroupField) Render(focused bool, width int, _ ...bool) string {
-	label := selectLabel(f.options, f.displayOptions, f.index)
+	label := fieldValueLabel(f.options, f.displayOptions, f.index)
 	value := utils.TruncateVisible(label, max(1, width-4))
 	style := component.GetStyle(component.StyleDim).GetForeground()
 	if focused {
@@ -722,72 +768,71 @@ func (f *RadioGroupField) Render(focused bool, width int, _ ...bool) string {
 	return fitValue(styled, max(1, width-4)) + " (" + component.MarkCheck + ")"
 }
 
-func (f *RadioGroupField) HandleKey(string, *state.AppModel) (bool, bool) {
-	return false, false
-}
+func (f *RadioGroupField) HandleKey(string) (bool, bool) { return false, false }
 
 func (f *RadioGroupField) OpenPopup() (FormPopup, bool) { return nil, false }
 
-func (f *RadioGroupField) SyncTo(field *state.FormField) {
-	field.Index = f.index
-	field.Touched = f.touched
-	field.Error = f.errMsg
-}
-
 // --- TextMultiLineField ---------------------------------------------------
 
-// TextMultiLineField is a long-text input. The value cell renders the first
-// line only — multi-line rendering is deferred until a form actually needs
-// FormTextArea (UI-improvements P4).
+// TextMultiLineField is a long-text input. Renders the first line only.
 type TextMultiLineField struct {
-	text        string
-	cursor      int
-	touched     bool
-	required    bool
-	helperText  string
-	placeholder string
-	errMsg      string
+	key, label, helperText string
+	required               bool
+	placeholder            string
+	hidden                 bool
+	errMsg                 string
+
+	text   string
+	cursor int
+	touched bool
 }
 
-func newTextMultiLineField(src *state.FormField) *TextMultiLineField {
-	if src == nil {
-		return &TextMultiLineField{}
-	}
+// TextMultiLineFieldConfig builds a TextMultiLineField.
+type TextMultiLineFieldConfig struct {
+	Key, Label, HelperText string
+	Required               bool
+	Placeholder            string
+	Text                   string
+	Cursor                 int
+}
+
+func NewTextMultiLineField(cfg TextMultiLineFieldConfig) state.FormField {
 	return &TextMultiLineField{
-		text:        src.Input.Text,
-		cursor:      src.Input.Cursor,
-		required:    src.Required,
-		helperText:  src.HelperText,
-		placeholder: src.Placeholder,
-		errMsg:      src.Error,
+		key:         cfg.Key,
+		label:       cfg.Label,
+		helperText:  cfg.HelperText,
+		required:    cfg.Required,
+		placeholder: cfg.Placeholder,
+		text:        cfg.Text,
+		cursor:      cfg.Cursor,
 	}
 }
 
 func (f *TextMultiLineField) Kind() state.FormFieldKind { return state.FormTextMultiLine }
-func (f *TextMultiLineField) Value() any                { return f.text }
-func (f *TextMultiLineField) Default() any              { return "" }
-func (f *TextMultiLineField) HelpText() string          { return "multi-line text (first line shown)" }
+func (f *TextMultiLineField) Key() string              { return f.key }
+func (f *TextMultiLineField) Hidden() bool             { return f.hidden }
+func (f *TextMultiLineField) SetHidden(v bool)         { f.hidden = v }
+func (f *TextMultiLineField) Error() string            { return f.errMsg }
+func (f *TextMultiLineField) SetError(v string)        { f.errMsg = v }
+func (f *TextMultiLineField) Touched() bool            { return f.touched }
+func (f *TextMultiLineField) SetTouched(v bool)        { f.touched = v }
+func (f *TextMultiLineField) Value() any               { return strings.TrimSpace(f.text) }
+func (f *TextMultiLineField) Reset()                   { f.text = ""; f.cursor = 0; f.touched = false; f.errMsg = "" }
+func (f *TextMultiLineField) Text() string             { return f.text }
+func (f *TextMultiLineField) SetText(s string)         { f.text = s }
+func (f *TextMultiLineField) Cursor() int              { return f.cursor }
+func (f *TextMultiLineField) SetCursor(c int)          { f.cursor = c }
+func (f *TextMultiLineField) Toggle() bool             { return false }
+func (f *TextMultiLineField) SetToggle(_ bool)         {}
+func (f *TextMultiLineField) Options() []string        { return nil }
+func (f *TextMultiLineField) DisplayOptions() []string { return nil }
+func (f *TextMultiLineField) Index() int               { return 0 }
+func (f *TextMultiLineField) SetIndex(_ int)           {}
+func (f *TextMultiLineField) Selected() map[string]bool { return nil }
+func (f *TextMultiLineField) SetSelected(_ map[string]bool) {}
 
-func (f *TextMultiLineField) SetValue(v any) {
-	if s, ok := v.(string); ok {
-		f.text = s
-		f.cursor = len([]rune(s))
-	}
-}
-
-func (f *TextMultiLineField) Validate() error {
-	if f.required && strings.TrimSpace(f.text) == "" {
-		return fmt.Errorf("value is required")
-	}
-	return nil
-}
-
-func (f *TextMultiLineField) Reset() {
-	f.text = ""
-	f.cursor = 0
-	f.touched = false
-	f.errMsg = ""
-}
+func (f *TextMultiLineField) Label() string   { return f.label }
+func (f *TextMultiLineField) HelpText() string { return "multi-line text (first line shown)" }
 
 func (f *TextMultiLineField) Render(focused bool, width int, cursorVisible ...bool) string {
 	first, _, _ := strings.Cut(f.text, "\n")
@@ -799,7 +844,7 @@ func (f *TextMultiLineField) Render(focused bool, width int, cursorVisible ...bo
 	return appendUnitSuffix(value, "", width)
 }
 
-func (f *TextMultiLineField) HandleKey(key string, _ *state.AppModel) (bool, bool) {
+func (f *TextMultiLineField) HandleKey(key string) (bool, bool) {
 	h, c := applyEditKey(key, &f.text, &f.cursor)
 	if c {
 		f.touched = true
@@ -809,66 +854,67 @@ func (f *TextMultiLineField) HandleKey(key string, _ *state.AppModel) (bool, boo
 
 func (f *TextMultiLineField) OpenPopup() (FormPopup, bool) { return nil, false }
 
-func (f *TextMultiLineField) SyncTo(field *state.FormField) {
-	field.Input.Text = f.text
-	field.Input.Cursor = f.cursor
-	field.Touched = f.touched
-	field.Error = f.errMsg
-}
-
 // --- TextPasswordField ----------------------------------------------------
 
-// TextPasswordField masks the value with U+2022 BULLET. The raw value is
-// preserved on the field; only the visual cell is masked.
+// TextPasswordField masks the value with U+2022 BULLET.
 type TextPasswordField struct {
-	text        string
-	cursor      int
-	touched     bool
-	required    bool
-	helperText  string
-	placeholder string
-	errMsg      string
+	key, label, helperText string
+	required               bool
+	placeholder            string
+	hidden                 bool
+	errMsg                 string
+
+	text   string
+	cursor int
+	touched bool
 }
 
-func newTextPasswordField(src *state.FormField) *TextPasswordField {
-	if src == nil {
-		return &TextPasswordField{}
-	}
+// TextPasswordFieldConfig builds a TextPasswordField.
+type TextPasswordFieldConfig struct {
+	Key, Label, HelperText string
+	Required               bool
+	Placeholder            string
+	Text                   string
+	Cursor                 int
+}
+
+func NewTextPasswordField(cfg TextPasswordFieldConfig) state.FormField {
 	return &TextPasswordField{
-		text:        src.Input.Text,
-		cursor:      src.Input.Cursor,
-		required:    src.Required,
-		helperText:  src.HelperText,
-		placeholder: src.Placeholder,
-		errMsg:      src.Error,
+		key:         cfg.Key,
+		label:       cfg.Label,
+		helperText:  cfg.HelperText,
+		required:    cfg.Required,
+		placeholder: cfg.Placeholder,
+		text:        cfg.Text,
+		cursor:      cfg.Cursor,
 	}
 }
 
 func (f *TextPasswordField) Kind() state.FormFieldKind { return state.FormTextPassword }
-func (f *TextPasswordField) Value() any                { return f.text }
-func (f *TextPasswordField) Default() any              { return "" }
-func (f *TextPasswordField) HelpText() string          { return "password (masked)" }
+func (f *TextPasswordField) Key() string              { return f.key }
+func (f *TextPasswordField) Hidden() bool             { return f.hidden }
+func (f *TextPasswordField) SetHidden(v bool)         { f.hidden = v }
+func (f *TextPasswordField) Error() string            { return f.errMsg }
+func (f *TextPasswordField) SetError(v string)        { f.errMsg = v }
+func (f *TextPasswordField) Touched() bool            { return f.touched }
+func (f *TextPasswordField) SetTouched(v bool)        { f.touched = v }
+func (f *TextPasswordField) Value() any               { return strings.TrimSpace(f.text) }
+func (f *TextPasswordField) Reset()                   { f.text = ""; f.cursor = 0; f.touched = false; f.errMsg = "" }
+func (f *TextPasswordField) Text() string             { return f.text }
+func (f *TextPasswordField) SetText(s string)         { f.text = s }
+func (f *TextPasswordField) Cursor() int              { return f.cursor }
+func (f *TextPasswordField) SetCursor(c int)          { f.cursor = c }
+func (f *TextPasswordField) Toggle() bool             { return false }
+func (f *TextPasswordField) SetToggle(_ bool)         {}
+func (f *TextPasswordField) Options() []string        { return nil }
+func (f *TextPasswordField) DisplayOptions() []string { return nil }
+func (f *TextPasswordField) Index() int               { return 0 }
+func (f *TextPasswordField) SetIndex(_ int)           {}
+func (f *TextPasswordField) Selected() map[string]bool { return nil }
+func (f *TextPasswordField) SetSelected(_ map[string]bool) {}
 
-func (f *TextPasswordField) SetValue(v any) {
-	if s, ok := v.(string); ok {
-		f.text = s
-		f.cursor = len([]rune(s))
-	}
-}
-
-func (f *TextPasswordField) Validate() error {
-	if f.required && f.text == "" {
-		return fmt.Errorf("value is required")
-	}
-	return nil
-}
-
-func (f *TextPasswordField) Reset() {
-	f.text = ""
-	f.cursor = 0
-	f.touched = false
-	f.errMsg = ""
-}
+func (f *TextPasswordField) Label() string   { return f.label }
+func (f *TextPasswordField) HelpText() string { return "password (masked)" }
 
 func (f *TextPasswordField) Render(focused bool, width int, cursorVisible ...bool) string {
 	masked := strings.Repeat(passwordBullet, len([]rune(f.text)))
@@ -876,7 +922,7 @@ func (f *TextPasswordField) Render(focused bool, width int, cursorVisible ...boo
 	return appendUnitSuffix(value, "", width)
 }
 
-func (f *TextPasswordField) HandleKey(key string, _ *state.AppModel) (bool, bool) {
+func (f *TextPasswordField) HandleKey(key string) (bool, bool) {
 	h, c := applyEditKey(key, &f.text, &f.cursor)
 	if c {
 		f.touched = true
@@ -886,21 +932,10 @@ func (f *TextPasswordField) HandleKey(key string, _ *state.AppModel) (bool, bool
 
 func (f *TextPasswordField) OpenPopup() (FormPopup, bool) { return nil, false }
 
-func (f *TextPasswordField) SyncTo(field *state.FormField) {
-	field.Input.Text = f.text
-	field.Input.Cursor = f.cursor
-	field.Touched = f.touched
-	field.Error = f.errMsg
-}
-
-// passwordBullet is the U+2022 BULLET used to mask password input.
-const passwordBullet = "•"
-
 // --- Popup impls ----------------------------------------------------------
 
-// SelectPopup adapts a Select or MultiSelect field's options / selected state
-// into a popup renderer. The hot path uses FormPopupState + handleFormPopupKey;
-// this adapter exists for future extensions.
+// SelectPopup adapts a Select or MultiSelect field's options into a popup
+// renderer. The hot path uses FormPopupState + handleFormPopupKey.
 type SelectPopup struct {
 	options  []string
 	selected map[string]bool
@@ -917,9 +952,7 @@ func (p *SelectPopup) Size() (int, int) {
 	return 60, rows + 2
 }
 func (p *SelectPopup) Highlighted() int { return p.cursor }
-func (p *SelectPopup) Render(width, height int) string {
-	return ""
-}
+func (p *SelectPopup) Render(width, height int) string { return "" }
 
 func (p *SelectPopup) HandleKey(key string) (bool, bool, any) {
 	n := len(p.options)
@@ -951,9 +984,7 @@ func (p *SelectPopup) HandleKey(key string) (bool, bool, any) {
 	return false, false, nil
 }
 
-// PathPopup adapts a PathField's suggestions into a popup renderer. The hot
-// path uses FormPopupState + renderPathPopup; this adapter exists for future
-// extensions.
+// PathPopup adapts a PathField's suggestions into a popup renderer.
 type PathPopup struct {
 	owner  *PathField
 	cursor int
@@ -962,9 +993,7 @@ type PathPopup struct {
 func (p *PathPopup) Title() string     { return "" }
 func (p *PathPopup) Highlighted() int { return p.cursor }
 func (p *PathPopup) Size() (int, int) { return 100, state.FormPopupVisibleRows + 5 }
-func (p *PathPopup) Render(width, height int) string {
-	return ""
-}
+func (p *PathPopup) Render(width, height int) string { return "" }
 
 func (p *PathPopup) HandleKey(key string) (bool, bool, any) {
 	n := len(p.owner.suggestions)
@@ -993,28 +1022,159 @@ func (p *PathPopup) HandleKey(key string) (bool, bool, any) {
 	return false, false, nil
 }
 
-// --- Small helpers ---------------------------------------------------------
+// --- Render helpers (primitive-input) --------------------------------------
 
-func selectValue(options []string, index int) string {
-	if index < 0 || index >= len(options) {
-		return ""
+func renderTextCell(text string, cursor int, kind state.FormFieldKind, focused bool, valueWidth int, cursorVisible ...bool) string {
+	runes := []rune(text)
+	cursor = clampCursor(cursor, len(runes))
+	start := 0
+	cursorWidth := 1
+	if cursor < len(runes) {
+		cursorWidth = max(1, utils.DisplayWidth(string(runes[cursor])))
 	}
-	return options[index]
+	for start < cursor && utils.DisplayWidth(string(runes[start:cursor]))+cursorWidth > valueWidth {
+		start++
+	}
+	end := cursor
+	if cursor < len(runes) {
+		end++
+	}
+	for end < len(runes) && utils.DisplayWidth(string(runes[start:end+1])) <= valueWidth {
+		end++
+	}
+	base := lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDim).GetForeground())
+	if kind == state.FormPath && !focused {
+		return wrapVisiblePath(valueWidth, text)
+	}
+	if !focused {
+		visible := base.Render(text)
+		return utils.TruncateVisible(visible, valueWidth)
+	}
+
+	before := lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleHelpDescription).GetForeground()).Render(string(runes[start:cursor]))
+	visible := len(cursorVisible) == 0 || cursorVisible[0]
+	caret := lipgloss.NewStyle().Foreground(component.GetStyle(component.StylePanelTitle).GetForeground()).Bold(true).Underline(true)
+	current := component.NarrowCursor
+	if cursor < len(runes) {
+		current = string(runes[cursor])
+	}
+	if !visible {
+		caret = lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleHelpDescription).GetForeground())
+		if cursor == len(runes) {
+			current = " "
+		}
+	}
+	afterStart := cursor
+	if cursor < len(runes) {
+		afterStart++
+	}
+	after := lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleHelpDescription).GetForeground()).Render(string(runes[afterStart:end]))
+	truncated := utils.TruncateVisible(before+caret.Render(current)+after, valueWidth)
+	return component.GetStyle(component.StyleFormInput).Render(truncated)
 }
 
-func selectDefault(options []string) string {
-	if len(options) > 0 {
-		return options[0]
+func renderSelectCellValue(options []string, displayOptions []string, index int, selected map[string]bool, kind state.FormFieldKind, focused bool, valueWidth int) (value, marker string) {
+	marker = component.TriangleDownSmall
+	displayed := func(idx int) string {
+		if idx >= 0 && idx < len(options) && idx < len(displayOptions) && displayOptions[idx] != "" {
+			return displayOptions[idx]
+		}
+		if idx >= 0 && idx < len(options) {
+			return options[idx]
+		}
+		return ""
+	}
+	var text string
+	switch kind {
+	case state.FormMultiSelect:
+		if len(selected) > 0 {
+			keys := make([]string, 0, len(selected))
+			for k := range selected {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+			keyIndex := make(map[string]int, len(options))
+			for i, opt := range options {
+				keyIndex[opt] = i
+			}
+			labels := make([]string, 0, len(keys))
+			for _, k := range keys {
+				if idx, ok := keyIndex[k]; ok {
+					labels = append(labels, displayed(idx))
+				} else {
+					labels = append(labels, k)
+				}
+			}
+			text = strings.Join(labels, ", ")
+		}
+	default:
+		text = displayed(index)
+	}
+	value = utils.TruncateVisible(text, valueWidth)
+	if focused {
+		value = lipgloss.NewStyle().Foreground(component.GetStyle(component.StylePanelTitle).GetForeground()).Bold(true).Render(value)
+	} else {
+		value = lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDim).GetForeground()).Render(value)
+	}
+	return value, marker
+}
+
+func renderBoolCell(toggle, focused bool) string {
+	mark := " "
+	if toggle {
+		mark = component.MarkCheck
+	}
+	cell := "[" + mark + "]"
+	if focused {
+		return lipgloss.NewStyle().
+			Foreground(component.GetStyle(component.StyleDialogConfirm).GetForeground()).
+			Bold(true).
+			Render(cell)
+	}
+	return lipgloss.NewStyle().
+		Foreground(component.GetStyle(component.StyleDim).GetForeground()).
+		Render(cell)
+}
+
+func wrapVisiblePath(valueWidth int, value string) string {
+	if valueWidth <= 0 || value == "" {
+		return value
+	}
+	var lines []string
+	line := ""
+	lineWidth := 0
+	for _, r := range []rune(value) {
+		width := utils.DisplayWidth(string(r))
+		if line != "" && lineWidth+width > valueWidth {
+			lines = append(lines, line)
+			line = ""
+			lineWidth = 0
+		}
+		line += string(r)
+		lineWidth += width
+	}
+	if line != "" || len(lines) == 0 {
+		lines = append(lines, line)
+	}
+	return strings.Join(lines, "\n")
+}
+
+func clampCursor(cursor, length int) int {
+	if cursor < 0 {
+		return 0
+	}
+	if cursor > length {
+		return length
+	}
+	return cursor
+}
+
+func fieldValueLabel(options []string, displayOptions []string, index int) string {
+	if index >= 0 && index < len(options) {
+		if index < len(displayOptions) && displayOptions[index] != "" {
+			return displayOptions[index]
+		}
+		return options[index]
 	}
 	return ""
-}
-
-func selectLabel(options []string, displayOptions []string, index int) string {
-	if index < 0 || index >= len(options) {
-		return ""
-	}
-	if index < len(displayOptions) && displayOptions[index] != "" {
-		return displayOptions[index]
-	}
-	return options[index]
 }
