@@ -143,13 +143,13 @@ func renderListPage(m *state.AppModel, panelHeight, contentWidth int) string {
 	selectionDisabled := m.Navigation.Mode == state.ModeFilter
 	switch m.Navigation.ActivePanel {
 	case state.PanelContainers:
-		return containers.RenderList(m.Resources.Containers, contentWidth, panelHeight, m.Selection.MarkedIDs, selectionDisabled)
+		return containers.RenderList(m.Resources.Containers, contentWidth, panelHeight, m.Selection.PanelMarks[state.PanelContainers], selectionDisabled)
 	case state.PanelImages:
-		return images.RenderList(m.Resources.Images, m.Resources.Containers, contentWidth, panelHeight, m.Selection.MarkedIDs, selectionDisabled)
+		return images.RenderList(m.Resources.Images, m.Resources.Containers, contentWidth, panelHeight, m.Selection.PanelMarks[state.PanelImages], selectionDisabled)
 	case state.PanelVolumes:
-		return volumes.RenderList(m.Resources.Volumes, m.Resources.Containers, contentWidth, panelHeight, m.Selection.MarkedIDs, selectionDisabled)
+		return volumes.RenderList(m.Resources.Volumes, m.Resources.Containers, contentWidth, panelHeight, m.Selection.PanelMarks[state.PanelVolumes], selectionDisabled)
 	case state.PanelNetworks:
-		return networks.RenderList(m.Resources.Networks, contentWidth, panelHeight, m.Selection.MarkedIDs, selectionDisabled)
+		return networks.RenderList(m.Resources.Networks, contentWidth, panelHeight, m.Selection.PanelMarks[state.PanelNetworks], selectionDisabled)
 	case state.PanelAudit:
 		return audit.RenderList(&m.Audit, contentWidth, panelHeight)
 	default:

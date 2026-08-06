@@ -36,16 +36,16 @@ func doToggleMark(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if id == "" {
 		return m, nil
 	}
-	m.Selection.Toggle(id)
+	m.Selection.Toggle(m.Navigation.ActivePanel, id)
 	return m, nil
 }
 
 func doBulkDelete(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	if m.Connection.Engine == nil || len(m.Selection.MarkedIDs) == 0 {
+	if m.Connection.Engine == nil || len(m.Selection.PanelMarks[m.Navigation.ActivePanel]) == 0 {
 		return m, nil
 	}
-	target := fmt.Sprintf("%d items", len(m.Selection.MarkedIDs))
-	message := fmt.Sprintf("Delete %d items?", len(m.Selection.MarkedIDs))
+	target := fmt.Sprintf("%d items", len(m.Selection.PanelMarks[m.Navigation.ActivePanel]))
+	message := fmt.Sprintf("Delete %d items?", len(m.Selection.PanelMarks[m.Navigation.ActivePanel]))
 	trace := beginAudit(m, "resource."+bulkResourceName(m.Navigation.ActivePanel)+".delete", bulkTarget(m), message)
 	m.Confirm.Open(keys.ShowBulkDelete, target, message, trace)
 	m.Confirm.Options = bulkDeleteOptions(m.Navigation.ActivePanel)
@@ -129,14 +129,14 @@ func doConfirmYes(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 }
 
 func executeBulkDelete(m *state.AppModel, trace audit.Trace, force ...bool) (*state.AppModel, tea.Cmd) {
-	if len(m.Selection.MarkedIDs) == 0 {
+	if len(m.Selection.PanelMarks[m.Navigation.ActivePanel]) == 0 {
 		return m, nil
 	}
-	ids := make([]string, 0, len(m.Selection.MarkedIDs))
-	for id := range m.Selection.MarkedIDs {
+	ids := make([]string, 0, len(m.Selection.PanelMarks[m.Navigation.ActivePanel]))
+	for id := range m.Selection.PanelMarks[m.Navigation.ActivePanel] {
 		ids = append(ids, id)
 	}
-	m.Selection.MarkedIDs = make(map[string]bool)
+	m.Selection.ClearPanelMarks(m.Navigation.ActivePanel)
 	if len(ids) == 0 {
 		return m, nil
 	}

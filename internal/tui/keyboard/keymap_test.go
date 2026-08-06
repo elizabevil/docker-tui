@@ -115,12 +115,11 @@ func TestConfiguredBackBindingExitsMarkMode(t *testing.T) {
 	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Dependencies.Config.Keymap.Navigation.Back = config.KeyBinding{Primary: "x"}
 	app.Navigation.Mode = state.ModeMark
-	app.Selection.MarkedIDs = make(map[string]bool)
-	app.Selection.MarkedIDs["one"] = true
+	app.Selection.Toggle(state.PanelContainers, "one")
 
 	updated, _ := HandleKeyPress(keyMessage("x"), app)
-	if updated.Navigation.Mode != state.ModeNormal || len(updated.Selection.MarkedIDs) != 0 {
-		t.Fatalf("configured mark back mode=%v marked=%v", updated.Navigation.Mode, updated.Selection.MarkedIDs)
+	if updated.Navigation.Mode != state.ModeNormal || updated.Selection.MarkedCount(state.PanelContainers) != 1 {
+		t.Fatalf("configured mark back mode=%v marked=%d", updated.Navigation.Mode, updated.Selection.MarkedCount(state.PanelContainers))
 	}
 }
 

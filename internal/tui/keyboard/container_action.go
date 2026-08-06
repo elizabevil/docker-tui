@@ -20,7 +20,7 @@ func doContainerAction(m *state.AppModel, action string, cmdFn func(runtimeapi.E
 	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelContainers {
 		return m, nil
 	}
-	if len(m.Selection.MarkedIDs) > 0 {
+	if len(m.Selection.PanelMarks[state.PanelContainers]) > 0 {
 		return doBatchContainerAction(m, action, cmdFn)
 	}
 	ctr := m.Resources.Containers.Selected()
@@ -41,10 +41,10 @@ func doContainerAction(m *state.AppModel, action string, cmdFn func(runtimeapi.E
 }
 
 func doBatchContainerAction(m *state.AppModel, action string, cmdFn func(runtimeapi.Engine, string) tea.Cmd) (*state.AppModel, tea.Cmd) {
-	if len(m.Selection.MarkedIDs) == 0 {
+	if len(m.Selection.PanelMarks[state.PanelContainers]) == 0 {
 		return m, nil
 	}
-	count := len(m.Selection.MarkedIDs)
+	count := len(m.Selection.PanelMarks[state.PanelContainers])
 	target := fmt.Sprintf("%d items", count)
 	message := fmt.Sprintf("Batch %s %d containers?", action, count)
 	trace := beginAudit(m, "resource.container."+action,
@@ -64,11 +64,10 @@ func doBatchContainerAction(m *state.AppModel, action string, cmdFn func(runtime
 }
 
 func executeBatchAction(m *state.AppModel, action string, trace audit.Trace) (*state.AppModel, tea.Cmd) {
-	ids := make([]string, 0, len(m.Selection.MarkedIDs))
-	for id := range m.Selection.MarkedIDs {
+	ids := make([]string, 0, len(m.Selection.PanelMarks[state.PanelContainers]))
+	for id := range m.Selection.PanelMarks[state.PanelContainers] {
 		ids = append(ids, id)
 	}
-	m.Selection.MarkedIDs = make(map[string]bool)
 	if len(ids) == 0 {
 		return m, nil
 	}
@@ -151,7 +150,7 @@ func doPauseAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if m.Connection.Engine == nil {
 		return m, nil
 	}
-	if len(m.Selection.MarkedIDs) > 0 {
+	if len(m.Selection.PanelMarks[state.PanelContainers]) > 0 {
 		return doBatchPauseAction(m)
 	}
 	ctr := m.Resources.Containers.Selected()
@@ -176,7 +175,7 @@ func doBatchPauseAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		id      string
 		unpause bool
 	}
-	marked := m.Selection.MarkedIDs
+	marked := m.Selection.PanelMarks[state.PanelContainers]
 	targets := make([]target, 0, len(marked))
 	skipped := 0
 	for _, ctr := range m.Resources.Containers.Items {
@@ -192,7 +191,6 @@ func doBatchPauseAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 			skipped++
 		}
 	}
-	m.Selection.ClearMarks()
 	trace := beginAudit(m, "resource.container.pause_toggle",
 		audit.ContainerTarget{ID: "batch", Name: fmt.Sprintf("%d containers", len(marked))},
 		"Toggle pause for selected containers")

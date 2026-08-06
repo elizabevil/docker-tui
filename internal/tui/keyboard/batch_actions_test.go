@@ -42,9 +42,8 @@ func newAppModelWithEngine(eng runtimeapi.Engine) *state.AppModel {
 
 // markIDs populates the selection marks with the provided IDs.
 func markIDs(m *state.AppModel, ids ...string) {
-	m.Selection.MarkedIDs = make(map[string]bool, len(ids))
 	for _, id := range ids {
-		m.Selection.MarkedIDs[id] = true
+		m.Selection.Toggle(m.Navigation.ActivePanel, id)
 	}
 }
 

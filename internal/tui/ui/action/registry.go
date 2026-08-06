@@ -109,7 +109,7 @@ func Context(app *state.AppModel) []Shortcut {
 	if app.Navigation.ActivePanel == state.PanelCompose {
 		return Compose(app)
 	}
-	return ForPanel(app.Navigation.ActivePanel, len(app.Selection.MarkedIDs), app)
+	return ForPanel(app.Navigation.ActivePanel, len(app.Selection.PanelMarks[app.Navigation.ActivePanel]), app)
 }
 
 func Compose(app *state.AppModel) []Shortcut {

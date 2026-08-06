@@ -126,7 +126,7 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 		selected = selectedRowForCursor(items, viewOffset, cm.Cursor)
 	}
 
-	return component.RenderTable(component.TableData{
+	view := component.RenderTable(component.TableData{
 		Cols:              colsDef,
 		Rows:              rows,
 		Selected:          selected,
@@ -143,6 +143,10 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 		SortColKey:        containerSortColKey(cm.SortBy),
 		SortAsc:           cm.SortAsc,
 	})
+	if banner := component.MarkedItemsBanner(state.PanelContainers, markedIDs); banner != "" {
+		return banner + "\n" + view
+	}
+	return view
 }
 
 func selectedRowForCursor(items []dockerclient.ContainerSummary, offset, cursor int) int {

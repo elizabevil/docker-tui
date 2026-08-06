@@ -213,7 +213,7 @@ func bulkResourceType(panel state.PanelType) state.ResourceType {
 }
 
 func bulkTarget(m *state.AppModel) audit.Target {
-	name := fmt.Sprintf("%d items", len(m.Selection.MarkedIDs))
+	name := fmt.Sprintf("%d items", len(m.Selection.PanelMarks[m.Navigation.ActivePanel]))
 	switch m.Navigation.ActivePanel {
 	case state.PanelContainers:
 		return audit.ContainerTarget{ID: "bulk", Name: name}

@@ -14,7 +14,7 @@ func doDeleteAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if m.Connection.Engine == nil {
 		return m, nil
 	}
-	if len(m.Selection.MarkedIDs) > 0 {
+	if len(m.Selection.PanelMarks[m.Navigation.ActivePanel]) > 0 {
 		return doBulkDelete(m)
 	}
 	switch m.Navigation.ActivePanel {

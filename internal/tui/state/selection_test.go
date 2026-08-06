@@ -8,18 +8,23 @@ import (
 
 func TestSelectionStateMarksAndPendingPull(t *testing.T) {
 	var s SelectionState
-	s.Toggle("one")
-	if !s.MarkedIDs["one"] {
+	s.Toggle(PanelContainers, "one")
+	if !s.PanelMarks[PanelContainers]["one"] {
 		t.Fatal("toggle did not mark item")
 	}
-	s.Toggle("one")
-	if s.MarkedIDs["one"] {
+	s.Toggle(PanelContainers, "one")
+	if s.PanelMarks[PanelContainers]["one"] {
 		t.Fatal("second toggle did not clear item")
 	}
-	s.Toggle("two")
+	s.Toggle(PanelContainers, "two")
+	s.Toggle(PanelImages, "image")
+	s.ClearPanelMarks(PanelContainers)
+	if s.MarkedCount(PanelContainers) != 0 || s.MarkedCount(PanelImages) != 1 {
+		t.Fatalf("panel marks not isolated or cleared: %#v", s.PanelMarks)
+	}
 	s.ClearMarks()
-	if len(s.MarkedIDs) != 0 {
-		t.Fatalf("marks not cleared: %#v", s.MarkedIDs)
+	if len(s.PanelMarks) != 0 {
+		t.Fatalf("marks not cleared: %#v", s.PanelMarks)
 	}
 
 	trace := audit.Trace{ID: "trace", Action: "pull"}

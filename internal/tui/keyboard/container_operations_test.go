@@ -22,7 +22,7 @@ func TestPauseRejectsInapplicableContainer(t *testing.T) {
 func TestBatchPauseSkipsInapplicableContainers(t *testing.T) {
 	m := state.NewAppModel(config.DefaultAppConfig(), &dockerclient.Client{}, "test")
 	m.Resources.Containers.Items = []runtime.ContainerSummary{{ID: "one", State: state.ContainerStateExited}}
-	m.Selection.Toggle("one")
+	m.Selection.Toggle(state.PanelContainers, "one")
 	_, cmd := doPauseAction(m)
 	if cmd == nil {
 		t.Fatal("batch pause did not return a result command")
@@ -31,14 +31,16 @@ func TestBatchPauseSkipsInapplicableContainers(t *testing.T) {
 	if msg.Success != 0 || msg.Skipped != 1 || msg.Failed != 0 {
 		t.Fatalf("batch result = %#v", msg)
 	}
-	if len(m.Selection.MarkedIDs) != 0 {
-		t.Fatalf("marks were not cleared: %#v", m.Selection.MarkedIDs)
+	// C.2: batch stop/restart/pause/kill preserve MarkedIDs — the containers
+	// are still in the list, only their state changed, so marks stay valid.
+	if m.Selection.MarkedCount(state.PanelContainers) != 1 {
+		t.Fatalf("marks were cleared, want preserved per C.2: %#v", m.Selection.PanelMarks[state.PanelContainers])
 	}
 }
 
 func TestBatchContainerActionInitializesChoiceOptions(t *testing.T) {
 	m := state.NewAppModel(config.DefaultAppConfig(), &dockerclient.Client{}, "test")
-	m.Selection.Toggle("one")
+	m.Selection.Toggle(state.PanelContainers, "one")
 
 	updated, cmd := doBatchContainerAction(m, "stop", nil)
 	if cmd != nil || updated.Navigation.Mode != state.ModeConfirm {
@@ -63,7 +65,7 @@ func TestBulkDeleteOptionsExposeForceWhenSupported(t *testing.T) {
 
 func TestBatchStopOffersCancelDefaultAndForce(t *testing.T) {
 	m := state.NewAppModel(config.DefaultAppConfig(), &dockerclient.Client{}, "test")
-	m.Selection.Toggle("one")
+	m.Selection.Toggle(state.PanelContainers, "one")
 	updated, cmd := doBatchContainerAction(m, "stop", nil)
 	if cmd != nil || updated.Confirm.Focus != 0 || len(updated.Confirm.Options) != 2 {
 		t.Fatalf("batch stop confirmation = %#v", updated.Confirm)
