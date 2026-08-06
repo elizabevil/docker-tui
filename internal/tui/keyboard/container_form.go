@@ -44,9 +44,44 @@ const (
 
 const restartPolicyUnchanged = "unchanged"
 
-// restartPolicyChoices are the Docker/Podman restart-policy names. The leading
-// "unchanged" option keeps the current effective policy when no choice is made.
-var restartPolicyChoices = []string{restartPolicyUnchanged, "no", "always", "unless-stopped", "on-failure"}
+// restartChoice pairs a Docker/Podman restart-policy key with its localized
+// display label. The Options slice is the Wire/i18n key submitted to the
+// runtime; the DisplayOptions slice is what the user sees in the form.
+type restartChoice struct {
+	Key   string
+	Label string
+}
+
+// restartPolicyChoices is the canonical order of restart-policy options. The
+// leading "unchanged" entry keeps the current effective policy when no choice
+// is made. Labels are pulled from i18n at package init so changing the active
+// language re-renders the form on the next Open.
+var restartPolicyChoices = []restartChoice{
+	{Key: "unchanged", Label: i18n.T("container.update.form.restart.unchanged")},
+	{Key: "no", Label: i18n.T("container.update.form.restart.no")},
+	{Key: "always", Label: i18n.T("container.update.form.restart.always")},
+	{Key: "unless-stopped", Label: i18n.T("container.update.form.restart.unless_stopped")},
+	{Key: "on-failure", Label: i18n.T("container.update.form.restart.on_failure")},
+}
+
+// buildRestartField assembles the FormSelect field for the Update form. The
+// Options slice carries the runtime keys; DisplayOptions carries the
+// localized labels so the user sees "Always" instead of "always".
+func buildRestartField() state.FormField {
+	options := make([]string, len(restartPolicyChoices))
+	display := make([]string, len(restartPolicyChoices))
+	for i, c := range restartPolicyChoices {
+		options[i] = c.Key
+		display[i] = c.Label
+	}
+	return state.FormField{
+		Key:            fieldRestartPolicy,
+		Label:          i18n.T("container.update.form.restart"),
+		Kind:           state.FormSelect,
+		Options:        options,
+		DisplayOptions: display,
+	}
+}
 
 // openContainerCopyForm opens the Copy form for the selected container. The
 // source is a container-side file or directory; the destination is a local tar
@@ -138,15 +173,21 @@ func openContainerUpdateForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelContainers || ctr == nil {
 		return m, nil
 	}
-	restart := state.FormField{Key: fieldRestartPolicy, Label: i18n.T("container.update.form.restart"), Kind: state.FormSelect, Options: append([]string(nil), restartPolicyChoices...)}
+	restart := buildRestartField()
 	m.Form.Open(state.FormSpec{
 		Kind:       state.FormContainerUpdate,
 		Title:      i18n.T("container.update.form.title"),
 		TargetID:   ctr.ID,
 		TargetName: ctr.Name,
 		Fields: []state.FormField{
-			{Key: fieldMemory, Label: i18n.T("container.update.form.memory"), Kind: state.FormInt},
-			{Key: fieldCPUs, Label: i18n.T("container.update.form.cpus"), Kind: state.FormInt},
+			{Key: fieldMemory, Label: i18n.T("container.update.form.memory"), Kind: state.FormInt,
+				HelperText: "MB", Unit: "MB",
+				Min: state.FormFieldMin(0),
+				Max: state.FormFieldMax(float64(math.MaxInt64) / (1024 * 1024))},
+			{Key: fieldCPUs, Label: i18n.T("container.update.form.cpus"), Kind: state.FormInt,
+				HelperText: "cores", Unit: "cores",
+				Min: state.FormFieldMin(0),
+				Max: state.FormFieldMax(float64(math.MaxInt64) / 1e9)},
 			restart,
 			{Key: fieldMaxRetries, Label: i18n.T("container.update.form.max_retries"), Kind: state.FormInt},
 		},
@@ -877,6 +918,26 @@ func reloadPathPopup(m *state.AppModel, f *state.FormField) (*state.AppModel, te
 	return m, nil
 }
 
+// validateFloatField parses a FormField's text as a float64 and checks the
+// field's declared Min / Max bounds. On failure it shows a toast and returns
+// ok=false so the caller can short-circuit submit.
+func validateFloatField(m *state.AppModel, f *state.FormField) (float64, bool) {
+	value, err := strconv.ParseFloat(f.Text(), 64)
+	if err != nil || math.IsNaN(value) || math.IsInf(value, 0) || value < 0 {
+		ShowToastWarn(m, i18n.T("container.update.form.invalid"))
+		return 0, false
+	}
+	if f.Min != nil && value < *f.Min {
+		ShowToastWarn(m, i18n.T("container.update.form.invalid_range"))
+		return 0, false
+	}
+	if f.Max != nil && value > *f.Max {
+		ShowToastWarn(m, i18n.T("container.update.form.invalid_range"))
+		return 0, false
+	}
+	return value, true
+}
+
 // submitContainerForm validates the active form and, on success, issues the
 // matching runtime Cmd wrapped in an audit trace. Validation failures show a
 // toast and leave the form open for correction.
@@ -949,9 +1010,8 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		opts := runtimeapi.ContainerUpdateOptions{}
 		changed := false
 		if mem := m.Form.Get(fieldMemory); mem != nil && mem.Touched && mem.Text() != "" {
-			mb, err := strconv.ParseFloat(mem.Text(), 64)
-			if err != nil || mb < 0 || math.IsNaN(mb) || math.IsInf(mb, 0) || mb > float64(math.MaxInt64)/(1024*1024) {
-				ShowToastWarn(m, i18n.T("container.update.form.invalid"))
+			mb, ok := validateFloatField(m, mem)
+			if !ok {
 				return m, nil
 			}
 			bytes := int64(mb * 1024 * 1024)
@@ -959,9 +1019,8 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 			changed = true
 		}
 		if cpu := m.Form.Get(fieldCPUs); cpu != nil && cpu.Touched && cpu.Text() != "" {
-			cores, err := strconv.ParseFloat(cpu.Text(), 64)
-			if err != nil || cores < 0 || math.IsNaN(cores) || math.IsInf(cores, 0) || cores > float64(math.MaxInt64)/1e9 {
-				ShowToastWarn(m, i18n.T("container.update.form.invalid"))
+			cores, ok := validateFloatField(m, cpu)
+			if !ok {
 				return m, nil
 			}
 			nano := int64(cores * 1e9)

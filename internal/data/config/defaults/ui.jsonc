@@ -21,6 +21,12 @@
         "vertical": "center",
         "offsetX": 0,
         "offsetY": 0
+      },
+      "panelSize": {
+        "widthPercent": 75,
+        "heightPercent": 100,
+        "maxWidth": 120,
+        "maxHeight": 40
       }
     },
     "window": {

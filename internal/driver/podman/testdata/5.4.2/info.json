@@ -1,10 +1,10 @@
 {
-  "ID": "846f4d3c-9184-4159-a1e9-dd84f400b5cf",
+  "ID": "5c7a0612-a262-48d5-b83c-a54d543bf307",
   "Containers": 3,
-  "ContainersRunning": 3,
+  "ContainersRunning": 2,
   "ContainersPaused": 0,
-  "ContainersStopped": 0,
-  "Images": 187,
+  "ContainersStopped": 1,
+  "Images": 253,
   "Driver": "overlay",
   "DriverStatus": [
     [
@@ -60,10 +60,10 @@
   "BridgeNfIptables": false,
   "BridgeNfIp6tables": false,
   "Debug": false,
-  "NFd": 37,
+  "NFd": 11,
   "OomKillDisable": false,
-  "NGoroutines": 33,
-  "SystemTime": "2026-08-01T22:46:57.54909116-04:00",
+  "NGoroutines": 14,
+  "SystemTime": "2026-08-05T22:45:00.243645019-04:00",
   "LoggingDriver": "",
   "CgroupDriver": "systemd",
   "NEventsListener": 0,
@@ -81,7 +81,7 @@
     "Mirrors": []
   },
   "NCPU": 14,
-  "MemTotal": 16733364224,
+  "MemTotal": 16733388800,
   "GenericResources": null,
   "DockerRootDir": "/home/debi/.local/share/containers/storage",
   "HttpProxy": "",
@@ -162,5 +162,5 @@
   "Rootless": true,
   "SwapFree": 0,
   "SwapTotal": 0,
-  "Uptime": "31h 8m 49.00s (Approximately 1.29 days)"
+  "Uptime": "29h 26m 9.00s (Approximately 1.21 days)"
 }

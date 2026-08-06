@@ -1,6 +1,10 @@
 package runtime
 
-import "context"
+import (
+	"context"
+	"fmt"
+	"strings"
+)
 
 // ImageTransferOperation identifies an image distribution workflow.
 type ImageTransferOperation string
@@ -24,6 +28,36 @@ type ImageTransferRequest struct {
 	Source      string
 	Destination string
 	Path        string
+}
+
+// Validate reports whether the request has the fields required by its
+// operation. The runtime adapter calls Validate before opening a channel
+// so that callers never see a half-started workflow for malformed input.
+func (r ImageTransferRequest) Validate() error {
+	required := func(value, field string) error {
+		if strings.TrimSpace(value) == "" {
+			return NewError(ErrorInvalid, "image."+string(r.Operation), r.Source,
+				fmt.Errorf("%s is required", field))
+		}
+		return nil
+	}
+	switch r.Operation {
+	case ImageTransferTag, ImageTransferPush:
+		if err := required(r.Source, "source"); err != nil {
+			return err
+		}
+		return required(r.Destination, "destination")
+	case ImageTransferSave:
+		if err := required(r.Source, "source"); err != nil {
+			return err
+		}
+		return required(r.Path, "path")
+	case ImageTransferLoad:
+		return required(r.Path, "path")
+	default:
+		return NewError(ErrorInvalid, "image.transfer", r.Source,
+			fmt.Errorf("unknown operation %q", r.Operation))
+	}
 }
 
 // ImageTransferProgress is a point-in-time transfer update. Total is zero

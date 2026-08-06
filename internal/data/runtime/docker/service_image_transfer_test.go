@@ -16,11 +16,11 @@ func TestValidateImageTransferRequest(t *testing.T) {
 		{Operation: runtimeapi.ImageTransferLoad, Path: "/tmp/app.tar"},
 	}
 	for _, request := range valid {
-		if err := validateImageTransferRequest(request); err != nil {
+		if err := request.Validate(); err != nil {
 			t.Fatalf("validate %#v: %v", request, err)
 		}
 	}
-	if err := validateImageTransferRequest(runtimeapi.ImageTransferRequest{Operation: runtimeapi.ImageTransferSave}); err == nil {
+	if err := (runtimeapi.ImageTransferRequest{Operation: runtimeapi.ImageTransferSave}).Validate(); err == nil {
 		t.Fatal("save without source and path was accepted")
 	}
 }

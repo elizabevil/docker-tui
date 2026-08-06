@@ -1,6 +1,12 @@
 package state
 
-import "testing"
+import (
+	"encoding/json"
+	"strings"
+	"testing"
+
+	"github.com/elizabevil/docker-tui/internal/utils"
+)
 
 func TestToggleMulti(t *testing.T) {
 	f := &FormField{Kind: FormMultiSelect, Options: []string{"a", "b"}}
@@ -264,5 +270,117 @@ func TestMoveFieldSkipsHiddenFields(t *testing.T) {
 	s.MoveField(-1)
 	if s.FieldFocus != 0 {
 		t.Fatalf("Up from 2 must skip hidden idx=1, got %d", s.FieldFocus)
+	}
+}
+
+func TestFormFieldHelpers(t *testing.T) {
+	if got := FormFieldMin(0.5); got == nil || *got != 0.5 {
+		t.Fatalf("FormFieldMin(0.5) = %v, want pointer to 0.5", got)
+	}
+	if got := FormFieldMax(8192); got == nil || *got != 8192 {
+		t.Fatalf("FormFieldMax(8192) = %v, want pointer to 8192", got)
+	}
+	// Helpers must not alias the same backing variable across calls; each
+	// call must return a freshly-allocated pointer so field literals don't
+	// accidentally share state through package-level captures.
+	if FormFieldMin(1) == FormFieldMin(1) {
+		t.Fatal("FormFieldMin must return a new pointer per call")
+	}
+}
+
+func TestFormFieldStructFields(t *testing.T) {
+	f := FormField{
+		Key:         "mem",
+		HelperText:  "Container memory limit",
+		Unit:        "MB",
+		Min:         FormFieldMin(64),
+		Max:         FormFieldMax(65536),
+		Placeholder: "1024",
+	}
+	if f.HelperText != "Container memory limit" {
+		t.Fatalf("HelperText = %q, want %q", f.HelperText, "Container memory limit")
+	}
+	if f.Unit != "MB" {
+		t.Fatalf("Unit = %q, want %q", f.Unit, "MB")
+	}
+	if f.Min == nil || *f.Min != 64 {
+		t.Fatalf("Min = %v, want pointer to 64", f.Min)
+	}
+	if f.Max == nil || *f.Max != 65536 {
+		t.Fatalf("Max = %v, want pointer to 65536", f.Max)
+	}
+	if f.Placeholder != "1024" {
+		t.Fatalf("Placeholder = %q, want %q", f.Placeholder, "1024")
+	}
+}
+
+func TestFormFieldJSONRoundTrip(t *testing.T) {
+	orig := FormField{
+		Key:        "mem",
+		HelperText: "Memory limit",
+		Unit:       "MB",
+		Min:        FormFieldMin(64),
+		Max:        FormFieldMax(8192),
+	}
+	body, err := json.Marshal(orig)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	s := string(body)
+	for _, want := range []string{`"helperText":"Memory limit"`, `"unit":"MB"`, `"min":64`, `"max":8192`} {
+		if !strings.Contains(s, want) {
+			t.Fatalf("marshal missing %q in %s", want, s)
+		}
+	}
+	var got FormField
+	if err := json.Unmarshal(body, &got); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if got.HelperText != orig.HelperText || got.Unit != orig.Unit || got.Placeholder != orig.Placeholder {
+		t.Fatalf("string fields round-trip mismatch: %+v vs %+v", got, orig)
+	}
+	if got.Min == nil || *got.Min != *orig.Min {
+		t.Fatalf("Min round-trip mismatch: %v vs %v", got.Min, orig.Min)
+	}
+	if got.Max == nil || *got.Max != *orig.Max {
+		t.Fatalf("Max round-trip mismatch: %v vs %v", got.Max, orig.Max)
+	}
+}
+
+func TestFormFieldJSONCEmptyFieldsOmitted(t *testing.T) {
+	// A zero-valued FormField must serialize without the Phase-2 keys so
+	// legacy layouts (no HelperText/Min/Max/...) do not gain noise.
+	body, err := utils.MarshalJSONCStd(FormField{Key: "tag"}, utils.JSONCHeader{})
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	s := string(body)
+	for _, banned := range []string{"helperText", `"unit"`, `"min"`, `"max"`, "placeholder"} {
+		if strings.Contains(s, banned) {
+			t.Fatalf("empty field must omit %q, got: %s", banned, s)
+		}
+	}
+	// And a JSONC body with comments must round-trip into a populated struct.
+	src := []byte(`{
+		// phase-2 layout
+		"key": "mem",
+		"helperText": "Memory limit",
+		"unit": "MB",
+		"min": 64,
+		"max": 8192,
+		"placeholder": "1024"
+	}`)
+	var got FormField
+	if err := utils.UnmarshalJSONCStd(src, &got); err != nil {
+		t.Fatalf("unmarshal jsonc: %v", err)
+	}
+	if got.HelperText != "Memory limit" || got.Unit != "MB" || got.Placeholder != "1024" {
+		t.Fatalf("string fields: %+v", got)
+	}
+	if got.Min == nil || *got.Min != 64 {
+		t.Fatalf("Min = %v, want 64", got.Min)
+	}
+	if got.Max == nil || *got.Max != 8192 {
+		t.Fatalf("Max = %v, want 8192", got.Max)
 	}
 }

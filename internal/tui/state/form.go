@@ -74,12 +74,33 @@ type FormField struct {
 	Kind     FormFieldKind
 	Input    QueryInputState
 	Options  []string
-	Index    int             // selected variant for FormSelect
-	Selected map[string]bool // selected variants for FormMultiSelect
-	Toggle   bool
+	// DisplayOptions holds the localized label shown to the user for each
+	// Options entry; rendered alongside the dropdown marker and in popup
+	// rows. When non-empty and aligned with Options, the renderer uses it
+	// instead of the raw key. Empty/nil falls back to Options (legacy).
+	DisplayOptions []string
+	Index          int             // selected variant for FormSelect
+	Selected       map[string]bool // selected variants for FormMultiSelect
+	Toggle         bool
 
 	Required bool
 	Error    string
+
+	// HelperText is a short secondary label rendered below the input
+	// (units, hints). Optional; empty string hides it.
+	HelperText string `json:"helperText,omitempty"  yaml:"helperText,omitempty"`
+	// Unit is a tiny suffix glyph shown next to numeric inputs
+	// (e.g. "MB", "%"). Optional; empty string hides it.
+	Unit string `json:"unit,omitempty"        yaml:"unit,omitempty"`
+	// Min is the inclusive lower bound for numeric fields. nil = unbounded.
+	// Use FormFieldMin(v) to build the pointer in field literals.
+	Min *float64 `json:"min,omitempty"         yaml:"min,omitempty"`
+	// Max is the inclusive upper bound for numeric fields. nil = unbounded.
+	// Use FormFieldMax(v) to build the pointer in field literals.
+	Max *float64 `json:"max,omitempty"         yaml:"max,omitempty"`
+	// Placeholder is a hint shown when the input is empty (e.g. "1024").
+	// Optional; empty string hides it.
+	Placeholder string `json:"placeholder,omitempty" yaml:"placeholder,omitempty"`
 
 	PathSource  PathSource
 	PathMode    PathMode
@@ -110,6 +131,16 @@ type FormField struct {
 	// and PathLoading is false.
 	PathError string
 }
+
+// FormFieldMin returns a pointer to v, suitable for FormField.Min literals.
+// Provided so call sites can write FormField{..., Min: FormFieldMin(1024)}
+// without an intermediate local variable.
+func FormFieldMin(v float64) *float64 { return &v }
+
+// FormFieldMax returns a pointer to v, suitable for FormField.Max literals.
+// Provided so call sites can write FormField{..., Max: FormFieldMax(8192)}
+// without an intermediate local variable.
+func FormFieldMax(v float64) *float64 { return &v }
 
 // Text returns the trimmed value of a text/Int field.
 func (f *FormField) Text() string {

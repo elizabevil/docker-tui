@@ -26,7 +26,7 @@ func (c *Client) ImageTransfers() runtimeapi.ImageTransferService {
 // Run executes an image transfer workflow and returns a channel of progress
 // and terminal events. The channel is closed after the final event.
 func (s imageTransferService) Run(ctx context.Context, request runtimeapi.ImageTransferRequest) (<-chan runtimeapi.ImageTransferEvent, error) {
-	if err := validateImageTransferRequest(request); err != nil {
+	if err := request.Validate(); err != nil {
 		return nil, err
 	}
 	output := make(chan runtimeapi.ImageTransferEvent, 32)
@@ -48,34 +48,6 @@ func mapImageTransferErr(err error, request runtimeapi.ImageTransferRequest) err
 		runtimeapi.Operation(runtimeapi.ResourceImage, string(request.Operation)),
 		runtimeapi.ResourceRef{Type: runtimeapi.ResourceImage, ID: request.Source},
 		runtimeapi.Docker)
-}
-
-func validateImageTransferRequest(request runtimeapi.ImageTransferRequest) error {
-	required := func(value, field string) error {
-		if strings.TrimSpace(value) == "" {
-			return runtimeapi.NewError(runtimeapi.ErrorInvalid,
-				"image."+string(request.Operation), request.Source,
-				fmt.Errorf("%s is required", field))
-		}
-		return nil
-	}
-	switch request.Operation {
-	case runtimeapi.ImageTransferTag, runtimeapi.ImageTransferPush:
-		if err := required(request.Source, "source"); err != nil {
-			return err
-		}
-		return required(request.Destination, "destination")
-	case runtimeapi.ImageTransferSave:
-		if err := required(request.Source, "source"); err != nil {
-			return err
-		}
-		return required(request.Path, "path")
-	case runtimeapi.ImageTransferLoad:
-		return required(request.Path, "path")
-	default:
-		return runtimeapi.NewError(runtimeapi.ErrorInvalid, "image.transfer", request.Source,
-			fmt.Errorf("unknown operation %q", request.Operation))
-	}
 }
 
 func (s imageTransferService) execute(ctx context.Context, request runtimeapi.ImageTransferRequest, output chan<- runtimeapi.ImageTransferEvent) (*runtimeapi.ImageTransferResult, error) {

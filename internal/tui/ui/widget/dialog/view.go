@@ -52,28 +52,38 @@ func dialogHeight(termH int, cfg DialogConfig) int {
 	return h
 }
 
-// panelDialogWidth computes dialog width from a panel body using a fixed
-// 3/4 ratio, clamped to cfg.MinWidth / cfg.MaxWidth (BR-043 §3.2).
+// panelDialogWidth computes the dialog width from a panel body using
+// cfg.PanelSize.WidthPercent. A zero WidthPercent falls back to
+// cfg.Width.Percent so the legacy percentage still applies. The result
+// is upper-bounded by cfg.PanelSize.MaxWidth, or cfg.Width.Max when
+// MaxWidth is unset.
 func panelDialogWidth(bodyW int, cfg DialogConfig) int {
-	w := bodyW * 3 / 4
-	if cfg.Width.Min > 0 && w < cfg.Width.Min {
-		w = cfg.Width.Min
+	pct := cfg.PanelSize.WidthPercent
+	if pct <= 0 {
+		pct = cfg.Width.Percent
 	}
-	if cfg.Width.Max > 0 && w > cfg.Width.Max {
+	w := bodyW * pct / 100
+	if cfg.PanelSize.MaxWidth > 0 && w > cfg.PanelSize.MaxWidth {
+		w = cfg.PanelSize.MaxWidth
+	} else if cfg.Width.Max > 0 && w > cfg.Width.Max {
 		w = cfg.Width.Max
 	}
 	return w
 }
 
-// panelDialogHeight computes dialog height from a panel body using a fixed
-// 3/4 ratio, clamped to cfg.MinHeight / cfg.MaxHeight (BR-043 §3.2 + height
-// revision: dialog 宽 3/4、高 3/4,均为 panel 比例).
+// panelDialogHeight computes the dialog height from a panel body using
+// cfg.PanelSize.HeightPercent. A zero HeightPercent falls back to
+// cfg.Height.Percent. The result is upper-bounded by
+// cfg.PanelSize.MaxHeight, or cfg.Height.Max when MaxHeight is unset.
 func panelDialogHeight(bodyH int, cfg DialogConfig) int {
-	h := bodyH * 3 / 4
-	if cfg.Height.Min > 0 && h < cfg.Height.Min {
-		h = cfg.Height.Min
+	pct := cfg.PanelSize.HeightPercent
+	if pct <= 0 {
+		pct = cfg.Height.Percent
 	}
-	if cfg.Height.Max > 0 && h > cfg.Height.Max {
+	h := bodyH * pct / 100
+	if cfg.PanelSize.MaxHeight > 0 && h > cfg.PanelSize.MaxHeight {
+		h = cfg.PanelSize.MaxHeight
+	} else if cfg.Height.Max > 0 && h > cfg.Height.Max {
 		h = cfg.Height.Max
 	}
 	return h

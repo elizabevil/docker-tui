@@ -66,5 +66,5 @@ func SelectionDialog(title, body, preview, action string, focus int, termW, term
 	parts = append(parts, "")
 	parts = append(parts, component.GetStyle(component.StyleDim).Render(hint))
 
-	return DialogBox(DialogStyle{Width: dialogW, Height: dialogH, TitleColor: titleColor, OverlayColor: overlayColor}, parts...)
+	return DialogBox(DialogStyle{Width: dialogW, Height: dialogH, MaxWidth: cfg.PanelSize.MaxWidth, TitleColor: titleColor, OverlayColor: overlayColor}, parts...)
 }

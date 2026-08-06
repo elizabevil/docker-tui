@@ -108,5 +108,5 @@ func ExecDialog(m *state.AppModel, overlayColor string, cfg DialogConfig, bodyW,
 	parts = append(parts, "")
 	parts = append(parts, component.GetStyle(component.StyleDim).Render(hint))
 
-	return DialogBox(DialogStyle{Width: dialogW, Height: dialogH, TitleColor: component.GetStyle(component.StyleDialogConfirm).GetForeground(), OverlayColor: overlayColor}, parts...)
+	return DialogBox(DialogStyle{Width: dialogW, Height: dialogH, MaxWidth: cfg.PanelSize.MaxWidth, TitleColor: component.GetStyle(component.StyleDialogConfirm).GetForeground(), OverlayColor: overlayColor}, parts...)
 }

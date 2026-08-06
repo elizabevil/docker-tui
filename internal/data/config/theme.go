@@ -421,7 +421,7 @@ func loadThemeDocument(data []byte, source string, base *Theme) (*loadedTheme, e
 }
 
 func loadNamedTheme(name ThemeName, userDir string, base *Theme) (*loadedTheme, error) {
-	if err := validateThemeName(name); err != nil {
+	if err := name.Validate(); err != nil {
 		return nil, err
 	}
 	filename := string(name) + jsoncExtension
@@ -440,15 +440,15 @@ func loadNamedTheme(name ThemeName, userDir string, base *Theme) (*loadedTheme, 
 	return loadThemeDocument(data, themeSourcePrefix+filename, base)
 }
 
-func validateThemeName(name ThemeName) error {
-	if name == ThemeName(emptyValue) {
+func (n ThemeName) Validate() error {
+	if n == ThemeName(emptyValue) {
 		return errors.New(errThemeNameRequired)
 	}
-	for _, char := range string(name) {
+	for _, char := range string(n) {
 		if unicode.IsLetter(char) || unicode.IsDigit(char) || char == themeNameDash || char == themeNameUnderscore {
 			continue
 		}
-		return fmt.Errorf(errThemeNameInvalidFormat, name)
+		return fmt.Errorf(errThemeNameInvalidFormat, n)
 	}
 	return nil
 }

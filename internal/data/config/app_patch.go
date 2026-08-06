@@ -67,15 +67,23 @@ type SelectionInfoPatch struct {
 }
 
 type DialogLayoutPatch struct {
-	Width    *ResponsiveSizePatch `json:"width,omitempty" yaml:"width,omitempty"`
-	Height   *ResponsiveSizePatch `json:"height,omitempty" yaml:"height,omitempty"`
-	Position *DialogPositionPatch `json:"position,omitempty" yaml:"position,omitempty"`
+	Width     *ResponsiveSizePatch `json:"width,omitempty" yaml:"width,omitempty"`
+	Height    *ResponsiveSizePatch `json:"height,omitempty" yaml:"height,omitempty"`
+	Position  *DialogPositionPatch `json:"position,omitempty" yaml:"position,omitempty"`
+	PanelSize *PanelSizePatch      `json:"panelSize,omitempty" yaml:"panelSize,omitempty"`
 }
 
 type ResponsiveSizePatch struct {
 	Percent *int `json:"percent,omitempty" yaml:"percent,omitempty"`
 	Min     *int `json:"min,omitempty" yaml:"min,omitempty"`
 	Max     *int `json:"max,omitempty" yaml:"max,omitempty"`
+}
+
+type PanelSizePatch struct {
+	WidthPercent  *int `json:"widthPercent,omitempty" yaml:"widthPercent,omitempty"`
+	HeightPercent *int `json:"heightPercent,omitempty" yaml:"heightPercent,omitempty"`
+	MaxWidth      *int `json:"maxWidth,omitempty" yaml:"maxWidth,omitempty"`
+	MaxHeight     *int `json:"maxHeight,omitempty" yaml:"maxHeight,omitempty"`
 }
 
 type DialogPositionPatch struct {
@@ -329,6 +337,16 @@ func (p DialogLayoutPatch) apply(target *DialogLayoutConfig) {
 		assign(&target.Position.OffsetX, p.Position.OffsetX)
 		assign(&target.Position.OffsetY, p.Position.OffsetY)
 	}
+	if p.PanelSize != nil {
+		p.PanelSize.apply(&target.PanelSize)
+	}
+}
+
+func (p PanelSizePatch) apply(target *PanelSize) {
+	assign(&target.WidthPercent, p.WidthPercent)
+	assign(&target.HeightPercent, p.HeightPercent)
+	assign(&target.MaxWidth, p.MaxWidth)
+	assign(&target.MaxHeight, p.MaxHeight)
 }
 
 func (p ResponsiveSizePatch) apply(target *ResponsiveSize) {

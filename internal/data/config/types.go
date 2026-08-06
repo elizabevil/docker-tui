@@ -136,6 +136,24 @@ type DialogLayoutConfig struct {
 	Width    ResponsiveSize `json:"width" yaml:"width"`
 	Height   ResponsiveSize `json:"height" yaml:"height"`
 	Position DialogPosition `json:"position" yaml:"position"`
+	// PanelSize governs dialog sizing when a panel body is available
+	// (BR-043 §3.2). WidthPercent is multiplied by panel body width;
+	// HeightPercent by panel body height. The width is upper-bounded by
+	// MaxWidth so wide content never exceeds a sensible dialog footprint
+	// (defaults: 75 % × full height, capped at 120 cells / 40 rows).
+	PanelSize PanelSize `json:"panelSize" yaml:"panelSize"`
+}
+
+// PanelSize sizes a dialog against the active panel body (BR-043 §3.2).
+// WidthPercent is multiplied by panel body width; HeightPercent by
+// panel body height. The width is upper-bounded by MaxWidth; the height
+// is upper-bounded by MaxHeight. A zero value means "fall back to
+// cfg.Width / cfg.Height" in the panel sizing helpers.
+type PanelSize struct {
+	WidthPercent  int `json:"widthPercent" yaml:"widthPercent"`
+	HeightPercent int `json:"heightPercent" yaml:"heightPercent"`
+	MaxWidth      int `json:"maxWidth" yaml:"maxWidth"`
+	MaxHeight     int `json:"maxHeight" yaml:"maxHeight"`
 }
 
 // DockerConfig holds Docker connection settings.
@@ -362,13 +380,28 @@ func DefaultAppConfig() *AppConfig {
 		UI: UIConfig{
 			ShowHelp: true, HintTimeout: 3, EnableMouse: true,
 			Dialog: DialogLayoutConfig{
-				Width:    ResponsiveSize{Percent: 25, Min: 40, Max: 80},
-				Height:   ResponsiveSize{Percent: 30, Min: 10, Max: 40},
+				// Dialogs (Copy / Update / Export / Commit / Action Bar /
+				// Image Save / Image Load) use 75% of the active panel body
+				// so the form fields have room to render, clamped to a
+				// reasonable Min/Max so the dialog never collapses to a
+				// sliver on a wide terminal or explodes past the viewport.
+				Width:    ResponsiveSize{Percent: 75, Min: 60, Max: 120},
+				Height:   ResponsiveSize{Percent: 75, Min: 16, Max: 40},
 				Position: DialogPosition{Horizontal: HorizontalCenter, Vertical: VerticalCenter},
+				// PanelSize: panel-body driven sizing (BR-043 §3.2).
+				// Width 75% of body, full height (100%), capped at 120 cells / 40 rows.
+				PanelSize: PanelSize{
+					WidthPercent: 75, HeightPercent: 100,
+					MaxWidth: 120, MaxHeight: 40,
+				},
 			},
 			Window: WindowLayoutConfig{MarginTopPercent: 2, MarginBottomPercent: 2, ContentWidthPercent: 99},
 			Header: HeaderLayoutConfig{
-				Columns:               HeaderColumnWeights{Host: 3, Connection: 5, Keystroke: 7, Logo: 3},
+				// Header columns split the available width using a 2:2:3:3
+				// ratio (Host / Connection / Keystroke / Logo). Keystroke and
+				// Logo together take half the header so the per-key badge row
+				// stays readable at typical 80-120 column TTI widths.
+				Columns:               HeaderColumnWeights{Host: 2, Connection: 2, Keystroke: 3, Logo: 3},
 				KeystrokeContentRatio: 80,
 			},
 			Table: TableLayoutConfig{

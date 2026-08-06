@@ -25,7 +25,9 @@ const (
 	errSecondaryRequiresPrimaryFormat   = "%s.secondary requires primary"
 	errDuplicateBindingFormat           = "%s primary and secondary must differ"
 	errResponsivePercentFormat          = "%s.percent must be between 1 and 100"
-	errResponsiveBoundsFormat           = "%s must satisfy 0 < min <= max"
+	errResponsivePercentInvalid         = "percent must be between 1 and 100"
+	errResponsiveBoundsInvalid          = "min and max must satisfy 0 < min <= max"
+	errValidateAtFormat                 = "%s: %w"
 	errRuntimeConnectionFormat          = "runtime.connections[%d]: %w"
 	errRuntimeConnectionDuplicateFormat = "runtime.connections[%d].name %q is duplicated"
 	errRuntimeDefaultMissingFormat      = "runtime.default %q does not name a connection"
@@ -67,8 +69,10 @@ const (
 )
 
 const (
-	pathDialogWidth  = "ui.dialog.width"
-	pathDialogHeight = "ui.dialog.height"
+	pathDialogWidth       = "ui.dialog.width"
+	pathDialogHeight      = "ui.dialog.height"
+	pathPanelSizeWidth    = "ui.dialog.panelSize.width"
+	pathPanelSizeHeight   = "ui.dialog.panelSize.height"
 )
 
 const (

@@ -43,4 +43,13 @@ func TestServicePanelUsesBreadcrumbOrder(t *testing.T) {
 	if strings.Contains(got, "Services: integration") {
 		t.Fatalf("legacy service title remains: %q", got)
 	}
+	// Service count summary now lives in the header row alongside the title;
+	// the previous "s:start S:stop l:logs" FooterHint has been removed from
+	// this view because the same shortcuts show elsewhere in the chrome.
+	if !strings.Contains(got, "Services: 1") {
+		t.Fatalf("service count must surface in the header, got %q", got)
+	}
+	if strings.Contains(got, "s:start S:stop l:logs") {
+		t.Fatalf("duplicate shortcut hint must not render in the services panel: %q", got)
+	}
 }

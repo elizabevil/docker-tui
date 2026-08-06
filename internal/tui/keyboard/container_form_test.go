@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
@@ -521,6 +522,143 @@ func TestSubmitContainerUpdateFormRequiresAChange(t *testing.T) {
 	}
 	if updated.Navigation.Mode != state.ModeContainerForm || updated.Feedback.ToastMessage == "" {
 		t.Fatal("empty update must keep the form open with a warning")
+	}
+}
+
+func TestMemoryFieldHasConstraints(t *testing.T) {
+	m := formModel(t, &stubContainerService{})
+	openContainerUpdateForm(m)
+	mem := m.Form.Get(fieldMemory)
+	if mem == nil {
+		t.Fatal("memory field must exist on the update form")
+	}
+	if mem.HelperText != "MB" {
+		t.Errorf("memory HelperText = %q, want %q", mem.HelperText, "MB")
+	}
+	if mem.Unit != "MB" {
+		t.Errorf("memory Unit = %q, want %q", mem.Unit, "MB")
+	}
+	if mem.Min == nil || *mem.Min != 0 {
+		t.Errorf("memory Min = %v, want pointer to 0", mem.Min)
+	}
+	if mem.Max == nil {
+		t.Fatal("memory Max must be set")
+	}
+}
+
+func TestCpusFieldHasConstraints(t *testing.T) {
+	m := formModel(t, &stubContainerService{})
+	openContainerUpdateForm(m)
+	cpu := m.Form.Get(fieldCPUs)
+	if cpu == nil {
+		t.Fatal("cpus field must exist on the update form")
+	}
+	if cpu.HelperText != "cores" {
+		t.Errorf("cpus HelperText = %q, want %q", cpu.HelperText, "cores")
+	}
+	if cpu.Unit != "cores" {
+		t.Errorf("cpus Unit = %q, want %q", cpu.Unit, "cores")
+	}
+	if cpu.Min == nil || *cpu.Min != 0 {
+		t.Errorf("cpus Min = %v, want pointer to 0", cpu.Min)
+	}
+	if cpu.Max == nil {
+		t.Fatal("cpus Max must be set")
+	}
+}
+
+func TestMemoryFieldSubmitRejectsNegative(t *testing.T) {
+	m := formModel(t, &stubContainerService{})
+	openContainerUpdateForm(m)
+	mem := m.Form.Get(fieldMemory)
+	mem.Input.Set("-1")
+	mem.Touched = true
+	m.Form.FieldFocus = m.Form.ConfirmSlot()
+
+	updated, cmd := submitContainerForm(m)
+	if cmd != nil {
+		t.Fatalf("negative memory returned a cmd %T, want nil", cmd)
+	}
+	if updated.Navigation.Mode != state.ModeContainerForm {
+		t.Fatal("negative memory must keep the form open")
+	}
+	if updated.Feedback.ToastMessage == "" {
+		t.Fatal("negative memory must surface a toast")
+	}
+}
+
+func TestMemoryFieldSubmitRejectsExcessive(t *testing.T) {
+	m := formModel(t, &stubContainerService{})
+	openContainerUpdateForm(m)
+	mem := m.Form.Get(fieldMemory)
+	mem.Input.Set("9999999999999")
+	mem.Touched = true
+	m.Form.FieldFocus = m.Form.ConfirmSlot()
+
+	updated, cmd := submitContainerForm(m)
+	if cmd != nil {
+		t.Fatalf("excessive memory returned a cmd %T, want nil", cmd)
+	}
+	if updated.Navigation.Mode != state.ModeContainerForm {
+		t.Fatal("excessive memory must keep the form open")
+	}
+	if updated.Feedback.ToastMessage == "" {
+		t.Fatal("excessive memory must surface a toast")
+	}
+}
+
+func TestCpusFieldSubmitRejectsNegative(t *testing.T) {
+	m := formModel(t, &stubContainerService{})
+	openContainerUpdateForm(m)
+	cpu := m.Form.Get(fieldCPUs)
+	cpu.Input.Set("-0.5")
+	cpu.Touched = true
+	m.Form.FieldFocus = m.Form.ConfirmSlot()
+
+	updated, cmd := submitContainerForm(m)
+	if cmd != nil {
+		t.Fatalf("negative cpus returned a cmd %T, want nil", cmd)
+	}
+	if updated.Feedback.ToastMessage == "" {
+		t.Fatal("negative cpus must surface a toast")
+	}
+}
+
+func TestCpusFieldSubmitRejectsExcessive(t *testing.T) {
+	m := formModel(t, &stubContainerService{})
+	openContainerUpdateForm(m)
+	cpu := m.Form.Get(fieldCPUs)
+	cpu.Input.Set("99999999999")
+	cpu.Touched = true
+	m.Form.FieldFocus = m.Form.ConfirmSlot()
+
+	updated, cmd := submitContainerForm(m)
+	if cmd != nil {
+		t.Fatalf("excessive cpus returned a cmd %T, want nil", cmd)
+	}
+	if updated.Feedback.ToastMessage == "" {
+		t.Fatal("excessive cpus must surface a toast")
+	}
+}
+
+func TestMemoryFieldSubmitAcceptsValid(t *testing.T) {
+	capture := &captureService{}
+	m := formModel(t, capture)
+	openContainerUpdateForm(m)
+	mem := m.Form.Get(fieldMemory)
+	mem.Input.Set("512")
+	mem.Touched = true
+	m.Form.FieldFocus = m.Form.ConfirmSlot()
+
+	updated, cmd := submitContainerForm(m)
+	if cmd == nil {
+		t.Fatal("valid memory must return a submit command")
+	}
+	if updated.Feedback.ToastMessage != "" {
+		t.Fatalf("valid memory must not show a toast, got %q", updated.Feedback.ToastMessage)
+	}
+	if updated.Navigation.Mode == state.ModeContainerForm {
+		t.Fatal("valid memory submit must close the form")
 	}
 }
 
@@ -1369,5 +1507,102 @@ func TestFormLeftRightInButtonsToggles(t *testing.T) {
 	handleContainerFormKey(keys.KeyLeft, m)
 	if m.Form.FocusedButton() != "" {
 		t.Fatalf("Left on a field must not enter button area: %q", m.Form.FocusedButton())
+	}
+}
+
+// TestRestartPolicyChoicesStructure asserts Phase 3's Key+Label split: the
+// choices slice must carry the five canonical Docker/Podman policies, every
+// entry must have a non-empty Key and Label, and the "unchanged" lead must
+// be preserved (BR-041 §4.2 — no policy chosen = current policy unchanged).
+// The compile-time assertion guards the declared type: if a future refactor
+// regresses restartPolicyChoices back to []string, this assertion fails to
+// build and the test never silently passes against the wrong type.
+func TestRestartPolicyChoicesStructure(t *testing.T) {
+	var _ []restartChoice = restartPolicyChoices
+	if got := len(restartPolicyChoices); got != 5 {
+		t.Fatalf("restartPolicyChoices length = %d, want 5", got)
+	}
+	wantKeys := []string{"unchanged", "no", "always", "unless-stopped", "on-failure"}
+	for i, want := range wantKeys {
+		c := restartPolicyChoices[i]
+		if c.Key != want {
+			t.Errorf("restartPolicyChoices[%d].Key = %q, want %q", i, c.Key, want)
+		}
+		if c.Label == "" {
+			t.Errorf("restartPolicyChoices[%d].Label is empty", i)
+		}
+	}
+}
+
+// TestRestartPolicyChoicesLabelsAreTranslated makes sure every label comes
+// from i18n.T and is not the raw key value. i18n.T returns the key string
+// verbatim when the translation is missing, so this guards against an
+// accidentally-untranslated key regressing into a raw key on the UI.
+//
+// The test pins the language to English so the assertion is deterministic
+// regardless of which test ran before (pinned lang is restored on exit).
+func TestRestartPolicyChoicesLabelsAreTranslated(t *testing.T) {
+	prev := i18n.Current()
+	i18n.SetLang(i18n.LanguageEnglish)
+	t.Cleanup(func() { i18n.SetLang(prev) })
+
+	for _, c := range restartPolicyChoices {
+		if c.Label == "" {
+			t.Errorf("label for %q is empty", c.Key)
+		}
+		if c.Label == c.Key {
+			t.Errorf("label for %q is raw key (translation missing)", c.Key)
+		}
+	}
+}
+
+// TestBuildRestartFieldHasDisplayOptions asserts the helper builds a Select
+// field with Options (keys) and DisplayOptions (labels) of equal length,
+// preserving the canonical order. The label for the third entry
+// (Index=2) must be the DisplayOptions label, not the raw key.
+func TestBuildRestartFieldHasDisplayOptions(t *testing.T) {
+	field := buildRestartField()
+	if field.Kind != state.FormSelect {
+		t.Fatalf("Kind = %v, want FormSelect", field.Kind)
+	}
+	if len(field.Options) != 5 {
+		t.Fatalf("Options length = %d, want 5", len(field.Options))
+	}
+	if len(field.DisplayOptions) != len(field.Options) {
+		t.Fatalf("DisplayOptions length = %d, Options length = %d (must match)", len(field.DisplayOptions), len(field.Options))
+	}
+	for i, c := range restartPolicyChoices {
+		if field.Options[i] != c.Key {
+			t.Errorf("Options[%d] = %q, want %q", i, field.Options[i], c.Key)
+		}
+		if field.DisplayOptions[i] != c.Label {
+			t.Errorf("DisplayOptions[%d] = %q, want %q", i, field.DisplayOptions[i], c.Label)
+		}
+	}
+	if field.Option() != "unchanged" {
+		t.Errorf("default Option() = %q, want unchanged", field.Option())
+	}
+}
+
+// TestRestartPolicyFieldIndexRoundtrip exercises the Wire/Display split
+// end-to-end: opening the Update form and selecting the third option
+// (Index=2 = "always") must surface the localized label, not the raw key.
+func TestRestartPolicyFieldIndexRoundtrip(t *testing.T) {
+	m := formModel(t, &stubContainerService{})
+	openContainerUpdateForm(m)
+	restart := m.Form.Get(fieldRestartPolicy)
+	if restart == nil {
+		t.Fatal("restart field must be present in Update form")
+	}
+	restart.Index = 2
+	if got := restart.Option(); got != "always" {
+		t.Fatalf("Option() = %q, want always (Indexer reads Wire key)", got)
+	}
+	displayAt := restart.DisplayOptions[restart.Index]
+	if displayAt == "" || displayAt == restart.Option() {
+		t.Fatalf("DisplayOptions[2] = %q, want a non-empty, non-raw-key label", displayAt)
+	}
+	if !strings.Contains(displayAt, strings.TrimSpace(restart.DisplayOptions[2])) {
+		t.Fatalf("display label %q must match DisplayOptions[2]", displayAt)
 	}
 }

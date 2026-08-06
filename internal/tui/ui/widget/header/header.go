@@ -132,11 +132,22 @@ func Render(app *state.AppModel, usableW int) string {
 			eng += " [" + i18n.T(securityKey) + "]"
 		}
 	}
+	// Link status and latency share a single row so the user reads the
+	// transport health (● / ○ / ...) and its round-trip cost together as
+	// one cohesive "is this connection usable right now?" signal, instead
+	// of as two unrelated stacked rows. Padding is tightened so the
+	// 2:2:3:3 column ratios still leave room for both values once width
+	// is truncated by narrow terminals.
+	linkLatency := renderLinkCompact(linkStatus) + " " + renderLatencyCompact(latencyStr)
+	// Four rows so col 2 lines up with col 1's host-metrics rows (CPU /
+	// Memory / Disk / TimeZone). The Engine entry is split from the
+	// version so the version has its own slot and the tail of "Engine"
+	// never gets truncated mid-name.
 	colConn := fmt.Sprintf("%s%s\n%s%s\n%s%s\n%s%s",
-		lbl("Engine"), val(eng+" "+app.Connection.EngineVersion),
+		lbl("Engine"), val(eng),
+		lbl("Version"), val(app.Connection.EngineVersion),
 		lbl("Socket"), val(hostStr),
-		lbl("Link"), renderLink(linkStatus),
-		lbl("Latency"), val(latencyStr),
+		lbl("Link"), linkLatency,
 	)
 
 	// ── Column widths from config weights ─────────────────────
@@ -187,19 +198,41 @@ func Render(app *state.AppModel, usableW int) string {
 	return headerStyle.Render(rendered)
 }
 
+// renderLinkCompact renders the link indicator without the 5-char padding
+// that renderLink uses, so it can sit alongside the latency value on the
+// same row inside the narrow Connection column. The glyph is still styled
+// with the success / danger foreground.
+func renderLinkCompact(status string) string {
+	switch status {
+	case component.LinkUp:
+		return style.ApplyForeground(lipgloss.NewStyle(), style.Colors.Success).Render(status)
+	case component.BulletEmpty:
+		return style.ApplyForeground(lipgloss.NewStyle(), style.Colors.Danger).Render(status)
+	default:
+		return lipgloss.NewStyle().Render(status)
+	}
+}
+
+// renderLatencyCompact renders the latency value with no surrounding padding
+// so it sits next to the link indicator without expanding the Connection
+// row past the column width.
+func renderLatencyCompact(latency string) string {
+	return component.GetStyle(box.StyleHeaderValue).Render(latency)
+}
+
 // renderLink 渲染 link 状态字符: ● 绿色(Success) / ○ 红色(Danger) / 文字(中性)
 func renderLink(status string) string {
 	switch status {
 	case component.LinkUp:
 		up := style.ApplyForeground(lipgloss.NewStyle(), style.Colors.Success)
 		return component.GetStyle(component.StyleHeaderBar).Render(utils.PadVisible(
-			up.Render(status), 18))
+			up.Render(status), 5))
 	case component.BulletEmpty:
 		empty := style.ApplyForeground(lipgloss.NewStyle(), style.Colors.Danger)
 		return component.GetStyle(component.StyleHeaderBar).Render(utils.PadVisible(
-			empty.Render(status), 18))
+			empty.Render(status), 5))
 	default:
-		return component.GetStyle(component.StyleHeaderBar).Render(utils.PadVisible(status, 18))
+		return component.GetStyle(component.StyleHeaderBar).Render(utils.PadVisible(status, 5))
 	}
 }
 
@@ -232,9 +265,17 @@ func renderKeyStrokeColumn(app *state.AppModel, colW, ratio int) string {
 		Background: headerBg,
 	}).Render()
 
-	padH := (colW - 2) * (100 - ratio) / 200
-	if padH < 0 {
-		padH = 0
+	// Horizontal padding between the rounded border and the first badge.
+	// The KeystrokeContentRatio still drives the relative "fill" aim, but
+	// the floor is bumped so the badges don't visually stick to the border
+	// on wider terminals. The 0.6 ceiling keeps the box from hollowing out
+	// on the narrowest layouts.
+	padH := (colW-2)*(100-ratio)/100 + 2
+	if padH < 3 {
+		padH = 3
+	}
+	if maxPad := (colW-2)*60/100; maxPad > 0 && padH > maxPad {
+		padH = maxPad
 	}
 
 	boxed := (&box.BorderedBox{

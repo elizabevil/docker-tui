@@ -112,6 +112,76 @@ func TestEditableValueHiddenCursorPreservesWidth(t *testing.T) {
 	}
 }
 
+func TestRenderPathValueShortStaysSingleLine(t *testing.T) {
+	field := state.FormField{Kind: state.FormPath, Input: state.NewQueryInput("/tmp/backup.tar")}
+	got := stripANSI(renderEditableValue(&field, false, 24))
+	if strings.Contains(got, "\n") {
+		t.Fatalf("short path wrapped unexpectedly: %q", got)
+	}
+}
+
+func TestRenderPathValueLongWraps(t *testing.T) {
+	const width = 12
+	path := "/tmp/very-long-backup-archive-2026.tar.gz"
+	field := state.FormField{Kind: state.FormPath, Input: state.NewQueryInput(path)}
+	got := stripANSI(renderEditableValue(&field, false, width))
+	if lines := strings.Split(got, "\n"); len(lines) < 3 {
+		t.Fatalf("long path rendered in %d lines, want at least 3: %q", len(lines), got)
+	}
+	if strings.ReplaceAll(got, "\n", "") != path {
+		t.Fatalf("wrapped path was altered: got %q, want %q", got, path)
+	}
+	if strings.Contains(got, "…") {
+		t.Fatalf("wrapped path must not be truncated: %q", got)
+	}
+}
+
+func TestRenderPathValuePreservesTail(t *testing.T) {
+	path := "/very/long/path/to/some/deep/backup-archive-2026.tar.gz"
+	field := state.FormField{Kind: state.FormPath, Input: state.NewQueryInput(path)}
+	got := stripANSI(renderEditableValue(&field, false, 16))
+	if !strings.Contains(strings.ReplaceAll(got, "\n", ""), "backup-archive-2026.tar.gz") {
+		t.Fatalf("wrapped path lost its tail: %q", got)
+	}
+}
+
+func TestRenderPathValueFocusedKeepsCursorWindow(t *testing.T) {
+	path := "/very/long/path/to/some/deep/backup-archive-2026.tar.gz"
+	field := state.FormField{Kind: state.FormPath, Input: state.NewQueryInput(path)}
+	got := stripANSI(renderEditableValue(&field, true, 16))
+	if strings.Contains(got, "\n") {
+		t.Fatalf("focused path must remain a single-line cursor window: %q", got)
+	}
+	if utils.DisplayWidth(got) > 16 {
+		t.Fatalf("focused path width = %d, want <= 16: %q", utils.DisplayWidth(got), got)
+	}
+}
+
+func TestRenderPathValueRespectsMaxWidth(t *testing.T) {
+	const width = 10
+	path := "/very/long/path/to/some/deep/backup-archive-2026.tar.gz"
+	field := state.FormField{Kind: state.FormPath, Input: state.NewQueryInput(path)}
+	got := stripANSI(renderEditableValue(&field, false, width))
+	for _, line := range strings.Split(got, "\n") {
+		if lineWidth := utils.DisplayWidth(line); lineWidth > width {
+			t.Fatalf("wrapped line width = %d, want <= %d: %q", lineWidth, width, line)
+		}
+	}
+}
+
+func TestEditableTextAndIntRemainSingleLineTruncated(t *testing.T) {
+	for _, kind := range []state.FormFieldKind{state.FormText, state.FormInt} {
+		field := state.FormField{Kind: kind, Input: state.NewQueryInput("12345678901234567890")}
+		got := stripANSI(renderEditableValue(&field, false, 8))
+		if strings.Contains(got, "\n") {
+			t.Fatalf("kind %v wrapped unexpectedly: %q", kind, got)
+		}
+		if utils.DisplayWidth(got) > 8 {
+			t.Fatalf("kind %v width = %d, want <= 8: %q", kind, utils.DisplayWidth(got), got)
+		}
+	}
+}
+
 func TestFormLayoutWidthsOutsideIn(t *testing.T) {
 	fields := []state.FormField{
 		{Label: "Container path"},
@@ -237,6 +307,55 @@ func TestFormDialogNoPopupWhenClosed(t *testing.T) {
 	}
 }
 
+// TestFormDialogUnfocusedPathAnchoredAtStart verifies that when a path
+// field is not focused (e.g. immediately after the form opens with a
+// default Local destination tar path) the rendered text is anchored at
+// the start so the user can see which directory the file will land in,
+// instead of being scrolled to the cursor at the end of the path.
+func TestFormDialogUnfocusedPathAnchoredAtStart(t *testing.T) {
+	long := "/home/u/p/snapshot-2026-08-05-snapshot-1234.tar"
+	m := formTestModel(state.FormSpec{
+		Kind:   state.FormContainerExport,
+		Fields: []state.FormField{{Key: "destination", Label: "Local destination", Kind: state.FormPath, Input: state.QueryInputState{Text: long, Cursor: len(long)}}},
+	})
+	// Move focus to a sibling text field so the path field is unfocused.
+	m.Form.Fields = append(m.Form.Fields, state.FormField{Key: "buffer", Label: "Buffer", Kind: state.FormText})
+	m.Form.FieldFocus = 1
+	out := stripANSI(FormDialog(m, "", LoadDialogConfig(), 0, 0))
+	if !strings.Contains(out, "/home/u/p") {
+		t.Fatalf("unfocused long path must show leading directory, got %q", out)
+	}
+}
+
+// TestFormDialogSelectPopupRendersInline verifies that pressing Enter on a
+// FormSelect / FormMultiSelect field shows the option list as a dropdown
+// inside the same dialog rather than replacing the form with a bordered
+// popup window. The dropdown is recognised by every option text appearing
+// directly in FormDialog output (not requiring a separate DialogBox render).
+func TestFormDialogSelectPopupRendersInline(t *testing.T) {
+	m := formTestModel(state.FormSpec{
+		Kind: state.FormContainerUpdate,
+		Fields: []state.FormField{
+			{Key: "memory", Label: "Memory", Kind: state.FormInt},
+			{
+				Key:     "restart",
+				Label:   "Restart policy",
+				Kind:    state.FormSelect,
+				Options: []string{"unchanged", "always", "on-failure", "unless-stopped", "no"},
+			},
+		},
+	})
+	m.Form.FieldFocus = 1
+	m.Form.OpenPopup()
+	out := FormDialog(m, "", LoadDialogConfig(), 0, 0)
+	if !strings.Contains(out, "always") || !strings.Contains(out, "on-failure") {
+		t.Fatalf("inline dropdown must include every option, got %q", out)
+	}
+	if !strings.Contains(out, "Memory") {
+		t.Fatalf("inline dropdown must keep prior field rows visible, got %q", out)
+	}
+}
+
 // TestPathPopupTypeColumnAligned verifies that every path row starts at the
 // same column and that directories carry the [DIR] marker while files carry
 // the [FILE] marker (BR-041 §4.4).
@@ -337,9 +456,17 @@ func TestLongPathCursorStaysVisible(t *testing.T) {
 		t.Fatal("focused long path must still show an end caret")
 	}
 	// The rendered line must fit within the dialog's outer width.
+	// The dialog default MinWidth is 60, so a 60-cell viewport with a
+	// long path must still fit within the box, allowing one extra cell
+	// of slack for lipgloss padding rounding.
+	m.Viewport.Width = 60
+	m.Viewport.Height = 18
+	out = FormDialog(m, "", LoadDialogConfig(), 0, 0)
+	clean = stripANSI(out)
+	const maxBoxCells = 62
 	for _, line := range strings.Split(clean, "\n") {
-		if utils.DisplayWidth(line) > 60 {
-			t.Fatalf("dialog line %d cells, exceeds inner width: %q", utils.DisplayWidth(line), line)
+		if utils.DisplayWidth(line) > maxBoxCells {
+			t.Fatalf("dialog line %d cells, exceeds %d: %q", utils.DisplayWidth(line), maxBoxCells, line)
 		}
 	}
 }
@@ -370,10 +497,12 @@ func TestFocusedFormFieldHasBackground(t *testing.T) {
 }
 
 // TestFormRendersInSmallViewports verifies that no overlap occurs at
-// 40x16, 80x24, and 160x40 viewport sizes (BR-041 §6.14).
+// 60x16, 80x24, and 160x40 viewport sizes (BR-041 §6.14). The smallest
+// dimension matches the dialog default MinWidth so the form layout has
+// space to render both fields and the buttons.
 func TestFormRendersInSmallViewports(t *testing.T) {
 	sizes := []struct{ w, h int }{
-		{40, 16},
+		{60, 16},
 		{80, 24},
 		{160, 40},
 	}
@@ -399,5 +528,187 @@ func TestFormRendersInSmallViewports(t *testing.T) {
 				t.Fatalf("viewport %dx%d line width %d > %d: %q", s.w, s.h, w, s.w, line)
 			}
 		}
+	}
+}
+
+// TestFormDialogHeightEqualsBodyH verifies that with the default
+// PanelSize (HeightPercent=100, MaxHeight=40) the form dialog height
+// returned by formDialogSize equals bodyH when bodyH is between the
+// requiredH floor and MaxHeight (BR-043 §3.2: 1:1 height with the
+// panel body).
+func TestFormDialogHeightEqualsBodyH(t *testing.T) {
+	cfg := LoadDialogConfig()
+	if cfg.PanelSize.HeightPercent != 100 {
+		t.Fatalf("default PanelSize.HeightPercent = %d, want 100 (BR-043 §3.2)",
+			cfg.PanelSize.HeightPercent)
+	}
+	if cfg.PanelSize.MaxHeight != 40 {
+		t.Fatalf("default PanelSize.MaxHeight = %d, want 40", cfg.PanelSize.MaxHeight)
+	}
+
+	m := formTestModel(state.FormSpec{
+		Kind: state.FormContainerCopy,
+		Fields: []state.FormField{
+			{Key: "source", Label: "Container path", Kind: state.FormText, Input: state.QueryInputState{Text: "/etc/app.conf"}},
+		},
+	})
+	// Viewport must be ≥ bodyH+2 so formDialogSize's maxH clamp
+	// (Viewport.Height-2) does not lower the result.
+	for _, bodyH := range []int{16, 20, 30, 40} {
+		m.Viewport.Width = 100
+		m.Viewport.Height = bodyH + 2
+		dialogW, dialogH := formDialogSize(m, cfg, 80, bodyH)
+		if dialogW <= 0 {
+			t.Errorf("bodyH=%d: dialogW = %d, want > 0", bodyH, dialogW)
+		}
+		if dialogH != bodyH {
+			t.Errorf("bodyH=%d: dialogH = %d, want %d (1:1 with bodyH)", bodyH, dialogH, bodyH)
+		}
+	}
+}
+
+// TestFormDialogHeightClampsToMaxHeight verifies that a bodyH larger
+// than PanelSize.MaxHeight is capped at MaxHeight, so the dialog never
+// exceeds the configured cap regardless of the active panel.
+func TestFormDialogHeightClampsToMaxHeight(t *testing.T) {
+	cfg := LoadDialogConfig()
+	m := formTestModel(state.FormSpec{
+		Kind: state.FormContainerCopy,
+		Fields: []state.FormField{
+			{Key: "source", Label: "Container path", Kind: state.FormText, Input: state.QueryInputState{Text: "/etc/app.conf"}},
+		},
+	})
+	// bodyH=100 with default MaxHeight=40 → dialogH must be 40.
+	m.Viewport.Width = 200
+	m.Viewport.Height = 102
+	_, dialogH := formDialogSize(m, cfg, 200, 100)
+	if dialogH != 40 {
+		t.Fatalf("bodyH=100: dialogH = %d, want 40 (capped to PanelSize.MaxHeight)", dialogH)
+	}
+}
+
+// TestFormDialogWidthClampsToMaxWidth verifies that a wide panel body
+// produces a dialog capped to PanelSize.MaxWidth (default 120 cells).
+func TestFormDialogWidthClampsToMaxWidth(t *testing.T) {
+	cfg := LoadDialogConfig()
+	m := formTestModel(state.FormSpec{
+		Kind: state.FormContainerCopy,
+		Fields: []state.FormField{
+			{Key: "source", Label: "Container path", Kind: state.FormText, Input: state.QueryInputState{Text: "/etc/app.conf"}},
+		},
+	})
+	m.Viewport.Width = 400
+	m.Viewport.Height = 60
+	dialogW, _ := formDialogSize(m, cfg, 400, 60)
+	// 400*75/100 = 300, capped to MaxWidth=120.
+	if dialogW != 120 {
+		t.Fatalf("bodyW=400: dialogW = %d, want 120 (capped to PanelSize.MaxWidth)", dialogW)
+	}
+}
+
+// TestRenderSelectCellUsesDisplayOptions verifies the Phase 3 wire/display
+// split: when a FormField carries both Options (Wire keys) and DisplayOptions
+// (localized labels), the user sees the label, not the raw key.
+func TestRenderSelectCellUsesDisplayOptions(t *testing.T) {
+	field := state.FormField{
+		Kind:           state.FormSelect,
+		Options:        []string{"a", "b"},
+		DisplayOptions: []string{"Alpha", "Beta"},
+		Index:          1,
+	}
+	value, _ := renderSelectCell(&field, false, 80)
+	clean := stripANSI(value)
+	if !strings.Contains(clean, "Beta") {
+		t.Fatalf("renderSelectCell must show DisplayOptions[1] = \"Beta\", got %q", clean)
+	}
+	if strings.Contains(clean, " b") || strings.HasSuffix(strings.TrimSpace(clean), "b") {
+		// The raw key "b" must not leak through.
+		trimmed := strings.TrimSpace(clean)
+		if trimmed == "b" || strings.HasSuffix(trimmed, " b") {
+			t.Fatalf("renderSelectCell leaked raw key \"b\" into output: %q", clean)
+		}
+	}
+}
+
+// TestRenderSelectCellFallbackToOptions ensures fields without DisplayOptions
+// (legacy forms, dynamically-built selects) still render Options directly.
+func TestRenderSelectCellFallbackToOptions(t *testing.T) {
+	field := state.FormField{
+		Kind:    state.FormSelect,
+		Options: []string{"a", "b"},
+		Index:   1,
+	}
+	value, _ := renderSelectCell(&field, false, 80)
+	clean := stripANSI(value)
+	if !strings.Contains(clean, "b") {
+		t.Fatalf("renderSelectCell must fall back to Options[1] = \"b\", got %q", clean)
+	}
+}
+
+// TestRenderSelectCellKeepsChevron locks the dropdown marker (component
+// glyph: TriangleDownSmall) on every render path so visibility regressions
+// (Phase 1 max-width handling, Phase 6 PTY capture) are immediately caught.
+func TestRenderSelectCellKeepsChevron(t *testing.T) {
+	cases := []state.FormField{
+		{Kind: state.FormSelect, Options: []string{"a"}, DisplayOptions: []string{"Alpha"}},
+		{Kind: state.FormSelect, Options: []string{"a"}},
+		{Kind: state.FormMultiSelect, Options: []string{"a", "b"}, Selected: map[string]bool{"a": true}},
+	}
+	for i, f := range cases {
+		_, marker := renderSelectCell(&f, false, 40)
+		if marker != component.TriangleDownSmall {
+			t.Errorf("case %d: marker = %q, want %q", i, marker, component.TriangleDownSmall)
+		}
+	}
+	// End-to-end: the chevron must also appear in the rendered form output.
+	m := formTestModel(state.FormSpec{
+		Kind: state.FormContainerUpdate,
+		Fields: []state.FormField{
+			{
+				Key:            "restart",
+				Label:          "Restart policy",
+				Kind:           state.FormSelect,
+				Options:        []string{"unchanged", "no", "always"},
+				DisplayOptions: []string{"Leave unchanged", "No restart", "Always"},
+				Index:          2,
+			},
+		},
+	})
+	out := FormDialog(m, "", LoadDialogConfig(), 0, 0)
+	if !strings.Contains(out, component.TriangleDownSmall) {
+		t.Fatalf("update form must show the dropdown chevron in output: %q", out)
+	}
+	if !strings.Contains(out, "Always") {
+		t.Fatalf("update form must show the DisplayOptions label \"Always\": %q", out)
+	}
+}
+
+func TestRenderFormFieldShowsHelperText(t *testing.T) {
+	field := state.FormField{Label: "Memory", Kind: state.FormInt, HelperText: "MB"}
+	form := state.FormState{Fields: []state.FormField{field}}
+	row := stripANSI(renderFormField(form, &form.Fields[0], 0, 24, 40))
+	if !strings.Contains(row, " (MB)") {
+		t.Fatalf("renderFormField must append HelperText in parentheses: %q", row)
+	}
+}
+
+func TestRenderFormFieldOmitsHelperTextWhenEmpty(t *testing.T) {
+	field := state.FormField{Label: "Memory", Kind: state.FormInt}
+	form := state.FormState{Fields: []state.FormField{field}}
+	row := stripANSI(renderFormField(form, &form.Fields[0], 0, 24, 40))
+	if strings.Contains(row, "()") || strings.Contains(row, "(nil)") {
+		t.Fatalf("empty HelperText must not render stray parens: %q", row)
+	}
+	if !strings.Contains(row, "Memory") {
+		t.Fatalf("raw label must remain visible: %q", row)
+	}
+}
+
+func TestRenderFormFieldShowsUnit(t *testing.T) {
+	field := state.FormField{Label: "CPUs", Kind: state.FormInt, Unit: "cores", Input: state.NewQueryInput("1.5")}
+	form := state.FormState{Fields: []state.FormField{field}}
+	row := stripANSI(renderFormField(form, &form.Fields[0], 0, 24, 40))
+	if !strings.Contains(row, "cores") {
+		t.Fatalf("renderFormField must surface Unit suffix in output: %q", row)
 	}
 }

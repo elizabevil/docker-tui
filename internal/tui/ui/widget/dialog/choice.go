@@ -42,12 +42,12 @@ func ChoiceDialog(title, body string, options []ChoiceOption, focus, termW, term
 	}
 	parts = append(parts, lipgloss.NewStyle().Width(innerW).Align(lipgloss.Center).Render(strings.Join(optionLabels, "   ")))
 	parts = append(parts, "", component.GetStyle(component.StyleDim).Render("Tab/Shift+Tab switch  Enter select  Esc cancel"))
-	return DialogBox(DialogStyle{Width: dialogW, Height: dialogH, TitleColor: titleColor, OverlayColor: overlayColor}, parts...)
+	return DialogBox(DialogStyle{Width: dialogW, Height: dialogH, MaxWidth: cfg.PanelSize.MaxWidth, TitleColor: titleColor, OverlayColor: overlayColor}, parts...)
 }
 
 func choiceDialogSize(termW, termH int, cfg DialogConfig) (int, int) {
 	if termW <= 0 || termH <= 0 {
 		return dialogWidth(termW, cfg), dialogHeight(termH, cfg)
 	}
-	return max(20, termW/2), max(8, termH/2)
+	return panelDialogWidth(termW, cfg), panelDialogHeight(termH, cfg)
 }

@@ -49,13 +49,16 @@ func ValidateApp(cfg *AppConfig) error {
 	if cfg.UI.HintTimeout < 0 {
 		return errors.New(errHintTimeoutNegative)
 	}
-	if err := validateResponsiveSize(pathDialogWidth, cfg.UI.Dialog.Width); err != nil {
+	if err := cfg.UI.Dialog.Width.Validate(); err != nil {
+		return fmt.Errorf(errValidateAtFormat, pathDialogWidth, err)
+	}
+	if err := cfg.UI.Dialog.Height.Validate(); err != nil {
+		return fmt.Errorf(errValidateAtFormat, pathDialogHeight, err)
+	}
+	if err := cfg.UI.Dialog.Position.Validate(); err != nil {
 		return err
 	}
-	if err := validateResponsiveSize(pathDialogHeight, cfg.UI.Dialog.Height); err != nil {
-		return err
-	}
-	if err := validateDialogPosition(cfg.UI.Dialog.Position); err != nil {
+	if err := cfg.UI.Dialog.PanelSize.Validate(); err != nil {
 		return err
 	}
 	if cfg.UI.Window.MarginTopPercent < 0 || cfg.UI.Window.MarginTopPercent > 15 ||
@@ -84,13 +87,13 @@ func ValidateApp(cfg *AppConfig) error {
 	if cfg.UI.Table.SelectionInfo.PadLines < 0 {
 		return errors.New(errTableSelectionPaddingInvalid)
 	}
-	if err := validateKeymap(cfg.Keymap); err != nil {
+	if err := cfg.Keymap.Validate(); err != nil {
 		return err
 	}
 	if err := cfg.Runtime.Validate(); err != nil {
 		return err
 	}
-	if err := validateBackground(cfg.Layout.Background); err != nil {
+	if err := cfg.Layout.Background.Validate(); err != nil {
 		return err
 	}
 	if strings.TrimSpace(cfg.Commands.DockerCompose.Executable) == emptyValue {
@@ -102,34 +105,59 @@ func ValidateApp(cfg *AppConfig) error {
 	return nil
 }
 
-func validateBackground(background BackgroundConfig) error {
-	switch background.Type {
-	case BackgroundSolid, BackgroundGradient, BackgroundImageType:
-	default:
-		return errors.New(errBackgroundTypeInvalid)
+// MaxWidth / MaxHeight are advisory caps; a zero value means "no cap"
+// so the panel-sizing helpers fall back to cfg.Width / cfg.Height.
+func (p PanelSize) Validate() error {
+	if p.WidthPercent <= 0 || p.WidthPercent > 100 {
+		return fmt.Errorf(errResponsivePercentFormat, pathPanelSizeWidth)
 	}
-	if background.Image.Sizing != BackgroundSizing(emptyValue) &&
-		background.Image.Sizing != BackgroundSizingCover && background.Image.Sizing != BackgroundSizingContain {
-		return errors.New(errBackgroundSizingInvalid)
-	}
-	if background.Image.Position != BackgroundPosition(emptyValue) &&
-		background.Image.Position != BackgroundPositionTop && background.Image.Position != BackgroundPositionCenter &&
-		background.Image.Position != BackgroundPositionBottom {
-		return errors.New(errBackgroundPositionInvalid)
+	if p.HeightPercent <= 0 || p.HeightPercent > 100 {
+		return fmt.Errorf(errResponsivePercentFormat, pathPanelSizeHeight)
 	}
 	return nil
 }
 
-func validateDialogPosition(position DialogPosition) error {
-	switch position.Horizontal {
+// Validate reports whether the responsive size bounds are usable. The
+// caller supplies any field-path context since ResponsiveSize does not
+// own it.
+func (r ResponsiveSize) Validate() error {
+	if r.Percent <= 0 || r.Percent > 100 {
+		return errors.New(errResponsivePercentInvalid)
+	}
+	if r.Min <= 0 || r.Max < r.Min {
+		return errors.New(errResponsiveBoundsInvalid)
+	}
+	return nil
+}
+
+func (p DialogPosition) Validate() error {
+	switch p.Horizontal {
 	case HorizontalLeft, HorizontalCenter, HorizontalRight:
 	default:
 		return errors.New(errDialogHorizontalInvalid)
 	}
-	switch position.Vertical {
+	switch p.Vertical {
 	case VerticalTop, VerticalCenter, VerticalBottom:
 	default:
 		return errors.New(errDialogVerticalInvalid)
+	}
+	return nil
+}
+
+func (b BackgroundConfig) Validate() error {
+	switch b.Type {
+	case BackgroundSolid, BackgroundGradient, BackgroundImageType:
+	default:
+		return errors.New(errBackgroundTypeInvalid)
+	}
+	if b.Image.Sizing != BackgroundSizing(emptyValue) &&
+		b.Image.Sizing != BackgroundSizingCover && b.Image.Sizing != BackgroundSizingContain {
+		return errors.New(errBackgroundSizingInvalid)
+	}
+	if b.Image.Position != BackgroundPosition(emptyValue) &&
+		b.Image.Position != BackgroundPositionTop && b.Image.Position != BackgroundPositionCenter &&
+		b.Image.Position != BackgroundPositionBottom {
+		return errors.New(errBackgroundPositionInvalid)
 	}
 	return nil
 }
@@ -139,29 +167,29 @@ type namedBinding struct {
 	binding KeyBinding
 }
 
-func validateKeymap(keymap KeymapConfig) error {
+func (k KeymapConfig) Validate() error {
 	bindings := []namedBinding{
-		{pathKeymapGlobalQuit, keymap.Global.Quit}, {pathKeymapGlobalActionBar, keymap.Global.ActionBar},
-		{pathKeymapGlobalHelp, keymap.Global.Help}, {pathKeymapGlobalFilter, keymap.Global.Filter}, {pathKeymapGlobalRefresh, keymap.Global.Refresh},
-		{pathKeymapContainerStart, keymap.Container.Start}, {pathKeymapContainerStop, keymap.Container.Stop},
-		{pathKeymapContainerRestart, keymap.Container.Restart}, {pathKeymapContainerKill, keymap.Container.Kill},
-		{pathKeymapContainerRemove, keymap.Container.Remove}, {pathKeymapContainerLogs, keymap.Container.Logs},
-		{pathKeymapContainerExec, keymap.Container.Exec}, {pathKeymapContainerInspect, keymap.Container.Inspect},
-		{pathKeymapContainerStats, keymap.Container.Stats}, {pathKeymapContainerPause, keymap.Container.Pause},
-		{pathKeymapContainerUpdate, keymap.Container.Update}, {pathKeymapContainerDiff, keymap.Container.Diff},
-		{pathKeymapContainerExport, keymap.Container.Export}, {pathKeymapContainerCommit, keymap.Container.Commit},
-		{pathKeymapContainerWait, keymap.Container.Wait}, {pathKeymapContainerCopy, keymap.Container.Copy},
-		{pathKeymapImagePull, keymap.Image.Pull}, {pathKeymapImageRemove, keymap.Image.Remove},
-		{pathKeymapImagePrune, keymap.Image.Prune}, {pathKeymapImageTag, keymap.Image.Tag},
-		{pathKeymapImagePush, keymap.Image.Push}, {pathKeymapImageSave, keymap.Image.Save},
-		{pathKeymapImageLoad, keymap.Image.Load}, {pathKeymapImageHistory, keymap.Image.History},
-		{pathKeymapVolumeCreate, keymap.Volume.Create}, {pathKeymapVolumePrune, keymap.Volume.Prune}, {pathKeymapVolumeRemove, keymap.Volume.Remove},
-		{pathKeymapNetworkCreate, keymap.Network.Create}, {pathKeymapNetworkPrune, keymap.Network.Prune}, {pathKeymapNetworkRemove, keymap.Network.Remove},
-		{pathKeymapNavigationTabNext, keymap.Navigation.TabNext}, {pathKeymapNavigationTabPrev, keymap.Navigation.TabPrev},
-		{pathKeymapNavigationUp, keymap.Navigation.Up}, {pathKeymapNavigationDown, keymap.Navigation.Down},
-		{pathKeymapNavigationEnter, keymap.Navigation.Enter}, {pathKeymapNavigationBack, keymap.Navigation.Back},
-		{pathKeymapNavigationDelete, keymap.Navigation.Delete}, {pathKeymapDialogConfirm, keymap.Dialog.Confirm},
-		{pathKeymapDialogCancel, keymap.Dialog.Cancel},
+		{pathKeymapGlobalQuit, k.Global.Quit}, {pathKeymapGlobalActionBar, k.Global.ActionBar},
+		{pathKeymapGlobalHelp, k.Global.Help}, {pathKeymapGlobalFilter, k.Global.Filter}, {pathKeymapGlobalRefresh, k.Global.Refresh},
+		{pathKeymapContainerStart, k.Container.Start}, {pathKeymapContainerStop, k.Container.Stop},
+		{pathKeymapContainerRestart, k.Container.Restart}, {pathKeymapContainerKill, k.Container.Kill},
+		{pathKeymapContainerRemove, k.Container.Remove}, {pathKeymapContainerLogs, k.Container.Logs},
+		{pathKeymapContainerExec, k.Container.Exec}, {pathKeymapContainerInspect, k.Container.Inspect},
+		{pathKeymapContainerStats, k.Container.Stats}, {pathKeymapContainerPause, k.Container.Pause},
+		{pathKeymapContainerUpdate, k.Container.Update}, {pathKeymapContainerDiff, k.Container.Diff},
+		{pathKeymapContainerExport, k.Container.Export}, {pathKeymapContainerCommit, k.Container.Commit},
+		{pathKeymapContainerWait, k.Container.Wait}, {pathKeymapContainerCopy, k.Container.Copy},
+		{pathKeymapImagePull, k.Image.Pull}, {pathKeymapImageRemove, k.Image.Remove},
+		{pathKeymapImagePrune, k.Image.Prune}, {pathKeymapImageTag, k.Image.Tag},
+		{pathKeymapImagePush, k.Image.Push}, {pathKeymapImageSave, k.Image.Save},
+		{pathKeymapImageLoad, k.Image.Load}, {pathKeymapImageHistory, k.Image.History},
+		{pathKeymapVolumeCreate, k.Volume.Create}, {pathKeymapVolumePrune, k.Volume.Prune}, {pathKeymapVolumeRemove, k.Volume.Remove},
+		{pathKeymapNetworkCreate, k.Network.Create}, {pathKeymapNetworkPrune, k.Network.Prune}, {pathKeymapNetworkRemove, k.Network.Remove},
+		{pathKeymapNavigationTabNext, k.Navigation.TabNext}, {pathKeymapNavigationTabPrev, k.Navigation.TabPrev},
+		{pathKeymapNavigationUp, k.Navigation.Up}, {pathKeymapNavigationDown, k.Navigation.Down},
+		{pathKeymapNavigationEnter, k.Navigation.Enter}, {pathKeymapNavigationBack, k.Navigation.Back},
+		{pathKeymapNavigationDelete, k.Navigation.Delete}, {pathKeymapDialogConfirm, k.Dialog.Confirm},
+		{pathKeymapDialogCancel, k.Dialog.Cancel},
 	}
 	for _, item := range bindings {
 		primary := strings.TrimSpace(string(item.binding.Primary))
@@ -175,16 +203,6 @@ func validateKeymap(keymap KeymapConfig) error {
 		if primary != emptyValue && strings.EqualFold(primary, secondary) {
 			return fmt.Errorf(errDuplicateBindingFormat, item.path)
 		}
-	}
-	return nil
-}
-
-func validateResponsiveSize(path string, size ResponsiveSize) error {
-	if size.Percent <= 0 || size.Percent > 100 {
-		return fmt.Errorf(errResponsivePercentFormat, path)
-	}
-	if size.Min <= 0 || size.Max < size.Min {
-		return fmt.Errorf(errResponsiveBoundsFormat, path)
 	}
 	return nil
 }

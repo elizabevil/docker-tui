@@ -106,6 +106,88 @@ else
     pass "cleanup complete"
 fi
 
+# ─── Phase 3: Multi-arch manifest merge ────────────────────────────
+# Merges per-arch alpine base images into one multi-arch manifest list:
+#   docker-bkrepo.cwoa.net/h536b8/canway_d/os/alpine:3.23.2-base      (amd64)
+#   docker-bkrepo.cwoa.net/h536b8/canway_d_arm/os/alpine:3.23.2-base  (arm64)
+# Env overrides:
+#   DTUI_MANIFEST_REGISTRY   registry base (default: docker-bkrepo.cwoa.net/h536b8)
+#   DTUI_MANIFEST_TAG        tag for both sources and the merged manifest
+#                            (default: 3.23.2-base)
+#   DTUI_PUSH_MANIFEST=1     push the merged manifest to the registry
+echo ""
+echo "--- Phase 3: Multi-arch Manifest Merge ---"
+
+merge_manifest() {
+    local engine="$1"
+    local registry="${DTUI_MANIFEST_REGISTRY:-docker-bkrepo.cwoa.net/h536b8}"
+    local tag="${DTUI_MANIFEST_TAG:-3.23.2-base}"
+    local amd64="${registry}/canway_d/os/alpine:${tag}"
+    local arm="${registry}/canway_d_arm/os/alpine:${tag}"
+    local manifest_ref="${registry}/canway_d/os/alpine:${tag}"
+
+    info "amd64 source: ${amd64}"
+    info "arm source:   ${arm}"
+    info "manifest:     ${manifest_ref}"
+
+    # A stale manifest list at the target ref makes `manifest create` fail.
+    if "$engine" manifest inspect "$manifest_ref" >/dev/null 2>&1; then
+        info "Removing stale manifest at ${manifest_ref}"
+        "$engine" manifest rm "$manifest_ref" >/dev/null 2>&1 || true
+    fi
+
+    info "Pulling source images..."
+    "$engine" pull -q "$amd64" >/dev/null || { fail "pull ${amd64}"; return 1; }
+    "$engine" pull -q "$arm" >/dev/null || { fail "pull ${arm}"; return 1; }
+
+    if "$engine" manifest create "$manifest_ref" "$amd64" "$arm" >/dev/null 2>&1; then
+        pass "manifest created: ${manifest_ref}"
+    else
+        fail "manifest create ${manifest_ref}"
+        return 1
+    fi
+
+    local inspect_output entry_count
+    inspect_output="$("$engine" manifest inspect "$manifest_ref" 2>/dev/null || true)"
+    entry_count="$(printf '%s' "$inspect_output" | grep -oE '"architecture"' | wc -l | tr -d ' ' || true)"
+    if [ "${entry_count:-0}" -ge 2 ]; then
+        pass "manifest contains ${entry_count} platform entries:"
+        printf '%s' "$inspect_output" \
+            | grep -oE '"architecture"[[:space:]]*:[[:space:]]*"[^"]+"' \
+            | sed 's/^/      /' | sort -u
+    else
+        fail "expected >= 2 platform entries, got ${entry_count:-0}"
+        return 1
+    fi
+
+    if [ "${DTUI_PUSH_MANIFEST:-0}" = "1" ]; then
+        info "Pushing manifest (DTUI_PUSH_MANIFEST=1)..."
+        if [ "$engine" = "podman" ]; then
+            "$engine" manifest push --all "$manifest_ref" >/dev/null 2>&1 \
+                || { fail "manifest push ${manifest_ref}"; return 1; }
+        else
+            "$engine" manifest push "$manifest_ref" >/dev/null 2>&1 \
+                || { fail "manifest push ${manifest_ref}"; return 1; }
+        fi
+        pass "manifest pushed: ${manifest_ref}"
+    else
+        info "Skipping push (set DTUI_PUSH_MANIFEST=1 to push to the registry)"
+    fi
+
+    "$engine" manifest rm "$manifest_ref" >/dev/null 2>&1 || true
+    pass "local manifest cleaned up"
+}
+
+if [ -n "${ENGINE:-}" ]; then
+    if merge_manifest "$ENGINE"; then
+        pass "multi-arch manifest merge complete"
+    else
+        fail "multi-arch manifest merge"
+    fi
+else
+    info "No container engine available, skipping manifest merge"
+fi
+
 echo ""
 echo "========================================="
 echo -e "Results: ${GREEN}$PASS passed${NC}, ${RED}$FAIL failed${NC}"

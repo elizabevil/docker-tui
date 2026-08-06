@@ -16,9 +16,9 @@
     },
     "cpus": 14,
     "cpuUtilization": {
-      "userPercent": 2.67,
-      "systemPercent": 1.57,
-      "idlePercent": 95.76
+      "userPercent": 4.33,
+      "systemPercent": 2.3,
+      "idlePercent": 93.37
     },
     "databaseBackend": "sqlite",
     "distribution": {
@@ -57,8 +57,8 @@
     },
     "kernel": "7.0.10+deb13-amd64",
     "logDriver": "journald",
-    "memFree": 442802176,
-    "memTotal": 16733364224,
+    "memFree": 403652608,
+    "memTotal": 16733388800,
     "networkBackend": "netavark",
     "networkBackendInfo": {
       "backend": "netavark",
@@ -104,7 +104,7 @@
     },
     "swapFree": 0,
     "swapTotal": 0,
-    "uptime": "31h 8m 49.00s (Approximately 1.29 days)",
+    "uptime": "29h 26m 9.00s (Approximately 1.21 days)",
     "variant": "",
     "linkmode": "dynamic"
   },
@@ -113,14 +113,14 @@
     "containerStore": {
       "number": 3,
       "paused": 0,
-      "running": 3,
-      "stopped": 0
+      "running": 2,
+      "stopped": 1
     },
     "graphDriverName": "overlay",
     "graphOptions": {},
     "graphRoot": "/home/debi/.local/share/containers/storage",
     "graphRootAllocated": 99804827648,
-    "graphRootUsed": 72213970944,
+    "graphRootUsed": 85906644992,
     "graphStatus": {
       "Backing Filesystem": "extfs",
       "Native Overlay Diff": "true",
@@ -131,7 +131,7 @@
     },
     "imageCopyTmpDir": "/var/tmp",
     "imageStore": {
-      "number": 187
+      "number": 253
     },
     "runRoot": "/run/user/1000/containers",
     "volumePath": "/home/debi/.local/share/containers/storage/volumes",

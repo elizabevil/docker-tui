@@ -216,8 +216,14 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 	}
 	rawTitle := state.PanelLabel(state.PanelCompose) + " > " + proj.name + " > " + i18n.T("key.services")
 	rawSummary := i18n.T("compose.summary", sts, len(proj.svcs), proj.total)
+	// header combines the breadcrumb (left) with the running / service / pod
+	// counts (right). The summary is treated as the canonical "stats" slot for
+	// this view; any duplicate shortcut hints are intentionally omitted so the
+	// header stays compact and the kebab shortcuts elsewhere remain the source
+	// of truth.
 	title := component.GetStyle(component.StylePanelTitle).Render(component.TruncateVisible(rawTitle, w))
-	summary := component.GetStyle(component.StyleDim).Render(component.TruncateVisible(rawSummary, w))
+	summary := component.GetStyle(component.StyleDim).Render(rawSummary)
+	header := composePanelHeader(title, summary, w)
 
 	svcNames := make([]string, 0, len(proj.svcs))
 	for name := range proj.svcs {
@@ -233,8 +239,7 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 			msg = i18n.T("compose.empty_services_filter")
 		}
 		return lipgloss.JoinVertical(lipgloss.Top,
-			title,
-			summary,
+			header,
 			"",
 			component.GetStyle(component.StyleDim).Render(msg),
 		)
@@ -243,7 +248,7 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 
 	colsDef := tc.Columns.Get("services_sub")
 	total := len(svcNames)
-	rowHeight := component.CalcRowHeight(panelHeight - 3)
+	rowHeight := component.CalcRowHeight(panelHeight - 2)
 	rows := make([][]string, 0, rowHeight)
 	for i := 0; i < total && len(rows) < rowHeight; i++ {
 		name := svcNames[i]
@@ -270,17 +275,29 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 		Selected:   serviceCursor,
 		Total:      total,
 		Limit:      rowHeight,
-		BodyHeight: panelHeight - 3,
+		BodyHeight: panelHeight - 2,
 		BannerW:    bannerW,
-		FooterHint: i18n.T("compose.footer_hint"),
 		ColStyles:  colStyles,
 	})
 
 	return lipgloss.JoinVertical(lipgloss.Top,
-		title,
-		summary,
+		header,
 		"",
 		table,
+	)
+}
+
+// composePanelHeader lays out title (left) and summary (right) on one line so
+// the breadcrumb + services count share the panel title row, matching the
+// convention used by other Compose sub-views. width <= 0 is treated as
+// unlimited so the rendered strings can include their full styling.
+func composePanelHeader(title, summary string, width int) string {
+	if width <= 0 || utils.DisplayWidth(title)+utils.DisplayWidth(summary)+1 >= width {
+		return lipgloss.JoinVertical(lipgloss.Top, title, summary)
+	}
+	gap := width - utils.DisplayWidth(title) - utils.DisplayWidth(summary)
+	return lipgloss.NewStyle().Width(width).Render(
+		lipgloss.JoinHorizontal(lipgloss.Top, title, strings.Repeat(" ", gap), summary),
 	)
 }
 

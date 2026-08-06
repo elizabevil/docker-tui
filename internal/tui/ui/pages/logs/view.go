@@ -100,17 +100,45 @@ func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
 	return renderLogPanel(header, rendered, component.GetStyle(component.StyleDim).Render(footer), rowHeight)
 }
 
-func renderLogPanel(header string, bodyLines []string, footer string, bodyHeight int) string {
-	if bodyHeight < 1 {
-		bodyHeight = 1
+// logPanelBorder draws only the bottom (and side pillars) of the log body so
+// the boundary between the log lines and the footer hint below is unambiguous
+// even when the underlying StylePanel background is transparent. The side
+// pillars are kept short to match the body-height accounting.
+func logPanelBorder() lipgloss.Border {
+	return lipgloss.Border{
+		Bottom: component.BorderLineHorizontal,
+		Top:    "",
+		Left:   "",
+		Right:  "",
+		TopLeft: "", TopRight: "",
+		BottomLeft: "", BottomRight: "",
 	}
-	for len(bodyLines) < bodyHeight {
+}
+
+func renderLogPanel(header string, bodyLines []string, footer string, bodyHeight int) string {
+	// The bottom border consumes one row of the available viewport, so the
+	// content height is decremented by one before laying out the log lines.
+	// The border row itself is mounted back on top of the content so the
+	// caller still sees bodyHeight rows in total.
+	contentHeight := bodyHeight - 1
+	if contentHeight < 1 {
+		contentHeight = 1
+	}
+	for len(bodyLines) < contentHeight {
 		bodyLines = append(bodyLines, "")
 	}
-	if len(bodyLines) > bodyHeight {
-		bodyLines = bodyLines[:bodyHeight]
+	if len(bodyLines) > contentHeight {
+		bodyLines = bodyLines[:contentHeight]
 	}
-	body := component.GetStyle(component.StylePanel).Height(bodyHeight).MaxHeight(bodyHeight).Render(strings.Join(bodyLines, "\n"))
+	// StylePanel is transparent in this theme, so we add an explicit bottom
+	// horizontal border so the body boundary below the log lines is
+	// unambiguous regardless of the panel background.
+	body := component.GetStyle(component.StylePanel).
+		Border(logPanelBorder()).
+		BorderForeground(component.GetStyle(component.StyleDim).GetForeground()).
+		Height(bodyHeight).
+		MaxHeight(bodyHeight).
+		Render(strings.Join(bodyLines, "\n"))
 	return lipgloss.JoinVertical(lipgloss.Top, header, body, footer)
 }
 

@@ -14,6 +14,7 @@ import (
 type DialogStyle struct {
 	Width        int
 	Height       int
+	MaxWidth     int
 	TitleColor   color.Color
 	OverlayColor string
 	LeftAligned  bool
@@ -37,6 +38,9 @@ func DialogBox(style DialogStyle, parts ...string) string {
 		Foreground(titleColor).
 		Padding(1, 2).
 		Width(style.Width)
+	if style.MaxWidth > 0 {
+		s = s.MaxWidth(style.MaxWidth)
+	}
 	bodyBg := component.GetStyle(component.StyleDialogBodyBackground).GetBackground()
 	if bodyBg != nil {
 		s = s.Background(bodyBg)

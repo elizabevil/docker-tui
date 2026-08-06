@@ -38,8 +38,12 @@ func FormDialog(m *state.AppModel, overlayColor string, cfg DialogConfig, bodyW,
 	parts = appendFormHeader(parts, form)
 	parts = append(parts, "")
 	labelWidth, valueWidth := formLayout(form.Fields, innerWidth)
+	// popupInnerW is the width to use when rendering inline dropdown rows
+	// beneath a focused select field. Width = label column + value column + 1
+	// (separator) so the dropdown lines line up with the field column.
+	popupInnerW := labelWidth + valueWidth + 1
 	parts = appendFormLoading(parts, form)
-	parts = appendFormFields(parts, form, labelWidth, valueWidth, !m.CursorBlinkHidden)
+	parts = appendFormFields(parts, form, labelWidth, valueWidth, popupInnerW, !m.CursorBlinkHidden)
 	parts = append(parts, "")
 
 	// Confirm/Cancel on the same line, left-right (BR-043 §3.3 scheme B +
@@ -59,11 +63,15 @@ func FormDialog(m *state.AppModel, overlayColor string, cfg DialogConfig, bodyW,
 	box := DialogBox(DialogStyle{
 		Width:        dialogW,
 		Height:       dialogH,
+		MaxWidth:     cfg.PanelSize.MaxWidth,
 		TitleColor:   component.GetStyle(component.StylePanelTitle).GetForeground(),
 		OverlayColor: overlayColor,
 		LeftAligned:  true,
 	}, parts...)
-	if form.Popup.Open {
+	if form.Popup.Open && form.Popup.Kind == state.PopupPath {
+		// Path popup is a multi-line directory/file picker; show as a
+		// separate dialog because the inline form layout cannot host the
+		// breadcrumb + column header + detail box at once.
 		box = renderFormPopup(form, box, dialogW, dialogH)
 	}
 	return box
@@ -118,14 +126,38 @@ func appendFormLoading(parts []string, form state.FormState) []string {
 	return append(parts, component.GetStyle(component.StyleDim).Render(i18n.T("container.update.form.loading")))
 }
 
-func appendFormFields(parts []string, form state.FormState, labelWidth, valueWidth int, cursorVisible bool) []string {
+func appendFormFields(parts []string, form state.FormState, labelWidth, valueWidth, popupInnerW int, cursorVisible bool) []string {
 	for i := range form.Fields {
 		if form.Fields[i].Hidden {
 			continue
 		}
 		parts = append(parts, renderFormField(form, &form.Fields[i], i, labelWidth, valueWidth, cursorVisible))
+		// If this is the field owning an open popup, splice the option list
+		// INTO the form parts so the user sees an inline dropdown (no
+		// separate bordered dialog replacing the form). The rows sit directly
+		// beneath the focused field inside the same DialogBox.
+		if form.Popup.Open && form.Popup.Field == i && form.Popup.Kind != state.PopupPath {
+			parts = appendFormPopupRows(parts, form, &form.Fields[i], popupInnerW)
+		}
 	}
 	return parts
+}
+
+// appendFormPopupRows emits the rows of an open FormSelect / FormMultiSelect
+// popup as additional form parts so the dropdown is rendered inline beneath
+// the focused field. The path popup uses the separate renderPathPopup
+// renderer because it's a multi-line directory/file picker that does not fit
+// the inline form layout.
+func appendFormPopupRows(parts []string, form state.FormState, field *state.FormField, innerW int) []string {
+	rows := popupRows(field)
+	if len(rows) == 0 {
+		return parts
+	}
+	lines := visiblePopupRows(form, field, rows, innerW, state.FormPopupVisibleRows)
+	for len(lines) < state.FormPopupVisibleRows {
+		lines = append(lines, component.FormRow("", 0, innerW, ""))
+	}
+	return append(parts, lines...)
 }
 
 func renderFormButton(key, label string, focused bool) string {
@@ -185,7 +217,11 @@ func formLayout(fields []state.FormField, innerWidth int) (labelWidth, valueWidt
 func renderFormField(form state.FormState, f *state.FormField, index, labelWidth, valueWidth int, cursorVisible ...bool) string {
 	focused := form.FieldFocus == index
 
-	label := component.FormRow(f.Label, labelWidth, -1, "")
+	labelText := f.Label
+	if f.HelperText != "" {
+		labelText = labelText + " (" + f.HelperText + ")"
+	}
+	label := component.FormRow(labelText, labelWidth, -1, "")
 	if focused {
 		label = lipgloss.NewStyle().Foreground(component.GetStyle(component.StylePanelTitle).GetForeground()).Bold(true).Render(label)
 	}
@@ -197,9 +233,18 @@ func renderFormField(form state.FormState, f *state.FormField, index, labelWidth
 		value = renderFormValue(f, focused, valueWidth, cursorVisible...)
 	}
 
-	if marker != "" {
+	unitSuffix := ""
+	if f.Kind != state.FormSelect && f.Kind != state.FormMultiSelect && f.Kind != state.FormBool && f.Unit != "" {
+		unitSuffix = " " + f.Unit
+	}
+	switch {
+	case marker != "" && unitSuffix != "":
+		value = utils.FitVisible(value, max(1, valueWidth-utils.DisplayWidth(unitSuffix)-2)) + unitSuffix + " " + marker
+	case marker != "":
 		value = utils.FitVisible(value, max(1, valueWidth-2)) + " " + marker
-	} else {
+	case unitSuffix != "":
+		value = utils.FitVisible(value, max(1, valueWidth-utils.DisplayWidth(unitSuffix))) + unitSuffix
+	default:
 		value = utils.FitVisible(value, valueWidth)
 	}
 	row := label + " " + value
@@ -250,8 +295,17 @@ func renderEditableValue(f *state.FormField, focused bool, valueWidth int, curso
 		end++
 	}
 	base := lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDim).GetForeground())
+	if f.Kind == state.FormPath && !focused {
+		return wrapVisiblePath(valueWidth, string(runes))
+	}
 	if !focused {
-		return utils.TruncateVisible(base.Render(string(runes[start:end])), valueWidth)
+		// When the user is not editing the field (typical for the default
+		// Local destination (tar) value at form-open) the path is rendered
+		// from the start with a tail ellipsis. This shows the directory the
+		// file will land in, which is the meaningful context, instead of a
+		// window anchored at the cursor that hides the directory part.
+		visible := base.Render(string(runes))
+		return utils.TruncateVisible(visible, valueWidth)
 	}
 
 	before := lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleHelpDescription).GetForeground()).Render(string(runes[start:cursor]))
@@ -276,10 +330,42 @@ func renderEditableValue(f *state.FormField, focused bool, valueWidth int, curso
 	return component.GetStyle(component.StyleFormInput).Render(truncated)
 }
 
+func wrapVisiblePath(valueWidth int, value string) string {
+	if valueWidth <= 0 || value == "" {
+		return value
+	}
+	var lines []string
+	line := ""
+	lineWidth := 0
+	for _, r := range []rune(value) {
+		width := utils.DisplayWidth(string(r))
+		if line != "" && lineWidth+width > valueWidth {
+			lines = append(lines, line)
+			line = ""
+			lineWidth = 0
+		}
+		line += string(r)
+		lineWidth += width
+	}
+	if line != "" || len(lines) == 0 {
+		lines = append(lines, line)
+	}
+	return strings.Join(lines, "\n")
+}
+
 // renderSelectCell renders the collapsed value plus a dropdown marker for a
 // single- or multi-select field (BR-041 §8.1, §8.2).
 func renderSelectCell(f *state.FormField, focused bool, valueWidth int) (value, marker string) {
 	marker = component.TriangleDownSmall
+	displayed := func(idx int) string {
+		if idx >= 0 && idx < len(f.Options) && idx < len(f.DisplayOptions) && f.DisplayOptions[idx] != "" {
+			return f.DisplayOptions[idx]
+		}
+		if idx >= 0 && idx < len(f.Options) {
+			return f.Options[idx]
+		}
+		return ""
+	}
 	var text string
 	switch f.Kind {
 	case state.FormMultiSelect:
@@ -289,12 +375,24 @@ func renderSelectCell(f *state.FormField, focused bool, valueWidth int) (value, 
 				keys = append(keys, k)
 			}
 			sort.Strings(keys)
-			text = strings.Join(keys, ", ")
+			// Map each selected key back to its display label so the
+			// collapsed cell shows the localized names.
+			keyIndex := make(map[string]int, len(f.Options))
+			for i, opt := range f.Options {
+				keyIndex[opt] = i
+			}
+			labels := make([]string, 0, len(keys))
+			for _, k := range keys {
+				if idx, ok := keyIndex[k]; ok {
+					labels = append(labels, displayed(idx))
+				} else {
+					labels = append(labels, k)
+				}
+			}
+			text = strings.Join(labels, ", ")
 		}
 	default:
-		if f.Index >= 0 && f.Index < len(f.Options) {
-			text = f.Options[f.Index]
-		}
+		text = displayed(f.Index)
 	}
 	value = utils.TruncateVisible(text, valueWidth)
 	if focused {
