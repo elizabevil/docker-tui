@@ -64,7 +64,8 @@ type LifecycleOptions struct {
 	Force bool
 	// Name applies to rename. Empty means "no rename requested".
 	Name string
-	// Signal applies to kill. Empty defaults to SIGKILL on POSIX.
+	// Signal applies to kill / stop. Empty defaults to the engine default
+	// (SIGKILL for kill, SIGTERM for stop).
 	Signal string
 	// Timeout applies to stop / restart. Zero means "engine default".
 	Timeout time.Duration

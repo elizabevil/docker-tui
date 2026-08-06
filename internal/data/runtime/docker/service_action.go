@@ -62,9 +62,9 @@ func (s resourceActionService) executeContainer(ctx context.Context, id string, 
 	case runtimeapi.ActionStart:
 		return s.client.cli.ContainerStart(ctx, id, container.StartOptions{})
 	case runtimeapi.ActionStop:
-		return s.client.cli.ContainerStop(ctx, id, container.StopOptions{Timeout: durationSeconds(lc.Timeout)})
+		return s.client.cli.ContainerStop(ctx, id, container.StopOptions{Timeout: durationSeconds(lc.Timeout), Signal: lc.Signal})
 	case runtimeapi.ActionRestart:
-		return s.client.cli.ContainerRestart(ctx, id, container.StopOptions{Timeout: durationSeconds(lc.Timeout)})
+		return s.client.cli.ContainerRestart(ctx, id, container.StopOptions{Timeout: durationSeconds(lc.Timeout), Signal: lc.Signal})
 	case runtimeapi.ActionKill:
 		return s.client.cli.ContainerKill(ctx, id, lc.Signal)
 	case runtimeapi.ActionPause:

@@ -13,7 +13,7 @@ import (
 // zero value:
 //
 //	ActionStart   — no fields used
-//	ActionStop    — Timeout
+//	ActionStop    — Timeout, Signal
 //	ActionRestart — Timeout
 //	ActionKill    — Signal
 //	ActionPause   — no fields used
@@ -47,14 +47,13 @@ func (c *RESTClient) ExecuteContainerAction(ctx context.Context, id, action stri
 		return c.Post(ctx, ContainerStartPath(id), nil, nil, nil)
 	case ActionStop:
 		setPodmanTimeout(query, opts.Timeout)
+		setPodmanSignal(query, opts.Signal)
 		return c.Post(ctx, ContainerStopPath(id), query, nil, nil)
 	case ActionRestart:
 		setPodmanTimeout(query, opts.Timeout)
 		return c.Post(ctx, ContainerRestartPath(id), query, nil, nil)
 	case ActionKill:
-		if opts.Signal != "" {
-			query.Set("signal", opts.Signal)
-		}
+		setPodmanSignal(query, opts.Signal)
 		return c.Post(ctx, ContainerKillPath(id), query, nil, nil)
 	case ActionPause:
 		return c.Post(ctx, ContainerPausePath(id), nil, nil, nil)
@@ -80,5 +79,11 @@ func (c *RESTClient) ExecuteContainerAction(ctx context.Context, id, action stri
 func setPodmanTimeout(query url.Values, timeout time.Duration) {
 	if timeout > 0 {
 		query.Set("timeout", strconv.FormatInt(int64(timeout/time.Second), 10))
+	}
+}
+
+func setPodmanSignal(query url.Values, signal string) {
+	if signal != "" {
+		query.Set("signal", signal)
 	}
 }
