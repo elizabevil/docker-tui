@@ -96,7 +96,7 @@ func doContainerWait(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelContainers || ctr == nil {
 		return m, nil
 	}
-	ctx, generation := m.ContainerWait.Begin()
+	ctx, generation := m.ContainerWait.Begin(ctr.ID)
 	trace := beginAudit(m, "resource.container.wait", containerTarget(m, ctr.ID), "Wait for container "+ctr.Name)
 	return m, withAdvancedAudit(containerWaitCmd(ctx, generation, m.Connection.Engine, ctr.ID, ""), trace)
 }

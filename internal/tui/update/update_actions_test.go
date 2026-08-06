@@ -92,7 +92,7 @@ func TestHistoryLoadedIgnoresStaleResponse(t *testing.T) {
 
 func TestContainerWaitDoneIgnoresStaleGeneration(t *testing.T) {
 	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
-	_, generation := app.ContainerWait.Begin()
+	_, generation := app.ContainerWait.Begin("")
 	updated, _ := handleContainerWaitDone(app, keyboard.ContainerWaitDone{Generation: generation + 1})
 	if !updated.ContainerWait.Current(generation) {
 		t.Fatal("stale wait response stopped the current wait")
@@ -102,7 +102,7 @@ func TestContainerWaitDoneIgnoresStaleGeneration(t *testing.T) {
 func TestContainerWaitCancellationCompletesCurrentGeneration(t *testing.T) {
 	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
 	app.Dependencies.Audit = audit.NewService(nil)
-	_, generation := app.ContainerWait.Begin()
+	_, generation := app.ContainerWait.Begin("")
 	trace := app.Dependencies.Audit.Begin("resource.container.wait", audit.ContainerTarget{ID: "abc"}, audit.RuntimeContext{}, audit.UIContext{}, "Waiting")
 	app.ContainerWait.Stop()
 

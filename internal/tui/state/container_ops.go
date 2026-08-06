@@ -9,14 +9,16 @@ import "context"
 // context.Background(). Mirrors ImageTransferState.
 type ContainerWaitState struct {
 	Generation uint64
+	TargetID   string
 	Context    context.Context
 	Cancel     context.CancelFunc
 }
 
 // Begin starts a new cancellable wait, cancelling any previous one.
-func (s *ContainerWaitState) Begin() (context.Context, uint64) {
+func (s *ContainerWaitState) Begin(targetID string) (context.Context, uint64) {
 	s.Stop()
 	s.Generation++
+	s.TargetID = targetID
 	s.Context, s.Cancel = context.WithCancel(context.Background())
 	return s.Context, s.Generation
 }
@@ -28,9 +30,17 @@ func (s *ContainerWaitState) Stop() {
 	}
 	s.Context = nil
 	s.Cancel = nil
+	s.TargetID = ""
 }
 
 // Current reports whether a wait with the given generation is still active.
 func (s *ContainerWaitState) Current(generation uint64) bool {
 	return generation != 0 && generation == s.Generation && s.Cancel != nil
+}
+
+// IsActive reports whether a wait is currently running. The renderer
+// layer uses this to decide whether to paint the wait status indicator
+// in the message rail.
+func (s *ContainerWaitState) IsActive() bool {
+	return s != nil && s.Cancel != nil
 }

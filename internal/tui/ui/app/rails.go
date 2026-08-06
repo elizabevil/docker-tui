@@ -62,6 +62,11 @@ func renderMessageRail(m *state.AppModel, width int) string {
 		railStyle := component.GetStyle(component.StyleMessageRail).
 			Foreground(component.GetStyle(component.StyleToastInfo).GetForeground())
 		return railStyle.Render(wrapMessageRail(indicator.Render(max(1, width)), max(1, width), messageRailHeight))
+	case m.ContainerWait.IsActive():
+		indicator := component.NewWaitIndicator(m.ContainerWait.TargetID, m.ContainerWait.Generation)
+		railStyle := component.GetStyle(component.StyleMessageRail).
+			Foreground(component.GetStyle(component.StyleToastWarning).GetForeground())
+		return railStyle.Render(wrapMessageRail(indicator.Render(max(1, width)), max(1, width), messageRailHeight))
 	case m.Feedback.ErrorMessage != "":
 		style = component.GetStyle(component.StyleToastError)
 		text = m.Feedback.ErrorMessage

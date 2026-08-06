@@ -1,11 +1,12 @@
 package view
 
 import (
-	"fmt"
 	"strings"
 
+	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
+	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/audit"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/compose"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/containers"
@@ -110,14 +111,22 @@ func projectPage(m *state.AppModel, bodyHeight, bodyWidth int) pageView {
 			view.content = renderExecPassthroughPanel(m, bodyHeight)
 		} else if m.Navigation.Mode == state.ModeTop {
 			view.title = "Top: " + m.Processes.ContainerName
-			view.content = processes.Render(m.Processes, bodyWidth, bodyHeight)
+			view.content = component.WrapActionWindow(
+				processes.Render(m.Processes, bodyWidth-4, bodyHeight-2),
+				config.OperationScopeContainer,
+				bodyWidth,
+			)
 		} else if m.Navigation.Mode == state.ModeAuditDetail {
 			view.title = "Audit Detail"
 			view.content = audit.RenderDetail(m.Audit.DetailRecord, bodyWidth, bodyHeight)
 		} else if m.Navigation.Mode == state.ModeHistory {
 			view.title = i18n.T("history.title")
-			view.summary = fmt.Sprintf(i18n.T("history.summary"), m.History.ImageRef, len(m.History.Layers))
-			view.content = history.RenderView(m, bodyHeight, bodyWidth)
+			view.summary = i18n.T("history.summary", m.History.ImageRef, len(m.History.Layers))
+			view.content = component.WrapActionWindow(
+				history.RenderView(m, bodyHeight-2, bodyWidth-4),
+				config.OperationScopeImage,
+				bodyWidth,
+			)
 		} else if m.Navigation.Mode == state.ModeEvents {
 			view.title = i18n.T("events.title")
 			view.content = pageevents.RenderView(&m.EventPanel, bodyHeight, bodyWidth)
