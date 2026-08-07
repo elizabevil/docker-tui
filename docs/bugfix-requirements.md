@@ -242,13 +242,16 @@
 
 ### BR-008 H 键应进 Help,F1 行为复用;H 键同时承担镜像 History 入口
 
-- 状态: `open`
+- 状态: `partial` (2026-08-07 核查:镜像页 H 进 History 已完成(commit 9df9a39),ToggleHeader 已无键绑定;但 H 全局未映射到 ActionHelp,仅 `?`/F1 进入 Help)
 - 优先级: `medium`
 - 症状:
   1. 在任何页面按 H 当前是 `Viewport.ToggleHeader()`(隐藏/显示 header),用户期望 H 直接进入 Help(与 F1 / `?` 一致)。
   2. 镜像详情页里 `History` 曾是一个分区,用户希望 History 提到镜像页顶层,**详情页不再显示 History**。
 - 当前行为:
-  `keys.KeyH` 在 `keyboard.go:215` 直接执行 `m.Viewport.ToggleHeader()`,没有走 `ActionHelp`;镜像详情中的 `buildImageDetailDataSections` 和文本回退路径已不再渲染 History 段,Docker / Podman 的详情 inspect 也暂时不再请求 History endpoint。详情滚动会回写合法偏移且只渲染当前可见行,避免底部越界偏移累积和全量样式重绘。
+  - `keys/registry.go:81` 镜像上下文注册 `{ActionImageHistory, []string{KeyH}, images}`;H 键进入 `ModeHistory` 顶层页(commit 9df9a39),**不再触发 `ToggleHeader`**;`ToggleHeader` 仅存在于 `state/viewport.go:13`,无任何键绑定。
+  - `keys/registry.go:39` `ActionHelp` 仅绑定 `KeyQmark` / `KeyF1`;**H 在非镜像上下文无绑定**(静默无操作)。
+  - `ui/action/registry.go:185` 镜像页 footer 显示 `H = history.title`(已同步)。
+  - 镜像详情页不再渲染 History 段(`ui/pages/detail/image.go` 分区构造不含 History)。
 - 代码锚点:
   [internal/tui/keyboard/keyboard.go:215](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/keyboard.go:215) `case keys.KeyH: m.Viewport.ToggleHeader()`
   [internal/tui/keyboard/actions.go:21](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/actions.go:21) `case keys.ActionHelp: ToHelp(m)`
@@ -539,6 +542,7 @@
   - `openRuntimeSelector` 已经在所有页面统一由 F2 触发,渲染为 overlay 表格化条目,展示 runtime/version/socket/status/latency/security。
   - `KeyF12` / `KeyR` 绑定到 `ActionRefreshConnections`(全局);`KeyC` 仅绑定到 `ActionVolumeCreate` / `ActionNetworkCreate`,并未用于刷新连接。
   - 但选择器当前没有显式标注"↑↓ Navigate / Enter Switch / Esc Close"之类的快捷键提示行,Help / Footer 在 `ModeRuntimeSelect` 下也未必同步说明。
+  - 2026-08-07 核查:`keyboard/helpers.go:246` 仍残留 `keys.KeyC: keys.ActionLabelConn` 标签映射(违反"C=refresh conn 提示不得出现"规则),且 `keys/registry.go:47` 全局 `ActionSwitchRuntime` ← `F2` 与 BR-033 的 `ActionContainerDiff` ← `F2` 存在冲突。
 - 代码锚点:
   [internal/tui/keyboard/runtime_selector.go:13](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/runtime_selector.go:13) `openRuntimeSelector`
   [internal/tui/ui/app/layout.go:293](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/app/layout.go:293) `renderRuntimeSelector`
@@ -580,7 +584,7 @@
 
 ### BR-025 容器详情页标题占位符 `{0}` `{1}` 未替换
 
-- 状态: `open`
+- 状态: `done` (2026-08-07 核查:格式串已改 `%v (%v)` 且调用点全部传参,运行时验证替换正常)
 - 优先级: `high`
 - 症状:
   - 容器详情页标题栏显示为字面值 `Container Detail: {0} ({1})`,而不是 `Container Detail: <name> (<id>)`,占位符未被替换。
@@ -609,6 +613,7 @@
 - 当前行为:
   - `keyboard/detail.go:33` `case keys.KeySpace, keys.KeyPgDn: m.Detail.Scroll(20)` —— `Space` 与 `PgDn` 共用 20 行滚动分支。
   - `R` 在 `ModeDetail` 下不绑定任何动作(`handleDetailKeys` 未匹配 `KeyR` 时落入 `return true, nil`,实际吞掉按键但不报错),但 Help / Footer 不会主动标出 "R 在此处不可用"。
+  - 2026-08-07 核查:`keyboard/detail.go:14-46` `handleDetailKeys` 已支持 j/k/PgUP/PgDn/Filter(`/`)/Ctrl+A/Ctrl+C/s 循环;**`case keys.KeySpace` 仍与 PgDn 共用 `Scroll(20)` 分支**,未按 BR-026 期望移除 Space 滚动。
 - 代码锚点:
   [internal/tui/keyboard/detail.go:33](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/detail.go:33) `case keys.KeySpace, keys.KeyPgDn`
   [internal/tui/ui/action/registry.go:235](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/action/registry.go:235) Detail footer/shortcuts 投影
@@ -691,6 +696,7 @@
 - 当前行为:
   - `internal/tui/ui/app/mouse.go:174` `HitTest` 把鼠标 `(x,y)` 映射到 panel 行号;`mouse.go:254` `clickListCursor` 写入选中行;镜像 panel 在 standard 模式下与整条 rail 几何不一致,导致点击命中错位。
   - 滚轮已经在日志/详情页支持,但**资源列表页**未把滚轮事件路由到 cursor 上下移动。
+  - 2026-08-07 核查:`mouse.go:208` `ApplyMouseClick` 仍调用 `clickListCursor`(208-240 段),点击表格行仍移动光标;`HitHeader:16` 常量存在但 `ApplyMouseClick` 对 `hit != HitPanel` 直接 return,无表头点击路由。
 - 代码锚点:
   [internal/tui/ui/app/mouse.go:174](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/app/mouse.go:174) `HitTest`
   [internal/tui/ui/app/mouse.go:223](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/app/mouse.go:223) `clickListCursor` 调用点
@@ -737,16 +743,15 @@
 
 ### BR-032 表格排序:N / Ctrl+N 正反排序,鼠标点击表头排序
 
-- 状态: `open`
+- 状态: `partial` (2026-08-07 核查:键盘部分 N/Ctrl+N 已完成 commit d7e6a57;鼠标表头点击排序仍未实现)
 - 优先级: `medium`
 - 症状:
   - 当前表格排序由 `O`(`toggleSortColumn` 切换列)与 `Ctrl+O`(`toggleSortDirection` 切换升降序)承担。
   - 用户期望:`N` = 正排序(升序或切换到下一个排序列的升序),`Ctrl+N` = 反排序(降序或切换到下一个排序列的降序);此外,**鼠标点击表头**也能排序。
 - 当前行为:
-  - `internal/tui/keyboard/keyboard.go:221-234`:`KeyO` 调 `toggleSortColumn`,`KeyCtrlO` 调 `toggleSortDirection`。
-  - `toggleSortColumn` 在容器 / 镜像 / 网络 panel 间循环排序字段;`toggleSortDirection` 翻转 `SortAsc` 标志。
-  - **没有** `KeyN` / `KeyCtrlN` 在正常模式下的排序绑定;`KeyN` 只在 dialog 中被当作"关闭"(`keyboard.go:145`)。
-  - **没有**鼠标点击表头的处理;`mouse.go` 中只有 `clickListCursor` / `HitTest` / 滚轮事件,**没有**表头点击路由。
+  - `internal/tui/keyboard/keyboard.go`:`KeyN` 调 `setSortDirection(true)`(升序),`KeyCtrlN` 调 `setSortDirection(false)`(降序),对当前排序列生效(选项 A 语义,commit d7e6a57)。`KeyO` / `KeyCtrlO` 的 `toggleSortColumn` / `toggleSortDirection` 逻辑保留。
+  - 排序改动后 `Cursor` 与 `ViewOffset` 归零。
+  - **没有**鼠标点击表头的处理;`mouse.go` 中只有 `clickListCursor` / `HitTest` / 滚轮事件,**没有**表头点击路由。`HitHeader` 常量存在于 `mouse.go` 但 `ApplyMouseClick` 仅处理 `HitPanel` 分支。
 - 代码锚点:
   [internal/tui/keyboard/keyboard.go:221](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/keyboard.go:221) `KeyO` 入口
   [internal/tui/keyboard/keyboard.go:228](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/keyboard.go:228) `KeyCtrlO` 入口
@@ -820,14 +825,18 @@
 
 ### BR-034 镜像 History 顶层页 (H 键) — 历史因性能取消,需重新设计
 
-- 状态: `open`
+- 状态: `done` (2026-08-07 核查:History 顶层页已实现,commit 9df9a39;H 键在镜像页进入 ModeHistory)
 - 优先级: `high`
 - 症状:
   - 在镜像页按 H 当前是 `Viewport.ToggleHeader()`(`keyboard.go:215`),不是进入镜像 History。
   - 镜像详情页里曾渲染完整 History 段,大镜像(>50 layer)下每次滚动都重建整段 section,因**性能问题**取消。
   - 用户期望:H 键在**镜像页**进入**镜像 History 顶层页**(浏览 layer history),详情页不再渲染 History 段。
 - 当前行为:
-  - `keys.KeyH` 在 `keyboard.go:215` 直接执行 `m.Viewport.ToggleHeader()`,没有走 `ActionHelp`;镜像详情中的 `buildImageDetailDataSections` 与文本回退路径已不再渲染 History 段,Docker / Podman 的详情 inspect 也暂时不再请求 History endpoint。详情滚动已用 BR-016 / BR-007 优化(按 revision 缓存 + ClampVisibleOffset),但仍未重新引入 History 顶层页。
+  - **已实现(commit 9df9a39)**:`keys.KeyH` 在镜像页上下文注册为 `ActionImageHistory`(`keys/registry.go:81`),进入 `ModeHistory` 独立顶层页。
+  - 实现链:`keyboard/history_actions.go`(`openHistoryPage`,含 engine/panel 检查与 manifest 提示)→ `keyboard/history_keys.go`(页面键处理)→ `state/history.go`(`Open/Apply/Close/MoveCursor/EnsureVisible/SetFilter`)→ `ui/pages/history/view.go`(`RenderView`/`renderStatus`/`FilterLayers`/`layerRow`)。
+  - `page_templates.go:126` 接入 `history.RenderView`;`keyboard.go:76,138` 路由 `ModeHistory`。
+  - 镜像详情页不再渲染 History 段(`ui/pages/detail/image.go` 分区构造不含 History)。
+  - `Viewport.ToggleHeader()` 已无 H 键绑定(help.go 的 KeyH 描述需随 BR-008 一并核对)。
 - 代码锚点:
   [internal/tui/keyboard/keyboard.go:215](internal/tui/keyboard/keyboard.go:215) `KeyH` 当前 ToggleHeader
   [internal/tui/ui/pages/detail/image.go:14](internal/tui/ui/pages/detail/image.go:14) 镜像分区构造(已不渲染 History)
@@ -854,14 +863,16 @@
 
 ### BR-035 Events 独立面板 (F3 键) + Network Connect/Disconnect
 
-- 状态: `open`
+- 状态: `partial` (2026-08-07 核查:Events 面板已实现(F3 注册 + events_keys/state/view 全链);Network Connect/Disconnect 仍未实现)
 - 优先级: `medium`
 - 症状:
   - 当前 `Engine.Events().Subscribe(...)` 已在 `update/update_events.go:28-31` 实现后台订阅,合并到资源更新路径,但**没有独立的 Events 浏览面板**;用户无法浏览 runtime events 历史。
   - `NetworkService` 接口 (`docker/service_network.go` / `podman/service_network.go`) 只有 List/Create/Remove/Prune,**没有** Connect / Disconnect;无法动态调整容器的网络接入。
 - 当前行为:
-  - F3 当前未绑定任何动作(`KeyF3` 在 `keys/keys.go` 已定义,但 `registry.go` 没有 `KeyF3` 注册条目)。
-  - 容器启动后只能使用启动时配置的网络,无法在运行时补接 / 脱离。
+  - **Events 面板已实现(部分)**:
+    - `keys/registry.go:52` 全局注册 `{ActionEvents, []string{KeyF3}, app}`。
+    - `keyboard/events_keys.go`(open/close/confirm)、`state/events_panel.go`、`ui/pages/events/view.go`(`RenderView`/`panelTitle`/`footerHint`/`eventRow`)、`page_templates` 路由 `ModeEvents`、`keyboard.go:33-34` 处理均已存在。
+  - **Network Connect / Disconnect 未实现**:`NetworkService` 接口仍只有 List/Inspect/Create/Remove/Prune,无 Connect/Disconnect;容器启动后只能使用启动时配置的网络。
 - 代码锚点:
   [internal/tui/update/update_events.go:28](internal/tui/update/update_events.go:28) `subscribeEventsCmd`
   [internal/tui/update/update_events.go:31](internal/tui/update/update_events.go:31) `subscribeEventsCmd` 定义
@@ -1083,7 +1094,7 @@
 
 ### BR-041 action bar / 输入框 / 长 label wrap / select 图标 — Form Dialog UI 一组修复
 
-- 状态: `open`
+- 状态: `partial` (2026-08-07 核查:select marker 单行与两列布局已修复并有测试通过;TestLongPathCursorStaysVisible / TestFormRendersInSmallViewports 两个验收测试尚未编写,需补齐)
 - 优先级: `high`
 - 症状(共 4 个):
   1. action bar(`Esc ▶ Cancel   Enter Confirm` 行)的背景色没有覆盖整行,左/右 padding 与 border 内侧出现缺口或断裂。
@@ -1118,6 +1129,123 @@
   3. 视觉:action bar 背景从 border 到 border 连续;输入值区有下划线;长 label 行 layout 完整;select marker 单行。
   4. 不引入 `github.com/fatih/color`(BR-000);不动 `config.Palette` schema 与 12 个编译期 hex 与 `style.Colors.BG`;不动主题 JSONC 颜色值。
   5. `go vet ./...` 与 `go test ./internal/... ./cmd/...` 全量回归通过。
+
+### BR-042 容器高级动作快捷键缺失(Rename/Top/Port 无绑定;TASK-019 默认键为 nil)— 需讨论与 action bar 的重复策略
+
+- 状态: `open`
+- 优先级: `medium`
+- 症状:
+  - 容器页面部分高级功能**没有直接快捷键**:`Rename`(重命名)、`Top`(进程)、`Port`(端口映射)在 `keys/registry.go` 中完全无绑定。
+  - TASK-019 的 6 个动作(`Update` / `Diff` / `Export` / `Commit` / `Wait` / `Copy`)在 registry.go:68-73 的默认键为 `nil`,仅能通过 `;` 打开的 action bar 触达。
+  - 用户期望:一部分动作既能"直接快捷键"触达(方便熟练用户),也能在 action bar 中展示(不丢失高级功能入口)。需要讨论**哪些操作可以与 action 重复绑定**。
+- 当前行为:
+  - `registry.go` 仅注册了基础动作(Enter/Back/Delete/Filter/Refresh/ActionBar/Tab/Space 等)与 Detail(d 键,上下文仅 containers/images/volumes/networks)。`ActionContainerRename` / `ActionContainerTop` / `ActionContainerPort` 未出现在任何默认绑定中。
+  - TASK-019 动作的默认键为 `nil`(registry.go:68-73),`actionbar` 组件(registry_test.go:17)断言它们出现在 `;` 弹出的 bar 中。
+  - BR-033 负责 TASK-019 的 **handler 缺失**;本条目只讨论**键位绑定与重复策略**,两者互补。
+- 代码锚点:
+  - [internal/tui/keys/registry.go:53](/home/debi/IdeaProjects/docker-tui/internal/tui/keys/registry.go:53) `ActionDetail` 上下文(无 audit)
+  - [internal/tui/keys/registry.go:68-73](/home/debi/IdeaProjects/docker-tui/internal/tui/keys/registry.go:68) TASK-019 默认键 `nil`
+  - [internal/tui/ui/component/actionbar/registry_test.go:17](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/component/actionbar/registry_test.go:17) action bar 内容断言
+- 期望行为:
+  1. 明确"哪些动作同时拥有直接快捷键 + action bar 入口"的清单(讨论产出,记录到本条目)。
+  2. 至少为 `Rename` 补一个默认键(建议与容器页现有键位不冲突);TASK-019 动作在 BR-033 修复时一并重设非冲突默认键。
+  3. 讨论结论需与 BR-033 / BR-032(排序键位)统一规划,避免再次冲突。
+- 验收标准:
+  1. 讨论结论写入本条目(状态可转为 `done` 或拆分出新 BR)。
+  2. 容器页可直接按键触发 Rename 等动作;action bar 同时保留入口。
+
+### BR-043 表格多选标记后,光标移动至标记行无视觉区分
+
+- 状态: `open`
+- 优先级: `medium`
+- 症状:
+  - 表格多选(mark mode)后,标记行有底色;但**光标移动到标记行上看不出光标位置**——标记样式优先级高于选中样式,选中态被吞掉。
+  - 用户指定修复方向原文:"当光标移动至多选列表时,文字颜色设置为光标的背景色"。
+- 当前行为:
+  - `rows.go:41-43`:`if marked` 分支优先于 `selected`,取 `RowStyleMarked`;两分支都走 `Width` + `Background` 铺满整行。
+  - marked 样式来源 `styles_load.go:366-367`:`Marked.Background = theme.Data.MarkedBackground`、`Marked.Color = NameForeground`。
+  - 因此光标所在的标记行与普通标记行视觉完全一致,无法区分当前行。
+- 代码锚点:
+  - [internal/tui/ui/component/rows.go:28-52](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/component/rows.go:28) 样式选择优先级
+  - [internal/tui/ui/component/styles_load.go:366-367](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/component/styles_load.go:366) marked 样式定义
+- 期望行为:
+  1. 光标位于标记行时,该行**文字颜色设为光标背景色**(即"反色"提示:文字 = 光标背景色),与普通标记行/普通选中行均区分开。
+  2. 光标离开后恢复 marked 样式。
+- 验收标准:
+  1. 多选 2+ 行后移动光标:光标所在标记行与其余标记行肉眼可区分。
+  2. 未标记行的选中样式(现有)不被破坏;`go test ./internal/tui/ui/component/` 通过。
+
+### BR-044 space 进入多选后按一次 Esc 无法退出多选模式(观感:mark 保留 + banner 常驻)
+
+- 状态: `open`
+- 优先级: `high`
+- 症状:
+  - 用户报告:space 进入多选后,按一次 Esc 无法退出多选模式。
+  - 代码级定位(临时测试已实证,见下):**单次 Esc 确实退出 mark mode(Mode 11→0)**,但退出时**不清空 marks**;且 `MarkedItemsBanner` 按"marks 是否存在"渲染(containers/view.go:146),不依赖 Mode → 退出后 banner("Marked: N (Esc to exit, clear marks)")与行高亮仍常驻,造成"Esc 退不出去"的观感。
+- 当前行为:
+  - 临时测试 `internal/tui/keyboard/esc_mark_tmp_test.go`(已验证后删除)证明:Space → Mode=11(marked=1);Esc #1 → Mode=0(marked=1,mark 保留);Esc #2 → Mode=0。
+  - `exitMarkMode`(mark_mode.go:15-18)只改 `Mode`,不动 `Selection.PanelMarks`。
+  - `MarkedItemsBanner`(marked_items_banner.go:10-14)渲染条件为 `len(marks) > 0`,与 Mode 无关;containers/view.go:146 调用它。
+  - 清 marks 的唯一调用点是 mark_action.go:139(doBulkClearMarks)。
+  - 2026-08-07 核查:`exitMarkMode` 仍只设置 Mode(`mark_mode.go:15-18`),未调用 `ClearMarks`;`marked_items_banner.go:10-14` 仍按 `len(marks) > 0` 渲染 banner → 未修复。
+- 代码锚点:
+  - [internal/tui/keyboard/mark_mode.go:15-18](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/mark_mode.go:15) exitMarkMode 仅改 Mode
+  - [internal/tui/ui/component/marked_items_banner.go:10-14](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/component/marked_items_banner.go:10) banner 按 marks 渲染
+  - [internal/tui/ui/pages/containers/view.go:146](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/pages/containers/view.go:146) banner 调用点
+  - [internal/tui/keyboard/mark_action.go:139](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/mark_action.go:139) 唯一清 marks 点
+- 期望行为:
+  1. 按一次 Esc 退出多选模式时,**marks 一并清除**(banner 消失、行高亮消失),符合用户"退出多选"直觉;或
+  2. 若保留 marks 是有意设计(批量操作后还想再改),则退出时需有明确视觉/文字反馈(如 banner 变为"已退出多选,标记保留")。
+- 验收标准:
+  1. Space 进入 → Esc 退出后,banner 与行高亮不再残留;再次按 Esc 不再触发"退出确认"链的误感。
+  2. `go test ./internal/tui/keyboard/` 通过。
+
+### BR-045 容器日志入口:区分运行中 / 已停止容器 — 需求讨论
+
+- 状态: `open`
+- 优先级: `low`
+- 症状:
+  - 容器日志视图对"运行中"与"已停止"容器无任何区分;已停止容器按 Enter 同样进入日志页。
+  - 用户需求:在 UI 上区分运行中 / 已停止容器的日志入口(需求讨论项)。
+- 当前行为:
+  - `doLogAction`(container_action.go:185-193)对任意选中容器直接进入日志视图,**无 running/stopped 判断**。
+  - podman 本身支持对已停止容器读取 logs(runtime 层可返回历史日志),因此功能上可用,仅缺 UI 区分。
+- 代码锚点:
+  - [internal/tui/keyboard/container_action.go:185-193](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/container_action.go:185) doLogAction
+- 期望行为(待讨论确认后落地):
+  1. 日志页标题/页内标识容器当前状态(如 `● Running` / `■ Stopped`)。
+  2. 入口处(如 action bar 或 Enter 行为)对已停止容器给出提示或差异化文案。
+- 验收标准:
+  1. 已停止容器进入日志页时,页面可见容器状态标识。
+  2. 讨论结论记录到本条目。
+
+### BR-046 Audit 详情页无法进入:Enter 被全局 ActionEnter 拦截、d 键上下文不含 audit;Trace ID 截断 16 字符
+
+- 状态: `open`
+- 优先级: `medium`
+- 症状:
+  - 用户报告:Audit 页面信息太长存在截断;希望添加 enter 或 d 键进入详情页查看详情(类似容器页)。
+  - 代码级定位:audit 面板按 Enter **完全无反应**;按 d 也无反应。`ModeAuditDetail` 目前**没有任何键盘路径可达**。
+- 当前行为:
+  - **Enter 被全局 ActionEnter 先拦截**:registry.go:47 `{ActionEnter, []string{KeyEnter}, main}`;keyboard.go:63-65 在 `handlePanelFallbacks`(line 67)之前执行;`doEnterAction`(delete_action.go:42-68)**无 `PanelAudit` 分支** → 返回 `m, nil`(静默无操作)。`handleAuditPanelKey` 的 Enter 分支(audit_keys.go:23-31)是**死代码**,永远收不到 Enter。
+  - **d 键上下文不含 audit**:registry.go:53 `ActionDetail` 仅绑定 View containers/images/volumes/networks。
+  - `ModeAuditDetail` 目前唯一赋值点是 audit_keys.go:29(死代码内),实际不可达;mouse.go:255 对 PanelAudit 只做 clickListCursor(移动光标),不进详情。
+  - **截断**:audit view.go:99-102 将 Trace ID 截断为 16 字符 + `"..."`。
+  - E 键循环过滤器(All→Errors→Warnings→All)已可用(audit_keys.go:32-44)。
+  - 2026-08-07 核查:`audit/view.go:100` 仍执行 `traceID[:16] + "..."` 截断;`keys/registry.go:47` `ActionEnter` 仍先于 `handlePanelFallbacks` 执行,`delete_action.go` 无 PanelAudit 分支 → 未修复。
+- 代码锚点:
+  - [internal/tui/keys/registry.go:47](/home/debi/IdeaProjects/docker-tui/internal/tui/keys/registry.go:47) ActionEnter 绑定 main surface
+  - [internal/tui/keyboard/keyboard.go:63-67](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/keyboard.go:63) 全局表先于 panel fallbacks
+  - [internal/tui/keyboard/delete_action.go:42-68](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/delete_action.go:42) doEnterAction 无 PanelAudit 分支
+  - [internal/tui/keyboard/audit_keys.go:23-31](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/audit_keys.go:23) handleAuditPanelKey Enter 分支(死代码)
+  - [internal/tui/keys/registry.go:53](/home/debi/IdeaProjects/docker-tui/internal/tui/keys/registry.go:53) ActionDetail 上下文
+  - [internal/tui/ui/pages/audit/view.go:99-102](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/pages/audit/view.go:99) Trace ID 截断
+- 期望行为:
+  1. Audit 面板按 Enter(或 d)进入 `ModeAuditDetail` 详情视图;详情 Esc/Enter 返回列表(handleAuditDetailKey 已实现)。
+  2. Trace ID 完整显示或提供展开方式(至少不在首屏截断关键信息)。
+- 验收标准:
+  1. 在 audit 面板按 Enter 可进入详情;详情 Esc 返回。
+  2. Trace ID 可完整阅读(或可展开);`go test ./internal/tui/keyboard/ ./internal/tui/ui/pages/audit/` 通过。
 
 ### BR-028 (TBD - 待用户补充)
 
