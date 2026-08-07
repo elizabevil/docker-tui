@@ -1,0 +1,46 @@
+// operations/scopes/network.jsonc
+//
+// Network-scope Operations. Mirror of volume.jsonc with the only
+// structural difference: networkRemove has no editable fields (docker
+// / podman do not support --force for network removal), so its form
+// is an empty-fields confirmation form.
+//
+// Action Bar visibility (OperationSpec.InActionBar):
+//
+//	create   — inActionBar: false. Self-discoverable through KeyC
+//	remove   — default true. Destructive
+//	prune    — default true. Batch
+
+{
+  "scope": "network",
+  "operations": [
+    {
+      "kind":   "create",
+      "action": "networkCreate",
+      "mode":   "confirm",
+      "confirm": { "kind": "networkCreate" },
+      "label":  "Create",
+      "description": "Create a new network",
+      "requires": ["engine"],
+      "inActionBar": false
+    },
+    {
+      "kind":   "remove",
+      "action": "networkRemove",
+      "mode":   "form",
+      "form":   { "kind": "networkRemove" },
+      "label":  "Remove",
+      "description": "Delete a network",
+      "requires": ["engine", "network"]
+    },
+    {
+      "kind":   "prune",
+      "action": "networkPrune",
+      "mode":   "confirm",
+      "confirm": { "kind": "networkPrune" },
+      "label":  "Prune",
+      "description": "Remove all unused networks",
+      "requires": ["engine"]
+    }
+  ]
+}

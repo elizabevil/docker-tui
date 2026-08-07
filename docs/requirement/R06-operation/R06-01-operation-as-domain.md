@@ -8,6 +8,7 @@
 ✅ **R06-04 — theme 重组 (方案 B)** 落地
 ✅ **R06-05 — Page/Async 渲染器接 theme chrome** 落地
 ✅ **R06-06 — imagePrune async Operation** 落地
+✅ **R06-09 — Volume / Network scope (confirm mode + InActionBar 契约)** 落地
 
 剩余 follow-ups:
 - R06-07 — 状态合并: `m.Form + m.Processes + m.ContainerWait + m.Detail` → `m.Operation` discriminated union
@@ -72,7 +73,9 @@ theme.action      ← per-scope 窗口契约
     "data":      { "markedBackground": "...", "columnForeground": "...", ... },
     "action": {
       "container": { "window": {...}, "formInput": {...}, "confirm": {...}, "cancel": {...} },
-      "image":     { "window": {...}, "formInput": {...}, "confirm": {...}, "cancel": {...} }
+      "image":     { "window": {...}, "formInput": {...}, "confirm": {...}, "cancel": {...} },
+      "volume":    { "window": {...}, "formInput": {...}, "confirm": {...}, "cancel": {...} },
+      "network":   { "window": {...}, "formInput": {...}, "confirm": {...}, "cancel": {...} }
     }
   }
 }
@@ -130,16 +133,19 @@ theme.action      ← per-scope 窗口契约
 #### Mode ↔ body sub-object 对称契约
 
 ```
-mode=form   → 必填 form:   { kind: "<state.FormKind 名字>" }
-mode=page   → 必填 page:   { body: "<page renderer 名>"   }
-mode=async  → 必填 async:  { body: "<async renderer 名>"  }
+mode=form    → 必填 form:    { kind: "<state.FormKind 名字>" }
+mode=page    → 必填 page:    { body: "<page renderer 名>"   }
+mode=async   → 必填 async:   { body: "<async renderer 名>"  }
+mode=confirm → 必填 confirm: { kind: "<handler 名>" }
+              // volumeCreate / networkCreate → openResourceCreate
+              // volumePrune  / networkPrune  → confirmResourcePrune
 ```
 
 Loader 在 `validateSpec` 强制该契约,违规立即报错。
 
 #### Requires / DisabledWhen 谓词
 
-闭集: `engine` / `container` / `image` / `running` / `manifest`。
+闭集: `engine` / `container` / `image` / `volume` / `network` / `running` / `manifest`。
 
 - `requires`: AND-combined 全满足才 enabled
 - `disabledWhen`: OR-combined 任一满足就 disabled
@@ -162,13 +168,17 @@ dispatchOperation(action, m)
   ├─ LoadOperations() → *Operations
   ├─ ops.LookupByAction(action) → OperationSpec
   └─ switch spec.Mode:
-       ├─ form   → dispatchForm(spec.Form.Kind) → openXxxForm(m)
-       ├─ page   → dispatchPage(spec.Page.Body) → openXxxView(m)
-       └─ async  → dispatchAsync(spec.Async.Body) → doXxx(m)
+       ├─ form    → dispatchForm(spec.Form.Kind) → openXxxForm(m)
+       ├─ page    → dispatchPage(spec.Page.Body) → openXxxView(m)
+       ├─ async   → dispatchAsync(spec.Async.Body) → doXxx(m)
+       └─ confirm → dispatchConfirm(spec.Confirm.Kind)
+                      ├─ volumeCreate / networkCreate → openResourceCreate(m, type)
+                      └─ volumePrune  / networkPrune  → confirmResourcePrune(m, type)
 ```
 
 当前 container scope 9 个 action + image scope 2 个 action(`history` + `prune`)
-全部走这条路径。`keyboard/actions.go` 里删掉了对应的 8 个硬编码 case。
++ volume / network scope 各 3 个 action(`create` / `prune` / `remove`)全部走这条路径。
+`keyboard/actions.go` 里删掉了对应的硬编码 case,只留全局快捷键与 legacy fallback。
 
 ### 4. Render pipeline (R06-05)
 
@@ -199,6 +209,12 @@ type Operations struct {
 
 `config.CachedLoadOperations()` 用 `sync.Once` 共享缓存,actionbar / keyboard 都读同一份。
 
+Action Bar 只投影 `inActionBar: true` 的 Operation(loader 对省略该字段的
+JSONC 默认补 true)。`volumeCreate` / `networkCreate` 显式声明 `false`:
+它们已有直接快捷键 KeyC,`;` 弹层里再给说明是摩擦而非帮助(C04 契约)。
+`positiveSatisfied` 的闭集 token 含 `volume` / `network`,按
+"面板 + 选中行"判定启用状态。
+
 ### 6. File map (R06 已落地的所有文件)
 
 ```
@@ -209,7 +225,9 @@ internal/data/config/
 ├── operations_cache.go               # CachedLoadOperations() sync.Once
 ├── defaults/operations/scopes/
 │   ├── container.jsonc               # 9 个 container Operation
-│   └── image.jsonc                   # history + prune
+│   ├── image.jsonc                   # history + prune
+│   ├── volume.jsonc                  # create / prune / remove (confirm/confirm/form)
+│   └── network.jsonc                 # create / prune / remove (confirm/confirm/form)
 ├── theme_test.go                     # 新结构验证
 ├── light_theme_test.go               # 端到端覆盖
 ├── themes/*.jsonc                    # 6 个主题,按 chrome/surfaces/text/feedback/data/action 重写
@@ -218,15 +236,18 @@ internal/tui/ui/component/
 ├── styles_load.go                    # ApplyThemeStyles 按新 section 投影
 ├── action_chrome.go                  # WrapActionWindow(scope, content, width)
 ├── wait_indicator.go                 # NewWaitIndicator → ⏳ Waiting on …
-id
 
 internal/tui/actionbar/
-└── registry.go                       # ActionItem 从 Operations 投影
+└── registry.go                       # ActionItem 从 Operations 投影 + InActionBar 过滤 (C04)
 
 internal/tui/keyboard/
-├── operation_dispatch.go             # dispatchOperation → dispatchForm/Page/Async
-├── operation_dispatch_test.go        # 6 个测试覆盖 Form/Page/Async + imagePrune
-├── actions.go                        # 删 8 个 case,只留全局快捷键
+├── operation_dispatch.go             # dispatchOperation → dispatchForm/Page/Async/Confirm
+├── operation_dispatch_test.go        # 10 个测试覆盖 Form/Page/Async/Confirm + volume/network
+├── actions.go                        # 删硬编码 case,只留全局快捷键 + legacy fallback
+├── resource_action.go                # openResourceCreate / confirmResourcePrune (confirm handlers)
+├── volume_action.go                  # doVolumeRemove → openVolumeRemoveForm
+├── network_action.go                 # doNetworkRemove (legacy 确认路径)
+└── container_form.go                 # openVolumeRemoveForm / openNetworkRemoveForm (form targets)
 
 internal/tui/state/
 └── container_ops.go                  # ContainerWaitState: TargetID, IsActive()
@@ -247,7 +268,6 @@ internal/data/i18n/
 |---|---|---|
 | **R06-07** | 状态合并 | `m.Form + m.Processes + m.ContainerWait + m.Detail` → 单一 `m.Operation` discriminated union。Rename 仍走 `ModeRename + Dialog`,并入后 dispatcher arm 一并收敛。 |
 | **R06-08** | Port / Diff chrome | Port(`ModeDetail` + portBindings)和 Diff(`ModeDetail` + diffChanges)目前共用 `ModeDetail` 通用页面,没消费 `theme.action.container.window`。需要区分"container-scope Detail"和"普通 Detail"。 |
-| **R06-09** | Volume / Network scope | `operations/scopes/volume.jsonc` + `operations/scopes/network.jsonc` + 主题加 `action.volume` / `action.network`。 |
 
 ---
 

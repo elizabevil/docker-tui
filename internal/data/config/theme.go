@@ -323,6 +323,8 @@ func DefaultTheme() *Theme {
 		Action: ActionStyles{
 			Container: defaultActionScopeStyles(),
 			Image:     defaultActionScopeStyles(),
+			Volume:    defaultActionScopeStyles(),
+			Network:   defaultActionScopeStyles(),
 		},
 	}
 }
@@ -525,6 +527,12 @@ func (p ThemePatch) Apply(target *Theme) {
 		}
 		if p.Action.Image != nil {
 			applyActionScopePatch(&target.Action.Image, p.Action.Image)
+		}
+		if p.Action.Volume != nil {
+			applyActionScopePatch(&target.Action.Volume, p.Action.Volume)
+		}
+		if p.Action.Network != nil {
+			applyActionScopePatch(&target.Action.Network, p.Action.Network)
 		}
 	}
 }

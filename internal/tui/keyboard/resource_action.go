@@ -77,7 +77,15 @@ func confirmResourcePrune(m *state.AppModel, resourceType runtimeapi.ResourceTyp
 	if m.Connection.Engine == nil {
 		return m, nil
 	}
-	message := i18n.T("resource.prune.confirm", resourceTypeLabel(resourceType))
+	var message string
+	switch resourceType {
+	case runtimeapi.ResourceVolume:
+		message = i18n.T("volume.prune.confirm")
+	case runtimeapi.ResourceNetwork:
+		message = i18n.T("network.prune.confirm")
+	default:
+		message = i18n.T("resource.prune.confirm", resourceTypeLabel(resourceType))
+	}
 	trace := beginAudit(m, "resource."+string(resourceType)+".prune", auditTargetForCreate(resourceType, "unused"), message)
 	m.Confirm.Open(string(resourceType)+"-prune", string(resourceType), message, trace)
 	m.Navigation.Mode = state.ModeConfirm

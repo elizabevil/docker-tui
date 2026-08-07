@@ -1,0 +1,53 @@
+// operations/scopes/volume.jsonc
+//
+// Volume-scope Operations. The schema follows the same Mode ↔ body
+// sub-object contract documented in R06-01 § "Operations schema":
+//
+//	mode=form    → form.kind   → openVolumeRemoveForm → FormVolumeRemove
+//	mode=confirm → confirm.kind → confirmResourcePrune / openResourceCreate
+//
+// Action Bar visibility (OperationSpec.InActionBar):
+//
+//	create   — inActionBar: false. Self-discoverable through KeyC
+//	          shortcut; the "Create a new empty volume" description adds
+//	          no value before the user types the shortcut. C04 § "Action
+//	          Bar 角色" lists this pattern.
+//	remove   — default true. Destructive single-target delete; the
+//	          description "Delete a volume" protects against
+//	          accidental triggers via Ctrl+D.
+//	prune    — default true. Batch operation; description "Remove all
+//	          unused volumes" lets the user pause before pressing P.
+
+{
+  "scope": "volume",
+  "operations": [
+    {
+      "kind":   "create",
+      "action": "volumeCreate",
+      "mode":   "confirm",
+      "confirm": { "kind": "volumeCreate" },
+      "label":  "Create",
+      "description": "Create a new empty volume",
+      "requires": ["engine"],
+      "inActionBar": false
+    },
+    {
+      "kind":   "remove",
+      "action": "volumeRemove",
+      "mode":   "form",
+      "form":   { "kind": "volumeRemove" },
+      "label":  "Remove",
+      "description": "Delete a volume (--force to remove in-use volumes)",
+      "requires": ["engine", "volume"]
+    },
+    {
+      "kind":   "prune",
+      "action": "volumePrune",
+      "mode":   "confirm",
+      "confirm": { "kind": "volumePrune" },
+      "label":  "Prune",
+      "description": "Remove all unused volumes",
+      "requires": ["engine"]
+    }
+  ]
+}

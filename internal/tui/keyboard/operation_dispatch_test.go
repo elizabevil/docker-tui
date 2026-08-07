@@ -185,6 +185,75 @@ func TestImagePruneAppearsInActionBar(t *testing.T) {
 	}
 }
 
+// TestDispatchOperationConfirmModesRouteDialogs pins the R06-09
+// Confirm arm: the four volume/network confirm Operations must reach
+// their shared dialog handlers instead of falling through to
+// handleAction's legacy switch.
+//
+//	volumeCreate / networkCreate → openResourceCreate (ModeResourceCreate)
+//	volumePrune  / networkPrune  → confirmResourcePrune (ModeConfirm)
+func TestDispatchOperationConfirmModesRouteDialogs(t *testing.T) {
+	cases := []struct {
+		action   keys.KeyAction
+		wantMode state.AppMode
+	}{
+		{keys.ActionVolumeCreate, state.ModeResourceCreate},
+		{keys.ActionNetworkCreate, state.ModeResourceCreate},
+		{keys.ActionVolumePrune, state.ModeConfirm},
+		{keys.ActionNetworkPrune, state.ModeConfirm},
+	}
+	for _, tc := range cases {
+		m := operationDispatchModel()
+		_, _, ok := dispatchOperation(string(tc.action), m)
+		if !ok {
+			t.Errorf("%s: dispatchOperation returned handled=false", tc.action)
+			continue
+		}
+		if got := m.Navigation.Mode; got != tc.wantMode {
+			t.Errorf("%s: Navigation.Mode = %v, want %v", tc.action, got, tc.wantMode)
+		}
+	}
+}
+
+// TestDispatchOperationVolumeNetworkFormModesMutateFormKind verifies the
+// Form arm routes volumeRemove / networkRemove to their scope forms.
+// Both openers share the legacy ModeContainerForm transient mode.
+func TestDispatchOperationVolumeNetworkFormModesMutateFormKind(t *testing.T) {
+	volumeModel := func() *state.AppModel {
+		m := operationDispatchModel()
+		m.Navigation.ActivePanel = state.PanelVolumes
+		m.Resources.Volumes.Items = []runtimeapi.Volume{{Name: "data"}}
+		m.Resources.Volumes.Cursor = 0
+		return m
+	}
+	networkModel := func() *state.AppModel {
+		m := operationDispatchModel()
+		m.Navigation.ActivePanel = state.PanelNetworks
+		m.Resources.Networks.Items = []runtimeapi.Network{{ID: "net-one", Name: "bridge"}}
+		m.Resources.Networks.Cursor = 0
+		return m
+	}
+	cases := []struct {
+		action   keys.KeyAction
+		model    func() *state.AppModel
+		wantKind state.FormKind
+	}{
+		{keys.ActionVolumeRemove, volumeModel, state.FormVolumeRemove},
+		{keys.ActionNetworkRemove, networkModel, state.FormNetworkRemove},
+	}
+	for _, tc := range cases {
+		m := tc.model()
+		_, _, ok := dispatchOperation(string(tc.action), m)
+		if !ok {
+			t.Errorf("%s: dispatchOperation returned handled=false", tc.action)
+			continue
+		}
+		if got := m.Form.Kind; got != tc.wantKind {
+			t.Errorf("%s: Form.Kind = %v, want %v", tc.action, got, tc.wantKind)
+		}
+	}
+}
+
 // selectFirstImage is a test helper that moves the images list cursor to
 // the first row. The state package exposes Cursor directly so the helper
 // is just a one-liner, kept here to make test intent explicit.

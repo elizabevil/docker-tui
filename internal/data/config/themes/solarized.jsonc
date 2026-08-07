@@ -8,92 +8,148 @@
       "primary": "#2aa198",
       "success": "#859900",
       "warning": "#b58900",
-      "danger":  "#dc322f",
-      "info":    "#268bd2",
-      "accent":  "#cb4b16",
+      "danger": "#dc322f",
+      "info": "#268bd2",
+      "accent": "#cb4b16",
       "accentSecondary": "#d33682",
-      "foreground":      "#93a1a1",
+      "foreground": "#93a1a1",
       "foregroundMuted": "#586e75",
-      "background":      "#002b36",
+      "background": "#002b36",
       "backgroundSubtle": "#073642",
-      "backgroundDeep":   "#586e75"
+      "backgroundDeep": "#586e75"
     },
     "chrome": {
       "borderKind": "rounded",
-
-      "panelBorderActive":   "primary",
+      "panelBorderActive": "primary",
       "panelBorderInactive": "foregroundMuted",
-      "panelBorderFocused":  "success",
-      "panelTitle":          "primary",
-      "panelFooter":         "foregroundMuted",
-      "panelRowSelected":     "info",
-      "panelRowText":         "foreground",
-      "panelTableHeader":     "info",
-
-      "dialogBorder":         "danger",
-      "dialogTitle":          "danger",
-      "dialogOptionActive":   "primary",
+      "panelBorderFocused": "success",
+      "panelTitle": "primary",
+      "panelFooter": "foregroundMuted",
+      "panelRowSelected": "info",
+      "panelRowText": "foreground",
+      "panelTableHeader": "info",
+      "dialogBorder": "danger",
+      "dialogTitle": "danger",
+      "dialogOptionActive": "primary",
       "dialogOptionInactive": "foregroundMuted",
-      "dialogOverlay":        "background",
+      "dialogOverlay": "background",
       "dialogOverlayOpacity": 80,
-
-      "headerLabel":   "foregroundMuted",
-      "headerValue":   "foreground",
-      "headerLogo":    "info",
-
-      "footerKey":         "foreground",
+      "headerLabel": "foregroundMuted",
+      "headerValue": "foreground",
+      "headerLogo": "info",
+      "footerKey": "foreground",
       "footerDescription": "foregroundMuted",
-      "footerSeparator":   "foregroundMuted"
+      "footerSeparator": "foregroundMuted"
     },
     "surfaces": {
-      "panel":       "backgroundSubtle",
-      "actionBar":   "transparent",
+      "panel": "backgroundSubtle",
+      "actionBar": "transparent",
       "messageRail": "transparent",
-      "queryBar":    "transparent",
-      "dialogBody":  "background",
-      "header":      "transparent",
-      "footer":      "transparent",
-      "toast":       "transparent",
+      "queryBar": "transparent",
+      "dialogBody": "background",
+      "header": "transparent",
+      "footer": "transparent",
+      "toast": "transparent",
       "rowSelected": "info"
     },
     "text": {
-      "info":            "primary",
-      "success":         "success",
-      "warning":         "warning",
-      "error":           "danger",
-      "dim":             "foregroundMuted",
-      "helpKey":         "primary",
+      "info": "primary",
+      "success": "success",
+      "warning": "warning",
+      "error": "danger",
+      "dim": "foregroundMuted",
+      "helpKey": "primary",
       "helpDescription": "foreground",
-      "dialogBody":      "foreground"
+      "dialogBody": "foreground"
     },
     "feedback": {
       "toastSuccess": "success",
-      "toastError":   "danger",
-      "toastInfo":    "info",
+      "toastError": "danger",
+      "toastInfo": "info",
       "toastWarning": "warning",
-      "safeNormal":   "foreground",
-      "safeBold":     "foreground",
-      "safeDim":      "foregroundMuted",
-      "safeAccent":   "primary",
-      "safeError":    "danger"
+      "safeNormal": "foreground",
+      "safeBold": "foreground",
+      "safeDim": "foregroundMuted",
+      "safeAccent": "primary",
+      "safeError": "danger"
     },
     "data": {
       "markedBackground": "#073642",
       "columnForeground": "#93a1a1",
-      "nameForeground":   "#268bd2"
+      "nameForeground": "#268bd2"
     },
     "action": {
       "container": {
-        "window":    { "background": "backgroundSubtle", "border": "primary" },
-        "formInput": { "foreground": "foreground",      "background": "backgroundDeep" },
-        "confirm":   { "foreground": "success",         "background": "transparent" },
-        "cancel":    { "foreground": "foregroundMuted", "background": "transparent" }
+        "window": {
+          "background": "backgroundSubtle",
+          "border": "primary"
+        },
+        "formInput": {
+          "foreground": "foreground",
+          "background": "backgroundDeep"
+        },
+        "confirm": {
+          "foreground": "success",
+          "background": "transparent"
+        },
+        "cancel": {
+          "foreground": "foregroundMuted",
+          "background": "transparent"
+        }
       },
       "image": {
-        "window":    { "background": "backgroundSubtle", "border": "primary" },
-        "formInput": { "foreground": "foreground",      "background": "backgroundDeep" },
-        "confirm":   { "foreground": "success",         "background": "transparent" },
-        "cancel":    { "foreground": "foregroundMuted", "background": "transparent" }
+        "window": {
+          "background": "backgroundSubtle",
+          "border": "primary"
+        },
+        "formInput": {
+          "foreground": "foreground",
+          "background": "backgroundDeep"
+        },
+        "confirm": {
+          "foreground": "success",
+          "background": "transparent"
+        },
+        "cancel": {
+          "foreground": "foregroundMuted",
+          "background": "transparent"
+        }
+      },
+      "volume": {
+        "window": {
+          "background": "backgroundSubtle",
+          "border": "primary"
+        },
+        "formInput": {
+          "foreground": "foreground",
+          "background": "backgroundDeep"
+        },
+        "confirm": {
+          "foreground": "success",
+          "background": "transparent"
+        },
+        "cancel": {
+          "foreground": "foregroundMuted",
+          "background": "transparent"
+        }
+      },
+      "network": {
+        "window": {
+          "background": "backgroundSubtle",
+          "border": "primary"
+        },
+        "formInput": {
+          "foreground": "foreground",
+          "background": "backgroundDeep"
+        },
+        "confirm": {
+          "foreground": "success",
+          "background": "transparent"
+        },
+        "cancel": {
+          "foreground": "foregroundMuted",
+          "background": "transparent"
+        }
       }
     }
   }

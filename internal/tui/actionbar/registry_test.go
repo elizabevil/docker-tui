@@ -52,6 +52,28 @@ func TestContainerActionAvailabilityAndFiltering(t *testing.T) {
 	}
 }
 
+// TestBuildItemsForScopeSkipsInActionBarFalse pins the C04 contract
+// directly on the filter: Operations declaring inActionBar=false must
+// never surface as action-bar items, even though they live in the same
+// scope slice. ScopeForPanel already keeps Volume/Network panels out of
+// the action bar; this unit test locks the filter itself so the
+// two-layer guard cannot silently regress.
+func TestBuildItemsForScopeSkipsInActionBarFalse(t *testing.T) {
+	ops := &config.Operations{
+		ByScope: map[config.OperationScope][]config.OperationSpec{
+			config.OperationScopeContainer: {
+				{Action: "containerRename", Label: "Rename", InActionBar: true},
+				{Action: "containerTop", Label: "Top", InActionBar: false},
+			},
+		},
+	}
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	items := buildItemsForScope(m, ops, config.OperationScopeContainer)
+	if len(items) != 1 || items[0].Action != keys.ActionContainerRename {
+		t.Fatalf("items = %#v, want exactly [containerRename]", items)
+	}
+}
+
 func TestImagesExposeHistoryWhenEligible(t *testing.T) {
 	m := state.NewAppModel(config.DefaultAppConfig(), &dockerclient.Client{}, "test")
 	m.Navigation.ActivePanel = state.PanelImages

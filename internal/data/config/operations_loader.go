@@ -39,6 +39,14 @@ func LoadOperations() (*Operations, error) {
 			// resulting structs are self-describing (the file structure
 			// is not visible once they live in Operations.ByKind).
 			spec.Scope = doc.Scope
+			// Apply the InActionBar default. JSONC files that omit
+			// `inActionBar` decode to bool zero-value (false); we want
+			// the historical "show in action bar by default" behaviour.
+			// Operators that want to opt out of the action bar must
+			// write `"inActionBar": false` explicitly — see C04.
+			if !spec.InActionBarWasSet {
+				spec.InActionBar = true
+			}
 			doc.Operations[i] = spec
 			if err := validateSpec(spec, name); err != nil {
 				return nil, err
@@ -100,6 +108,7 @@ func validateSpec(spec OperationSpec, file string) error {
 	formSet := spec.Form != nil
 	pageSet := spec.Page != nil
 	asyncSet := spec.Async != nil
+	confirmSet := spec.Confirm != nil
 	switch spec.Mode {
 	case OperationModeForm:
 		if !formSet {
@@ -111,6 +120,9 @@ func validateSpec(spec OperationSpec, file string) error {
 		if asyncSet {
 			return fmt.Errorf(errOperationsUnexpectedModeBodyFormat, spec.Scope, spec.Kind, string(OperationModeAsync), spec.Mode)
 		}
+		if confirmSet {
+			return fmt.Errorf(errOperationsUnexpectedModeBodyFormat, spec.Scope, spec.Kind, string(OperationModeConfirm), spec.Mode)
+		}
 	case OperationModePage:
 		if !pageSet {
 			return fmt.Errorf(errOperationsMissingModeBodyFormat, spec.Scope, spec.Kind, spec.Mode)
@@ -121,6 +133,9 @@ func validateSpec(spec OperationSpec, file string) error {
 		if asyncSet {
 			return fmt.Errorf(errOperationsUnexpectedModeBodyFormat, spec.Scope, spec.Kind, string(OperationModeAsync), spec.Mode)
 		}
+		if confirmSet {
+			return fmt.Errorf(errOperationsUnexpectedModeBodyFormat, spec.Scope, spec.Kind, string(OperationModeConfirm), spec.Mode)
+		}
 	case OperationModeAsync:
 		if !asyncSet {
 			return fmt.Errorf(errOperationsMissingModeBodyFormat, spec.Scope, spec.Kind, spec.Mode)
@@ -130,6 +145,22 @@ func validateSpec(spec OperationSpec, file string) error {
 		}
 		if pageSet {
 			return fmt.Errorf(errOperationsUnexpectedModeBodyFormat, spec.Scope, spec.Kind, string(OperationModePage), spec.Mode)
+		}
+		if confirmSet {
+			return fmt.Errorf(errOperationsUnexpectedModeBodyFormat, spec.Scope, spec.Kind, string(OperationModeConfirm), spec.Mode)
+		}
+	case OperationModeConfirm:
+		if !confirmSet {
+			return fmt.Errorf(errOperationsMissingModeBodyFormat, spec.Scope, spec.Kind, spec.Mode)
+		}
+		if formSet {
+			return fmt.Errorf(errOperationsUnexpectedModeBodyFormat, spec.Scope, spec.Kind, string(OperationModeForm), spec.Mode)
+		}
+		if pageSet {
+			return fmt.Errorf(errOperationsUnexpectedModeBodyFormat, spec.Scope, spec.Kind, string(OperationModePage), spec.Mode)
+		}
+		if asyncSet {
+			return fmt.Errorf(errOperationsUnexpectedModeBodyFormat, spec.Scope, spec.Kind, string(OperationModeAsync), spec.Mode)
 		}
 	default:
 		return fmt.Errorf(errOperationsScopeCollisionFormat, file, errOperationsDuplicateKindFormat)

@@ -2,6 +2,7 @@ package keyboard
 
 import (
 	"github.com/elizabevil/docker-tui/internal/data/config"
+	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -37,6 +38,8 @@ func dispatchOperation(action string, m *state.AppModel) (*state.AppModel, tea.C
 		return dispatchPage(spec, m)
 	case config.OperationModeAsync:
 		return dispatchAsync(spec, m)
+	case config.OperationModeConfirm:
+		return dispatchConfirm(spec, m)
 	default:
 		return m, nil, false
 	}
@@ -64,6 +67,12 @@ func dispatchForm(spec config.OperationSpec, m *state.AppModel) (*state.AppModel
 		return m2, c, true
 	case "containerCommit":
 		m2, c := openContainerCommitForm(m)
+		return m2, c, true
+	case "volumeRemove":
+		m2, c := doVolumeRemove(m)
+		return m2, c, true
+	case "networkRemove":
+		m2, c := openNetworkRemoveForm(m, m.Resources.Networks.Selected())
 		return m2, c, true
 	default:
 		return m, nil, false
@@ -109,6 +118,38 @@ func dispatchAsync(spec config.OperationSpec, m *state.AppModel) (*state.AppMode
 		return m2, c, true
 	case "imagePrune":
 		m2, c := doImagePrune(m)
+		return m2, c, true
+	default:
+		return m, nil, false
+	}
+}
+
+// dispatchConfirm runs the modal-before-action Operation whose
+// confirm.Kind matches a known handler. Two flavours share this arm:
+//
+//	create  — Kind="volumeCreate" / "networkCreate" open the
+//	          ModeResourceCreate dialog (handler: openResourceCreate).
+//	prune   — Kind="volumePrune" / "networkPrune" open a Yes/No
+//	          confirm dialog (handler: confirmResourcePrune).
+//
+// The Kind label routes to the right runtimeapi.ResourceType; the
+// dialog itself is shared between both flavours.
+func dispatchConfirm(spec config.OperationSpec, m *state.AppModel) (*state.AppModel, tea.Cmd, bool) {
+	if spec.Confirm == nil {
+		return m, nil, false
+	}
+	switch spec.Confirm.Kind {
+	case "volumeCreate":
+		m2, c := openResourceCreate(m, runtimeapi.ResourceVolume)
+		return m2, c, true
+	case "networkCreate":
+		m2, c := openResourceCreate(m, runtimeapi.ResourceNetwork)
+		return m2, c, true
+	case "volumePrune":
+		m2, c := confirmResourcePrune(m, runtimeapi.ResourceVolume)
+		return m2, c, true
+	case "networkPrune":
+		m2, c := confirmResourcePrune(m, runtimeapi.ResourceNetwork)
 		return m2, c, true
 	default:
 		return m, nil, false

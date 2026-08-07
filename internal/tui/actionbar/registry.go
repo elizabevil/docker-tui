@@ -75,6 +75,9 @@ func buildItemsForScope(m *state.AppModel, ops *config.Operations, scope config.
 	specs := ops.ForScope(scope)
 	items := make([]ActionItem, 0, len(specs))
 	for _, spec := range specs {
+		if !spec.InActionBar {
+			continue
+		}
 		items = append(items, ActionItem{
 			Label:       spec.Label,
 			Action:      keys.KeyAction(spec.Action),
@@ -96,6 +99,8 @@ func buildItemsForScope(m *state.AppModel, ops *config.Operations, scope config.
 //	"engine"     — m.Connection.Engine != nil
 //	"container"  — active panel is containers and a row is selected
 //	"image"      — active panel is images and a row is selected
+//	"volume"     — active panel is volumes and a row is selected
+//	"network"    — active panel is networks and a row is selected
 //	"running"    — selected container is in ContainerStateRunning
 //	"manifest"   — selected image summary's IsManifest flag is true
 //
@@ -126,6 +131,10 @@ func positiveSatisfied(req config.Requirement, m *state.AppModel) bool {
 		return m.Navigation.ActivePanel == state.PanelContainers && m.Resources.Containers.Selected() != nil
 	case config.RequirementImage:
 		return m.Navigation.ActivePanel == state.PanelImages && m.Resources.Images.Selected() != nil
+	case config.RequirementVolume:
+		return m.Navigation.ActivePanel == state.PanelVolumes && m.Resources.Volumes.Selected() != nil
+	case config.RequirementNetwork:
+		return m.Navigation.ActivePanel == state.PanelNetworks && m.Resources.Networks.Selected() != nil
 	case config.RequirementRunning:
 		c := m.Resources.Containers.Selected()
 		return c != nil && c.State == state.ContainerStateRunning

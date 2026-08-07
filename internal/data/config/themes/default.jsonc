@@ -8,85 +8,81 @@
       "primary": "#56b4c2",
       "success": "#499c54",
       "warning": "#c8a35e",
-      "danger":  "#db5a5a",
-      "info":    "#589df6",
-      "accent":  "#cc7832",
+      "danger": "#db5a5a",
+      "info": "#589df6",
+      "accent": "#cc7832",
       "accentSecondary": "#a962b5",
-      "foreground":      "#c9d1d9",
+      "foreground": "#c9d1d9",
       "foregroundMuted": "#5a6270",
-      "background":      "#18191b",
+      "background": "#18191b",
       "backgroundSubtle": "#1e1f22",
-      "backgroundDeep":   "#2b2d30"
+      "backgroundDeep": "#2b2d30"
     },
     "chrome": {
       "borderKind": "rounded",
-
-      "panelBorderActive":   "primary",
+      "panelBorderActive": "primary",
       "panelBorderInactive": "foregroundMuted",
-      "panelBorderFocused":  "success",
-      "panelTitle":          "primary",
-      "panelFooter":         "foregroundMuted",
-      "panelRowSelected":     "info",
-      "panelRowText":         "foreground",
-      "panelTableHeader":     "info",
-
-      "dialogBorder":         "danger",
-      "dialogTitle":          "danger",
-      "dialogOptionActive":   "primary",
+      "panelBorderFocused": "success",
+      "panelTitle": "primary",
+      "panelFooter": "foregroundMuted",
+      "panelRowSelected": "info",
+      "panelRowText": "foreground",
+      "panelTableHeader": "info",
+      "dialogBorder": "danger",
+      "dialogTitle": "danger",
+      "dialogOptionActive": "primary",
       "dialogOptionInactive": "foregroundMuted",
-      "dialogOverlay":        "background",
+      "dialogOverlay": "background",
       "dialogOverlayOpacity": 80,
-
-      "headerLabel":   "foregroundMuted",
-      "headerValue":   "foreground",
-      "headerLogo":    "info",
-
-      "footerKey":         "foreground",
+      "headerLabel": "foregroundMuted",
+      "headerValue": "foreground",
+      "headerLogo": "info",
+      "footerKey": "foreground",
       "footerDescription": "foregroundMuted",
-      "footerSeparator":   "foregroundMuted"
+      "footerSeparator": "foregroundMuted"
     },
     "surfaces": {
-      "panel":       "transparent",
-      "actionBar":   "transparent",
+      "panel": "transparent",
+      "actionBar": "transparent",
       "messageRail": "transparent",
-      "queryBar":    "transparent",
-      "dialogBody":  "background",
-      "header":      "transparent",
-      "footer":      "transparent",
-      "toast":       "transparent",
+      "queryBar": "transparent",
+      "dialogBody": "background",
+      "header": "transparent",
+      "footer": "transparent",
+      "toast": "transparent",
       "rowSelected": "info"
     },
     "text": {
-      "info":            "primary",
-      "success":         "success",
-      "warning":         "warning",
-      "error":           "danger",
-      "dim":             "foregroundMuted",
-      "helpKey":         "primary",
+      "info": "primary",
+      "success": "success",
+      "warning": "warning",
+      "error": "danger",
+      "dim": "foregroundMuted",
+      "helpKey": "primary",
       "helpDescription": "foreground",
-      "dialogBody":      "foreground"
+      "dialogBody": "foreground"
     },
     "feedback": {
       "toastSuccess": "success",
-      "toastError":   "danger",
-      "toastInfo":    "info",
+      "toastError": "danger",
+      "toastInfo": "info",
       "toastWarning": "warning",
-      "safeNormal":   "foreground",
-      "safeBold":     "foreground",
-      "safeDim":      "foregroundMuted",
-      "safeAccent":   "primary",
-      "safeError":    "danger"
+      "safeNormal": "foreground",
+      "safeBold": "foreground",
+      "safeDim": "foregroundMuted",
+      "safeAccent": "primary",
+      "safeError": "danger"
     },
     "data": {
       "markedBackground": "#463f16",
       "columnForeground": "#ECEFF1",
-      "nameForeground":   "#FAF0E6"
+      "nameForeground": "#FAF0E6"
     },
     "action": {
       "container": {
         "window": {
           "background": "backgroundSubtle",
-          "border":     "primary"
+          "border": "primary"
         },
         "formInput": {
           "foreground": "foreground",
@@ -104,7 +100,43 @@
       "image": {
         "window": {
           "background": "backgroundSubtle",
-          "border":     "primary"
+          "border": "primary"
+        },
+        "formInput": {
+          "foreground": "foreground",
+          "background": "backgroundDeep"
+        },
+        "confirm": {
+          "foreground": "success",
+          "background": "transparent"
+        },
+        "cancel": {
+          "foreground": "foregroundMuted",
+          "background": "transparent"
+        }
+      },
+      "volume": {
+        "window": {
+          "background": "backgroundSubtle",
+          "border": "primary"
+        },
+        "formInput": {
+          "foreground": "foreground",
+          "background": "backgroundDeep"
+        },
+        "confirm": {
+          "foreground": "success",
+          "background": "transparent"
+        },
+        "cancel": {
+          "foreground": "foregroundMuted",
+          "background": "transparent"
+        }
+      },
+      "network": {
+        "window": {
+          "background": "backgroundSubtle",
+          "border": "primary"
         },
         "formInput": {
           "foreground": "foreground",

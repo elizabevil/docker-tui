@@ -25,20 +25,20 @@ import (
 )
 
 const (
-	fieldSourcePath      = "source"
-	fieldDestinationPath = "destination"
-	fieldMemory          = "memory"
-	fieldCPUs            = "cpus"
-	fieldRestartPolicy   = "restart"
-	fieldMaxRetries      = "maxRetries"
-	fieldRepository      = "repository"
-	fieldTag             = "tag"
-	fieldAuthor          = "author"
-	fieldComment         = "comment"
-	fieldPause           = "pause"
-	fieldExportTar       = "exportTar"
-	fieldArchivePath     = "archivePath"
-	fieldImagePath       = "imagePath"
+	fieldSourcePath               = "source"
+	fieldDestinationPath          = "destination"
+	fieldMemory                   = "memory"
+	fieldCPUs                     = "cpus"
+	fieldRestartPolicy            = "restart"
+	fieldMaxRetries               = "maxRetries"
+	fieldRepository               = "repository"
+	fieldTag                      = "tag"
+	fieldAuthor                   = "author"
+	fieldComment                  = "comment"
+	fieldPause                    = "pause"
+	fieldExportTar                = "exportTar"
+	fieldArchivePath              = "archivePath"
+	fieldImagePath                = "imagePath"
 	fieldImageRemoveForce         = "force"
 	fieldImageRemovePruneChildren = "pruneChildren"
 	fieldImageRemovePlatforms     = "platforms"
@@ -46,6 +46,8 @@ const (
 	fieldContainerRemoveVolumes   = "removeVolumes"
 	fieldContainerRemoveLinks     = "removeLinks"
 	fieldVolumeRemoveForce        = "force"
+	// FormNetworkRemove has no editable fields (network remove does
+	// not support --force), so no fieldNetworkRemoveForce constant.
 )
 
 const restartPolicyUnchanged = "unchanged"
@@ -396,7 +398,31 @@ func openVolumeRemoveForm(m *state.AppModel, vol *runtimeapi.Volume) (*state.App
 		TargetName: vol.Name,
 		CWD:        workingDir(),
 		Dangerous:  true,
-		Fields: []state.FormField{buildVolumeRemoveForceField()},
+		Fields:     []state.FormField{buildVolumeRemoveForceField()},
+	})
+	m.Navigation.Mode = state.ModeContainerForm
+	return m, nil
+}
+
+// openNetworkRemoveForm is the network-scope twin of openVolumeRemoveForm.
+// Unlike volume remove (which has a Force field because docker /
+// podman support `--force`), networks cannot be force-removed — the
+// backend NetworkService.Remove takes only id. So the form here opens
+// with no editable fields; the user just sees the target name and
+// presses Confirm or Cancel. R06-08 state consolidation may fold both
+// into a generic openResourceRemoveForm(scope, summary).
+func openNetworkRemoveForm(m *state.AppModel, net *runtimeapi.Network) (*state.AppModel, tea.Cmd) {
+	if m.Connection.Engine == nil || m.Navigation.ActivePanel != state.PanelNetworks || net == nil {
+		return m, nil
+	}
+	m.Form.Open(state.FormSpec{
+		Kind:       state.FormNetworkRemove,
+		Title:      i18n.T("network.remove.form.title"),
+		TargetID:   net.ID,
+		TargetName: net.Name,
+		CWD:        workingDir(),
+		Dangerous:  true,
+		Fields:     []state.FormField{},
 	})
 	m.Navigation.Mode = state.ModeContainerForm
 	return m, nil
@@ -1286,6 +1312,15 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		trace := beginAudit(m, "resource.volume.delete", audit.VolumeTarget{Name: name, Meta: audit.VolumeMeta{Driver: volumeDriver(m, name)}}, "Remove volume "+name)
 		clearContainerForm(m)
 		return m, withGenericAudit(volumeRemoveCmd(m.Connection.Engine, id, runtimeapi.LifecycleOptions{Force: force}), trace)
+
+	case state.FormNetworkRemove:
+		if m.Navigation.ActivePanel != state.PanelNetworks || id == "" {
+			clearContainerForm(m)
+			return m, nil
+		}
+		trace := beginAudit(m, "resource.network.delete", audit.NetworkTarget{ID: id, Name: name}, "Remove network "+name)
+		clearContainerForm(m)
+		return m, withGenericAudit(networkRemoveCmd(m.Connection.Engine, id), trace)
 	}
 	clearContainerForm(m)
 	return m, nil

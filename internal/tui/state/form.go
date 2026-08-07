@@ -18,6 +18,12 @@ const (
 	FormImageRemove
 	FormContainerRemove
 	FormVolumeRemove
+	// FormNetworkRemove is the network-scope analogue of FormVolumeRemove.
+	// Same shape (single Bool field for `force`), different KeyAction so
+	// the dispatcher routes to openNetworkRemoveForm instead of
+	// openVolumeRemoveForm. R06-08 state consolidation may fold these
+	// into a single FormResourceRemove discriminated by scope.
+	FormNetworkRemove
 )
 
 // FormFieldKind selects how a form field is edited and rendered.

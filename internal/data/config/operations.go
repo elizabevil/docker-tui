@@ -15,15 +15,43 @@ const (
 )
 
 // OperationMode is the rendering mode of an Operation's body. Each
-// mode carries its own typed body sub-object (Form / Page / Async) so
-// the JSON schema is self-documenting: a reader sees exactly which
-// extra fields a given mode requires without consulting Go code.
+// mode carries its own typed body sub-object (Form / Page / Async /
+// Confirm) so the JSON schema is self-documenting: a reader sees
+// exactly which extra fields a given mode requires without consulting
+// Go code.
+//
+// Mode semantics:
+//
+//	form    — Structured input form with multiple typed fields (Text,
+//	          Int, Path, Bool, Select). The body is `FormFields` and is
+//	          rendered by FormDialog. Examples: Copy / Update / Export /
+//	          Commit / Rename / Remove.
+//	page    — Read-only page view that fills the body panel. The body is
+//	          the page renderer name (processes / portBindings / etc.).
+//	          Examples: Top / Port / Diff / History.
+//	async   — Long-running operation whose progress the user can cancel.
+//	          The body is the async renderer name (wait / imagePrune).
+//	confirm — Interactive modal the user must dismiss before the action
+//	          fires. Two flavours live here today: yes/no (VolumePrune /
+//	          NetworkPrune open ModeConfirm) and text-input (VolumeCreate /
+//	          NetworkCreate open ModeResourceCreate). Both share the
+//	          "user must confirm before backend action runs" semantic —
+//	          `confirm` is read as "confirm-before-action", not strictly
+//	          "yes/no". The body is the confirm handler's Kind label
+//	          (volumePrune / volumeCreate / etc.) which the dispatcher
+//	          routes to the right openResourceCreate / confirmResourcePrune
+//	          call.
+//
+// The mode↔body sub-object contract is enforced at load time in
+// validateSpec: each mode requires its own sub-object and rejects the
+// other three.
 type OperationMode string
 
 const (
-	OperationModeForm  OperationMode = "form"
-	OperationModePage  OperationMode = "page"
-	OperationModeAsync OperationMode = "async"
+	OperationModeForm    OperationMode = "form"
+	OperationModePage    OperationMode = "page"
+	OperationModeAsync   OperationMode = "async"
+	OperationModeConfirm OperationMode = "confirm"
 )
 
 // FormBody is the per-mode body for mode=form. Its `Kind` value must
@@ -43,12 +71,28 @@ type PageBody struct {
 
 // AsyncBody is the per-mode body for mode=async. Its `Body` value
 // names the async renderer (e.g. "wait", "imagePrune"). The dispatcher
-// switches on this string. Mode=async currently has one consumer but
-// the body sub-object keeps the schema symmetric with form/page so
-// future async operations (imagePrune, volumePrune, ...) plug in
-// without a schema change.
+// switches on this string.
 type AsyncBody struct {
 	Body string `json:"body"`
+}
+
+// ConfirmBody is the per-mode body for mode=confirm. Its `Kind` value
+// names the confirm dispatcher handler (e.g. "volumePrune",
+// "networkCreate"); the dispatcher routes it to openResourceCreate or
+// confirmResourcePrune with the right runtimeapi.ResourceType.
+//
+// Two flavours share this body type today:
+//
+//	yes/no  — Kind="volumePrune" / "networkPrune" open ModeConfirm with
+//	          a Yes/No dialog (handler: confirmResourcePrune).
+//	input   — Kind="volumeCreate" / "networkCreate" open
+//	          ModeResourceCreate with a text input (handler:
+//	          openResourceCreate).
+//
+// Both are modal-before-action flows; the Kind label disambiguates
+// which handler the dispatcher calls.
+type ConfirmBody struct {
+	Kind string `json:"kind"`
 }
 
 // Requirement is one named predicate the loader / action bar evaluates
@@ -67,8 +111,14 @@ const (
 	RequirementEngine    Requirement = "engine"
 	RequirementContainer Requirement = "container"
 	RequirementImage     Requirement = "image"
-	RequirementRunning   Requirement = "running"
-	RequirementManifest  Requirement = "manifest"
+	// RequirementVolume and RequirementNetwork gate the volume and
+	// network resource operations. The action bar's
+	// evaluateEnabled checks them against the selected resource in
+	// the matching panel; the dispatcher does NOT branch on them.
+	RequirementVolume   Requirement = "volume"
+	RequirementNetwork  Requirement = "network"
+	RequirementRunning  Requirement = "running"
+	RequirementManifest Requirement = "manifest"
 )
 
 // allRequirements is the canonical Requirement universe. The loader
@@ -78,6 +128,8 @@ var allRequirements = map[Requirement]struct{}{
 	RequirementEngine:    {},
 	RequirementContainer: {},
 	RequirementImage:     {},
+	RequirementVolume:    {},
+	RequirementNetwork:   {},
 	RequirementRunning:   {},
 	RequirementManifest:  {},
 }
@@ -119,6 +171,11 @@ type OperationSpec struct {
 	// add their own Body values.
 	Async *AsyncBody `json:"async,omitempty"`
 
+	// Confirm is required when Mode = confirm. Routes to
+	// openResourceCreate (Create-style) or confirmResourcePrune
+	// (Yes/No-style) handlers via dispatchConfirm.
+	Confirm *ConfirmBody `json:"confirm,omitempty"`
+
 	// Label is the human-readable action-bar entry text.
 	Label string `json:"label"`
 
@@ -135,6 +192,35 @@ type OperationSpec struct {
 	// "disable if state is X" rules like "manifest image has no
 	// history".
 	DisabledWhen []Requirement `json:"disabledWhen,omitempty"`
+
+	// InActionBar controls whether this Operation appears in the action
+	// bar (the `;`-triggered overlay). Default true; loader fills the
+	// default for JSONC files that omit the field.
+	//
+	// Set to false when the Operation is already self-discoverable
+	// through a direct shortcut and the description adds nothing:
+	// simple inputs the user can trigger with one keystroke without
+	// needing to read first. Examples today: volumeCreate / networkCreate
+	// (both bound to KeyC) — typing `;` to read "Create a new empty
+	// volume" before pressing KeyC is friction, not help.
+	//
+	// Set to true (or omit) when the Operation is the primary trigger,
+	// carries no direct shortcut, or is destructive enough that
+	// previewing the description is valuable. Examples: all 9 container
+	// ops, imageHistory, imagePrune, volumeRemove / networkRemove,
+	// volumePrune / networkPrune — the description "Remove a volume" /
+	// "Remove all unused volumes" protects against accidental triggers.
+	//
+	// Constraint C04 documents the full rationale for what should and
+	// should not be in the action bar.
+	InActionBar bool `json:"inActionBar"`
+
+	// InActionBarWasSet is the unmarshal sentinel for InActionBar:
+	// the loader sets it to true when the JSONC key was present and
+	// false when the field was omitted. Used to distinguish
+	// "explicitly false" from "omitted (defaults to true)". Not
+	// serialised; the `json:"-"` tag keeps it out of any future dump.
+	InActionBarWasSet bool `json:"-"`
 }
 
 // ActionWindow groups the background + border colours of the window chrome
@@ -174,9 +260,22 @@ type ActionScopeStyles struct {
 // ActionStyles is the visual contract for any Operation, grouped by
 // resource Scope. It is embedded in the Theme struct under
 // `theme.action.*` so themes can paint each scope's window chrome.
+//
+// Adding a new scope (e.g. Volume / Network in R06-09) requires:
+//  1. Add `OperationScope<Scope>` constant in operations.go
+//  2. Add the matching field here
+//  3. Add the JSONC section in every theme
+//  4. Add the matching StyleAction<Scope>* constants + applyActionScopeTo
+//     wiring in styles_load.go
 type ActionStyles struct {
 	Container ActionScopeStyles `json:"container" yaml:"container"`
 	Image     ActionScopeStyles `json:"image" yaml:"image"`
+	// Volume + Network are the R06-09 expansions. They follow the
+	// same 4-slot contract as Container / Image (window / formInput /
+	// confirm / cancel) and default to the same neutral colours; themes
+	// can differentiate by overriding action.volume or action.network.
+	Volume  ActionScopeStyles `json:"volume" yaml:"volume"`
+	Network ActionScopeStyles `json:"network" yaml:"network"`
 }
 
 // defaultActionScopeStyles returns the fallback contract for a single
@@ -230,6 +329,8 @@ type ActionScopeStylesPatch struct {
 type ActionStylesPatch struct {
 	Container *ActionScopeStylesPatch `json:"container,omitempty" yaml:"container,omitempty"`
 	Image     *ActionScopeStylesPatch `json:"image,omitempty" yaml:"image,omitempty"`
+	Volume    *ActionScopeStylesPatch `json:"volume,omitempty" yaml:"volume,omitempty"`
+	Network   *ActionScopeStylesPatch `json:"network,omitempty" yaml:"network,omitempty"`
 }
 
 // applyActionScopePatch overwrites the matching fields on target with

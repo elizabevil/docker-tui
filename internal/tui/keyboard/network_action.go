@@ -14,6 +14,11 @@ import (
 )
 
 // networkRemoveCmd returns a tea.Cmd that removes a network.
+// Docker / Podman do not support `--force` for network removal (only
+// for container / volume), so this is intentionally narrower than
+// volumeRemoveCmd. The corresponding FormNetworkRemove form has no
+// Force field; openNetworkRemoveForm just opens a confirmation form
+// with no editable fields.
 func networkRemoveCmd(client runtimeapi.Engine, id string) tea.Cmd {
 	return func() tea.Msg {
 		err := client.Networks().Remove(context.Background(), id)
