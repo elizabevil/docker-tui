@@ -208,6 +208,7 @@
   "toast.created": "已创建 %v",
   "toast.exported": "已导出 %v",
   "toast.failed": "失败 %v",
+  "toast.firstRunHint": "未找到配置文件 — 运行 'dtui config init' 生成",
   "resource.create.title": "创建%v",
   "resource.create.invalid": "名称只能包含字母、数字、点、下划线或连字符",
   "resource.prune.confirm": "清理所有未使用的%v？",

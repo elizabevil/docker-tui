@@ -208,6 +208,7 @@
   "toast.created": "%v を作成しました",
   "toast.exported": "%v をエクスポートしました",
   "toast.failed": "%v 失敗",
+  "toast.firstRunHint": "設定ファイルがありません — 'dtui config init' で作成できます",
   "resource.create.title": "%v の作成",
   "resource.create.invalid": "名前に使用できるのは英数字、ドット、アンダースコア、ハイフンだけです",
   "resource.prune.confirm": "使用されていない %v をすべてクリーンアップしますか？",

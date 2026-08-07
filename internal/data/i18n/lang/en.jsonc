@@ -193,6 +193,7 @@
   "toast.created": "Created %v",
   "toast.exported": "Exported %v",
   "toast.failed": "Failed %v",
+  "toast.firstRunHint": "No config file — run 'dtui config init' to create one",
   "resource.create.title": "Create %v",
   "resource.create.invalid": "Name must use letters, numbers, '.', '_' or '-'",
   "resource.prune.confirm": "Prune all unused %v?",

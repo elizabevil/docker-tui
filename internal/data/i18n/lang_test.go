@@ -2,9 +2,62 @@ package i18n
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"testing"
+
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
+
+// TestLanguageFilesShareKeySet pins the contract that en/zh/ja carry
+// the exact same key set, so a missing translation surfaces as a key
+// mismatch instead of a silent English fallback.
+func TestLanguageFilesShareKeySet(t *testing.T) {
+	files := []string{"lang/en.jsonc", "lang/zh.jsonc", "lang/ja.jsonc"}
+	keySets := make(map[string][]string, len(files))
+	for _, file := range files {
+		data, err := translationFS.ReadFile(file)
+		if err != nil {
+			t.Fatalf("read %s: %v", file, err)
+		}
+		var messages map[string]string
+		if err := utils.UnmarshalJSONCSonic(data, &messages); err != nil {
+			t.Fatalf("parse %s: %v", file, err)
+		}
+		keys := make([]string, 0, len(messages))
+		for key := range messages {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		keySets[file] = keys
+	}
+
+	base := keySets["lang/en.jsonc"]
+	for _, file := range files[1:] {
+		if strings.Join(keySets[file], "\n") != strings.Join(base, "\n") {
+			t.Fatalf("%s key set differs from en", file)
+		}
+	}
+}
+
+// TestFirstRunHintKeyPresentInAllLanguages guards the R07-04 toast key
+// used by the first-run hint across every supported language.
+func TestFirstRunHintKeyPresentInAllLanguages(t *testing.T) {
+	for _, file := range []string{"lang/en.jsonc", "lang/zh.jsonc", "lang/ja.jsonc"} {
+		data, err := translationFS.ReadFile(file)
+		if err != nil {
+			t.Fatalf("read %s: %v", file, err)
+		}
+		var messages map[string]string
+		if err := utils.UnmarshalJSONCSonic(data, &messages); err != nil {
+			t.Fatalf("parse %s: %v", file, err)
+		}
+		if messages["toast.firstRunHint"] == "" {
+			t.Fatalf("%s missing toast.firstRunHint", file)
+		}
+	}
+}
+
 
 // TestTWithPlaceholdersRoundTripsThroughSprintf documents the
 // (now-avoided) user-reported bug pattern:
