@@ -1,7 +1,7 @@
 # 未关闭的 BUG / 需求
 
 > 建立日期: 2026-08-01
-> 最后同步: 2026-08-07 (BR-025/BR-034 已关闭移除;BR-008/BR-032/BR-035/BR-041 标记 partial)
+> 最后同步: 2026-08-07 (BR-025/BR-034/BR-044 已关闭移除;BR-008/BR-032/BR-035/BR-041 标记 partial)
 > 来源: [bugfix-requirements.md](bugfix-requirements.md) 的快照
 > 目的: 把 `bugfix-requirements.md` 中**当前未完成**的 BUG / 需求单独切出,
 >       作为"待开发工作项"独立跟踪,不与已完成条目混在一起。
@@ -10,7 +10,7 @@
 
 | 状态 | 数量 | 备注 |
 |---|---|---|
-| `open` | 17 | 未开始或被搁置的需求 |
+| `open` | 16 | 未开始或被搁置的需求 |
 | `partial` | 4 | 部分完成(BR-008 H=History / BR-032 键盘排序 / BR-035 Events 面板 / BR-041 form 部分修复) |
 | `implementing` | 1 | 修复进行中(部分子任务已完成) |
 | `pending` | 1 | 用户尚未提供具体内容 |
@@ -26,7 +26,6 @@
 | [BR-030](#br-030) | 取消鼠标点击行选中,改用滚轮上下选行 | high | open |
 | [BR-033](#br-033) | TASK-019 高级容器动作未实现(Copy/Update/Diff/Export/Commit/Wait) | high | open |
 | [BR-041](#br-041) | action bar / 输入框 / 长 label wrap / select 图标(部分修复) | high | partial |
-| [BR-044](#br-044) | space 进入多选后按一次 Esc 无法退出(mark 保留 + banner 常驻) | high | open |
 | [BR-023](#br-023) | F2 唯一提供 runtime 选择器;其它页面不得用 C 刷新 Conn | medium | open |
 | [BR-024](#br-024) | 详情源码视图 Ctrl+C 复制不完整 / 一次性失效 | medium | open |
 | [BR-026](#br-026) | 详情页快捷键集合:支持 j/k/PgUP/PgDn/Filter,**不**支持 Space/R | medium | open |
@@ -599,27 +598,6 @@
 - 验收标准:
   1. 多选 2+ 行后移动光标:光标所在标记行与其余标记行肉眼可区分。
   2. 未标记行的选中样式(现有)不被破坏;`go test ./internal/tui/ui/component/` 通过。
-
-<a id="br-044"></a>
-
-### BR-044 space 进入多选后按一次 Esc 无法退出多选模式(观感:mark 保留 + banner 常驻)
-
-- 状态: `open`
-- 优先级: `high`
-- 症状:
-  - 用户报告:space 进入多选后,按一次 Esc 无法退出多选模式。
-  - 代码级定位(临时测试已实证):**单次 Esc 确实退出 mark mode(Mode 11→0)**,但退出时**不清空 marks**;且 `MarkedItemsBanner` 按"marks 是否存在"渲染(containers/view.go:146),不依赖 Mode → 退出后 banner("Marked: N (Esc to exit, clear marks)")与行高亮仍常驻,造成"Esc 退不出去"的观感。
-- 当前行为:
-  - 临时测试 `internal/tui/keyboard/esc_mark_tmp_test.go`(已验证后删除)证明:Space → Mode=11(marked=1);Esc #1 → Mode=0(marked=1,mark 保留);Esc #2 → Mode=0。
-  - `exitMarkMode`(mark_mode.go:15-18)只改 `Mode`,不动 `Selection.PanelMarks`。
-  - `MarkedItemsBanner`(marked_items_banner.go:10-14)渲染条件为 `len(marks) > 0`,与 Mode 无关;containers/view.go:146 调用它。
-  - 清 marks 的唯一调用点是 mark_action.go:139(doBulkClearMarks)。
-- 期望行为:
-  1. 按一次 Esc 退出多选模式时,**marks 一并清除**(banner 消失、行高亮消失),符合用户"退出多选"直觉;或
-  2. 若保留 marks 是有意设计(批量操作后还想再改),则退出时需有明确视觉/文字反馈(如 banner 变为"已退出多选,标记保留")。
-- 验收标准:
-  1. Space 进入 → Esc 退出后,banner 与行高亮不再残留;再次按 Esc 不再触发"退出确认"链的误感。
-  2. `go test ./internal/tui/keyboard/` 通过。
 
 <a id="br-045"></a>
 

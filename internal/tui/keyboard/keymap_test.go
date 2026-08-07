@@ -118,8 +118,9 @@ func TestConfiguredBackBindingExitsMarkMode(t *testing.T) {
 	app.Selection.Toggle(state.PanelContainers, "one")
 
 	updated, _ := HandleKeyPress(keyMessage("x"), app)
-	if updated.Navigation.Mode != state.ModeNormal || updated.Selection.MarkedCount(state.PanelContainers) != 1 {
-		t.Fatalf("configured mark back mode=%v marked=%d", updated.Navigation.Mode, updated.Selection.MarkedCount(state.PanelContainers))
+	// BR-044: Esc/Back 退出 mark mode 时清空 marks,banner 与行高亮随之消失。
+	if updated.Navigation.Mode != state.ModeNormal || updated.Selection.MarkedCount(state.PanelContainers) != 0 {
+		t.Fatalf("configured mark back mode=%v marked=%d, want mode=normal marked=0", updated.Navigation.Mode, updated.Selection.MarkedCount(state.PanelContainers))
 	}
 }
 

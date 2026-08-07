@@ -14,6 +14,8 @@ func enterMarkMode(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 func exitMarkMode(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	m.Navigation.Mode = state.ModeNormal
+	// BR-044: Esc 退出 mark mode 时清空 marks,banner 与行高亮随之消失。
+	m.Selection.ClearMarks()
 	return m, nil
 }
 

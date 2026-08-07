@@ -1177,22 +1177,26 @@
 
 ### BR-044 space 进入多选后按一次 Esc 无法退出多选模式(观感:mark 保留 + banner 常驻)
 
-- 状态: `open`
+- 状态: `done` (2026-08-07 修复:exitMarkMode 调用 ClearMarks,一次 Esc 退出即清空 marks)
 - 优先级: `high`
 - 症状:
   - 用户报告:space 进入多选后,按一次 Esc 无法退出多选模式。
   - 代码级定位(临时测试已实证,见下):**单次 Esc 确实退出 mark mode(Mode 11→0)**,但退出时**不清空 marks**;且 `MarkedItemsBanner` 按"marks 是否存在"渲染(containers/view.go:146),不依赖 Mode → 退出后 banner("Marked: N (Esc to exit, clear marks)")与行高亮仍常驻,造成"Esc 退不出去"的观感。
+- 修复记录 (2026-08-07):
+  - `internal/tui/keyboard/mark_mode.go` `exitMarkMode` 在置回 `ModeNormal` 后调用 `m.Selection.ClearMarks()`(state/selection.go:37),一次 Esc 退出即清空全部面板 marks,banner 与行高亮随之消失。
+  - 测试:`internal/tui/keyboard/mark_mode_test.go` 新增 `TestEscExitsMarkModeAndClearsMarks`(默认 Esc 路径,多面板清空)、`TestEscFromMarkModeClearsUnmarkedPanelToo`;`keymap_test.go` `TestConfiguredBackBindingExitsMarkMode` 断言从"marks 保留(=1)"改为"清空(=0)"。
+  - 既有批量操作语义不受影响:`executeBulkDelete`(mark_action.go:139)仍用 `ClearPanelMarks` 只清当前面板,消费 marks 路径不变。
 - 当前行为:
   - 临时测试 `internal/tui/keyboard/esc_mark_tmp_test.go`(已验证后删除)证明:Space → Mode=11(marked=1);Esc #1 → Mode=0(marked=1,mark 保留);Esc #2 → Mode=0。
-  - `exitMarkMode`(mark_mode.go:15-18)只改 `Mode`,不动 `Selection.PanelMarks`。
-  - `MarkedItemsBanner`(marked_items_banner.go:10-14)渲染条件为 `len(marks) > 0`,与 Mode 无关;containers/view.go:146 调用它。
-  - 清 marks 的唯一调用点是 mark_action.go:139(doBulkClearMarks)。
-  - 2026-08-07 核查:`exitMarkMode` 仍只设置 Mode(`mark_mode.go:15-18`),未调用 `ClearMarks`;`marked_items_banner.go:10-14` 仍按 `len(marks) > 0` 渲染 banner → 未修复。
+  - `exitMarkMode`(mark_mode.go:15-19)置回 `ModeNormal` 并调用 `ClearMarks`。
+  - `MarkedItemsBanner`(marked_items_banner.go:10-14)渲染条件为 `len(marks) > 0`;退出时 marks 已清空 → banner 消失。
+  - 2026-08-07 修复前:`exitMarkMode` 只设置 Mode,不动 `Selection.PanelMarks`,banner 与行高亮常驻。
 - 代码锚点:
-  - [internal/tui/keyboard/mark_mode.go:15-18](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/mark_mode.go:15) exitMarkMode 仅改 Mode
+  - [internal/tui/keyboard/mark_mode.go:15-19](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/mark_mode.go:15) exitMarkMode 置回 Mode + ClearMarks
+  - [internal/tui/state/selection.go:37](/home/debi/IdeaProjects/docker-tui/internal/tui/state/selection.go:37) ClearMarks 清空全部面板
   - [internal/tui/ui/component/marked_items_banner.go:10-14](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/component/marked_items_banner.go:10) banner 按 marks 渲染
   - [internal/tui/ui/pages/containers/view.go:146](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/pages/containers/view.go:146) banner 调用点
-  - [internal/tui/keyboard/mark_action.go:139](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/mark_action.go:139) 唯一清 marks 点
+  - [internal/tui/keyboard/mark_action.go:139](/home/debi/IdeaProjects/docker-tui/internal/tui/keyboard/mark_action.go:139) 批量删除消费 marks(ClearPanelMarks,不受影响)
 - 期望行为:
   1. 按一次 Esc 退出多选模式时,**marks 一并清除**(banner 消失、行高亮消失),符合用户"退出多选"直觉;或
   2. 若保留 marks 是有意设计(批量操作后还想再改),则退出时需有明确视觉/文字反馈(如 banner 变为"已退出多选,标记保留")。
