@@ -29,6 +29,17 @@ import (
 var dtuiInfo = buildinfo.Read("dtui")
 
 func main() {
+	app := buildApp()
+
+	if err := app.Run(os.Args[1:]); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+// buildApp constructs the orpheus CLI application with all commands
+// registered. Kept separate from main for testability.
+func buildApp() *orpheus.App {
 	marshal, _ := sonic.MarshalIndent(dtuiInfo, " ", " ") //nolint:errcheck // version info struct; marshal cannot fail in practice.
 	app := orpheus.New("dtui").
 		SetDescription("Docker & Podman TUI Manager").
@@ -38,26 +49,19 @@ func main() {
 	app.AddGlobalFlag("host", "H", "", "Daemon socket or host")
 	app.AddGlobalFlag("theme", "t", "", "Theme name (default, dark, light, nord, dracula, solarized)")
 	app.AddGlobalBoolFlag("podman", "p", false, "Use Podman socket")
-	app.AddGlobalBoolFlag("list-themes", "", false, "List available themes")
 	app.AddGlobalFlag("lang", "L", "", "Language (zh/en)")
 
 	cmd := orpheus.NewCommand("run", "Run the TUI")
 	cmd.SetHandler(func(ctx *orpheus.Context) error {
-		if ctx.GetGlobalFlagBool("list-themes") {
-			for _, t := range config.ListThemes() {
-				fmt.Println(t)
-			}
-			return nil
-		}
 		return runTUI(ctx)
 	})
 	app.AddCommand(cmd)
 	app.SetDefaultCommand("run")
 
-	if err := app.Run(os.Args[1:]); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		os.Exit(1)
-	}
+	app.AddCommand(newInfoCommand())
+	app.AddCommand(newConfigCommandGroup())
+
+	return app
 }
 
 func runTUI(ctx *orpheus.Context) error {

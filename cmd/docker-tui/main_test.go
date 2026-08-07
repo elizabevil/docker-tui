@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
@@ -63,5 +64,41 @@ func TestRuntimeConnectionsAlwaysIncludeLocalRuntimes(t *testing.T) {
 	entries, _ := runtime.BuildConnections(&cfg.Runtime)
 	if len(entries) < 2 || entries[0].Name != "local-docker" || entries[1].Name != "local-podman" {
 		t.Fatalf("entries=%#v", entries)
+	}
+}
+
+func TestBuildAppRegistersInfoCommand(t *testing.T) {
+	app := buildApp()
+	cmds := app.GetCommands()
+	info, ok := cmds["info"]
+	if !ok {
+		t.Fatalf("info command not registered; got %#v", cmds)
+	}
+	if info.HasSubcommands() {
+		t.Fatalf("info command must be leaf; got subcommands")
+	}
+}
+
+func TestBuildAppRegistersConfigCommandGroup(t *testing.T) {
+	app := buildApp()
+	cmds := app.GetCommands()
+	cfgCmd, ok := cmds["config"]
+	if !ok {
+		t.Fatalf("config command not registered; got %#v", cmds)
+	}
+	subs := cfgCmd.GetSubcommands()
+	if subs["init"] == nil {
+		t.Fatalf("config init not registered; got %#v", subs)
+	}
+	if subs["validate"] == nil {
+		t.Fatalf("config validate not registered; got %#v", subs)
+	}
+}
+
+func TestBuildAppRemovesListThemesFlag(t *testing.T) {
+	app := buildApp()
+	help := app.GenerateHelp()
+	if strings.Contains(help, "list-themes") {
+		t.Fatalf("--list-themes still present in help:\n%s", help)
 	}
 }
