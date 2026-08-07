@@ -96,12 +96,7 @@ func RenderDetail(record *audit.Record, width int, height int) string {
 	sb.WriteString(detailRow("Time", record.Time.Format(time.RFC3339), w))
 	sb.WriteString("\n")
 
-	// Trace ID (truncated)
-	traceID := record.TraceID
-	if len(traceID) > 16 {
-		traceID = traceID[:16] + "..."
-	}
-	sb.WriteString(detailRow("Trace ID", traceID, w))
+	sb.WriteString(detailRow("Trace ID", record.TraceID, w))
 	sb.WriteString("\n")
 
 	// Action

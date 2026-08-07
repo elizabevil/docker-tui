@@ -62,6 +62,10 @@ func doEnterAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if m.Navigation.ActivePanel == state.PanelCompose {
 		return doComposeEnter(m)
 	}
+	if m.Navigation.ActivePanel == state.PanelAudit {
+		openAuditDetail(m)
+		return m, nil
+	}
 	return m, nil
 }
 
@@ -75,6 +79,9 @@ func doDetailAction(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		return doVolumeInspect(m)
 	case state.PanelNetworks:
 		return doNetworkInspect(m)
+	case state.PanelAudit:
+		openAuditDetail(m)
+		return m, nil
 	default:
 		return m, nil
 	}

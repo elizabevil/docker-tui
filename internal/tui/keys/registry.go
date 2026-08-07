@@ -50,7 +50,7 @@ func Registry() []ActionSpec {
 		{ActionCommand, []string{":"}, app},
 		{ActionSwitchRuntime, []string{KeyF2}, app},
 		{ActionEvents, []string{KeyF3}, app},
-		{ActionDetail, []string{KeyD}, []Context{{View: "containers"}, {View: "images"}, {View: "volumes"}, {View: "networks"}}},
+		{ActionDetail, []string{KeyD}, []Context{{View: "containers"}, {View: "images"}, {View: "volumes"}, {View: "networks"}, {View: "audit"}}},
 		{ActionContainerStart, []string{KeyS}, containers},
 		{ActionContainerStop, []string{KeyCtrlS}, containers},
 		{ActionContainerRestart, []string{KeyCtrlR}, containers},
