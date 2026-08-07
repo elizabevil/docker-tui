@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -43,8 +45,40 @@ func runInfo(ctx *orpheus.Context) error {
 }
 
 func runConfigInit(ctx *orpheus.Context) error {
-	fmt.Println("config init: not yet implemented")
+	message, err := initConfigFile()
+	if err != nil {
+		return err
+	}
+	fmt.Println(message)
 	return nil
+}
+
+// initConfigFile writes the full annotated config template to
+// config.ConfigFile(), creating the parent directory if needed.
+// It refuses to overwrite an existing file and returns the written
+// path on success.
+func initConfigFile() (string, error) {
+	path, err := config.ConfigFile()
+	if err != nil {
+		return "", err
+	}
+	if _, err := os.Stat(path); err == nil {
+		return "", fmt.Errorf("config file already exists: %s", path)
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return "", err
+	}
+	template, err := config.Template()
+	if err != nil {
+		return "", err
+	}
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", err
+	}
+	if err := os.WriteFile(path, template, 0o644); err != nil {
+		return "", err
+	}
+	return "Wrote " + path + " (full annotated template)", nil
 }
 
 func runConfigValidate(ctx *orpheus.Context) error {
