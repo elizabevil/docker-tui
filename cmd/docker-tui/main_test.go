@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -100,5 +102,40 @@ func TestBuildAppRemovesListThemesFlag(t *testing.T) {
 	help := app.GenerateHelp()
 	if strings.Contains(help, "list-themes") {
 		t.Fatalf("--list-themes still present in help:\n%s", help)
+	}
+}
+
+func TestFirstRunHintShownWhenConfigMissing(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	hint := firstRunHint()
+	if hint == "" {
+		t.Fatalf("firstRunHint should be non-empty when config file is missing")
+	}
+	if !strings.Contains(hint, "config init") {
+		t.Fatalf("hint %q missing config init reference", hint)
+	}
+}
+
+func TestFirstRunHintSuppressedWhenConfigExists(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	cfgFile, err := config.ConfigFile()
+	if err != nil {
+		t.Fatalf("ConfigFile: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(cfgFile), 0o755); err != nil {
+		t.Fatalf("MkdirAll: %v", err)
+	}
+	if err := os.WriteFile(cfgFile, []byte("version: 1\n"), 0o644); err != nil {
+		t.Fatalf("WriteFile: %v", err)
+	}
+
+	if hint := firstRunHint(); hint != "" {
+		t.Fatalf("firstRunHint = %q, want empty when config file exists", hint)
 	}
 }

@@ -29,6 +29,20 @@ import (
 
 var dtuiInfo = buildinfo.Read("dtui")
 
+// firstRunHint returns the localized hint message when no config file
+// exists yet, or an empty string when one does. It never creates files
+// or directories.
+func firstRunHint() string {
+	path, err := config.ConfigFile()
+	if err != nil {
+		return ""
+	}
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		return i18n.T("toast.firstRunHint")
+	}
+	return ""
+}
+
 func main() {
 	app := buildApp()
 
@@ -103,6 +117,9 @@ func runTUI(ctx *orpheus.Context) error {
 	dtuInfo := buildinfo.Read("dtui")
 
 	m := state.NewAppModel(cfg, nil, dtuInfo.Version)
+	if hint := firstRunHint(); hint != "" {
+		m.Feedback.ShowToast(hint, state.NotificationInfo, 30)
+	}
 	if dir, configErr := config.ConfigDir(); configErr == nil {
 		logsDir := filepath.Join(dir, "logs")
 		if sink, err := audit.NewFileSink(logsDir); err == nil {
@@ -154,14 +171,19 @@ type mainModel struct {
 const initialResizeSettleDelay = 150 * time.Millisecond
 
 func (m *mainModel) Init() tea.Cmd {
-	return tea.Batch(
+	cmds := []tea.Cmd{
 		tea.RequestWindowSize,
 		func() tea.Msg { return state.HostStatsTick{} },
 		func() tea.Msg { return state.RuntimeHealthTick{} },
 		cursorBlinkCmd(),
 		connectDocker(m.model.Connection.Pool, m.initialConnection),
 		probeAllOnStart(m.model.Connection.Pool, m.initialConnection),
-	)
+	}
+	if m.model.Feedback.ToastTimer > 0 {
+		generation := m.model.Feedback.ToastGeneration
+		cmds = append(cmds, func() tea.Msg { return state.ToastTick{Generation: generation} })
+	}
+	return tea.Batch(cmds...)
 }
 
 func cursorBlinkCmd() tea.Cmd {
