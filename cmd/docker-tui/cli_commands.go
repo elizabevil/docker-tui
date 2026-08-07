@@ -82,9 +82,50 @@ func initConfigFile() (string, error) {
 }
 
 func runConfigValidate(ctx *orpheus.Context) error {
-	fmt.Println("config validate: not yet implemented")
+	path := ctx.GetGlobalFlagString("config")
+	if path == "" {
+		var err error
+		path, err = config.ConfigFile()
+		if err != nil {
+			return err
+		}
+	}
+	message, err := validateConfigFile(path)
+	if err != nil {
+		return err
+	}
+	fmt.Println(message)
 	return nil
 }
+
+// validateConfigFile loads and validates the config at path using the
+// same full LoadResolved chain as the TUI (app semantics + theme).
+// It returns a human-readable OK message, or an error: a missing file
+// yields a cliExitError carrying exit code 2 and a hint to run
+// `dtui config init`; any other error is returned unwrapped so the
+// CLI exits 1 with the field-path message.
+func validateConfigFile(path string) (string, error) {
+	if _, err := os.Stat(path); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return "", &cliExitError{code: 2, err: fmt.Errorf("No config file at %s — run `dtui config init`", path)}
+		}
+		return "", err
+	}
+	if _, err := config.LoadResolved(config.LoadOptions{ConfigPath: path}); err != nil {
+		return "", err
+	}
+	return "OK: " + path, nil
+}
+
+// cliExitError carries a process exit code for CLI errors that must
+// terminate with a specific status (e.g. a missing config file → 2).
+type cliExitError struct {
+	code int
+	err  error
+}
+
+func (e *cliExitError) Error() string { return e.err.Error() }
+func (e *cliExitError) Unwrap() error { return e.err }
 
 func infoReport() (string, error) {
 	dir, err := config.ConfigDir()

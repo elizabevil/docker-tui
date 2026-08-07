@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -32,6 +33,11 @@ func main() {
 	app := buildApp()
 
 	if err := app.Run(os.Args[1:]); err != nil {
+		var exitErr *cliExitError
+		if errors.As(err, &exitErr) {
+			fmt.Fprintln(os.Stderr, exitErr.err)
+			os.Exit(exitErr.code)
+		}
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
