@@ -1,0 +1,125 @@
+# dtui integration test fixtures - Web Application Suite
+# Usage:
+#   docker compose -f test/integration/web-app.yml up -d
+#   podman-compose -f test/integration/web-app.yml up -d
+#
+# Tests: web app with nginx, redis session, postgres db, health checks, restart policies
+
+services:
+  # ── Nginx Frontend ───────────────────────────────────────────────────
+  nginx:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/nginx:alpine
+    container_name: dtui-webapp-nginx
+    hostname: nginx
+    labels:
+      com.docker.compose.project: dtui-webapp
+      dtui.test.suite: web-app
+    ports:
+      - "18080:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    environment:
+      NGINX_HOST: dtui-webapp.local
+      NGINX_PORT: "80"
+
+  # ── Redis Session Store ─────────────────────────────────────────────
+  redis:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/redis:7-alpine
+    container_name: dtui-webapp-redis
+    hostname: redis
+    labels:
+      com.docker.compose.project: dtui-webapp
+      dtui.test.suite: web-app
+    ports:
+      - "16379:6379"
+    volumes:
+      - webapp-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # ── PostgreSQL Database ───────────────────────────────────────────────
+  postgres:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/postgres:18-alpine
+    container_name: dtui-webapp-postgres
+    hostname: postgres
+    labels:
+      com.docker.compose.project: dtui-webapp
+      dtui.test.suite: web-app
+    ports:
+      - "15432:5432"
+    environment:
+      POSTGRES_USER: webapp_user
+      POSTGRES_PASSWORD: webapp_pass
+      POSTGRES_DB: webapp_db
+    volumes:
+      - webapp-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U webapp_user -d webapp_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  # ── Alpine CLI Helper (for exec/testing) ─────────────────────────────
+  cli:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:3.19
+    container_name: dtui-webapp-cli
+    hostname: cli
+    labels:
+      com.docker.compose.project: dtui-webapp
+      dtui.test.suite: web-app
+    command: ["sleep", "infinity"]
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+  # ── Service depending on healthy services ──────────────────────────────
+  worker:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:3.19
+    container_name: dtui-webapp-worker
+    hostname: worker
+    labels:
+      com.docker.compose.project: dtui-webapp
+      dtui.test.suite: web-app
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    command: ["sleep", "infinity"]
+    restart: unless-stopped
+
+  # ── Resource Limited Worker ───────────────────────────────────────────
+  worker-limited:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:3.19
+    container_name: dtui-webapp-worker-limited
+    hostname: worker-limited
+    labels:
+      com.docker.compose.project: dtui-webapp
+      dtui.test.suite: web-app
+    command: ["sleep", "infinity"]
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    restart: unless-stopped
+
+volumes:
+  webapp-redis-data:
+    name: dtui-webapp-redis-data
+  webapp-postgres-data:
+    name: dtui-webapp-postgres-data

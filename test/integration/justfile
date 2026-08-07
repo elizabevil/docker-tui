@@ -1,0 +1,11 @@
+# test/integration/justfile — Compose integration test entry point
+set unstable
+
+import "web-app.just"
+import "network.just"
+import "batch-task.just"
+import "run.just"
+
+# Show all available recipes
+list:
+    @just --list --unsorted

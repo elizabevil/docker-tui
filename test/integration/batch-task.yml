@@ -1,0 +1,56 @@
+# dtui integration test fixtures - Batch Task Suite
+# Usage:
+#   docker compose -f test/integration/batch-task.yml up -d
+#   podman-compose -f test/integration/batch-task.yml up -d
+#
+# Tests: exited containers, restart policies, entrypoint override, plain containers
+
+services:
+  # ── One-time batch job (exits immediately) ───────────────────────────────────
+  batch-once:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:3.19
+    container_name: dtui-batch-once
+    hostname: batch-once
+    labels:
+      com.docker.compose.project: dtui-batch
+      dtui.test.suite: batch-task
+      dtui.test.job: once
+    command: ["sh", "-c", "echo batch-once-complete && sleep 2 && exit 0"]
+    restart: "no"
+
+  # ── Long-running worker without healthcheck ────────────────────────────────
+  worker:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:3.19
+    container_name: dtui-batch-worker
+    hostname: worker
+    labels:
+      com.docker.compose.project: dtui-batch
+      dtui.test.suite: batch-task
+      dtui.test.role: worker
+    command: ["sleep", "infinity"]
+    restart: unless-stopped
+
+  # ── Container with entrypoint override ───────────────────────────────────
+  cron:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:3.19
+    container_name: dtui-batch-cron
+    hostname: cron
+    labels:
+      com.docker.compose.project: dtui-batch
+      dtui.test.suite: batch-task
+      dtui.test.role: cron
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["echo cron-job-running && sleep infinity"]
+    restart: unless-stopped
+
+  # ── Scheduled job (exits successfully, tests on-failure policy) ─────────────
+  scheduled-job:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:3.19
+    container_name: dtui-batch-scheduled
+    hostname: scheduled-job
+    labels:
+      com.docker.compose.project: dtui-batch
+      dtui.test.suite: batch-task
+      dtui.test.job: scheduled
+    command: ["sh", "-c", "echo scheduled-job-ok && exit 0"]
+    restart: on-failure

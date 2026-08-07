@@ -1,0 +1,72 @@
+# dtui integration test fixtures - Network Suite
+# Usage:
+#   docker compose -f test/integration/network.yml up -d
+#   podman-compose -f test/integration/network.yml up -d
+#
+# Tests: custom networks, service discovery, multi-container
+
+services:
+  # ── Nginx on custom network ───────────────────────────────────────────
+  nginx:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/nginx:alpine
+    container_name: dtui-net-nginx
+    hostname: nginx
+    labels:
+      com.docker.compose.project: dtui-network
+      dtui.test.suite: network
+    networks:
+      - net-front
+    ports:
+      - "18081:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  # ── Redis on custom network ─────────────────────────────────────────
+  redis:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/redis:7-alpine
+    container_name: dtui-net-redis
+    hostname: redis
+    labels:
+      com.docker.compose.project: dtui-network
+      dtui.test.suite: network
+    networks:
+      - net-back
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # ── Alpine worker on both networks ──────────────────────────────────
+  worker:
+    image: swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:3.19
+    container_name: dtui-net-worker
+    hostname: worker
+    labels:
+      com.docker.compose.project: dtui-network
+      dtui.test.suite: network
+    networks:
+      - net-front
+      - net-back
+    command: ["sleep", "infinity"]
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
+networks:
+  net-front:
+    driver: bridge
+    name: dtui-net-front
+  net-back:
+    driver: bridge
+    name: dtui-net-back
+
+volumes:
+  net-redis-data:
+    name: dtui-net-redis-data
