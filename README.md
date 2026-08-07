@@ -109,7 +109,7 @@ The build recipes embed a product version from `DTUI_VERSION` and default to
 | Override embedded version | `DTUI_VERSION=v0.2.0 just build` |
 | Run (Docker) | `just run` |
 | Run (Podman) | `just run-podman` |
-| List built-in themes | `./dist/dtui --list-themes` |
+| Show config paths and themes | `./dist/dtui info` |
 | Show version | `./dist/dtui --version` |
 
 CLI flags:
@@ -119,7 +119,6 @@ CLI flags:
 -t, --theme NAME     Theme name (default, dark, light, nord, dracula, solarized)
 -L, --lang zh|en     Interface language
 -p, --podman         Connect to local Podman socket instead of Docker
-    --list-themes    Print available themes and exit
 -v, --version        Print version and exit
 -H, --host URI       Daemon socket or remote endpoint URI
 ```
@@ -145,7 +144,21 @@ Default path:
 
 Pass `--config` to use a different YAML file. Missing fields fall back
 to the embedded defaults in
-[`internal/data/config/default.jsonc`](internal/data/config/default.jsonc).
+[`internal/data/config/defaults/`](internal/data/config/defaults/).
+
+Config file CLI:
+
+```text
+dtui info                 Show config, log and theme paths + built-in themes
+dtui config init          Create a config file from a full annotated template
+dtui config validate      Validate the config file (exit 0 = OK, 1 = invalid, 2 = missing)
+```
+
+`dtui config init` never overwrites an existing file. `dtui config validate`
+reports the offending field path on failure, e.g.
+`validate app config: general.lang must be en or zh`. On first run with no
+config file, the TUI shows a toast hint pointing to `dtui config init`; it
+never creates the file for you.
 
 Minimal example:
 
@@ -200,7 +213,7 @@ keymap:
 > are rejected on load.
 
 All fields are documented in
-[`internal/data/config/default.jsonc`](internal/data/config/default.jsonc)
+[`internal/data/config/defaults/`](internal/data/config/defaults/)
 and [`internal/data/config/types.go`](internal/data/config/types.go).
 
 ---

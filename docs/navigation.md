@@ -205,3 +205,11 @@ Compose 面板是双栏：
 
 - 普通按键直接写入容器会话
 - `Esc` 关闭当前 exec 会话并返回
+
+## 首次运行提示（R07）
+
+对应需求：[requirement/R07-config-ux/R07-04-first-run-hint.md](requirement/R07-config-ux/R07-04-first-run-hint.md)
+
+- 无配置文件（`config.ConfigFile()` 不存在）启动 TUI 时，右上角显示一次提示 toast，文案指向 `dtui config init`
+- toast 约 3 秒后自动消失，不阻塞交互，可被常规 toast 操作清除
+- 已有配置文件则不显示；不自动创建文件、不修改任何目录
