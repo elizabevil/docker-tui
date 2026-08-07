@@ -100,10 +100,12 @@
     },
     "navigation": {
       "tabNext": {
-        "primary": "tab"
+        "primary": "tab",
+        "secondary": "]"
       },
       "tabPrev": {
-        "primary": "shift+tab"
+        "primary": "shift+tab",
+        "secondary": "["
       },
       "up": {
         "primary": "up",

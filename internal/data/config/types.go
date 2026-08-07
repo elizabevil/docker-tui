@@ -450,7 +450,7 @@ func defaultKeymap() KeymapConfig {
 		Image:      ImageKeymap{Pull: b(KeyCtrlP), Remove: b(KeyCtrlD), Prune: b(KeyP), Tag: b(KeyCtrlT), Push: b(KeyCtrlU), Save: b(KeyCtrlE), Load: b(KeyCtrlL), History: b(KeyH)},
 		Volume:     ResourceKeymap{Create: b(KeyC), Prune: b(KeyP), Remove: b(KeyCtrlD)},
 		Network:    ResourceKeymap{Create: b(KeyC), Prune: b(KeyP), Remove: b(KeyCtrlD)},
-		Navigation: NavigationKeymap{TabNext: b(KeyTab), TabPrev: b(KeyShiftTab), Up: b(KeyUp, KeyK), Down: b(KeyDown, KeyJ), Enter: b(KeyEnter), Back: b(KeyEscape), Delete: b(KeyCtrlD)},
+		Navigation: NavigationKeymap{TabNext: b(KeyTab, KeyCloseBracket), TabPrev: b(KeyShiftTab, KeyOpenBracket), Up: b(KeyUp, KeyK), Down: b(KeyDown, KeyJ), Enter: b(KeyEnter), Back: b(KeyEscape), Delete: b(KeyCtrlD)},
 		Dialog:     DialogKeymap{Confirm: b(KeyEnter), Cancel: b(KeyEscape)},
 	}
 }

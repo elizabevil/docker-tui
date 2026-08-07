@@ -16,8 +16,10 @@ const (
 	KeyLeft  = "left"
 	KeyRight = "right"
 
-	KeySlash = "/"
-	KeyQmark = "?"
+	KeySlash         = "/"
+	KeyQmark         = "?"
+	KeyOpenBracket   = "["
+	KeyCloseBracket  = "]"
 
 	KeyF1  = "f1"
 	KeyF2  = "f2"

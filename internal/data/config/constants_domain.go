@@ -104,6 +104,8 @@ const (
 	KeySemicolon Key = ";"
 	KeyTab       Key = "tab"
 	KeyShiftTab  Key = "shift+tab"
+	KeyOpenBracket  Key = "["
+	KeyCloseBracket Key = "]"
 	KeyUp        Key = "up"
 	KeyDown      Key = "down"
 	KeyEnter     Key = "enter"

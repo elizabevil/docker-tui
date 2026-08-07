@@ -265,6 +265,20 @@ func handleShortcuts(key string, m *state.AppModel, cmds []tea.Cmd) (*state.AppM
 		if mm, cmd, ok := toggleSortDirection(key, m, cmds); ok {
 			return mm, cmd
 		}
+	case keys.KeyN:
+		if m.Navigation.Mode == state.ModeMark {
+			return m, tea.Batch(cmds...)
+		}
+		if mm, cmd, ok := setSortDirection(key, m, cmds, true); ok {
+			return mm, cmd
+		}
+	case keys.KeyCtrlN:
+		if m.Navigation.Mode == state.ModeMark {
+			return m, tea.Batch(cmds...)
+		}
+		if mm, cmd, ok := setSortDirection(key, m, cmds, false); ok {
+			return mm, cmd
+		}
 	}
 	return m, nil
 }
@@ -314,6 +328,33 @@ func toggleSortDirection(key string, m *state.AppModel, cmds []tea.Cmd) (*state.
 		return m, tea.Batch(cmds...), true
 	case state.PanelNetworks:
 		m.Resources.Networks.SortAsc = !m.Resources.Networks.SortAsc
+		m.Resources.Networks.Cursor = 0
+		m.Resources.Networks.ViewOffset = 0
+		cmds = append(cmds, RecordKeyStroke(m, key, keys.ActionLabelSort))
+		return m, tea.Batch(cmds...), true
+	}
+	return nil, nil, false
+}
+
+// setSortDirection sets the ascending/descending flag for the panel
+// under focus to the requested direction without changing the sort
+// column. Returns ok=false when the active panel has no sortable list.
+func setSortDirection(key string, m *state.AppModel, cmds []tea.Cmd, ascending bool) (*state.AppModel, tea.Cmd, bool) {
+	switch m.Navigation.ActivePanel {
+	case state.PanelContainers:
+		m.Resources.Containers.SortAsc = ascending
+		m.Resources.Containers.Cursor = 0
+		m.Resources.Containers.ViewOffset = 0
+		cmds = append(cmds, RecordKeyStroke(m, key, keys.ActionLabelSort))
+		return m, tea.Batch(cmds...), true
+	case state.PanelImages:
+		m.Resources.Images.SortAsc = ascending
+		m.Resources.Images.Cursor = 0
+		m.Resources.Images.ViewOffset = 0
+		cmds = append(cmds, RecordKeyStroke(m, key, keys.ActionLabelSort))
+		return m, tea.Batch(cmds...), true
+	case state.PanelNetworks:
+		m.Resources.Networks.SortAsc = ascending
 		m.Resources.Networks.Cursor = 0
 		m.Resources.Networks.ViewOffset = 0
 		cmds = append(cmds, RecordKeyStroke(m, key, keys.ActionLabelSort))

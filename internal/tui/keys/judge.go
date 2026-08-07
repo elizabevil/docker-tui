@@ -12,7 +12,7 @@ func IsEsc(key string) bool {
 
 // IsSpace returns true if the key is the Space key.
 func IsSpace(key string) bool {
-	return key == KeySpace || key == "space"
+	return key == KeySpace || key == KeySpaceName
 }
 
 // IsTab returns true if the key is the Tab key.
