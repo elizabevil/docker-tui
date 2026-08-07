@@ -30,8 +30,14 @@ requirement/
 ├── R05-events-network/             # 事件流与网络
 │   ├── README.md
 │   └── R05-01-events-network-connect.md
-└── R06-operation/                  # Operation 一等公民(横切:贯穿容器/镜像域)
-    └── R06-01-operation-as-domain.md
+├── R06-operation/                  # Operation 一等公民(横切:贯穿容器/镜像域)
+│   └── R06-01-operation-as-domain.md
+└── R07-config-ux/                  # 配置系统便利化(CLI info / config init / validate / 首次运行提示)
+    ├── README.md
+    ├── R07-01-cli-info.md          # dtui info — 配置路径与主题列表
+    ├── R07-02-config-init.md       # dtui config init — 生成配置文件模板
+    ├── R07-03-config-validate.md   # dtui config validate — 校验配置文件
+    └── R07-04-first-run-hint.md    # 首次运行提示(toast,不自动生成)
 ```
 
 ## 角色
