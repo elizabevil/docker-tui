@@ -41,3 +41,37 @@ func TestEscFromMarkModeClearsUnmarkedPanelToo(t *testing.T) {
 		t.Fatalf("volumes marks = %d, want 0", updated.Selection.MarkedCount(state.PanelVolumes))
 	}
 }
+
+func TestSwitchPanelClearsMarks(t *testing.T) {
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	m.Selection.Toggle(state.PanelContainers, "one")
+	m.Selection.Toggle(state.PanelImages, "img-1")
+
+	updated, _ := HandleKeyPress(keyMessage(keys.KeyTab), m)
+
+	if updated.Navigation.ActivePanel == state.PanelContainers {
+		t.Fatalf("panel did not switch: still %v", updated.Navigation.ActivePanel)
+	}
+	if updated.Selection.MarkedCount(state.PanelContainers) != 0 {
+		t.Fatalf("containers marks survived panel switch: %d", updated.Selection.MarkedCount(state.PanelContainers))
+	}
+	if updated.Selection.MarkedCount(state.PanelImages) != 0 {
+		t.Fatalf("images marks survived panel switch: %d", updated.Selection.MarkedCount(state.PanelImages))
+	}
+}
+
+func TestSwitchPanelClearsMarksEvenInMarkMode(t *testing.T) {
+	m := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	m.Navigation.Mode = state.ModeMark
+	m.Selection.Toggle(state.PanelContainers, "one")
+
+	updated, _ := HandleKeyPress(keyMessage(keys.KeyTab), m)
+
+	if updated.Navigation.ActivePanel == state.PanelContainers {
+		t.Fatalf("panel did not switch: still %v", updated.Navigation.ActivePanel)
+	}
+	if updated.Selection.MarkedCount(state.PanelContainers) != 0 {
+		t.Fatalf("containers marks survived panel switch in mark mode: %d", updated.Selection.MarkedCount(state.PanelContainers))
+	}
+}
+

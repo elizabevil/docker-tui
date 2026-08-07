@@ -27,6 +27,9 @@ func switchPanel(m *state.AppModel, direction int) {
 	next := (current + direction + len(panels)) % len(panels)
 	m.Navigation.ActivePanel = panels[next]
 	m.Metrics.StatsActive = false
+	// 切换页面清除已有选择:不同页面(如 compose 与容器)的 marks 会相互
+	// 影响,且 mark 的 id 仅在所属页面上下文有意义,切页后必须失效。
+	m.Selection.ClearMarks()
 }
 
 func moveCursor(m *state.AppModel, delta int) {

@@ -59,6 +59,9 @@ func executeCommand(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case keys.CommandConnInfo:
 		return showConnectionInfo(m)
 	}
+	if m.Navigation.Mode == state.ModeNormal {
+		m.Selection.ClearMarks()
+	}
 	return m, nil
 }
 

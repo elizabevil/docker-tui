@@ -1273,3 +1273,25 @@
   1.
   2.
 ```
+
+### BR-047 切换页面时清除已有选择(marks),避免跨页面相互影响
+
+- 状态: `done` (2026-08-07 修复:switchPanel / 命令切页时调用 ClearMarks)
+- 优先级: `high`
+- 症状:
+  - 用户在容器页标记若干容器后切换到 Compose 页,marks 仍保留在 `Selection.PanelMarks[PanelContainers]`;Compose 页按批量操作键(如 `s`)会读取**容器**面板的 marks(`mark_mode.go` 硬编码 `state.PanelContainers`),导致跨页面误操作。
+  - marks 的 id 仅在所属页面上下文有意义(容器 ID / 镜像 ID / 卷名 / 网络 ID),切页后对目标页面无意义甚至冲突。
+- 修复记录 (2026-08-07):
+  - `internal/tui/keyboard/helpers.go` `switchPanel`:切换 `ActivePanel` 后调用 `m.Selection.ClearMarks()`(Tab / Shift+Tab 路径)。
+  - `internal/tui/keyboard/command.go` `executeCommand`:`:compose` / `:images` / `:containers` / `:volumes` / `:networks` 命令切换页面后,若仍处于 `ModeNormal` 则调用 `ClearMarks()`。
+  - 测试:`internal/tui/keyboard/mark_mode_test.go` 新增 `TestSwitchPanelClearsMarks`、`TestSwitchPanelClearsMarksEvenInMarkMode`(mark mode 中 Tab 切页同样清空)。
+- 当前行为:
+  - Tab / Shift+Tab 切换面板:切换即清空全部面板 marks。
+  - `:` 命令切换页面(`:compose` 等):页面切换后清空全部面板 marks。
+  - mark mode 中 Tab 切换:同样清空(切页即放弃当前多选)。
+- 期望行为:
+  1. 任何页面切换路径(Tab、命令)都会清除已有 marks,避免 compose / 容器等页面相互影响。
+  2. marks 生命周期 = 当前页面会话:切页即失效。
+- 验收标准:
+  1. 容器页标记 → Tab 切到 Compose → 容器 marks 为 0,Compose 页批量操作不误读容器 marks。
+  2. `go test ./internal/tui/keyboard/` 通过。
