@@ -1,0 +1,329 @@
+# =========================================================
+# docker-tui 配置模板
+#
+# 本文件由 dtui config init 生成。所有键均为可选，
+# 省略的键在加载时回退到内嵌默认值。修改后请使用
+# dtui config validate 校验配置。
+# =========================================================
+# version — 配置版本号（默认: 1）
+version: 1
+
+# app — 应用配置
+app:
+  # ===== general =====
+  general:
+    # scrollHeight — 滚动保留的行数（默认: 2）
+    scrollHeight: 2
+    # reporting — 上报统计信息（默认: "off"）
+    reporting: "off"
+    # lang — 界面语言（默认: "en"）
+    lang: "en"
+    # sizeFormat — 文件大小显示格式（默认: "binary"）
+    sizeFormat: "binary"
+
+  # ===== ui =====
+  ui:
+    # wrapMainPanel — 主面板内容自动换行（默认: false）
+    wrapMainPanel: false
+    # returnImmediately — 操作后立即返回主界面（默认: false）
+    returnImmediately: false
+    # showHelp — 显示帮助提示（默认: true）
+    showHelp: true
+    # hintTimeout — 帮助提示持续时间（秒）（默认: 3）
+    hintTimeout: 3
+    # enableMouse — 启用鼠标支持（默认: true）
+    enableMouse: true
+    # dialog — 对话框布局
+    dialog:
+      # width — 对话框宽度
+      width:
+        # percent — 占屏幕百分比（默认: 25）
+        percent: 25
+        # min — 最小尺寸（默认: 40）
+        min: 40
+        # max — 最大尺寸（默认: 80）
+        max: 80
+      # height — 对话框高度
+      height:
+        # percent — 占屏幕百分比（默认: 30）
+        percent: 30
+        # min — 最小尺寸（默认: 10）
+        min: 10
+        # max — 最大尺寸（默认: 40）
+        max: 40
+      # position — 对话框位置
+      position:
+        # horizontal — 水平位置（默认: "center"）
+        horizontal: "center"
+        # vertical — 垂直位置（默认: "center"）
+        vertical: "center"
+        # offsetX — 水平偏移（默认: 0）
+        offsetX: 0
+        # offsetY — 垂直偏移（默认: 0）
+        offsetY: 0
+      # panelSize — 对话框面板尺寸
+      panelSize:
+        # widthPercent — 宽度百分比（默认: 75）
+        widthPercent: 75
+        # heightPercent — 高度百分比（默认: 100）
+        heightPercent: 100
+        # maxWidth — 最大宽度（默认: 120）
+        maxWidth: 120
+        # maxHeight — 最大高度（默认: 40）
+        maxHeight: 40
+    # window — 窗口布局
+    window:
+      # marginTopPercent — 顶部边距百分比（默认: 2）
+      marginTopPercent: 2
+      # marginBottomPercent — 底部边距百分比（默认: 2）
+      marginBottomPercent: 2
+      # contentWidthPercent — 内容宽度百分比（默认: 99）
+      contentWidthPercent: 99
+    # header — 头部布局
+    header:
+      # columns — 列权重
+      columns:
+        # host — 主机列权重（默认: 3）
+        host: 3
+        # connection — 连接列权重（默认: 5）
+        connection: 5
+        # keystroke — 按键列权重（默认: 7）
+        keystroke: 7
+        # logo — 徽标列权重（默认: 3）
+        logo: 3
+      # keystrokeContentRatio — 按键与内容比例（默认: 80）
+      keystrokeContentRatio: 80
+    # table — 表格布局
+    table:
+      # columnSpacing — 列间距（默认: 2）
+      columnSpacing: 2
+      # rowPrefix — 普通行前缀（默认: "  "）
+      rowPrefix: "  "
+      # rowPrefixSelected — 选中行前缀（默认: "> "）
+      rowPrefixSelected: "> "
+      # rowSpacing — 行间距（默认: 0）
+      rowSpacing: 0
+      # selectionInfo — 选中信息
+      selectionInfo:
+        # enabled — 是否启用（默认: true）
+        enabled: true
+        # padLines — 上下填充行数（默认: 1）
+        padLines: 1
+
+  # ===== docker =====
+  docker:
+    # timeout — 命令超时时间（默认: "30s"）
+    timeout: "30s"
+    # statsPollSec — 统计轮询间隔（秒）（默认: 3）
+    statsPollSec: 3
+
+  # ===== runtime =====
+  runtime:
+    # default — 默认运行时（默认: "local-docker"）
+    default: "local-docker"
+    # discovery — 本地运行时自动发现
+    discovery:
+      # localDocker — 发现本地 Docker（默认: true）
+      localDocker: true
+      # localPodman — 发现本地 Podman（默认: true）
+      localPodman: true
+    # health — 运行时健康检查
+    health:
+      # intervalSec — 检查间隔（秒）（默认: 3）
+      intervalSec: 3
+      # timeoutSec — 检查超时（秒）（默认: 2）
+      timeoutSec: 2
+      # failureThreshold — 连续失败阈值（默认: 2）
+      failureThreshold: 2
+    # connections — 远程运行时连接列表（默认: []）
+    connections: []
+
+  # ===== keymap =====
+  keymap:
+    # global — 全局按键
+    global:
+      # quit — 退出程序（默认: "ctrl+c"）
+      quit:
+        primary: "ctrl+c"
+      # actionBar — 打开命令面板（默认: ";"）
+      actionBar:
+        primary: ";"
+      # help — 打开帮助（默认: "?/f1"）
+      help:
+        primary: "?"
+        secondary: "f1"
+      # filter — 过滤资源（默认: "/"）
+      filter:
+        primary: "/"
+      # refresh — 刷新（默认: "r"）
+      refresh:
+        primary: "r"
+    # container — 容器按键
+    container:
+      # start — 启动（默认: "s"）
+      start:
+        primary: "s"
+      # stop — 停止（默认: "ctrl+s"）
+      stop:
+        primary: "ctrl+s"
+      # restart — 重启（默认: "ctrl+r"）
+      restart:
+        primary: "ctrl+r"
+      # kill — 强制终止（默认: "ctrl+k"）
+      kill:
+        primary: "ctrl+k"
+      # remove — 删除（默认: "ctrl+d"）
+      remove:
+        primary: "ctrl+d"
+      # logs — 查看日志（默认: "l"）
+      logs:
+        primary: "l"
+      # exec — 进入容器（默认: "e"）
+      exec:
+        primary: "e"
+      # inspect — 查看详情（默认: "i"）
+      inspect:
+        primary: "i"
+      # stats — 查看统计（默认: "m"）
+      stats:
+        primary: "m"
+      # pause — 暂停（默认: "p"）
+      pause:
+        primary: "p"
+    # image — 镜像按键
+    image:
+      # pull — 拉取镜像（默认: "ctrl+p"）
+      pull:
+        primary: "ctrl+p"
+      # remove — 删除（默认: "ctrl+d"）
+      remove:
+        primary: "ctrl+d"
+      # prune — 清理（默认: "p"）
+      prune:
+        primary: "p"
+      # tag — 打标签（默认: "ctrl+t"）
+      tag:
+        primary: "ctrl+t"
+      # push — 推送镜像（默认: "ctrl+u"）
+      push:
+        primary: "ctrl+u"
+      # save — 保存镜像（默认: "ctrl+e"）
+      save:
+        primary: "ctrl+e"
+      # load — 加载镜像（默认: "ctrl+l"）
+      load:
+        primary: "ctrl+l"
+      # history — 查看历史（默认: "h"）
+      history:
+        primary: "h"
+    # volume — 卷按键
+    volume:
+      # create — 创建（默认: "c"）
+      create:
+        primary: "c"
+      # prune — 清理（默认: "p"）
+      prune:
+        primary: "p"
+      # remove — 删除（默认: "ctrl+d"）
+      remove:
+        primary: "ctrl+d"
+    # network — 网络按键
+    network:
+      # create — 创建（默认: "c"）
+      create:
+        primary: "c"
+      # prune — 清理（默认: "p"）
+      prune:
+        primary: "p"
+      # remove — 删除（默认: "ctrl+d"）
+      remove:
+        primary: "ctrl+d"
+    # navigation — 导航按键
+    navigation:
+      # tabNext — 下一个标签页（默认: "tab/]"）
+      tabNext:
+        primary: "tab"
+        secondary: "]"
+      # tabPrev — 上一个标签页（默认: "shift+tab/["）
+      tabPrev:
+        primary: "shift+tab"
+        secondary: "["
+      # up — 上移（默认: "up/k"）
+      up:
+        primary: "up"
+        secondary: "k"
+      # down — 下移（默认: "down/j"）
+      down:
+        primary: "down"
+        secondary: "j"
+      # enter — 确认（默认: "enter"）
+      enter:
+        primary: "enter"
+      # back — 返回（默认: "esc"）
+      back:
+        primary: "esc"
+      # delete — 删除（默认: "ctrl+d"）
+      delete:
+        primary: "ctrl+d"
+    # dialog — 对话框按键
+    dialog:
+      # confirm — 确认（默认: "enter"）
+      confirm:
+        primary: "enter"
+      # cancel — 取消（默认: "esc"）
+      cancel:
+        primary: "esc"
+
+  # ===== logs =====
+  logs:
+    # since — 日志起始时间（默认: "1h"）
+    since: "1h"
+    # tail — 日志末尾行数（默认: "200"）
+    tail: "200"
+    # timestamps — 显示时间戳（默认: false）
+    timestamps: false
+
+  # ===== layout =====
+  layout:
+    # sectionWeights — 分区高度权重
+    sectionWeights:
+      # top — 顶部（默认: 2）
+      top: 2
+      # content — 内容（默认: 7）
+      content: 7
+      # bottom — 底部（默认: 1）
+      bottom: 1
+    # background — 背景设置
+    background:
+      # enable — 启用背景（默认: false）
+      enable: false
+      # fallthrough — 背景点击穿透（默认: false）
+      fallthrough: false
+      # type — 背景类型（默认: "image"）
+      type: "image"
+      # color — 背景颜色（默认: "red"）
+      color: "red"
+      # image — 背景图片
+      image:
+        # sizing — 图片缩放方式（默认: "cover"）
+        sizing: "cover"
+        # position — 图片位置（默认: "center"）
+        position: "center"
+        # opacity — 图片不透明度（默认: 100）
+        opacity: 100
+
+  # ===== commands =====
+  commands:
+    # dockerCompose — docker compose 命令
+    dockerCompose:
+      # executable — 可执行文件（默认: "docker"）
+      executable: "docker"
+      # subcommand — 子命令（默认: "compose"）
+      subcommand: "compose"
+
+# ===== appearance =====
+appearance:
+  # theme — 界面主题（默认: "default"）
+  theme: "default"
+  # overrides — 主题覆盖设置（默认: {}）
+  overrides: {}
