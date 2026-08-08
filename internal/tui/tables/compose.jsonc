@@ -54,9 +54,9 @@
         "header": "table.image"
       },
       {
-        "key": "pods",
+        "key": "containers",
         "fixed": 8,
-        "header": "table.pods"
+        "header": "table.containers"
       }
     ],
     "detail": [
@@ -82,7 +82,7 @@
         "header": "table.status"
       },
       {
-        "key": "pods",
+        "key": "containers",
         "fixed": 10,
         "header": "table.containers"
       }

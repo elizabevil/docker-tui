@@ -264,7 +264,7 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 				}
 			case "image":
 				cells[j] = info.image
-			case "pods":
+			case "containers":
 				cells[j] = fmt.Sprintf("%d", info.count)
 			}
 		}
@@ -348,7 +348,7 @@ func RenderProjectDetailTable(m *state.AppModel, width, panelHeight int) string 
 				cells[j] = info.image
 			case "status":
 				cells[j] = status
-			case "pods":
+			case "containers":
 				cells[j] = fmt.Sprintf("%d/%d", info.running, info.total)
 			}
 		}

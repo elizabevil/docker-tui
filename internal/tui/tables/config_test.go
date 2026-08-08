@@ -136,3 +136,31 @@ func TestPodsSubHasPodColumn(t *testing.T) {
 		t.Fatalf("pods_sub missing \"pod\" column; got %d cols", len(cols))
 	}
 }
+
+// TestServicesSubContainersColumn pins the rename: services_sub and
+// detail profiles must expose a "containers" column (showing container
+// count per service), and the legacy "pods" key is gone. The earlier
+// naming was misleading — "pods" was rendered as a container count
+// while podman adds a separate Pod grouping layer.
+func TestServicesSubContainersColumn(t *testing.T) {
+	tc := MustLoad("compose")
+	cols := tc.Columns.Get("services_sub")
+	var hasContainers, hasLegacyPods bool
+	for _, c := range cols {
+		switch c.Key {
+		case "containers":
+			hasContainers = true
+			if c.Header != "table.containers" {
+				t.Fatalf("containers column header = %q, want %q", c.Header, "table.containers")
+			}
+		case "pods":
+			hasLegacyPods = true
+		}
+	}
+	if !hasContainers {
+		t.Fatalf("services_sub missing \"containers\" column")
+	}
+	if hasLegacyPods {
+		t.Fatalf("services_sub still has legacy \"pods\" column")
+	}
+}
