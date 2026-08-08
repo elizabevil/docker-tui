@@ -107,33 +107,6 @@
       "requires": ["engine", "compose_project"]
     },
     {
-      "kind":   "project_build",
-      "action": "compose_project.build",
-      "mode":   "form",
-      "form":   { "kind": "composeBuild" },
-      "label":  "Build services",
-      "description": "Rebuild images for one or more services in the project",
-      "requires": ["engine", "compose_project"]
-    },
-    {
-      "kind":   "project_pull",
-      "action": "compose_project.pull",
-      "mode":   "async",
-      "async":  { "body": "composeTrigger" },
-      "label":  "Pull images",
-      "description": "Pull the latest image for every service in the project",
-      "requires": ["engine", "compose_project"]
-    },
-    {
-      "kind":   "project_push",
-      "action": "compose_project.push",
-      "mode":   "async",
-      "async":  { "body": "composeTrigger" },
-      "label":  "Push images",
-      "description": "Push built images for every tagged service in the project",
-      "requires": ["engine", "compose_project", "compose_tagged"]
-    },
-    {
       "kind":   "project_scale",
       "action": "compose_project.scale",
       "mode":   "form",

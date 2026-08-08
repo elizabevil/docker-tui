@@ -150,12 +150,6 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 		return doComposePort(m)
 	case keys.ActionComposeProjectStats:
 		return doComposeStats(m)
-	case keys.ActionComposeProjectBuild:
-		return doComposeBuild(m)
-	case keys.ActionComposeProjectPull:
-		return doComposePull(m)
-	case keys.ActionComposeProjectPush:
-		return doComposePush(m)
 	case keys.ActionComposeProjectScale:
 		return doComposeScale(m)
 	case keys.ActionComposeProjectPause:

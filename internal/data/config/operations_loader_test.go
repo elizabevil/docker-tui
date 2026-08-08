@@ -210,6 +210,22 @@ func TestLoadOperationsFormatSymmetry(t *testing.T) {
 	}
 }
 
+// TestComposeScopeHasNoBuildPullPush pins §3.5 L1 filter: build / pull /
+// push are out of the TUI's scope (compose 域不解析 yaml 不实现 build engine
+// 不批量拉镜像). Any kind reappearing in the compose scope is a regression.
+func TestComposeScopeHasNoBuildPullPush(t *testing.T) {
+	ops, err := LoadOperations()
+	if err != nil {
+		t.Fatalf("LoadOperations: %v", err)
+	}
+	for _, spec := range ops.ForScope(OperationScopeCompose) {
+		switch spec.Kind {
+		case "project_build", "project_pull", "project_push":
+			t.Fatalf("out-of-scope kind %q still in compose scope", spec.Kind)
+		}
+	}
+}
+
 // TestRequiresCapabilitiesFieldRoundtrips verifies the loader accepts
 // and preserves the requiresCapabilities JSON field. Capability names
 // are open at the loader layer; evaluation happens against the
