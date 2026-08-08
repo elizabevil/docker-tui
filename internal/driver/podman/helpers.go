@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 )
 
 // PodmanFilterQuery is a pass-through seam for filter maps destined for
@@ -13,18 +12,7 @@ import (
 // when setting the query param; pre-encoding here would double-encode
 // and produce a malformed {"filters":["{\"label\":[...]}"]} that Podman
 // rejects ("filters is an invalid filter [2]").
-//
-// The function logs the JSON-encoded form for diagnostic purposes —
-// grep `podman filter:` to see the exact bytes Podman will receive.
 func PodmanFilterQuery(filters map[string][]string) (map[string][]string, error) {
-	if len(filters) == 0 {
-		return nil, nil
-	}
-	encoded, err := json.Marshal(filters)
-	if err != nil {
-		return nil, fmt.Errorf("encode Podman filter: %w", err)
-	}
-	log.Printf("podman filter: %s", string(encoded))
 	return filters, nil
 }
 

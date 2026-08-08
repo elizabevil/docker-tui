@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -272,14 +271,8 @@ func (c *RESTClient) stream(ctx context.Context, method string, u *url.URL, body
 }
 
 func (c *RESTClient) decodeResponseError(response *http.Response) error {
-	body, _ := io.ReadAll(io.LimitReader(response.Body, 1<<20)) //nolint:errcheck // best-effort body drain for log + decode.
-	var reqPath string
-	if response.Request != nil && response.Request.URL != nil {
-		reqPath = response.Request.URL.Path
-	}
-	log.Printf("podman err %d %s: %s", response.StatusCode, reqPath, string(body))
 	var payload dto.EngineErrorPayload
-	_ = json.Unmarshal(body, &payload) //nolint:errcheck // best-effort error decode; fall back to status text.
+	_ = json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&payload) //nolint:errcheck // best-effort error decode; fall back to status text.
 	message := strings.TrimSpace(payload.Message)
 	if message == "" {
 		message = strings.TrimSpace(payload.Cause)
@@ -351,7 +344,6 @@ func (c *RESTClient) do(ctx context.Context, method string, u *url.URL, body io.
 }
 
 func (c *RESTClient) doWithClient(ctx context.Context, client *http.Client, method string, u *url.URL, body io.Reader, output any) error {
-	log.Printf("podman req: %s %s", method, u.String())
 	req, err := http.NewRequestWithContext(ctx, method, u.String(), body)
 	if err != nil {
 		return newPodmanError(KindInvalid, "", err)
