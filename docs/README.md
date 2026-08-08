@@ -34,12 +34,15 @@ DTUI_VERSION=v0.2.0 go build -o ./dist/dtui ./cmd/docker-tui
 
 ### 需求真理源
 
-- [requirement/README.md](requirement/README.md):**需求树** — 大需求(5 个 R##)与子需求(R##-##)的索引;每个需求文档包含目标、用户流程、UI/UX、功能规则、验收标准、迁移记录。
+- [requirement/README.md](requirement/README.md):**需求树** — 大需求(R##)与子需求(R##-##)的索引;每个需求文档包含目标、用户流程、UI/UX、功能规则、验收标准、迁移记录。
 - [requirement/R01-container/](requirement/R01-container/README.md):容器大需求(高级动作、Exec shell、Stats/Top/Wait)。
 - [requirement/R02-image/](requirement/R02-image/README.md):镜像大需求(History 顶层页、Import tarball、Registry Login)。
 - [requirement/R03-form-action/](requirement/R03-form-action/README.md):表单与动作展示(Form 公共模式、Action Bar、Action 展示框布局)。
 - [requirement/R04-runtime/](requirement/R04-runtime/README.md):运行时能力(Docker / Podman 差异评估)。
 - [requirement/R05-events-network/](requirement/R05-events-network/README.md):事件流与网络(Events 面板、Network Connect/Disconnect)。
+- [requirement/R06-operation/](requirement/R06-operation/README.md):Operation 一等公民(横切)。
+- [requirement/R07-config-ux/](requirement/R07-config-ux/README.md):配置系统便利化(CLI info / config init / validate / 首次运行提示)。
+- [requirement/R08-compose/](requirement/R08-compose/README.md):**Compose 项目级与编排**(2026-08-07 立项) — 聚合模型、ComposeService 候选、生命周期、镜像/日志/查询/执行、Action Bar/Keymap/i18n 集成;旧 [.omo/compose-todo.md](../../.omo/compose-todo.md) 保留作研究底稿。
 
 ### 横切约束
 
