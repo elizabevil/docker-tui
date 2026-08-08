@@ -194,6 +194,8 @@ type ComposePruneReport struct {
 
 **保留/已知缺口**:
 - `--no-deps` 标志未生效(dtui 不解析 yaml,实际行为=全启)。
-- CoLocated group 拦截(Docker group scale = 1)未实现,等 R08-14 算法落地。
+
+**已完成**(本轮):
+- CoLocated group 拦截(Docker group scale = 1):`openComposeScaleForm` 在 runtime=Docker 且选中 service 的任一容器 `CoLocatedGroupID` 非空时,toast "✕ Docker compose 限制 network_mode: service: 的 service 不能 scale>1" 且不开 Form;Podman 正常开 Form(R08-14 算法落地后启用)。
 
 **测试**:35 packages 全 PASS。

@@ -335,3 +335,61 @@ func TestContainerPathCompletionIgnoresStaleInput(t *testing.T) {
 		t.Fatalf("stale completion changed field: %#v", pf)
 	}
 }
+
+// TestComposeScaleDockerGroupInterception verifies R08-09 × R08-14:
+// Docker pins CoLocated group services (network_mode: service:) to one
+// replica and blocks the scale form with a warning toast, while Podman
+// and non-group Docker services open the form normally.
+func TestComposeScaleDockerGroupInterception(t *testing.T) {
+	newScaleModel := func(eng runtimeapi.Engine, containers ...runtimeapi.ContainerSummary) *state.AppModel {
+		m := newAppModelWithEngine(eng)
+		m.Navigation.ActivePanel = state.PanelCompose
+		m.Compose.ComposeDetailProject = "demo"
+		m.Resources.Containers.Items = containers
+		return m
+	}
+
+	t.Run("docker group service blocked", func(t *testing.T) {
+		eng := newMockEngine() // default identity is Docker
+		m := newScaleModel(eng, runtimeapi.ContainerSummary{
+			ID: "c1", Name: "web-1", Image: "nginx",
+			ComposeProject: "demo", ComposeService: "web",
+			CoLocatedGroupID: "demo/api",
+		})
+		updated, cmd := openComposeScaleForm(m)
+		if cmd != nil {
+			t.Fatalf("cmd = %v, want nil", cmd)
+		}
+		if updated.Navigation.Mode == state.ModeContainerForm {
+			t.Fatal("Docker group service must not open the scale form")
+		}
+		if updated.Feedback.ToastMessage != "✕ Docker compose 限制 network_mode: service: 的 service 不能 scale>1" {
+			t.Fatalf("toast = %q, want group limit message", updated.Feedback.ToastMessage)
+		}
+		if updated.Feedback.ToastLevel != state.NotificationWarning {
+			t.Fatalf("toast level = %v, want warning", updated.Feedback.ToastLevel)
+		}
+	})
+
+	t.Run("podman group service allowed", func(t *testing.T) {
+		eng := newMockEngine()
+		eng.SetIdentity(runtimeapi.Identity{Type: runtimeapi.Podman, Name: "test"})
+		m := newScaleModel(eng, runtimeapi.ContainerSummary{
+			ID: "c1", Name: "web-1", Image: "nginx",
+			ComposeProject: "demo", ComposeService: "web",
+			CoLocatedGroupID: "pod_demo",
+		})
+		updated, _ := openComposeScaleForm(m)
+		requireForm(t, updated, state.FormComposeScale, 2)
+	})
+
+	t.Run("docker non-group service allowed", func(t *testing.T) {
+		eng := newMockEngine()
+		m := newScaleModel(eng, runtimeapi.ContainerSummary{
+			ID: "c1", Name: "web-1", Image: "nginx",
+			ComposeProject: "demo", ComposeService: "web",
+		})
+		updated, _ := openComposeScaleForm(m)
+		requireForm(t, updated, state.FormComposeScale, 2)
+	})
+}

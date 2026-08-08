@@ -77,6 +77,15 @@ func (m *Engine) RemoveCount() int {
 // Identity implements runtimeapi.Engine.
 func (m *Engine) Identity() runtimeapi.Identity { return m.identity }
 
+// SetIdentity overrides the identity reported by the engine. Tests use
+// this to exercise runtime-dependent UI branches (e.g. Podman-specific
+// compose scale interception).
+func (m *Engine) SetIdentity(identity runtimeapi.Identity) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.identity = identity
+}
+
 // Capabilities implements runtimeapi.Engine.
 func (m *Engine) Capabilities() runtimeapi.CapabilitySet { return m.capabilities }
 
@@ -122,10 +131,10 @@ func (composeStub) ListProjects(context.Context, runtimeapi.ListProjectsOptions)
 func (composeStub) InspectProject(context.Context, string) (runtimeapi.ComposeProjectSummary, error) {
 	return runtimeapi.ComposeProjectSummary{}, nil
 }
-func (composeStub) Config(context.Context, string) (string, error)        { return "", nil }
-func (composeStub) Start(context.Context, string, []string) error          { return nil }
-func (composeStub) Stop(context.Context, string, []string, int) error       { return nil }
-func (composeStub) Restart(context.Context, string, []string) error        { return nil }
+func (composeStub) Config(context.Context, string) (string, error)    { return "", nil }
+func (composeStub) Start(context.Context, string, []string) error     { return nil }
+func (composeStub) Stop(context.Context, string, []string, int) error { return nil }
+func (composeStub) Restart(context.Context, string, []string) error   { return nil }
 func (composeStub) Down(context.Context, string, runtimeapi.DownOptions) error {
 	return nil
 }

@@ -371,12 +371,26 @@ func openImageRemoveForm(m *state.AppModel, img *runtimeapi.ImageSummary) (*stat
 // openComposeScaleForm opens the R08-09 scale form for the currently
 // selected service. The form carries one Int spinner (target replicas)
 // and one Bool toggle (--no-deps).
+//
+// R08-09 × R08-14: on Docker, a service whose containers belong to a
+// CoLocated group (network_mode/pid/ipc service: references) is pinned
+// to 1 replica. The scale action is blocked with a toast instead of
+// opening the form. Podman keeps its own group semantics (1 project =
+// 1 pod), so scaling a group member is allowed there.
 func openComposeScaleForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	project := currentComposeProject(m)
 	service := selectedDetailComposeService(m, project)
 	if m.Connection.Engine == nil || project == "" || service == "" {
 		ShowToastWarn(m, "✕ compose scale: pick a service in the compose panel")
 		return m, nil
+	}
+	if m.Connection.Engine.Identity().Type == runtimeapi.Docker {
+		for _, c := range state.ComposeProjectContainers(m, project) {
+			if c.ComposeService == service && c.CoLocatedGroupID != "" {
+				ShowToastWarn(m, "✕ Docker compose 限制 network_mode: service: 的 service 不能 scale>1")
+				return m, nil
+			}
+		}
 	}
 	current := 0
 	for _, c := range state.ComposeProjectContainers(m, project) {

@@ -993,8 +993,8 @@ func parseScaleReplicas(raw string) (int, bool) {
 //
 // --no-deps is intentionally ignored: dtui does not parse compose
 // depends_on, so the engine's default behaviour (always start deps)
-// is what users get. The flag is captured in audit metadata so the
-// future UI can surface it.
+// is what users get. The flag is accepted for form compatibility only
+// and has no effect on the executed command.
 func executeComposeScale(m *state.AppModel, project, service string, target int, noDeps bool) (*state.AppModel, tea.Cmd) {
 	if m.Connection.Engine == nil {
 		return m, nil
