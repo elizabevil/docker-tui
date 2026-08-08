@@ -5,23 +5,27 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/url"
 )
 
-// PodmanFilterQuery encodes a filter map as a JSON query parameter for Podman
-// REST endpoints that accept a "filters" query string.
-func PodmanFilterQuery(filters map[string][]string) (url.Values, error) {
-	query := make(url.Values)
+// PodmanFilterQuery is a pass-through seam for filter maps destined for
+// Podman's "filters" query parameter. The driver layer (e.g.
+// containers_rest.go:ListContainers) does the actual JSON marshaling
+// when setting the query param; pre-encoding here would double-encode
+// and produce a malformed {"filters":["{\"label\":[...]}"]} that Podman
+// rejects ("filters is an invalid filter [2]").
+//
+// The function logs the JSON-encoded form for diagnostic purposes —
+// grep `podman filter:` to see the exact bytes Podman will receive.
+func PodmanFilterQuery(filters map[string][]string) (map[string][]string, error) {
 	if len(filters) == 0 {
-		return query, nil
+		return nil, nil
 	}
 	encoded, err := json.Marshal(filters)
 	if err != nil {
-		return nil, fmt.Errorf("encode Podman prune filters: %w", err)
+		return nil, fmt.Errorf("encode Podman filter: %w", err)
 	}
 	log.Printf("podman filter: %s", string(encoded))
-	query.Set("filters", string(encoded))
-	return query, nil
+	return filters, nil
 }
 
 // PodmanReportError extracts an error from a Podman prune report's raw JSON
