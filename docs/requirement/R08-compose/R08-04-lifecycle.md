@@ -223,5 +223,6 @@ Down 内 services 列表由 [`ComposeProjectSummary.CoLocatedGroups`](./R08-14-c
   - `internal/tui/keyboard/compose_action.go::openComposeDownConfirm`:打开 5 选项 dialog(3 checkbox + Cancel + Confirm),`ComposeDownRemoveOrphans` 默认 checked。
   - `doConfirmYes`(mark_action.go)从 `m.Confirm.Options` 拷贝 Checked 状态到 `m.Compose.ComposeDownRemove*`,置 `ComposeDownSkipConfirm=true`,递归调 `doComposeDown`。
   - 第二次进入 `doComposeDown` 时按 `ComposeDownRemoveVolumes / ComposeDownRemoveOrphans` 过滤:`--remove-orphans` unchecked 时只删 project 容器,checked 时也删孤儿(项目 service 集外的容器)。
+  - `--rmi` 实装(`composeProjectImageRefs` + `doComposeDown` 闭包):`"all"` 删项目容器引用的全部镜像;`"local"` 跳过带 `com.docker.compose.image` label 的镜像(拉取的 registry 镜像),只删 compose build 的镜像。验收 5 达成。
 
-**测试**:`TestComposeDownAggregatesResources` 加 `ComposeDownSkipConfirm=true` 绕过 dialog 直接验证 down 路径;35 packages 全 PASS。
+**测试**:`TestComposeDownAggregatesResources` 加 `ComposeDownSkipConfirm=true` 绕过 dialog 直接验证 down 路径;`TestComposeDownRemoveImages` 覆盖 `all` / `local` 两种 `--rmi` 模式;35 packages 全 PASS。

@@ -182,10 +182,16 @@ func doComposeDown(m *state.AppModel, dialogTrace ...audit.Trace) (*state.AppMod
 	}
 	engine := m.Connection.Engine
 	return m, func() tea.Msg {
+		// R08-04 验收 5: --rmi removes the project's images. "all" removes
+		// every image reference used by the project's containers; "local"
+		// keeps images that carry the com.docker.compose.image label
+		// (pulled registry images) and removes only compose-built ones.
+		removeImages := m.Compose.ComposeDownRemoveImages
+		imageRefs := composeProjectImageRefs(containers, removeImages == "local")
 		result := state.BatchActioned{
 			Scope:    ComposeScope(composeVerbDown),
 			Resource: state.ResourceComposeProject,
-			Total:    len(containers) + len(volumes) + len(networks),
+			Total:    len(containers) + len(volumes) + len(networks) + len(imageRefs),
 			Audit:    trace,
 		}
 		var failures []error
@@ -267,6 +273,23 @@ func doComposeDown(m *state.AppModel, dialogTrace ...audit.Trace) (*state.AppMod
 			} else {
 				result.Failed++
 				result.FailedIDs = append(result.FailedIDs, id)
+			}
+		}
+		for _, ref := range imageRefs {
+			msg := imageRemoveCmd(engine, ref, true, false, nil)()
+			if v, ok := msg.(state.ImageActioned); ok {
+				if v.Success {
+					result.Success++
+				} else {
+					result.Failed++
+					result.FailedIDs = append(result.FailedIDs, ref)
+					if v.Error != nil {
+						failures = append(failures, v.Error)
+					}
+				}
+			} else {
+				result.Failed++
+				result.FailedIDs = append(result.FailedIDs, ref)
 			}
 		}
 		result.Error = errors.Join(failures...)
@@ -745,6 +768,32 @@ func taggedComposeImages(containers []runtime.ContainerSummary) []runtime.Contai
 		}
 		seen[tag] = struct{}{}
 		out = append(out, c)
+	}
+	return out
+}
+
+// composeProjectImageRefs returns the deduplicated image references
+// used by the given project containers. With localOnly=true (the
+// `--rmi local` variant) references that carry the
+// com.docker.compose.image label — images pulled from a registry by
+// name — are kept, matching `docker compose down --rmi local`; with
+// localOnly=false (`--rmi all`) every reference is returned.
+func composeProjectImageRefs(containers []runtime.ContainerSummary, localOnly bool) []string {
+	seen := make(map[string]struct{}, len(containers))
+	out := make([]string, 0, len(containers))
+	for _, c := range containers {
+		ref := runtime.ComposeImageFromLabels(c)
+		if ref == "" {
+			continue
+		}
+		if localOnly && c.Labels != nil && c.Labels[runtime.ComposeLabelImage] != "" {
+			continue
+		}
+		if _, ok := seen[ref]; ok {
+			continue
+		}
+		seen[ref] = struct{}{}
+		out = append(out, ref)
 	}
 	return out
 }

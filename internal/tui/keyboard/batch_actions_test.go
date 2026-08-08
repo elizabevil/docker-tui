@@ -281,3 +281,64 @@ func TestComposeDownAggregatesResources(t *testing.T) {
 		t.Errorf("failedIDs = %v", batch.FailedIDs)
 	}
 }
+
+// downImageRefs filters the engine's recorded Execute calls down to
+// image removals, returning the image reference of each.
+func downImageRefs(t *testing.T, eng *mockengine.Engine) []string {
+	t.Helper()
+	var refs []string
+	for _, call := range eng.Calls() {
+		if call.Type == runtimeapi.ResourceImage {
+			refs = append(refs, call.ID)
+		}
+	}
+	return refs
+}
+
+// TestComposeDownRemoveImages verifies the --rmi selector on the down
+// path: "all" removes every image reference used by project containers,
+// "local" keeps images that carry the com.docker.compose.image label
+// (pulled registry images) and removes only compose-built ones.
+func TestComposeDownRemoveImages(t *testing.T) {
+	newDown := func() (*state.AppModel, *mockengine.Engine) {
+		eng := newMockEngine()
+		m := newAppModelWithEngine(eng)
+		m.Navigation.ActivePanel = state.PanelCompose
+		m.Compose.ComposeDetailProject = "demo"
+		m.Compose.ComposeDownSkipConfirm = true
+		m.Resources.Containers.Items = []runtimeapi.ContainerSummary{
+			{ID: "c1", Name: "web", Image: "demo_web:latest", ComposeProject: "demo", ComposeService: "web"},
+			{ID: "c2", Name: "db", Image: "postgres:16", ComposeProject: "demo", ComposeService: "db",
+				Labels: map[string]string{"com.docker.compose.image": "postgres:16"}},
+		}
+		return m, eng
+	}
+
+	t.Run("all", func(t *testing.T) {
+		m, eng := newDown()
+		m.Compose.ComposeDownRemoveImages = "all"
+		_, cmd := doComposeDown(m)
+		batch := runBatch(t, cmd)
+		if batch.Total != 4 || batch.Success != 4 || batch.Failed != 0 {
+			t.Errorf("summary = %+v", batch)
+		}
+		got := downImageRefs(t, eng)
+		if len(got) != 2 || got[0] != "demo_web:latest" || got[1] != "postgres:16" {
+			t.Errorf("image refs removed = %v, want [demo_web:latest postgres:16]", got)
+		}
+	})
+
+	t.Run("local", func(t *testing.T) {
+		m, eng := newDown()
+		m.Compose.ComposeDownRemoveImages = "local"
+		_, cmd := doComposeDown(m)
+		batch := runBatch(t, cmd)
+		if batch.Total != 3 || batch.Success != 3 || batch.Failed != 0 {
+			t.Errorf("summary = %+v", batch)
+		}
+		got := downImageRefs(t, eng)
+		if len(got) != 1 || got[0] != "demo_web:latest" {
+			t.Errorf("image refs removed = %v, want [demo_web:latest]", got)
+		}
+	})
+}
