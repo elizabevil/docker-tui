@@ -3,6 +3,7 @@ package keyboard
 import (
 	"github.com/elizabevil/docker-tui/internal/data/config"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -31,6 +32,24 @@ func dispatchOperation(action string, m *state.AppModel) (*state.AppModel, tea.C
 	if !ok {
 		return m, nil, false
 	}
+	m2, cmd, handled := dispatchOperationBySpec(spec, m)
+	if handled {
+		return m2, cmd, true
+	}
+	// Mode-specific dispatcher did not recognise this spec's body
+	// (typical for R08 compose operations whose bodies — composeTrigger,
+	// composeLogs, composeStats, composeEvents, composeExec, composeDown,
+	// composeBuild, composeScale, composeRun — are handled directly by
+	// handleAction's switch). Defer to handleAction so the R06-03
+	// "every registered Operation must be handled" contract still holds.
+	m3, c := handleAction(keys.KeyAction(action), m, nil)
+	return m3, c, true
+}
+
+// dispatchOperationBySpec routes the spec to the per-mode dispatcher.
+// Returns (m, nil, false) when no Mode-specific body handler recognises
+// the spec; dispatchOperation then falls back to handleAction.
+func dispatchOperationBySpec(spec config.OperationSpec, m *state.AppModel) (*state.AppModel, tea.Cmd, bool) {
 	switch spec.Mode {
 	case config.OperationModeForm:
 		return dispatchForm(spec, m)

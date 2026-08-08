@@ -194,3 +194,22 @@ R08-14 在 F3 ActionSpec 表增 3 项 group-level 条目(详见 [R08-14 §F7 / �
 - 保留信息:Container / Image scope 不动
 - 废弃信息:无
 - 待确认:Volume / Network 是否本批接入,R08-11 倾向**是**(避免 scope 缺位不一致)
+
+### 2026-08-08 落地
+
+**已完成**:
+- `internal/data/config/defaults/operations/scopes/compose.jsonc`:24 个 OperationSpec(17 project + 3 service + 3 group + 1 detail),完整覆盖 R08-04 / R08-05 / R08-06 / R08-07 / R08-08 / R08-09 / R08-10 / R08-12 / R08-14 动作。
+- `internal/tui/actionbar/registry.go::scopeForPanel`:补 `PanelVolumes` / `PanelNetworks` / `PanelCompose` 三 case — Volume / Network scope JSONC 文件此前已存在但 `scopeForPanel` 缺位,本轮顺手补齐。
+- `internal/tui/actionbar/registry.go::positiveSatisfied`:加 7 个 compose Requirement tokens(`compose_project` / `compose_service` / `compose_running` / `compose_paused` / `compose_stopped` / `compose_tagged` / `compose_has_ports`)的评估逻辑。
+- `internal/tui/actionbar/registry.go`:辅助函数 `selectedComposeProject` / `selectedComposeService` / `composeProjectContainers` / `composeProjectHasState` / `composeProjectHasTagged` / `composeProjectHasPorts` 全部本地实现,避免 actionbar → keyboard 的循环依赖。
+- `internal/tui/actionbar/registry.go::imageFromComposeLabel`:`com.docker.compose.image` label 优先,缺失时回退到 `ContainerSummary.Image` — 与 docker / podman compose 行为对齐(只有 `image:` 字段声明才会写入 `com.docker.compose.image`)。
+- `internal/tui/keyboard/operation_dispatch.go`:拆出 `dispatchOperationBySpec` helper;`dispatchOperation` 在 Mode-specific dispatcher 不识别 spec body 时 fallback 到 `handleAction`,保留 R06-03 "every registered Operation must be handled" 契约。
+- `internal/tui/actionbar/registry_test.go`:新增 4 个测试 — `TestScopeForPanelMapsPanels`(5 panel → 5 scope)、`TestComposeRequirementsEvaluateProjectAndService`(7 token × 多状态)、`TestComposeTaggedRejectsLatest`(4 image 形式)、`TestComposeOperationsSurfaceInActionBar`(17 enabled + 3 disabled 校验)。
+
+**保留事项 / 已知缺口**:
+- `compose_project_up`:永久不支持(R08-04 `Up` 走 docker compose CLI),未注册到 JSONC。验收标准 4 的"始终 disabled"语义通过"不显示"实现,避免无意义灰显条目。
+- `compose_project.detail` 已注册 `ActionComposeProjectDetail` 但未在 spec 表内 — 一并接入 `compose_project.detail` Operation(Label = "Detail", Mode = page)。
+- `theme.action.compose` 已存在(`operations.go:297` 上轮 R08-12 顺手补),所有 6 个主题文件也已在该轮更新。
+- Volume / Network scope 的 JSONC 文件早于本轮已存在;`scopeForPanel` 一直漏挂 — 本轮一并接入。
+
+**测试**: `internal/tui/actionbar` 9 个测试 + `internal/tui/keyboard` 既有测试 + `internal/tui/keys` + `internal/data/config` 全部 PASS。`internal/data/runtime/podman` 与 `internal/driver/podman` 仍因宿主缺 `pkg-config` / `btrfs` C 头构建失败,与本次改动无关。

@@ -1,0 +1,254 @@
+// operations/scopes/compose.jsonc
+//
+// Compose-scope Operations. Each entry maps a compose project / service /
+// group action to its KeyAction identifier so the Action Bar can list
+// every available operation when the compose panel is active.
+//
+// Mode ↔ body sub-object contract (R06-01):
+//
+//   mode = form    → "form":    { "kind": "<FormKind name>" }
+//   mode = page    → "page":    { "body": "<page renderer>" }
+//   mode = async   → "async":   { "body": "<async renderer>" }
+//   mode = confirm → "confirm": { "kind": "<confirm handler kind>" }
+//
+// Dispatch note: every compose action here has a matching case in
+// `internal/tui/keyboard/actions.go::handleAction`, so the
+// operation_dispatch.go layer is never reached (handleAction's switch
+// returns first). The Mode / body sub-object below are kept
+// semantically correct for the action bar UI and registry validation
+// only; they are NOT routed through operation_dispatch.go today.
+//
+// Requires tokens (closed universe, enforced at load):
+//   "engine"             — m.Connection.Engine must be set
+//   "compose_project"    — PanelCompose + a project row is selected
+//   "compose_service"    — PanelCompose + a service row is selected
+//   "compose_running"    — selected project has ≥1 running container
+//   "compose_paused"     — selected project has ≥1 paused container
+//   "compose_stopped"    — selected project has ≥1 stopped (no running) container
+//   "compose_tagged"     — selected service has an explicit image: tag
+//   "compose_has_ports"  — selected service exposes ≥1 host port
+//
+// DisabledWhen reuses the same token universe; `positiveSatisfied` is
+// the single source of truth.
+
+{
+  "scope": "compose",
+  "operations": [
+    {
+      "kind":   "project_start",
+      "action": "compose_project.start",
+      "mode":   "async",
+      "async":  { "body": "composeTrigger" },
+      "label":  "Start project",
+      "description": "Start every stopped container in the compose project",
+      "requires": ["engine", "compose_project", "compose_stopped"]
+    },
+    {
+      "kind":   "project_stop",
+      "action": "compose_project.stop",
+      "mode":   "async",
+      "async":  { "body": "composeTrigger" },
+      "label":  "Stop project",
+      "description": "Stop every running container in the compose project",
+      "requires": ["engine", "compose_project", "compose_running"]
+    },
+    {
+      "kind":   "project_restart",
+      "action": "compose_project.restart",
+      "mode":   "async",
+      "async":  { "body": "composeTrigger" },
+      "label":  "Restart project",
+      "description": "Restart every container in the compose project",
+      "requires": ["engine", "compose_project"]
+    },
+    {
+      "kind":   "project_down",
+      "action": "compose_project.down",
+      "mode":   "confirm",
+      "confirm": { "kind": "composeDown" },
+      "label":  "Down project",
+      "description": "Remove every container, network and (optionally) volume for the project",
+      "requires": ["engine", "compose_project"]
+    },
+    {
+      "kind":   "project_logs",
+      "action": "compose_project.logs",
+      "mode":   "page",
+      "page":   { "body": "composeLogs" },
+      "label":  "Compose logs",
+      "description": "Stream aggregated logs for the project (or the selected service)",
+      "requires": ["engine", "compose_project"]
+    },
+    {
+      "kind":   "project_top",
+      "action": "compose_project.top",
+      "mode":   "page",
+      "page":   { "body": "processes" },
+      "label":  "Compose top",
+      "description": "Show process snapshots for the running containers in the project",
+      "requires": ["engine", "compose_project", "compose_running"]
+    },
+    {
+      "kind":   "project_port",
+      "action": "compose_project.port",
+      "mode":   "page",
+      "page":   { "body": "portBindings" },
+      "label":  "Compose port",
+      "description": "List host port mappings for the running containers in the project",
+      "requires": ["engine", "compose_project", "compose_has_ports"]
+    },
+    {
+      "kind":   "project_stats",
+      "action": "compose_project.stats",
+      "mode":   "page",
+      "page":   { "body": "composeStats" },
+      "label":  "Compose stats",
+      "description": "Show CPU / memory / network stats for the running containers in the project",
+      "requires": ["engine", "compose_project"]
+    },
+    {
+      "kind":   "project_build",
+      "action": "compose_project.build",
+      "mode":   "form",
+      "form":   { "kind": "composeBuild" },
+      "label":  "Build services",
+      "description": "Rebuild images for one or more services in the project",
+      "requires": ["engine", "compose_project"]
+    },
+    {
+      "kind":   "project_pull",
+      "action": "compose_project.pull",
+      "mode":   "async",
+      "async":  { "body": "composeTrigger" },
+      "label":  "Pull images",
+      "description": "Pull the latest image for every service in the project",
+      "requires": ["engine", "compose_project"]
+    },
+    {
+      "kind":   "project_push",
+      "action": "compose_project.push",
+      "mode":   "async",
+      "async":  { "body": "composeTrigger" },
+      "label":  "Push images",
+      "description": "Push built images for every tagged service in the project",
+      "requires": ["engine", "compose_project", "compose_tagged"]
+    },
+    {
+      "kind":   "project_scale",
+      "action": "compose_project.scale",
+      "mode":   "form",
+      "form":   { "kind": "composeScale" },
+      "label":  "Scale service",
+      "description": "Set the replica count for the selected service",
+      "requires": ["engine", "compose_service"]
+    },
+    {
+      "kind":   "project_pause",
+      "action": "compose_project.pause",
+      "mode":   "async",
+      "async":  { "body": "composeTrigger" },
+      "label":  "Pause project",
+      "description": "Pause every running container in the compose project",
+      "requires": ["engine", "compose_project", "compose_running"]
+    },
+    {
+      "kind":   "project_unpause",
+      "action": "compose_project.unpause",
+      "mode":   "async",
+      "async":  { "body": "composeTrigger" },
+      "label":  "Unpause project",
+      "description": "Unpause every paused container in the compose project",
+      "requires": ["engine", "compose_project", "compose_paused"]
+    },
+    {
+      "kind":   "project_kill",
+      "action": "compose_project.kill",
+      "mode":   "async",
+      "async":  { "body": "composeTrigger" },
+      "label":  "Kill project",
+      "description": "SIGKILL every running container in the compose project",
+      "requires": ["engine", "compose_project", "compose_running"]
+    },
+    {
+      "kind":   "project_rm",
+      "action": "compose_project.rm",
+      "mode":   "async",
+      "async":  { "body": "composeTrigger" },
+      "label":  "Remove stopped containers",
+      "description": "Remove every stopped container in the compose project",
+      "requires": ["engine", "compose_project", "compose_stopped"]
+    },
+    {
+      "kind":   "project_prune",
+      "action": "compose_project.prune",
+      "mode":   "async",
+      "async":  { "body": "composeTrigger" },
+      "label":  "Prune project",
+      "description": "Remove stopped containers and dangling networks for the project",
+      "requires": ["engine", "compose_project"]
+    },
+    {
+      "kind":   "project_events",
+      "action": "compose_project.events",
+      "mode":   "page",
+      "page":   { "body": "composeEvents" },
+      "label":  "Project events",
+      "description": "Stream docker / podman events filtered to the compose project",
+      "requires": ["engine", "compose_project"]
+    },
+    {
+      "kind":   "service_run",
+      "action": "compose_service.run",
+      "mode":   "form",
+      "form":   { "kind": "composeRun" },
+      "label":  "Run one-off",
+      "description": "Create a one-off container for the selected service with a custom command",
+      "requires": ["engine", "compose_service"]
+    },
+    {
+      "kind":   "service_exec",
+      "action": "compose_service.exec",
+      "mode":   "page",
+      "page":   { "body": "composeExec" },
+      "label":  "Exec in service",
+      "description": "Open an interactive shell in the first running container of the selected service",
+      "requires": ["engine", "compose_service", "compose_running"]
+    },
+    {
+      "kind":   "service_logs",
+      "action": "compose_service.logs",
+      "mode":   "page",
+      "page":   { "body": "composeLogs" },
+      "label":  "Service logs",
+      "description": "Stream logs for the selected service",
+      "requires": ["engine", "compose_service"]
+    },
+    {
+      "kind":   "group_down",
+      "action": "compose_group.down",
+      "mode":   "async",
+      "async":  { "body": "composeTrigger" },
+      "label":  "Group Down",
+      "description": "Down the co-located group of services that share a working_dir / config_files",
+      "requires": ["engine", "compose_project"]
+    },
+    {
+      "kind":   "group_restart",
+      "action": "compose_group.restart",
+      "mode":   "async",
+      "async":  { "body": "composeTrigger" },
+      "label":  "Group Restart",
+      "description": "Restart every service in the co-located group",
+      "requires": ["engine", "compose_project"]
+    },
+    {
+      "kind":   "group_exec",
+      "action": "compose_group.exec",
+      "mode":   "page",
+      "page":   { "body": "composeExec" },
+      "label":  "Group Exec",
+      "description": "Exec into the first running container of the co-located group",
+      "requires": ["engine", "compose_service", "compose_running"]
+    }
+  ]
+}

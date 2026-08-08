@@ -47,8 +47,8 @@
 | [R08-08](./R08-08-exec-run.md) | 一次性执行(run / exec) | implementing | medium | R01 容器 exec 复用 |
 | [R08-09](./R08-09-advanced-control.md) | 高级控制(pause / unpause / kill / scale / rm / prune) | planned | low | docker compose CLI 权威 |
 | [R08-10](./R08-10-events.md) | 实时事件流(events) | implementing | medium | R05 事件流接续 |
-| [R08-11](./R08-11-action-bar.md) | Action Bar 接入 Compose | planned | high | [R03-02](../R03-form-action/R03-02-action-bar.md) 扩展 |
-| [R08-12](./R08-12-keymap.md) | Keymap 注册表接入 Compose | planned | high | [R01-container 关联约束](../../constraint/C04-keybinding.md) 接续 |
+| [R08-11](./R08-11-action-bar.md) | Action Bar 接入 Compose | implementing | high | [R03-02](../R03-form-action/R03-02-action-bar.md) 扩展 |
+| [R08-12](./R08-12-keymap.md) | Keymap 注册表接入 Compose | implementing | high | [R01-container 关联约束](../../constraint/C04-keybinding.md) 接续 |
 | [R08-13](./R08-13-i18n.md) | i18n 接入 Compose(命名空间与键表) | planned | medium | [constraint/C06-i18n.md](../../constraint/C06-i18n.md) 扩展 |
 | [R08-14](./R08-14-co-located-group.md) | **横切专题:服务与容器中间层**(CoLocated Group) — Docker / Podman 差异落点 | implementing | high | 用户评审 2026-08-07 跨切决策 |
 | [R08-15](./R08-15-driver-implementation.md) | runtime driver 适配实现方案 — docker / podman adapter 路径 | implementing | high | 用户评审 2026-08-07 驱动实现讨论 |
