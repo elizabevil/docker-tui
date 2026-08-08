@@ -98,3 +98,26 @@ func TestRenderComposeContainersShowsPodColumnOnPodman(t *testing.T) {
 		t.Fatalf("pod column missing with capability Available:\n%s", out)
 	}
 }
+
+// TestRenderComposeContainersPodValue pins the pod cell rendering
+// contract: when the pod column is visible, the container's
+// CoLocatedGroupID surfaces verbatim. A container with an empty
+// CoLocatedGroupID (e.g. docker drill-in that hasn't surfaced the
+// pod yet) renders as the shared dash placeholder rather than empty.
+func TestRenderComposeContainersPodValue(t *testing.T) {
+	eng := mockengine.New()
+	eng.SetCapability(runtimeapi.CapabilityComposePodScope, runtimeapi.CapabilityInfo{Support: runtimeapi.Available})
+
+	m := state.NewAppModel(config.DefaultAppConfig(), eng, "test")
+	m.Compose.ComposeContainerViewID = "web"
+	m.Resources.Containers.Items = []runtimeapi.ContainerSummary{{
+		ID: "abc123", Name: "web-1", State: state.ContainerStateRunning,
+		ComposeProject: "demo", ComposeService: "web",
+		CoLocatedGroupID: "pod_demo",
+	}}
+
+	out := component.StripANSI(renderComposeContainers(m, 120, 24))
+	if !strings.Contains(out, "pod_demo") {
+		t.Fatalf("pod value missing in output:\n%s", out)
+	}
+}

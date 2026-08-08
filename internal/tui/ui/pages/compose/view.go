@@ -403,6 +403,11 @@ func renderComposeContainers(m *state.AppModel, panelWidth int, panelHeight int)
 				return c.Name
 			case "state":
 				return component.RenderStateText(c.State)
+			case "pod":
+				if c.CoLocatedGroupID == "" {
+					return component.StrDash
+				}
+				return c.CoLocatedGroupID
 			case "ip":
 				if len(c.IPs) > 0 {
 					return c.IPs[0]
