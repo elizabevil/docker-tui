@@ -83,6 +83,9 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case state.ContainersLoaded:
 		return handleContainersLoaded(m, msg)
 
+	case state.ComposeProjectsLoaded:
+		return handleComposeProjectsLoaded(m, msg)
+
 	case state.ImagesLoaded:
 		return handleImagesLoaded(m, msg)
 
@@ -145,6 +148,24 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 
 	case state.LogBatchReceived:
 		return handleLogBatchReceived(m, msg)
+
+	case state.ComposeLogBatchReceived:
+		return handleComposeLogBatchReceived(m, msg)
+
+	case state.ComposeServiceTopLoaded:
+		return handleComposeServiceTopLoaded(m, msg)
+
+	case state.ComposeServicePortLoaded:
+		return handleComposeServicePortLoaded(m, msg)
+
+	case state.ComposeServiceStatsLoaded:
+		return handleComposeServiceStatsLoaded(m, msg)
+
+	case state.ComposeServiceRunCompleted:
+		return handleComposeServiceRunCompleted(m, msg)
+
+	case state.ComposeServicePushCompleted:
+		return handleComposeServicePushCompleted(m, msg)
 
 	case state.LogStreamError:
 		return handleLogStreamError(m, msg)

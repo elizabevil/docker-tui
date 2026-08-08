@@ -91,3 +91,13 @@ func (s *LogState) scrollToMatch() {
 func (s *LogState) VisibleOffset(total, visible int) int {
 	return min(max(0, s.LogViewOffset), max(0, total-visible))
 }
+
+// ComposeLogBatchReceived is the multi-source variant of LogBatchReceived
+// for compose-aggregated log views (R08-06). It carries per-source
+// stream errors so the Update loop can surface them without aborting
+// the whole view.
+type ComposeLogBatchReceived struct {
+	ContainerID string
+	Lines       []string
+	StreamErrs  []LogStreamError
+}

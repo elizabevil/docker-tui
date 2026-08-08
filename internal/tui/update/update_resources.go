@@ -1,6 +1,7 @@
 package update
 
 import (
+	"github.com/elizabevil/docker-tui/internal/tui/keyboard"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -27,11 +28,32 @@ func handleContainersLoaded(m *state.AppModel, msg state.ContainersLoaded) (*sta
 			m.Resources.Containers.Cursor = 0
 		}
 	}
-	// Start auto-stats polling on first container load
+	var cmds []tea.Cmd
+	// R08-03: refresh the compose project list whenever containers
+	// change so the panel reflects the new aggregate.
+	if m.Connection.Engine != nil {
+		cmds = append(cmds, keyboard.FetchComposeProjects(m.Connection.Engine))
+	}
 	if m.Connection.Engine != nil && !m.Metrics.StatsActive {
 		m.Metrics.StatsActive = true
-		return m, func() tea.Msg { return state.StatsTick{} }
+		cmds = append(cmds, func() tea.Msg { return state.StatsTick{} })
 	}
+	if len(cmds) == 0 {
+		return m, nil
+	}
+	return m, tea.Batch(cmds...)
+}
+
+// handleComposeProjectsLoaded replaces m.Resources.Compose with the
+// runtime-supplied summaries. R08-03 F2: completely-empty projects
+// stay hidden (ListProjects never synthesises them); an error keeps
+// the prior slice so the panel still renders the cached view.
+func handleComposeProjectsLoaded(m *state.AppModel, msg state.ComposeProjectsLoaded) (*state.AppModel, tea.Cmd) {
+	if msg.Error != nil {
+		m.Feedback.RecordError(msg.Error.Error())
+		return m, nil
+	}
+	m.Resources.Compose = msg.Projects
 	return m, nil
 }
 

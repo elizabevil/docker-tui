@@ -134,6 +134,14 @@ func (s *EventsPanelState) SetFilter(f string) {
 	s.ViewOffset = 0
 }
 
+// SetFilterFromCompose seeds the filter with the docker/podman label
+// predicate that narrows events to a single compose project (R08-10).
+func (s *EventsPanelState) SetFilterFromCompose(project string) {
+	s.Filter = "label=" + runtimeapi.ComposeLabelProject + "=" + project
+	s.Cursor = 0
+	s.ViewOffset = 0
+}
+
 // FilteredEvents returns the live events matching Filter (all when empty).
 func (s *EventsPanelState) FilteredEvents() []runtimeapi.Event {
 	if s.Filter == "" {

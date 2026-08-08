@@ -40,16 +40,16 @@
 |---|---|---|---|---|
 | [R08-01](./R08-01-aggregation-model.md) | 容器标签聚合模型(Docker/Podman 分轨适配) | implementing | high | 用户评审结果 2026-08-07 |
 | [R08-02](./R08-02-engine-support.md) | ComposeService engine 抽象候选 | implementing | high | 用户评审结果 2026-08-07 |
-| [R08-03](./R08-03-discover.md) | 项目 / 服务 / 配置发现(ps / ls / config / 元信息) | planned | high | R02 镜像 / R04 runtime 推导 || [R08-04](./R08-04-lifecycle.md) | 生命周期(up / down / start / stop / restart + 标志) | planned | high | docker compose CLI 权威 |
-| [R08-05](./R08-05-build-transfer.md) | 镜像构建与传输(build / pull / push) | planned | medium | docker compose CLI 权威 |
-| [R08-06](./R08-06-logs.md) | 聚合日志(多服务 / 服务级) | planned | high | R01 容器 + compose 增量 |
+| [R08-03](./R08-03-discover.md) | 项目 / 服务 / 配置发现(ps / ls / config / 元信息) | implementing | high | R02 镜像 / R04 runtime 推导 || [R08-04](./R08-04-lifecycle.md) | 生命周期(up / down / start / stop / restart + 标志) | implementing | high | docker compose CLI 权威 |
+| [R08-05](./R08-05-build-transfer.md) | 镜像构建与传输(build / pull / push) | implementing | medium | docker compose CLI 权威 |
+| [R08-06](./R08-06-logs.md) | 聚合日志(多服务 / 服务级) | implementing | high | R01 容器 + compose 增量 |
 | [R08-07](./R08-07-service-queries.md) | 服务级联查询(top / port / stats) | implementing | medium | R01 容器动作复用 |
 | [R08-08](./R08-08-exec-run.md) | 一次性执行(run / exec) | implementing | medium | R01 容器 exec 复用 |
-| [R08-09](./R08-09-advanced-control.md) | 高级控制(pause / unpause / kill / scale / rm / prune) | planned | low | docker compose CLI 权威 |
+| [R08-09](./R08-09-advanced-control.md) | 高级控制(pause / unpause / kill / scale / rm / prune) | implementing | low | docker compose CLI 权威 |
 | [R08-10](./R08-10-events.md) | 实时事件流(events) | implementing | medium | R05 事件流接续 |
 | [R08-11](./R08-11-action-bar.md) | Action Bar 接入 Compose | implementing | high | [R03-02](../R03-form-action/R03-02-action-bar.md) 扩展 |
 | [R08-12](./R08-12-keymap.md) | Keymap 注册表接入 Compose | implementing | high | [R01-container 关联约束](../../constraint/C04-keybinding.md) 接续 |
-| [R08-13](./R08-13-i18n.md) | i18n 接入 Compose(命名空间与键表) | planned | medium | [constraint/C06-i18n.md](../../constraint/C06-i18n.md) 扩展 |
+| [R08-13](./R08-13-i18n.md) | i18n 接入 Compose(命名空间与键表) | implementing | medium | [constraint/C06-i18n.md](../../constraint/C06-i18n.md) 扩展 |
 | [R08-14](./R08-14-co-located-group.md) | **横切专题:服务与容器中间层**(CoLocated Group) — Docker / Podman 差异落点 | implementing | high | 用户评审 2026-08-07 跨切决策 |
 | [R08-15](./R08-15-driver-implementation.md) | runtime driver 适配实现方案 — docker / podman adapter 路径 | implementing | high | 用户评审 2026-08-07 驱动实现讨论 |
 

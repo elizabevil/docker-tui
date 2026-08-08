@@ -57,5 +57,19 @@ func FetchAll(client runtimeapi.Engine) []tea.Cmd {
 		FetchImages(client),
 		FetchVolumes(client),
 		FetchNetworks(client),
+		FetchComposeProjects(client),
+	}
+}
+
+// FetchComposeProjects asks the runtime's ComposeService for the
+// current project list. R08-03 sets All=true so the panel matches
+// `docker compose ls --all` semantics: running + stopped containers
+// aggregate into projects; projects without any container are not
+// synthesised (the aggregator's source-of-truth is the container
+// label, see R08-03 §决策记录).
+func FetchComposeProjects(client runtimeapi.Engine) tea.Cmd {
+	return func() tea.Msg {
+		projects, err := client.Compose().ListProjects(context.Background(), runtimeapi.ListProjectsOptions{All: true})
+		return state.ComposeProjectsLoaded{Projects: projects, Error: err}
 	}
 }

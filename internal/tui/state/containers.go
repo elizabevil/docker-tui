@@ -50,6 +50,14 @@ type (
 		Error      error
 	}
 
+	// ComposeProjectsLoaded carries the result of FetchComposeProjects
+	// (R08-03). Empty Projects + nil Error means "no projects visible"
+	// (R08-03 F2: hidden-empty semantics).
+	ComposeProjectsLoaded struct {
+		Projects []runtimeapi.ComposeProjectSummary
+		Error    error
+	}
+
 	ContainerActioned struct {
 		Action  string
 		ID      string
@@ -108,6 +116,75 @@ type (
 	ContainerProcessesTick struct {
 		ContainerID string
 		Generation  uint64
+	}
+
+	// ComposeServiceTopLoaded carries the per-container top output
+	// for `docker compose top <service>` (R08-07 F1).
+	ComposeServiceTopLoaded struct {
+		Project string
+		Service string
+		Items   []ComposeServiceTopItem
+		Error   error
+	}
+
+	// ComposeServicePortLoaded carries the aggregated port map for
+	// `docker compose port <service>` (R08-07 F2). HostPort is "" when
+	// no container exposes the requested port.
+	ComposeServicePortLoaded struct {
+		Project string
+		Service string
+		Port    int
+		Items   []ComposeServicePortItem
+		Error   error
+	}
+
+	// ComposeServiceStatsLoaded is one snapshot of per-container
+	// stats for `docker compose stats <project>` (R08-07 F3). The
+	// caller schedules the next snapshot via StatsTick.
+	ComposeServiceStatsLoaded struct {
+		Project string
+		Items   []ComposeServiceStatsItem
+		Error   error
+	}
+
+	// ComposeServiceRunCompleted signals the end of `docker compose
+	// run <service>` (R08-08 F2). The oneoff container is created by
+	// the engine and either runs detached or holds an exec session;
+	// the carrier only carries the final error so the Update loop can
+	// surface failures as a toast.
+	ComposeServiceRunCompleted struct {
+		Project string
+		Service string
+		Error   error
+	}
+
+	// ComposeServicePushCompleted carries the aggregated outcome of
+	// `docker compose push <project>` (R08-05).
+	ComposeServicePushCompleted struct {
+		Project string
+		Success int
+		Error   error
+	}
+
+	ComposeServiceTopItem struct {
+		ContainerID   string
+		ContainerName string
+		Processes     runtimeapi.ContainerProcesses
+	}
+
+	ComposeServicePortItem struct {
+		ContainerID   string
+		HostIP        string
+		HostPort      string
+		ContainerPort uint16
+		Protocol      string
+	}
+
+	ComposeServiceStatsItem struct {
+		ContainerID   string
+		ContainerName string
+		Stats         runtimeapi.ContainerStats
+		Error         error
 	}
 
 	LogBatchReceived struct {

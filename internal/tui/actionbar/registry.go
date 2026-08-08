@@ -1,7 +1,6 @@
 package actionbar
 
 import (
-	"sort"
 	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
@@ -189,126 +188,32 @@ func positiveSatisfied(req config.Requirement, m *state.AppModel) bool {
 	}
 }
 
-// selectedComposeProject returns the project name at the current cursor,
-// or "" if no project is selectable. Mirrors keyboard.currentComposeProject
-// without crossing the package boundary (actionbar must not import keyboard
-// to avoid an import cycle).
+// selectedComposeProject is a thin local alias that keeps the
+// package-internal naming short; new code should prefer
+// state.SelectedComposeProject.
 func selectedComposeProject(m *state.AppModel) string {
-	if m == nil || m.Resources.Containers.Items == nil {
-		return ""
-	}
-	filter := m.Compose.ComposeProjectFilter
-	names := composeProjectNames(m, filter)
-	if len(names) == 0 {
-		return ""
-	}
-	idx := m.Compose.ComposeCursor
-	if idx >= len(names) {
-		idx = len(names) - 1
-	}
-	if idx < 0 {
-		idx = 0
-	}
-	return names[idx]
+	return state.SelectedComposeProject(m)
 }
 
-// selectedComposeService returns the service name at the current cursor
-// when the right pane is focused, "" otherwise.
+// selectedComposeService is a thin local alias for state.SelectedComposeService.
 func selectedComposeService(m *state.AppModel) string {
-	if m == nil || m.Compose.ComposeFocus != 1 {
-		return ""
-	}
-	project := selectedComposeProject(m)
-	if project == "" {
-		return ""
-	}
-	filter := m.Compose.ComposeServiceFilter
-	services := composeServiceNames(m, project, filter)
-	if len(services) == 0 {
-		return ""
-	}
-	idx := m.Compose.ComposeServiceCursor
-	if idx >= len(services) {
-		idx = len(services) - 1
-	}
-	if idx < 0 {
-		idx = 0
-	}
-	return services[idx]
+	return state.SelectedComposeService(m, selectedComposeProject(m))
 }
 
-// composeProjectNames derives the sorted, filter-aware project name list
-// from container summaries. The keyboard package owns the same logic
-// (composeProjectNames there); duplicating here keeps the actionbar
-// package free of an import cycle.
-func composeProjectNames(m *state.AppModel, filter string) []string {
-	set := make(map[string]struct{})
-	for _, c := range m.Resources.Containers.Items {
-		if c.ComposeProject == "" {
-			continue
-		}
-		if filter != "" && !strings.Contains(c.ComposeProject, filter) {
-			continue
-		}
-		set[c.ComposeProject] = struct{}{}
-	}
-	out := make([]string, 0, len(set))
-	for name := range set {
-		out = append(out, name)
-	}
-	sort.Strings(out)
-	return out
-}
-
-// composeServiceNames derives the sorted, filter-aware service name list
-// for the given project.
-func composeServiceNames(m *state.AppModel, project, filter string) []string {
-	set := make(map[string]struct{})
-	for _, c := range m.Resources.Containers.Items {
-		if c.ComposeProject != project {
-			continue
-		}
-		name := c.ComposeService
-		if name == "" {
-			name = "unknown"
-		}
-		if filter != "" && !strings.Contains(name, filter) {
-			continue
-		}
-		set[name] = struct{}{}
-	}
-	out := make([]string, 0, len(set))
-	for name := range set {
-		out = append(out, name)
-	}
-	sort.Strings(out)
-	return out
-}
-
-// composeProjectContainers returns every ContainerSummary belonging to
-// the selected project. The returned slice is a fresh copy so callers
-// can range without aliasing m.Resources.
+// composeProjectContainers delegates to state.ComposeProjectContainers.
 func composeProjectContainers(m *state.AppModel, project string) []runtimeapi.ContainerSummary {
-	if m == nil {
-		return nil
-	}
-	out := make([]runtimeapi.ContainerSummary, 0)
-	for _, c := range m.Resources.Containers.Items {
-		if c.ComposeProject == project {
-			out = append(out, c)
-		}
-	}
-	return out
+	return state.ComposeProjectContainers(m, project)
 }
 
-// composeProjectHasState reports whether the selected project contains
-// at least one container in the given state.
+// composeProjectHasState delegates to state.ComposeProjectContainers +
+// a local predicate so the action-bar requirement evaluator stays
+// readable.
 func composeProjectHasState(m *state.AppModel, want string) bool {
 	project := selectedComposeProject(m)
 	if project == "" {
 		return false
 	}
-	for _, c := range composeProjectContainers(m, project) {
+	for _, c := range state.ComposeProjectContainers(m, project) {
 		if c.State == want {
 			return true
 		}
@@ -326,18 +231,14 @@ func composeProjectHasTagged(m *state.AppModel) bool {
 	if project == "" {
 		return false
 	}
-	for _, c := range composeProjectContainers(m, project) {
-		img := imageFromComposeLabel(c)
+	for _, c := range state.ComposeProjectContainers(m, project) {
+		img := runtimeapi.ComposeImageFromLabels(c)
 		if !strings.Contains(img, ":") {
 			continue
 		}
 		tag := img[strings.LastIndex(img, ":")+1:]
 		if tag == "" || tag == "latest" {
 			continue
-		}
-		if tag == img {
-			// registry:port form (no tag component); treat as tagged.
-			return true
 		}
 		return true
 	}
@@ -351,23 +252,10 @@ func composeProjectHasPorts(m *state.AppModel) bool {
 	if project == "" {
 		return false
 	}
-	for _, c := range composeProjectContainers(m, project) {
+	for _, c := range state.ComposeProjectContainers(m, project) {
 		if len(c.PortBindings) > 0 {
 			return true
 		}
 	}
 	return false
-}
-
-// imageFromComposeLabel returns the image reference declared by the
-// compose file (com.docker.compose.image label) when present, falling
-// back to the container's effective Image so untagged builds still
-// surface a value to inspect.
-func imageFromComposeLabel(c runtimeapi.ContainerSummary) string {
-	if c.Labels != nil {
-		if img := c.Labels[runtimeapi.ComposeLabelImage]; img != "" {
-			return img
-		}
-	}
-	return c.Image
 }
