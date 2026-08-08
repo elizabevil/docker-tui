@@ -89,6 +89,23 @@ func (m *Engine) SetIdentity(identity runtimeapi.Identity) {
 // Capabilities implements runtimeapi.Engine.
 func (m *Engine) Capabilities() runtimeapi.CapabilitySet { return m.capabilities }
 
+// SetCapability records one Capability's support level in the stub's
+// CapabilitySet. Tests use this to simulate a runtime with or without
+// a given capability. Setting Support=Unsupported removes the entry,
+// matching the loader's "unsupported = absent" convention.
+func (m *Engine) SetCapability(c runtimeapi.Capability, info runtimeapi.CapabilityInfo) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.capabilities == nil {
+		m.capabilities = runtimeapi.CapabilitySet{}
+	}
+	if info.Support == runtimeapi.Unsupported {
+		delete(m.capabilities, c)
+		return
+	}
+	m.capabilities[c] = info
+}
+
 // PingContext implements runtimeapi.Engine.
 func (m *Engine) PingContext(context.Context) error { return nil }
 

@@ -369,6 +369,10 @@ func renderComposeContainers(m *state.AppModel, panelWidth int, panelHeight int)
 	if len(colsDef) == 0 {
 		return component.GetStyle(component.StyleDim).Render(i18n.T("compose.empty_container_columns"))
 	}
+	// §4.3 decision C: docker runtime 不渲染 Pod 列, 列宽回收给其它列。
+	if !podScopeSupported(m) {
+		colsDef = filterOutColumn(colsDef, "pod")
+	}
 
 	// 收集该服务的容器
 	project := currentProjectName(m)
@@ -453,6 +457,30 @@ func filterProjects(projects []composeProj, query string) []composeProj {
 		if strings.Contains(p.name, query) {
 			out = append(out, p)
 		}
+	}
+	return out
+}
+
+// podScopeSupported returns true when the active engine advertises
+// CapabilityComposePodScope at any non-Unsupported level. nil engine
+// returns false (fail closed — do not show the pod column when no
+// runtime is connected).
+func podScopeSupported(m *state.AppModel) bool {
+	if m == nil || m.Connection.Engine == nil {
+		return false
+	}
+	return m.Connection.Engine.Capabilities().Supports(dockerclient.CapabilityComposePodScope)
+}
+
+// filterOutColumn returns cols minus any ColumnDef whose Key matches
+// the supplied target. Order is preserved.
+func filterOutColumn(cols []tables.ColumnDef, key string) []tables.ColumnDef {
+	out := make([]tables.ColumnDef, 0, len(cols))
+	for _, c := range cols {
+		if c.Key == key {
+			continue
+		}
+		out = append(out, c)
 	}
 	return out
 }
