@@ -17,6 +17,12 @@ func handleConfirmKeys(key string, m *state.AppModel) (*state.AppModel, tea.Cmd)
 		m.Confirm.MoveFocus(1)
 	case keys.KeyShiftTab:
 		m.Confirm.MoveFocus(-1)
+	case keys.KeySpace:
+		// R08-04 F2: Space toggles a focused checkbox option. Non-checkbox
+		// options keep their existing behaviour (focus change only).
+		if idx := m.Confirm.Focus; idx >= 0 && idx < len(m.Confirm.Options) {
+			m.Confirm.Options[idx].Checked = !m.Confirm.Options[idx].Checked
+		}
 	case keys.KeyEnter:
 		if m.Confirm.Focus >= 0 && m.Confirm.Focus < len(m.Confirm.Options) {
 			switch m.Confirm.Options[m.Confirm.Focus].ID {

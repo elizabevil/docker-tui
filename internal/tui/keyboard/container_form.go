@@ -46,6 +46,8 @@ const (
 	fieldContainerRemoveVolumes   = "removeVolumes"
 	fieldContainerRemoveLinks     = "removeLinks"
 	fieldVolumeRemoveForce        = "force"
+	fieldComposeScaleReplicas     = "replicas"
+	fieldComposeScaleNoDeps       = "noDeps"
 	// FormNetworkRemove has no editable fields (network remove does
 	// not support --force), so no fieldNetworkRemoveForce constant.
 )
@@ -360,6 +362,45 @@ func openImageRemoveForm(m *state.AppModel, img *runtimeapi.ImageSummary) (*stat
 			buildImageRemoveForceField(),
 			buildImageRemovePruneChildrenField(),
 			buildImageRemovePlatformsField(),
+		},
+	})
+	m.Navigation.Mode = state.ModeContainerForm
+	return m, nil
+}
+
+// openComposeScaleForm opens the R08-09 scale form for the currently
+// selected service. The form carries one Int spinner (target replicas)
+// and one Bool toggle (--no-deps).
+func openComposeScaleForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	project := currentComposeProject(m)
+	service := selectedDetailComposeService(m, project)
+	if m.Connection.Engine == nil || project == "" || service == "" {
+		ShowToastWarn(m, "✕ compose scale: pick a service in the compose panel")
+		return m, nil
+	}
+	current := 0
+	for _, c := range state.ComposeProjectContainers(m, project) {
+		if c.ComposeService == service {
+			current++
+		}
+	}
+	m.Form.Open(state.FormSpec{
+		Kind:       state.FormComposeScale,
+		Title:      "Scale " + project + "/" + service,
+		TargetID:   project,
+		TargetName: service,
+		Fields: []state.FormField{
+			dialog.NewIntField(dialog.IntFieldConfig{
+				Key:   fieldComposeScaleReplicas,
+				Label: "Target replicas (current: " + strconv.Itoa(current) + ")",
+				Min:   state.FormMin(0),
+				Max:   state.FormMax(100),
+				Text:  strconv.Itoa(current),
+			}),
+			dialog.NewBoolField(dialog.BoolFieldConfig{
+				Key:   fieldComposeScaleNoDeps,
+				Label: "--no-deps",
+			}),
 		},
 	})
 	m.Navigation.Mode = state.ModeContainerForm
@@ -1321,6 +1362,25 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		trace := beginAudit(m, "resource.network.delete", audit.NetworkTarget{ID: id, Name: name}, "Remove network "+name)
 		clearContainerForm(m)
 		return m, withGenericAudit(networkRemoveCmd(m.Connection.Engine, id), trace)
+	case state.FormComposeScale:
+		project := id
+		service := name
+		replicas := 1
+		if f := m.Form.Get(fieldComposeScaleReplicas); f != nil {
+			if v, ok := parseScaleReplicas(f.Text()); ok {
+				replicas = v
+			} else {
+				ShowToastWarn(m, i18n.T("compose.scale.form.invalid"))
+				clearContainerForm(m)
+				return m, nil
+			}
+		}
+		noDeps := false
+		if f := m.Form.Get(fieldComposeScaleNoDeps); f != nil {
+			noDeps = f.Toggle()
+		}
+		clearContainerForm(m)
+		return executeComposeScale(m, project, service, replicas, noDeps)
 	}
 	clearContainerForm(m)
 	return m, nil

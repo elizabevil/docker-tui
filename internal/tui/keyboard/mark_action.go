@@ -67,9 +67,36 @@ func doConfirmYes(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	action := m.Confirm.ConfirmAction
 	target := m.Confirm.ConfirmTarget
 	trace := m.Confirm.ConfirmAudit
+	// Snapshot the options BEFORE Close() wipes them: the down dialog's
+	// checkbox states must survive into the re-entered doComposeDown.
+	options := append([]state.ChoiceOption(nil), m.Confirm.Options...)
 	returnMode := confirmReturnMode(m)
 	m.Navigation.Mode = returnMode
 	m.Confirm.Close()
+
+	// R08-04 F2: copy the down dialog checkbox states onto the
+	// ComposeState fields before doComposeDown re-enters, and hand it
+	// the dialog's own audit trace so the operation finishes the SAME
+	// trace (F6: one trace per down). ComposeDownSkipConfirm lets the
+	// re-entered doComposeDown run without re-prompting.
+	if action == keys.ShowOptionConfirm && target != "" {
+		for _, opt := range options {
+			switch opt.ID {
+			case "opt_volumes":
+				m.Compose.ComposeDownRemoveVolumes = opt.Checked
+			case "opt_rmi":
+				if opt.Checked {
+					m.Compose.ComposeDownRemoveImages = "all"
+				} else {
+					m.Compose.ComposeDownRemoveImages = ""
+				}
+			case "opt_orphans":
+				m.Compose.ComposeDownRemoveOrphans = opt.Checked
+			}
+		}
+		m.Compose.ComposeDownSkipConfirm = true
+		return doComposeDown(m, trace)
+	}
 
 	switch {
 	case strings.HasPrefix(action, "batch-"):

@@ -40,12 +40,12 @@
 |---|---|---|---|---|
 | [R08-01](./R08-01-aggregation-model.md) | 容器标签聚合模型(Docker/Podman 分轨适配) | implementing | high | 用户评审结果 2026-08-07 |
 | [R08-02](./R08-02-engine-support.md) | ComposeService engine 抽象候选 | implementing | high | 用户评审结果 2026-08-07 |
-| [R08-03](./R08-03-discover.md) | 项目 / 服务 / 配置发现(ps / ls / config / 元信息) | implementing | high | R02 镜像 / R04 runtime 推导 || [R08-04](./R08-04-lifecycle.md) | 生命周期(up / down / start / stop / restart + 标志) | implementing | high | docker compose CLI 权威 |
+| [R08-03](./R08-03-discover.md) | 项目 / 服务 / 配置发现(ps / ls / config / 元信息) | implementing | high | R02 镜像 / R04 runtime 推导 || [R08-04](./R08-04-lifecycle.md) | 生命周期(up / down / start / stop / restart + 标志) | implemented | high | docker compose CLI 权威 |
 | [R08-05](./R08-05-build-transfer.md) | 镜像构建与传输(build / pull / push) | implementing | medium | docker compose CLI 权威 |
 | [R08-06](./R08-06-logs.md) | 聚合日志(多服务 / 服务级) | implementing | high | R01 容器 + compose 增量 |
-| [R08-07](./R08-07-service-queries.md) | 服务级联查询(top / port / stats) | implementing | medium | R01 容器动作复用 |
+| [R08-07](./R08-07-service-queries.md) | 服务级联查询(top / port / stats) | implemented | medium | R01 容器动作复用 |
 | [R08-08](./R08-08-exec-run.md) | 一次性执行(run / exec) | implementing | medium | R01 容器 exec 复用 |
-| [R08-09](./R08-09-advanced-control.md) | 高级控制(pause / unpause / kill / scale / rm / prune) | implementing | low | docker compose CLI 权威 |
+| [R08-09](./R08-09-advanced-control.md) | 高级控制(pause / unpause / kill / scale / rm / prune) | implemented | low | docker compose CLI 权威 |
 | [R08-10](./R08-10-events.md) | 实时事件流(events) | implementing | medium | R05 事件流接续 |
 | [R08-11](./R08-11-action-bar.md) | Action Bar 接入 Compose | implementing | high | [R03-02](../R03-form-action/R03-02-action-bar.md) 扩展 |
 | [R08-12](./R08-12-keymap.md) | Keymap 注册表接入 Compose | implementing | high | [R01-container 关联约束](../../constraint/C04-keybinding.md) 接续 |

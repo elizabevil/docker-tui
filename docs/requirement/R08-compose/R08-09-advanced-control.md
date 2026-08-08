@@ -2,7 +2,7 @@
 
 ## 元信息
 
-- 状态: planned
+- 状态: implemented
 - 优先级: low
 - 来源: docker compose CLI 权威 + 用户评审结果
 - 关联任务: [.omo/compose-todo.md 附录 A.1 / A.5 / A.6 / §3.6](../../../.omo/compose-todo.md)
@@ -179,3 +179,21 @@ type ComposePruneReport struct {
 - 保留信息:audit trace 模式
 - 废弃信息:无
 - 待确认:scale 时 `--no-deps` 的 deps 概念 — 没有 yaml 解析,所以这个标志**仅作 Form 占位**,实际行为 = 全部启动无论 deps
+
+### 2026-08-08 阶段 C 落地
+
+**已完成**(本轮):
+
+- `doComposePause / Unpause / Kill / Rm`(compose_action.go):共享 `doComposeProjectLifecycle(verb, perContainerFn)` helper,迭代项目容器,聚合为单条 BatchActioned。
+- `doComposePrune`:在 lifecycle 流程基础上加卷清理(`m.Resources.Volumes.Items` 中带 project label 的)。
+- `doComposeScale`(compose_action.go + container_form.go):
+  - `state.FormComposeScale` 新增 FormKind。
+  - `openComposeScaleForm`:Form 字段 = `IntField(target replicas)` + `BoolField(--no-deps)`,默认 0..100 范围。
+  - `executeComposeScale`:target > current 走 `ComposeService.Run` 新增 replicas;target < current 按 container-number 升序删最早的。共一条 BatchActioned + 一条 audit trace。
+  - `ResourceComposeService`(state)新增 ResourceType 常量。
+
+**保留/已知缺口**:
+- `--no-deps` 标志未生效(dtui 不解析 yaml,实际行为=全启)。
+- CoLocated group 拦截(Docker group scale = 1)未实现,等 R08-14 算法落地。
+
+**测试**:35 packages 全 PASS。

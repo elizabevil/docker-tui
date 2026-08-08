@@ -30,6 +30,7 @@ const (
 	ResourceVolume         ResourceType = "volume"
 	ResourceImage          ResourceType = "image"
 	ResourceComposeProject ResourceType = "compose_project"
+	ResourceComposeService ResourceType = "compose_service"
 )
 
 // AppMode represents the current UI mode.
@@ -118,6 +119,8 @@ func NewAppModel(cfg *config.AppConfig, engine runtimeapi.Engine, appVersion str
 		Navigation:   NewNavigationState(),
 		Feedback:     NewFeedbackState(),
 		Resources:    NewResourceState(),
+		// R08-04 F2: --remove-orphans defaults to checked per spec.
+		Compose: ComposeState{ComposeDownRemoveOrphans: true},
 	}
 }
 

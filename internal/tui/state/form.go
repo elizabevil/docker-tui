@@ -24,6 +24,10 @@ const (
 	// openVolumeRemoveForm. R06-08 state consolidation may fold these
 	// into a single FormResourceRemove discriminated by scope.
 	FormNetworkRemove
+	// FormComposeScale (R08-09 F2) wraps the scale form for a single
+	// compose service. The form carries one Int field (target replicas)
+	// and one Bool field (--no-deps).
+	FormComposeScale
 )
 
 // FormFieldKind selects how a form field is edited and rendered.

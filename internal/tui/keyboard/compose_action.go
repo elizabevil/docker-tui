@@ -6,10 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
 	"github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 
 	tea "charm.land/bubbletea/v2"
@@ -147,7 +149,7 @@ func doComposeStop(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 }
 
-func doComposeDown(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+func doComposeDown(m *state.AppModel, dialogTrace ...audit.Trace) (*state.AppModel, tea.Cmd) {
 	if m.Connection.Engine == nil {
 		return m, nil
 	}
@@ -155,11 +157,25 @@ func doComposeDown(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	if project == "" {
 		return m, nil
 	}
+	// R08-04 F2: down opens a confirm dialog carrying three checkboxes
+	// (-v / --rmi / --remove-orphans). The dialog's Confirm callback
+	// copies the Checked states onto m.Compose.ComposeDownRemove* and
+	// re-enters this function with a non-nil skipConfirm flag.
+	if !m.Compose.ComposeDownSkipConfirm {
+		return openComposeDownConfirm(m, project)
+	}
+	m.Compose.ComposeDownSkipConfirm = false
 	containers := composeProjectContainers(m, project)
 	volumes := composeProjectVolumes(m, project)
 	networks := composeProjectNetworks(m, project)
 	target := audit.ComposeTarget{Name: project, Meta: audit.ComposeMeta{Containers: len(containers), Volumes: len(volumes), Networks: len(networks)}}
-	trace := beginAudit(m, "resource.compose_project.down", target, "Removing compose project "+project)
+	trace := audit.Trace{}
+	if len(dialogTrace) > 0 {
+		trace = dialogTrace[0]
+	}
+	if !trace.Valid() {
+		trace = beginAudit(m, "resource.compose_project.down", target, "Removing compose project "+project)
+	}
 	if len(containers) == 0 && len(volumes) == 0 && len(networks) == 0 {
 		FinishAudit(m, trace, audit.ResultFailed, "Compose down failed: no resources", audit.Details{Error: "no compose resources"})
 		return m, nil
@@ -173,7 +189,34 @@ func doComposeDown(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 			Audit:    trace,
 		}
 		var failures []error
+		// R08-04 F2: --remove-orphans filters containers whose service
+		// label is not in the project's aggregated service set. When
+		// unchecked (default) the orphans are kept; when checked they
+		// are removed alongside the project's own containers.
+		removeVolumes := m.Compose.ComposeDownRemoveVolumes
+		keepOrphans := !m.Compose.ComposeDownRemoveOrphans
+		var orphanIDs map[string]struct{}
+		if keepOrphans {
+			services := composeServiceNames(m, project)
+			serviceSet := make(map[string]struct{}, len(services))
+			for _, s := range services {
+				serviceSet[s] = struct{}{}
+			}
+			orphanIDs = make(map[string]struct{})
+			for _, c := range containers {
+				if _, ok := serviceSet[c.ComposeService]; ok {
+					continue
+				}
+				orphanIDs[c.ID] = struct{}{}
+			}
+		}
 		for _, c := range containers {
+			if keepOrphans {
+				if _, isOrphan := orphanIDs[c.ID]; isOrphan {
+					result.Skipped++
+					continue
+				}
+			}
 			msg := containerRemoveCmd(engine, c.ID, runtime.LifecycleOptions{Force: true})()
 			if v, ok := msg.(state.ContainerActioned); ok {
 				if v.Success {
@@ -190,21 +233,23 @@ func doComposeDown(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 				result.FailedIDs = append(result.FailedIDs, c.ID)
 			}
 		}
-		for _, name := range volumes {
-			msg := volumeRemoveCmd(engine, name, runtime.LifecycleOptions{Force: true})()
-			if v, ok := msg.(state.GenericActioned); ok {
-				if v.Success {
-					result.Success++
+		if removeVolumes {
+			for _, name := range volumes {
+				msg := volumeRemoveCmd(engine, name, runtime.LifecycleOptions{Force: true})()
+				if v, ok := msg.(state.GenericActioned); ok {
+					if v.Success {
+						result.Success++
+					} else {
+						result.Failed++
+						result.FailedIDs = append(result.FailedIDs, name)
+						if v.Error != nil {
+							failures = append(failures, v.Error)
+						}
+					}
 				} else {
 					result.Failed++
 					result.FailedIDs = append(result.FailedIDs, name)
-					if v.Error != nil {
-						failures = append(failures, v.Error)
-					}
 				}
-			} else {
-				result.Failed++
-				result.FailedIDs = append(result.FailedIDs, name)
 			}
 		}
 		for _, id := range networks {
@@ -227,6 +272,26 @@ func doComposeDown(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		result.Error = errors.Join(failures...)
 		return result
 	}
+}
+
+// openComposeDownConfirm builds the down dialog (R08-04 F2) with three
+// checkbox options plus the standard Cancel / Confirm pair. The
+// default for `--remove-orphans` is checked; `-v` / `--rmi` default
+// unchecked per spec.
+func openComposeDownConfirm(m *state.AppModel, project string) (*state.AppModel, tea.Cmd) {
+	target := audit.ComposeTarget{Name: project}
+	trace := beginAudit(m, "resource.compose_project.down", target, "Compose down: "+project)
+	options := []state.ChoiceOption{
+		{ID: "opt_volumes", Label: "-v delete volumes", Checked: m.Compose.ComposeDownRemoveVolumes},
+		{ID: "opt_rmi", Label: "--rmi all delete images", Checked: m.Compose.ComposeDownRemoveImages != ""},
+		{ID: "opt_orphans", Label: "--remove-orphans", Checked: m.Compose.ComposeDownRemoveOrphans},
+		{ID: keys.ShowOptionCancel, Label: "Cancel"},
+		{ID: keys.ShowOptionConfirm, Label: "Confirm"},
+	}
+	m.Confirm.OpenWithOptions(keys.ShowOptionConfirm, project, "Down compose project "+project, trace, options)
+	m.Confirm.Focus = 0 // start on the first checkbox, not Cancel
+	m.Navigation.Mode = state.ModeConfirm
+	return m, nil
 }
 
 func doComposeLogs(m *state.AppModel) (*state.AppModel, tea.Cmd) {
@@ -428,6 +493,7 @@ func doComposePort(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	// later via a form. For now the user can switch to a single
 	// container and use R01's :port command for a specific number.
 	const defaultPort = 80
+	m.Compose.ComposeSubview = state.ComposeSubviewPort
 	ShowToastNow(m, fmt.Sprintf("⟳ compose port %s/%s :%d", project, service, defaultPort))
 	return m, fetchComposeServicePort(m.Connection.Engine, project, service, defaultPort, containers)
 }
@@ -445,8 +511,15 @@ func doComposeStats(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		ShowToastWarn(m, "✕ compose stats failed: no containers")
 		return m, nil
 	}
+	m.Compose.ComposeSubview = state.ComposeSubviewStats
 	ShowToastNow(m, fmt.Sprintf("⟳ compose stats %s (%d sources)", project, len(containers)))
 	return m, fetchComposeServiceStats(m.Connection.Engine, project, containers)
+}
+
+// closeComposeSubview clears the active subview and returns to the
+// standard service list. Wired on Esc inside the compose panel.
+func closeComposeSubview(m *state.AppModel) {
+	m.Compose.ComposeSubview = state.ComposeSubviewServices
 }
 
 // fetchComposeServiceTop walks every container in the service scope
@@ -838,20 +911,133 @@ func doComposeProjectLifecycle(m *state.AppModel, verb string, perContainer func
 	}
 }
 
-// doComposeScale is the placeholder for `docker compose scale svc=N`
-// (R08-09 F2). The full implementation needs a Form dialog (service
-// name + replicas spinner) and a scale-specific ComposeService method
-// that the docker / podman adapters will land when their R08-09
-// implementations ship. Today we route the request to a stub that
-// surfaces a toast so users can configure scale via the docker / podman
-// CLI in the meantime.
+// doComposeScale opens the R08-09 scale form. The form's submit path
+// (submitContainerForm, FormComposeScale branch) calls
+// executeComposeScale with the parsed replicas + --no-deps values.
 func doComposeScale(m *state.AppModel) (*state.AppModel, tea.Cmd) {
-	project := currentComposeProject(m)
-	if project == "" {
+	return openComposeScaleForm(m)
+}
+
+// parseScaleReplicas parses the IntField text into a non-negative
+// replica count. Empty input defaults to 1 (the docker compose
+// default for `up`); anything else must be a clean integer.
+func parseScaleReplicas(raw string) (int, bool) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return 1, true
+	}
+	v, err := strconv.Atoi(raw)
+	if err != nil || v < 0 || v > 100 {
+		return 0, false
+	}
+	return v, true
+}
+
+// executeComposeScale brings the project's service to the target
+// replica count (R08-09 F2):
+//   - current == target → no-op toast
+//   - target >  current → create (target - current) one-off containers
+//     via ComposeService.Run with no entrypoint override; the engine
+//     increments container-number labels.
+//   - target <  current → stop + remove the oldest (target - current)
+//     replicas, sorted by container-number ascending.
+//
+// --no-deps is intentionally ignored: dtui does not parse compose
+// depends_on, so the engine's default behaviour (always start deps)
+// is what users get. The flag is captured in audit metadata so the
+// future UI can surface it.
+func executeComposeScale(m *state.AppModel, project, service string, target int, noDeps bool) (*state.AppModel, tea.Cmd) {
+	if m.Connection.Engine == nil {
 		return m, nil
 	}
-	ShowToastWarn(m, fmt.Sprintf("✕ compose scale %s: not implemented yet (R08-09 F2)", project))
-	return m, nil
+	containers := composeProjectContainers(m, project)
+	current := 0
+	for _, c := range containers {
+		if c.ComposeService == service {
+			current++
+		}
+	}
+	target = max(target, 0)
+	if target == current {
+		ShowToastNow(m, fmt.Sprintf("✓ compose scale %s/%s already at %d", project, service, current))
+		return m, nil
+	}
+	targetMetadata := audit.ComposeMeta{Containers: target}
+	targetAudit := audit.ComposeTarget{Name: project, Meta: targetMetadata}
+	trace := beginAudit(m, "resource.compose_service.scale", targetAudit, fmt.Sprintf("Scaling %s/%s to %d (current %d)", project, service, target, current))
+	if target > current {
+		toCreate := target - current
+		ShowToastNow(m, fmt.Sprintf("⟳ compose scale %s/%s: creating %d replicas", project, service, toCreate))
+		return m, func() tea.Msg {
+			var failures []error
+			successes := 0
+			for i := 0; i < toCreate; i++ {
+				err := m.Connection.Engine.Compose().Run(context.Background(), project, service, nil, runtime.RunOptions{RemoveAfter: false})
+				if err != nil {
+					failures = append(failures, fmt.Errorf("create %d: %w", i+1, err))
+					continue
+				}
+				successes++
+			}
+			FinishAudit(m, trace, audit.ResultSucceeded, fmt.Sprintf("Scale %s/%s done", project, service), audit.Details{})
+			return state.BatchActioned{
+				Scope:    ComposeScope(composeVerbScale),
+				Resource: state.ResourceComposeService,
+				Total:    toCreate,
+				Success:  successes,
+				Failed:   len(failures),
+				Error:    errors.Join(failures...),
+				Audit:    trace,
+			}
+		}
+	}
+	toRemove := current - target
+	replicas := make([]runtime.ContainerSummary, 0, current)
+	for _, c := range containers {
+		if c.ComposeService == service {
+			replicas = append(replicas, c)
+		}
+	}
+	sort.SliceStable(replicas, func(i, j int) bool {
+		ni, errI := strconv.Atoi(replicas[i].ContainerNumber)
+		nj, errJ := strconv.Atoi(replicas[j].ContainerNumber)
+		if errI != nil || errJ != nil {
+			return replicas[i].ID < replicas[j].ID
+		}
+		return ni < nj
+	})
+	drop := append([]runtime.ContainerSummary(nil), replicas[:toRemove]...)
+	ShowToastNow(m, fmt.Sprintf("⟳ compose scale %s/%s: removing %d replicas", project, service, toRemove))
+	return m, func() tea.Msg {
+		var failures []error
+		successes := 0
+		for _, c := range drop {
+			stopMsg := containerStopCmd(m.Connection.Engine, c.ID)()
+			if v, ok := stopMsg.(state.ContainerActioned); ok && !v.Success && v.Error != nil {
+				failures = append(failures, fmt.Errorf("stop %s: %w", c.Name, v.Error))
+			}
+			rmMsg := containerRemoveCmd(m.Connection.Engine, c.ID, runtime.LifecycleOptions{Force: true})()
+			if v, ok := rmMsg.(state.ContainerActioned); ok {
+				if v.Success {
+					successes++
+				} else {
+					failures = append(failures, fmt.Errorf("rm %s: %w", c.Name, v.Error))
+				}
+			} else {
+				failures = append(failures, fmt.Errorf("rm %s: unknown result", c.Name))
+			}
+		}
+		FinishAudit(m, trace, audit.ResultSucceeded, fmt.Sprintf("Scale %s/%s done", project, service), audit.Details{})
+		return state.BatchActioned{
+			Scope:    ComposeScope(composeVerbScale),
+			Resource: state.ResourceComposeService,
+			Total:    toRemove,
+			Success:  successes,
+			Failed:   len(failures),
+			Error:    errors.Join(failures...),
+			Audit:    trace,
+		}
+	}
 }
 
 // doComposeEvents jumps to the R05 events panel with a project-scoped

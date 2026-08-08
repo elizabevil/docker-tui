@@ -254,6 +254,11 @@ func TestComposeDownAggregatesResources(t *testing.T) {
 	m := newAppModelWithEngine(eng)
 	m.Navigation.ActivePanel = state.PanelCompose
 	m.Compose.ComposeDetailProject = "demo"
+	// R08-04 F2: skip the confirm dialog so this test exercises the
+	// down path directly. The dialog itself is covered by the
+	// compose_action_test.go flow.
+	m.Compose.ComposeDownSkipConfirm = true
+	m.Compose.ComposeDownRemoveVolumes = true
 	m.Resources.Containers.Items = []runtimeapi.ContainerSummary{
 		{ID: "c1", Name: "web", ComposeProject: "demo", ComposeService: "web"},
 	}

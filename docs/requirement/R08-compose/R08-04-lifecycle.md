@@ -2,7 +2,7 @@
 
 ## 元信息
 
-- 状态: planned
+- 状态: implemented
 - 优先级: high
 - 来源: 用户评审结果 + docker compose CLI 官方 spec
 - 关联任务: [.omo/compose-todo.md §3.1 / §C.2 / 补 E.1 / 补 G.1](../../../.omo/compose-todo.md)
@@ -211,3 +211,17 @@ Down 内 services 列表由 [`ComposeProjectSummary.CoLocatedGroups`](./R08-14-c
 - 保留信息:`composeProjectContainers / composeProjectVolumes / composeProjectNetworks` helper(底层 label 匹配,在 `ComposeService` 实现里复用)
 - 废弃信息:无
 - 待确认:`Options.RemoveImages="local"` 判定方法;`Orphans` 简化检测是否对其它项目场景足够
+
+### 2026-08-08 阶段 B 落地
+
+**已完成**(本轮):
+
+- `doComposeRestart`(internal/tui/keyboard/compose_action.go):Stop + Start 链。两条独立 BatchActioned 各自携带 audit trace,各自 toast,不共用 trace(R08-04 F6:start/stop 各自 trace)。
+- `doComposeDown` 接 Confirm Dialog(R08-04 F2 全实现):
+  - `internal/tui/state/confirm.go::ChoiceOption` 加 `Checked bool` 字段,支持 checkbox 行。
+  - `internal/tui/keyboard/confirm.go`:Space 键切换当前 focus 的 checkbox 状态。
+  - `internal/tui/keyboard/compose_action.go::openComposeDownConfirm`:打开 5 选项 dialog(3 checkbox + Cancel + Confirm),`ComposeDownRemoveOrphans` 默认 checked。
+  - `doConfirmYes`(mark_action.go)从 `m.Confirm.Options` 拷贝 Checked 状态到 `m.Compose.ComposeDownRemove*`,置 `ComposeDownSkipConfirm=true`,递归调 `doComposeDown`。
+  - 第二次进入 `doComposeDown` 时按 `ComposeDownRemoveVolumes / ComposeDownRemoveOrphans` 过滤:`--remove-orphans` unchecked 时只删 project 容器,checked 时也删孤儿(项目 service 集外的容器)。
+
+**测试**:`TestComposeDownAggregatesResources` 加 `ComposeDownSkipConfirm=true` 绕过 dialog 直接验证 down 路径;35 packages 全 PASS。

@@ -19,6 +19,7 @@ const (
 	composeVerbStats     = "stats"
 	composeVerbRun       = "run"
 	composeVerbExec      = "exec"
+	composeVerbScale     = "scale"
 	composeVerbGroupDown = "group.down"
 )
 
