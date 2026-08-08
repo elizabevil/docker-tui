@@ -46,10 +46,3 @@ func PlaceDialog(content string, dialogBox string, termW, termH int, _ string, c
 
 	return strings.Join(contentLines, "\n")
 }
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}

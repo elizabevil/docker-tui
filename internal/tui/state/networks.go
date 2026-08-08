@@ -78,7 +78,7 @@ func (m *NetworkListModel) SortedItems() []runtimeapi.Network {
 func sortNetworkItems(items []runtimeapi.Network, col NetworkSortColumn, asc bool) []runtimeapi.Network {
 	sorted := make([]runtimeapi.Network, len(items))
 	copy(sorted, items)
-	for i := 0; i < len(sorted); i++ {
+	for i := range sorted {
 		for j := i + 1; j < len(sorted); j++ {
 			less := false
 			switch col {

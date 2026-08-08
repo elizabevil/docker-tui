@@ -68,10 +68,7 @@ func (r *Renderer) Render(width int, app *state.AppModel) string {
 	}
 
 	// Left column: logo + about text
-	leftW := width * 35 / 100
-	if leftW < 20 {
-		leftW = 20
-	}
+	leftW := max(width*35/100, 20)
 	rightW := width - leftW - 2
 
 	var leftSb strings.Builder

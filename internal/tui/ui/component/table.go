@@ -113,20 +113,14 @@ func RenderTable(d TableData) string {
 		if info := d.SelectionProvider.SelectionInfo(); info != "" {
 			centered := lipgloss.NewStyle().Width(containerW).Align(lipgloss.Center).Render(renderSelectionInfo(info))
 			sb.WriteString(centered)
-			pad := SelectionPreviewPadding()
-			if pad < 1 {
-				pad = 1
-			}
+			pad := max(SelectionPreviewPadding(), 1)
 			sb.WriteString(strings.Repeat("\n", pad))
 		}
 	}
 
 	// Page info: 当前显示行（右对齐）
 	if d.Total > 0 {
-		end := d.Offset + len(d.Rows)
-		if end > d.Total {
-			end = d.Total
-		}
+		end := min(d.Offset+len(d.Rows), d.Total)
 		pageInfo := fmt.Sprintf("%d-%d/%d", d.Offset+1, end, d.Total)
 		if d.FooterHint != "" {
 			pageInfo += " " + BorderLineVertical + " " + d.FooterHint
@@ -188,10 +182,7 @@ func renderTopFrameLabel(label string, width int) string {
 		return GetStyle(StyleDim).Render(label)
 	}
 	left := BorderLineHorizontal + BorderLineHorizontal + " " + label + " "
-	remain := width - utils.VisibleLen(left)
-	if remain < 0 {
-		remain = 0
-	}
+	remain := max(width-utils.VisibleLen(left), 0)
 	return GetStyle(StyleDim).Render(left + strings.Repeat(BorderLineHorizontal, remain))
 }
 

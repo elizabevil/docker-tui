@@ -160,10 +160,7 @@ func Render(app *state.AppModel, usableW int) string {
 	dynW := widths.host
 	connW := widths.connection
 	keyW := widths.keystroke
-	logoW := widths.logo
-	if logoW < 10 {
-		logoW = 10
-	}
+	logoW := max(widths.logo, 10)
 
 	// ── Col 3: Keystroke display (简化版，仅显示按键日志，无动画) ──
 	colKeys := renderKeyStrokeColumn(app, keyW, hCfg.KeystrokeContentRatio)
@@ -270,11 +267,8 @@ func renderKeyStrokeColumn(app *state.AppModel, colW, ratio int) string {
 	// the floor is bumped so the badges don't visually stick to the border
 	// on wider terminals. The 0.6 ceiling keeps the box from hollowing out
 	// on the narrowest layouts.
-	padH := (colW-2)*(100-ratio)/100 + 2
-	if padH < 3 {
-		padH = 3
-	}
-	if maxPad := (colW-2)*60/100; maxPad > 0 && padH > maxPad {
+	padH := max((colW-2)*(100-ratio)/100+2, 3)
+	if maxPad := (colW - 2) * 60 / 100; maxPad > 0 && padH > maxPad {
 		padH = maxPad
 	}
 

@@ -247,7 +247,7 @@ func (s *FormState) RecomputeVisibility() {
 	}
 	if n := len(s.Fields); n > 0 {
 		cur := s.FieldFocus
-		for i := 0; i < n; i++ {
+		for range n {
 			cur++
 			if cur >= n {
 				s.FieldFocus = s.CancelSlot()
@@ -297,7 +297,7 @@ func (s *FormState) MoveField(delta int) {
 	if cur < 0 {
 		cur = s.CancelSlot()
 	}
-	for i := 0; i < total; i++ {
+	for range total {
 		next := (cur + delta + total) % total
 		if next < len(s.Fields) {
 			if s.Fields[next].Hidden() {
@@ -456,5 +456,9 @@ func (s *FormState) CommitPopupMulti() {
 }
 
 // FormMin / FormMax are pointer factories for numeric Min / Max fields.
-func FormMin(v float64) *float64 { return &v }
-func FormMax(v float64) *float64 { return &v }
+//
+//go:fix inline
+func FormMin(v float64) *float64 { return new(v) }
+
+//go:fix inline
+func FormMax(v float64) *float64 { return new(v) }

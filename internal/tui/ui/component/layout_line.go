@@ -19,10 +19,7 @@ func JustifyBetween(left, right string, width int) string {
 	if lw+1+rw > width {
 		return utils.PadVisible(utils.TruncateVisible(left, width), width)
 	}
-	gap := width - lw - rw
-	if gap < 1 {
-		gap = 1
-	}
+	gap := max(width-lw-rw, 1)
 	return left + RepeatSpaces(gap) + right
 }
 

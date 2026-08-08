@@ -1,6 +1,7 @@
 package keys
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
@@ -235,7 +236,7 @@ func configuredBindings(keymap config.KeymapConfig) map[KeyAction][]string {
 		ActionComposeProjectKill:    cm.Kill.Values(),
 		ActionComposeProjectRm:      cm.Rm.Values(),
 		ActionComposeProjectPrune:   cm.Prune.Values(),
-		ActionComposeProjectRun:      cm.Run.Values(),
+		ActionComposeProjectRun:     cm.Run.Values(),
 		ActionComposeProjectEvents:  cm.Events.Values(),
 		ActionComposeProjectDetail:  cm.Detail.Values(),
 
@@ -276,10 +277,5 @@ func contextScore(patterns []Context, actual Context) (int, bool) {
 }
 
 func containsAction(actions []KeyAction, target KeyAction) bool {
-	for _, action := range actions {
-		if action == target {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(actions, target)
 }

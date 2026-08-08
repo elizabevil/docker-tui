@@ -31,7 +31,7 @@ func TestRenderHeaderRespectsTransparentLabelValueTokens(t *testing.T) {
 	app.Metrics.HostCPU = 42
 
 	rendered := Render(app, 80)
-	for _, line := range strings.Split(rendered, "\n") {
+	for line := range strings.SplitSeq(rendered, "\n") {
 		plain := utils.StripANSI(line)
 		idx := strings.Index(plain, "TimeZone")
 		if idx < 0 {
@@ -228,7 +228,7 @@ func TestRenderKeyStrokeBoxHasMinPadding(t *testing.T) {
 	}
 
 	rendered := Render(app, 100)
-	for _, line := range strings.Split(rendered, "\n") {
+	for line := range strings.SplitSeq(rendered, "\n") {
 		clean := utils.StripANSI(line)
 		idx := strings.Index(clean, "ctrl+b")
 		if idx < 0 {

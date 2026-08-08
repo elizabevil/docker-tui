@@ -379,10 +379,7 @@ func shrinkColumns(widths []int, specs []columnSizing, deficit int) {
 			if spec.shrink <= 0 || widths[i] <= spec.min {
 				continue
 			}
-			remove := max(1, before*spec.shrink*widths[i]/weight)
-			if remove > deficit {
-				remove = deficit
-			}
+			remove := min(max(1, before*spec.shrink*widths[i]/weight), deficit)
 			if widths[i]-remove < spec.min {
 				remove = widths[i] - spec.min
 			}

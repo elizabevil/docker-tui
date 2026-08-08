@@ -34,10 +34,9 @@ func (p Panel) Render() string {
 	titleLine := renderTitle(p)
 
 	innerH := p.Height - 2 // 去掉边框
-	contentH := innerH - 1 // 去掉标题行
-	if contentH < 1 {
-		contentH = 1
-	}
+	contentH := max(
+		// 去掉标题行
+		innerH-1, 1)
 	body := component.GetStyle(component.StylePanel).MaxHeight(contentH).Height(contentH).Width(p.Width - 2).Render(p.Content)
 	inner := lipgloss.JoinVertical(lipgloss.Top, titleLine, body)
 	boxed := tui.ActiveBorderStyle.Width(p.Width - 2).Render(inner)
@@ -55,10 +54,7 @@ func renderTitle(p Panel) string {
 	}
 	titleLine := component.GetStyle(component.StylePanelTitle).Render(title)
 	if p.Breadcrumb != "" {
-		lineW := p.Width - 6
-		if lineW < 10 {
-			lineW = 10
-		}
+		lineW := max(p.Width-6, 10)
 		right := component.GetStyle(component.StyleDim).Render(p.Breadcrumb)
 		titleLine = component.JustifyBetween(titleLine, right, lineW)
 	}
@@ -86,10 +82,7 @@ func buildBorderLabelLine(label string, width int) string {
 	if component.VisibleLen(lab) > inner {
 		lab = component.TruncateVisible(lab, inner)
 	}
-	remain := inner - component.VisibleLen(lab)
-	if remain < 0 {
-		remain = 0
-	}
+	remain := max(inner-component.VisibleLen(lab), 0)
 	left := remain / 2
 	right := remain - left
 	return component.BorderRoundedTopLeft + strings.Repeat(component.BorderLineHorizontal, left) + lab + strings.Repeat(component.BorderLineHorizontal, right) + component.BorderRoundedTopRight

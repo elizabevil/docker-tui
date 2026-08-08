@@ -29,10 +29,7 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 	if cm == nil {
 		return i18n.T("msg.loading")
 	}
-	w := width
-	if w < 52 {
-		w = 52
-	}
+	w := max(width, 52)
 
 	profile := profileSelector.Select(w)
 

@@ -73,14 +73,8 @@ func CenterOnPanel(content, dialogBox string, body PanelBody, termW, termH int, 
 			dlgW = w
 		}
 	}
-	effW := dlgW
-	if effW > maxW {
-		effW = maxW
-	}
-	effH := len(dialogLines)
-	if effH > maxH {
-		effH = maxH
-	}
+	effW := min(dlgW, maxW)
+	effH := min(len(dialogLines), maxH)
 
 	startX := body.Left + (maxW-effW)/2
 	if startX < body.Left {

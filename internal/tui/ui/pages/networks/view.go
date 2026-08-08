@@ -25,10 +25,7 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 	if nm == nil {
 		return component.StrLoading
 	}
-	w := width
-	if w < 42 {
-		w = 42
-	}
+	w := max(width, 42)
 
 	profile := profileSelector.Select(w)
 	colsDef := tc.Columns.Get(profile)

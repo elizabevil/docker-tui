@@ -31,10 +31,7 @@ func renderBox(items []actionmodel.ActionItem, selected int, filtering bool, fil
 	// Height is 2/3 of the panel body, enforced by limiting the visible
 	// action rows so the dialog stays inside the panel even when many
 	// actions are available.
-	boxWidth := body.Width / 2
-	if boxWidth < 28 {
-		boxWidth = 28
-	}
+	boxWidth := max(body.Width/2, 28)
 	if boxWidth > 72 {
 		boxWidth = 72
 	}
@@ -43,10 +40,7 @@ func renderBox(items []actionmodel.ActionItem, selected int, filtering bool, fil
 	}
 	innerWidth := max(4, boxWidth-4)
 
-	actionVisibleRows := body.Rows * 2 / 3
-	if actionVisibleRows < 4 {
-		actionVisibleRows = 4
-	}
+	actionVisibleRows := max(body.Rows*2/3, 4)
 	// Reserve budget for title + filter + blanks + buttons + borders.
 	actionVisibleRows -= 5
 	if actionVisibleRows < 3 {

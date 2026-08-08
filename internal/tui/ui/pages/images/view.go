@@ -314,10 +314,7 @@ func renderInfoBlock(lines []string, panelHeight int) string {
 	if len(lines) == 0 {
 		return ""
 	}
-	bodyHeight := panelHeight - 3
-	if bodyHeight < len(lines) {
-		bodyHeight = len(lines)
-	}
+	bodyHeight := max(panelHeight-3, len(lines))
 	b := make([]string, 0, bodyHeight)
 	for _, line := range lines {
 		b = append(b, component.GetStyle(component.StyleDim).Render("  "+line))

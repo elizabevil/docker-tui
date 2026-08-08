@@ -1,6 +1,8 @@
 package box
 
 import (
+	"strings"
+
 	"charm.land/lipgloss/v2"
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 	"github.com/elizabevil/docker-tui/internal/utils"
@@ -98,12 +100,12 @@ func joinCells(cells []string, gap string) string {
 	if gap == "" {
 		gap = " "
 	}
-	out := ""
+	var out strings.Builder
 	for i, c := range cells {
 		if i > 0 {
-			out += gap
+			out.WriteString(gap)
 		}
-		out += c
+		out.WriteString(c)
 	}
-	return out
+	return out.String()
 }

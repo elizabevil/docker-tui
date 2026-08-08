@@ -16,9 +16,6 @@ func EnsureVisible(offset *int, cursor, rowHeight, total int) {
 		*offset = 0
 	}
 	if *offset+rowHeight > total {
-		*offset = total - rowHeight
-		if *offset < 0 {
-			*offset = 0
-		}
+		*offset = max(total-rowHeight, 0)
 	}
 }

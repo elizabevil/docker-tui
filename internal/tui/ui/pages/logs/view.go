@@ -106,10 +106,10 @@ func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
 // pillars are kept short to match the body-height accounting.
 func logPanelBorder() lipgloss.Border {
 	return lipgloss.Border{
-		Bottom: component.BorderLineHorizontal,
-		Top:    "",
-		Left:   "",
-		Right:  "",
+		Bottom:  component.BorderLineHorizontal,
+		Top:     "",
+		Left:    "",
+		Right:   "",
 		TopLeft: "", TopRight: "",
 		BottomLeft: "", BottomRight: "",
 	}
@@ -120,10 +120,7 @@ func renderLogPanel(header string, bodyLines []string, footer string, bodyHeight
 	// content height is decremented by one before laying out the log lines.
 	// The border row itself is mounted back on top of the content so the
 	// caller still sees bodyHeight rows in total.
-	contentHeight := bodyHeight - 1
-	if contentHeight < 1 {
-		contentHeight = 1
-	}
+	contentHeight := max(bodyHeight-1, 1)
 	for len(bodyLines) < contentHeight {
 		bodyLines = append(bodyLines, "")
 	}

@@ -6,6 +6,49 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/ui/pages/history"
 )
 
+// IdleCursorPosition returns the terminal position (0-based) where the
+// cursor should be parked when no text input widget is active, so IME
+// candidate windows render over the footer rail instead of the table.
+// ok is false when a text input is active and the cursor must stay
+// wherever the renderer last wrote it.
+func IdleCursorPosition(m *state.AppModel) (x, y int, ok bool) {
+	if m == nil || m.Viewport.Width == 0 || m.Viewport.Height == 0 {
+		return 0, 0, false
+	}
+	class := ClassifyTerminal(m.Viewport.Width, m.Viewport.Height)
+	if class != TerminalStandard {
+		return 0, 0, false
+	}
+	if activeTextInput(m) {
+		return 0, 0, false
+	}
+	rep := ResolveLayout(m)
+	// Park on the first footer row so the IME candidate window appears
+	// at the bottom of the screen. The rightmost column keeps the
+	// visible cursor block clear of the shortcut text on the left.
+	return m.Viewport.Width - 1, rep.FooterTop, true
+}
+
+// activeTextInput reports whether any text-editing widget currently
+// owns the keyboard. While one is active the cursor must follow the
+// input field, so the idle IME parking must not apply.
+func activeTextInput(m *state.AppModel) bool {
+	if m == nil {
+		return false
+	}
+	if m.Dialog.Kind != state.DialogNone {
+		return true
+	}
+	switch m.Navigation.Mode {
+	case state.ModeFilter, state.ModeSearch, state.ModeCommand,
+		state.ModeImagePull, state.ModeRename, state.ModeResourceCreate,
+		state.ModeImageWorkflow, state.ModeExecShell, state.ModeContainerForm,
+		state.ModeActionBar:
+		return true
+	}
+	return false
+}
+
 // LayoutHit identifies which rail a mouse coordinate belongs to. The
 // handler in internal/tui/update uses it to decide what action to take
 // without duplicating the layout math used by RenderApp.
@@ -93,10 +136,7 @@ func resolveCompactLayout(m *state.AppModel) LayoutReport {
 	}
 	plan.message = 1
 	plan.footer = max(1, plan.footer)
-	panelH := m.Viewport.Height - (plan.header + plan.message + plan.query + plan.footer)
-	if panelH < 1 {
-		panelH = 1
-	}
+	panelH := max(m.Viewport.Height-(plan.header+plan.message+plan.query+plan.footer), 1)
 	panelTop := plan.header + plan.message + plan.query
 	bodyTop := panelTop + 2 // border + title
 	return LayoutReport{
@@ -114,17 +154,11 @@ func resolveStandardLayout(m *state.AppModel) LayoutReport {
 	// hit-test stays in sync with what RenderApp draws. The values here
 	// intentionally mirror the variable names in layout.go.
 	windowCfg := m.Dependencies.Config.UI.Window
-	mt := windowCfg.MarginTopPercent
-	if mt < 0 {
-		mt = 0
-	}
+	mt := max(windowCfg.MarginTopPercent, 0)
 	if mt > 15 {
 		mt = 15
 	}
-	mb := windowCfg.MarginBottomPercent
-	if mb < 0 {
-		mb = 0
-	}
+	mb := max(windowCfg.MarginBottomPercent, 0)
 	if mb > 15 {
 		mb = 15
 	}
@@ -277,18 +311,12 @@ func clickListCursor(m *state.AppModel, cursor *int, offset *int, total, row int
 	*cursor = row
 	if offset != nil {
 		rep := ResolveLayout(m)
-		bodyRows := rep.Panel.bodyRows
-		if bodyRows < 1 {
-			bodyRows = 1
-		}
+		bodyRows := max(rep.Panel.bodyRows, 1)
 		if *offset > *cursor {
 			*offset = *cursor
 		}
 		if *cursor >= *offset+bodyRows {
-			*offset = *cursor - bodyRows + 1
-			if *offset < 0 {
-				*offset = 0
-			}
+			*offset = max(*cursor-bodyRows+1, 0)
 		}
 	}
 	m.Metrics.StatsActive = false

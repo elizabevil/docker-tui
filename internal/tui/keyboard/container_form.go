@@ -48,9 +48,9 @@ const (
 	fieldVolumeRemoveForce        = "force"
 	fieldComposeScaleReplicas     = "replicas"
 	fieldComposeScaleNoDeps       = "noDeps"
-	fieldComposeRunCommand         = "command"
-	fieldComposeRunEntrypoint      = "entrypoint"
-	fieldComposeRunRm              = "rm"
+	fieldComposeRunCommand        = "command"
+	fieldComposeRunEntrypoint     = "entrypoint"
+	fieldComposeRunRm             = "rm"
 	// FormNetworkRemove has no editable fields (network remove does
 	// not support --force), so no fieldNetworkRemoveForce constant.
 )
@@ -209,7 +209,7 @@ func openContainerUpdateForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 				HelperText: "MB",
 				Unit:       "MB",
 				Min:        state.FormMin(0),
-				Max:        state.FormMax(1e15),
+				Max:        new(1e15),
 			}),
 			dialog.NewIntField(dialog.IntFieldConfig{
 				Key:        fieldCPUs,
@@ -217,7 +217,7 @@ func openContainerUpdateForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 				HelperText: "cores",
 				Unit:       "cores",
 				Min:        state.FormMin(0),
-				Max:        state.FormMax(1e15),
+				Max:        new(1e15),
 			}),
 			restart,
 			dialog.NewIntField(dialog.IntFieldConfig{
@@ -888,7 +888,7 @@ func splitContainerPath(input string) (dir, prefix string) {
 
 func parseContainerPathEntries(output, dir, prefix string, mode state.PathMode) []state.PathEntry {
 	entries := make([]state.PathEntry, 0)
-	for _, line := range strings.Split(strings.ReplaceAll(output, "\r", ""), "\n") {
+	for line := range strings.SplitSeq(strings.ReplaceAll(output, "\r", ""), "\n") {
 		if line == "" {
 			continue
 		}

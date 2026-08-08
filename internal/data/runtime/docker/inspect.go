@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/bytedance/sonic"
 
@@ -426,12 +427,12 @@ func appendValue(lines *[]string, key, value string) {
 }
 
 func joinStrings(ss []string) string {
-	result := ""
+	var result strings.Builder
 	for i, s := range ss {
 		if i > 0 {
-			result += ", "
+			result.WriteString(", ")
 		}
-		result += s
+		result.WriteString(s)
 	}
-	return result
+	return result.String()
 }

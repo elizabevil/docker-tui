@@ -19,7 +19,7 @@ func TestRenderAlwaysUsesThreeRows(t *testing.T) {
 		if rows := strings.Count(got, "\n") + 1; rows != 2 {
 			t.Fatalf("Render() rows = %d, want 2: %q", rows, got)
 		}
-		for _, row := range strings.Split(got, "\n") {
+		for row := range strings.SplitSeq(got, "\n") {
 			if width := component.VisibleLen(row); width != 120 {
 				t.Fatalf("footer row width = %d, want 120", width)
 			}

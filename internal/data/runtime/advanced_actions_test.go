@@ -156,4 +156,5 @@ func TestLifecycleOptionsZeroValue(t *testing.T) {
 	}
 }
 
-func ptrInt64(v int64) *int64 { return &v }
+//go:fix inline
+func ptrInt64(v int64) *int64 { return new(v) }

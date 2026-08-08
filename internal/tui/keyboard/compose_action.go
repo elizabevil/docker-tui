@@ -500,7 +500,7 @@ func composeLogPrefix(service string, total, idx int, merged bool) string {
 }
 
 func composeActionPending(m *state.AppModel, verb string) (*state.AppModel, tea.Cmd) {
-		ShowToastWarn(m, i18n.T("compose.toast.actions_pending", verb))
+	ShowToastWarn(m, i18n.T("compose.toast.actions_pending", verb))
 	return m, nil
 }
 
@@ -870,7 +870,7 @@ func doComposeProjectLifecycle(m *state.AppModel, verb string, perContainer func
 		return m, nil
 	}
 	engine := m.Connection.Engine
-		ShowToastNow(m, i18n.T("compose.toast.actions_starting", verb, project, len(containers)))
+	ShowToastNow(m, i18n.T("compose.toast.actions_starting", verb, project, len(containers)))
 	return m, func() tea.Msg {
 		result := state.BatchActioned{
 			Scope:    ComposeScope(verb),
@@ -967,7 +967,7 @@ func executeComposeScale(m *state.AppModel, project, service string, target int,
 		return m, func() tea.Msg {
 			var failures []error
 			successes := 0
-			for i := 0; i < toCreate; i++ {
+			for i := range toCreate {
 				err := m.Connection.Engine.Compose().Run(context.Background(), project, service, nil, runtime.RunOptions{RemoveAfter: false})
 				if err != nil {
 					failures = append(failures, fmt.Errorf("create %d: %w", i+1, err))
@@ -1163,5 +1163,3 @@ func fetchComposeServiceRun(eng runtime.Engine, project, service string, opts ru
 func doComposeServiceLogs(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	return doComposeLogs(m)
 }
-
-

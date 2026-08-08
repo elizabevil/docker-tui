@@ -126,7 +126,7 @@ func (s *DetailState) SourceText() string {
 	if !s.HasRawSource() {
 		return ""
 	}
-	var obj interface{}
+	var obj any
 	if err := sonic.Unmarshal(s.DetailRawJSON, &obj); err != nil {
 		return string(s.DetailRawJSON)
 	}

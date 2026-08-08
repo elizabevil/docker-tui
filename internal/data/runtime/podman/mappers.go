@@ -2,7 +2,9 @@ package podman
 
 import (
 	"fmt"
+	"maps"
 	"net"
+	"slices"
 	"sort"
 	"time"
 
@@ -291,7 +293,7 @@ func MapContainerInspectResponse(info dto.ContainerInspectJSON) *runtimeapi.Cont
 	for _, m := range info.Mounts {
 		detail.Mounts = append(detail.Mounts, runtimeapi.ContainerMount{Source: m.Source, Destination: m.Destination, Mode: m.Mode, ReadWrite: m.RW})
 	}
-	sort.Slice(detail.Config.ExposedPorts, func(i, j int) bool { return detail.Config.ExposedPorts[i] < detail.Config.ExposedPorts[j] })
+	slices.Sort(detail.Config.ExposedPorts)
 	return detail
 }
 
@@ -363,8 +365,6 @@ func cloneStringMapForImage(source map[string]string) map[string]string {
 		return nil
 	}
 	out := make(map[string]string, len(source))
-	for key, value := range source {
-		out[key] = value
-	}
+	maps.Copy(out, source)
 	return out
 }

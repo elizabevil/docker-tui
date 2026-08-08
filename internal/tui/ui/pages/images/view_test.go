@@ -71,7 +71,7 @@ func TestRenderListUsesStableExcelLikeColumnTracks(t *testing.T) {
 
 	const pageWidth = 200
 	rendered := component.StripANSI(RenderList(model, state.NewContainerListModel(), pageWidth, 12, nil, false))
-	for _, line := range strings.Split(rendered, "\n") {
+	for line := range strings.SplitSeq(rendered, "\n") {
 		if !strings.Contains(line, "cmdb_adminserver") || !strings.Contains(line, "6b1b147de") {
 			continue
 		}

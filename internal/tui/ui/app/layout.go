@@ -88,17 +88,11 @@ func RenderApp(m *state.AppModel) string {
 
 	// Window margin: percentage of terminal height for top/bottom spacing
 	windowCfg := m.Dependencies.Config.UI.Window
-	mt := windowCfg.MarginTopPercent
-	if mt < 0 {
-		mt = 0
-	}
+	mt := max(windowCfg.MarginTopPercent, 0)
 	if mt > 15 {
 		mt = 15
 	}
-	mb := windowCfg.MarginBottomPercent
-	if mb < 0 {
-		mb = 0
-	}
+	mb := max(windowCfg.MarginBottomPercent, 0)
 	if mb > 15 {
 		mb = 15
 	}
@@ -569,15 +563,9 @@ func loadImageRowColors(path string, targetRows int, sampleRate int, position st
 	if sampleRate > 100 {
 		sampleRate = 100
 	}
-	sampleW := imgW * sampleRate / 100
-	if sampleW < 1 {
-		sampleW = 1
-	}
+	sampleW := max(imgW*sampleRate/100, 1)
 	xStart := bounds.Min.X + (imgW-sampleW)/2
-	xEnd := xStart + sampleW
-	if xEnd > bounds.Max.X {
-		xEnd = bounds.Max.X
-	}
+	xEnd := min(xStart+sampleW, bounds.Max.X)
 
 	// Vertical position mapping
 	var srcY func(row, total int) int
@@ -591,11 +579,8 @@ func loadImageRowColors(path string, targetRows int, sampleRate int, position st
 	}
 
 	colors := make([]color.Color, targetRows)
-	for row := 0; row < targetRows; row++ {
-		y := srcY(row, targetRows)
-		if y > bounds.Max.Y-1 {
-			y = bounds.Max.Y - 1
-		}
+	for row := range targetRows {
+		y := min(srcY(row, targetRows), bounds.Max.Y-1)
 		if y < bounds.Min.Y {
 			y = bounds.Min.Y
 		}
@@ -682,10 +667,7 @@ func breadcrumb(m *state.AppModel) string {
 	if len(items) == 0 {
 		return ""
 	}
-	bw := m.Viewport.Width - 6
-	if bw < 10 {
-		bw = 10
-	}
+	bw := max(m.Viewport.Width-6, 10)
 	return component.RenderBreadcrumb(items, " > ", bw)
 }
 

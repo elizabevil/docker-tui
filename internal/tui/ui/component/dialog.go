@@ -11,10 +11,7 @@ import (
 )
 
 func RenderShellDialogBox(shell string, termW int, overlayColor string, cursorVisible ...bool) string {
-	dialogW := termW * 25 / 100
-	if dialogW < 40 {
-		dialogW = 40
-	}
+	dialogW := max(termW*25/100, 40)
 	if dialogW > 60 {
 		dialogW = 60
 	}

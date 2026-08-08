@@ -33,14 +33,10 @@ func (p BatchProgressIndicator) Render(width int) string {
 	if p.Total <= 0 {
 		return ""
 	}
-	pct := p.Current * 100 / p.Total
-	if pct > 100 {
-		pct = 100
-	}
-	barW := width - 12 // reserve room for " 3/5 · stopping"
-	if barW < 4 {
-		barW = 4
-	}
+	pct := min(p.Current*100/p.Total, 100)
+	barW := max(
+		// reserve room for " 3/5 · stopping"
+		width-12, 4)
 	filled := pct * barW / 100
 	bar := strings.Repeat(BlockCursor, filled) +
 		strings.Repeat(BoxHorizontal, barW-filled)

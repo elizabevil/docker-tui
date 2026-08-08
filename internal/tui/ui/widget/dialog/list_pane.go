@@ -69,16 +69,13 @@ func (p FormListPane) Render(width int) string {
 		if start >= len(p.Items) {
 			items = nil
 		} else {
-			end := start + p.PageSize
-			if end > len(p.Items) {
-				end = len(p.Items)
-			}
+			end := min(start+p.PageSize, len(p.Items))
 			items = p.Items[start:end]
 		}
 	}
 	for _, item := range items {
 		parts = append(parts, component.GetStyle(component.StyleDim).
-			Render(lipgloss.NewStyle().Width(width).Render("  " + item)))
+			Render(lipgloss.NewStyle().Width(width).Render("  "+item)))
 	}
 	if p.PageSize > 0 && p.PageCount() > 1 {
 		pageInfo := fmt.Sprintf("%d/%d", p.Page+1, p.PageCount())

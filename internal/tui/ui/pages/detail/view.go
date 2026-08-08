@@ -112,10 +112,7 @@ func renderDocument(m *state.AppModel, bodyLines []state.DetailDocumentLine, pan
 	dimStyle := component.GetStyle(component.StyleDetailDim)
 	selectionStyle := component.GetStyle(component.StyleDetailSelection)
 
-	bodyHeight := panelHeight - 1
-	if bodyHeight < 3 {
-		bodyHeight = 3
-	}
+	bodyHeight := max(panelHeight-1, 3)
 	offset := m.Detail.ClampVisibleOffset(len(bodyLines), bodyHeight)
 
 	visible := bodyLines[offset:]

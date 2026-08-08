@@ -26,7 +26,7 @@ func TestRenderListFlexLayoutUsesAvailableWidth(t *testing.T) {
 		rendered := component.StripANSI(RenderList(model, pageWidth, 12, nil, false))
 		wantRowWidth := pageWidth
 		found := false
-		for _, line := range strings.Split(rendered, "\n") {
+		for line := range strings.SplitSeq(rendered, "\n") {
 			if strings.Contains(line, "integration-backend") {
 				found = true
 				if got := component.VisibleLen(line); got != wantRowWidth {

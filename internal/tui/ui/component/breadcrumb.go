@@ -1,6 +1,8 @@
 package component
 
 import (
+	"strings"
+
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
@@ -29,17 +31,17 @@ func RenderBreadcrumb(items []BreadcrumbItem, separator string, width int) strin
 	}
 
 	// Calculate full length
-	full := ""
+	var full strings.Builder
 	for i, item := range items {
 		if i > 0 {
-			full += separator
+			full.WriteString(separator)
 		}
-		full += item.Label
+		full.WriteString(item.Label)
 	}
 
-	visLen := utils.VisibleLen(full)
+	visLen := utils.VisibleLen(full.String())
 	if visLen <= width {
-		return GetStyle(StyleBreadcrumb).Render(full)
+		return GetStyle(StyleBreadcrumb).Render(full.String())
 	}
 
 	// Need to truncate: keep rightmost segments readable

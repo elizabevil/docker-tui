@@ -15,7 +15,10 @@ func Shortcuts(app *state.AppModel) string {
 	return lipgloss.JoinVertical(lipgloss.Top, globalRow, contextRow)
 }
 
-// Render returns the fixed two-row footer rail: global actions and context actions.
+// Render returns the fixed two-row footer rail: global actions and
+// context actions. The query input (when active) is rendered in the
+// layout layer, not here, so this package stays decoupled from
+// the input component.
 func Render(app *state.AppModel, width int) string {
 	rows := strings.Split(Shortcuts(app), "\n")
 	for len(rows) < 2 {

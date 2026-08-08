@@ -84,10 +84,7 @@ func RenderDetail(record *audit.Record, width int, height int) string {
 	}
 
 	var sb strings.Builder
-	w := width - 4
-	if w < 40 {
-		w = 40
-	}
+	w := max(width-4, 40)
 
 	sb.WriteString(component.GetStyle(component.StyleHeader).Render("Audit Record Detail"))
 	sb.WriteString("\n\n")

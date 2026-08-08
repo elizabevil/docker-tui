@@ -141,8 +141,8 @@ func coLocatedTarget(info container.InspectResponse) string {
 }
 
 func serviceRef(mode string) string {
-	if strings.HasPrefix(mode, "service:") {
-		return strings.TrimPrefix(mode, "service:")
+	if after, ok := strings.CutPrefix(mode, "service:"); ok {
+		return after
 	}
 	return ""
 }

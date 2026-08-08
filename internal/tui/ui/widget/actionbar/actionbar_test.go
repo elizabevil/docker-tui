@@ -36,7 +36,7 @@ func TestRenderBarBorderHasNoThemedBackground(t *testing.T) {
 	// line, with no preceding background fill that would visually separate
 	// the border from the panel underneath.
 	borderTop, borderSep, borderSide := "╭", "─", "│"
-	for _, line := range strings.Split(clean, "\n") {
+	for line := range strings.SplitSeq(clean, "\n") {
 		if strings.TrimSpace(line) == "" {
 			continue
 		}

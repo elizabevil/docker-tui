@@ -8,6 +8,8 @@ import (
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/tui/state"
+	view "github.com/elizabevil/docker-tui/internal/tui/ui/app"
 )
 
 func TestRuntimeConnectionsIncludeLocalAndConfiguredEntries(t *testing.T) {
@@ -138,4 +140,138 @@ func TestFirstRunHintSuppressedWhenConfigExists(t *testing.T) {
 	if hint := firstRunHint(); hint != "" {
 		t.Fatalf("firstRunHint = %q, want empty when config file exists", hint)
 	}
+}
+
+func TestCursorParkingWriterAppendsParkSequence(t *testing.T) {
+	w, read := newTestParkingWriter(t)
+	w.SetTarget(79, 21, true)
+
+	if _, err := w.Write([]byte("frame")); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	want := "frame\x1b[22;80H\x1b[?25l"
+	if got := read(); got != want {
+		t.Fatalf("output = %q, want %q", got, want)
+	}
+}
+
+func TestCursorParkingWriterZeroBasedToOneBased(t *testing.T) {
+	w, read := newTestParkingWriter(t)
+	w.SetTarget(0, 0, true)
+
+	if _, err := w.Write([]byte("x")); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	want := "x\x1b[1;1H\x1b[?25l"
+	if got := read(); got != want {
+		t.Fatalf("output = %q, want %q", got, want)
+	}
+}
+
+func TestCursorParkingWriterIdempotentAcrossWrites(t *testing.T) {
+	w, read := newTestParkingWriter(t)
+	w.SetTarget(10, 5, true)
+
+	if _, err := w.Write([]byte("a")); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	if _, err := w.Write([]byte("b")); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	want := "a\x1b[6;11H\x1b[?25lb\x1b[6;11H\x1b[?25l"
+	if got := read(); got != want {
+		t.Fatalf("output = %q, want %q", got, want)
+	}
+}
+
+func TestCursorParkingWriterInactiveNoSequence(t *testing.T) {
+	w, read := newTestParkingWriter(t)
+	w.SetTarget(10, 5, false)
+
+	if _, err := w.Write([]byte("frame")); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	if got := read(); got != "frame" {
+		t.Fatalf("output = %q, want %q", got, "frame")
+	}
+}
+
+func TestCursorParkingWriterDefaultInactive(t *testing.T) {
+	w, read := newTestParkingWriter(t)
+
+	if _, err := w.Write([]byte("frame")); err != nil {
+		t.Fatalf("Write: %v", err)
+	}
+	if got := read(); got != "frame" {
+		t.Fatalf("output = %q, want %q", got, "frame")
+	}
+}
+
+func TestCursorParkingWriterForwardsWriteError(t *testing.T) {
+	f, err := os.CreateTemp(t.TempDir(), "parking-*.out")
+	if err != nil {
+		t.Fatalf("CreateTemp: %v", err)
+	}
+	f.Close() // write on a closed file must surface an error
+	w := newCursorParkingWriter(f)
+	if _, err := w.Write([]byte("frame")); err == nil {
+		t.Fatalf("Write: want error, got nil")
+	}
+}
+
+func newTestParkingWriter(t *testing.T) (*cursorParkingWriter, func() string) {
+	t.Helper()
+	f, err := os.CreateTemp(t.TempDir(), "parking-*.out")
+	if err != nil {
+		t.Fatalf("CreateTemp: %v", err)
+	}
+	t.Cleanup(func() { f.Close() })
+	read := func() string {
+		t.Helper()
+		b, err := os.ReadFile(f.Name())
+		if err != nil {
+			t.Fatalf("ReadFile: %v", err)
+		}
+		return string(b)
+	}
+	return newCursorParkingWriter(f), read
+}
+
+func TestViewParksCursorOnFooterWhenIdle(t *testing.T) {
+	m := newMainModelForView(t, 120, 32)
+	v := m.View()
+	if v.Cursor != nil {
+		t.Fatalf("View.Cursor = %#v, want nil (visibility must stay hidden)", v.Cursor)
+	}
+	rep := view.ResolveLayout(m.model)
+	target := m.parking.target.Load().(cursorParkTarget)
+	if !target.active || target.x != 119 || target.y != rep.FooterTop {
+		t.Fatalf("target = %#v, want active (119, %d)", target, rep.FooterTop)
+	}
+}
+
+func TestViewDoesNotParkWhileTextInputActive(t *testing.T) {
+	m := newMainModelForView(t, 120, 32)
+	m.model.Navigation.Mode = state.ModeFilter
+	v := m.View()
+	if v.Cursor != nil {
+		t.Fatalf("View.Cursor = %#v, want nil", v.Cursor)
+	}
+	target := m.parking.target.Load().(cursorParkTarget)
+	if target.active {
+		t.Fatalf("target = %#v, want inactive while text input owns the keyboard", target)
+	}
+}
+
+func newMainModelForView(t *testing.T, width, height int) *mainModel {
+	t.Helper()
+	app := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	app.Viewport.Width = width
+	app.Viewport.Height = height
+	f, err := os.CreateTemp(t.TempDir(), "parking-*.out")
+	if err != nil {
+		t.Fatalf("CreateTemp: %v", err)
+	}
+	t.Cleanup(func() { f.Close() })
+	return &mainModel{model: app, parking: newCursorParkingWriter(f)}
 }

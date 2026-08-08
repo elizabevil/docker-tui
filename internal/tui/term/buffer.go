@@ -195,10 +195,7 @@ func (b *Buffer) handleCSI(params string, term byte) {
 
 	case 'G': // CHA - Cursor Horizontal Absolute
 		n := argOr(args, 0, 1)
-		b.col = n - 1
-		if b.col < 0 {
-			b.col = 0
-		}
+		b.col = max(n-1, 0)
 
 	case 'H', 'f': // CUP / HVP - Cursor Position
 		row := argOr(args, 0, 1) - 1
@@ -260,10 +257,7 @@ func (b *Buffer) handleCSI(params string, term byte) {
 		n := argOr(args, 0, 1)
 		runes := []rune(b.currentLine())
 		if b.col < len(runes) {
-			end := b.col + n
-			if end > len(runes) {
-				end = len(runes)
-			}
+			end := min(b.col+n, len(runes))
 			b.setLine(string(runes[:b.col]) + string(runes[end:]))
 		}
 
@@ -279,10 +273,7 @@ func (b *Buffer) handleCSI(params string, term byte) {
 		}
 
 	case 'd': // VPA - Vertical Position Absolute
-		n := argOr(args, 0, 1) - 1
-		if n < 0 {
-			n = 0
-		}
+		n := max(argOr(args, 0, 1)-1, 0)
 		b.row = n
 
 	case 's': // Save cursor (ignore)
@@ -371,26 +362,17 @@ func (b *Buffer) View(height, scroll int) []string {
 	if scroll < 0 {
 		scroll = 0
 	}
-	maxScroll := total - height
-	if maxScroll < 0 {
-		maxScroll = 0
-	}
+	maxScroll := max(total-height, 0)
 	if scroll > maxScroll {
 		scroll = maxScroll
 	}
 
-	start := total - height - scroll
-	if start < 0 {
-		start = 0
-	}
-	end := start + height
-	if end > total {
-		end = total
-	}
+	start := max(total-height-scroll, 0)
+	end := min(start+height, total)
 
 	out := make([]string, height)
 	padTop := height - (end - start)
-	for i := 0; i < padTop; i++ {
+	for i := range padTop {
 		out[i] = ""
 	}
 	for i := start; i < end; i++ {
@@ -415,17 +397,11 @@ func (b *Buffer) CursorVisible(height, scroll int) (visRow, visCol int) {
 	if cursorRow >= total {
 		cursorRow = total - 1
 	}
-	maxScroll := total - height
-	if maxScroll < 0 {
-		maxScroll = 0
-	}
+	maxScroll := max(total-height, 0)
 	if scroll > maxScroll {
 		scroll = maxScroll
 	}
-	start := total - height - scroll
-	if start < 0 {
-		start = 0
-	}
+	start := max(total-height-scroll, 0)
 	if cursorRow < start || cursorRow >= start+height {
 		return -1, -1
 	}

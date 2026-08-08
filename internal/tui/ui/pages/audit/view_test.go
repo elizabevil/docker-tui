@@ -29,7 +29,7 @@ func TestRenderListUsesSharedFlexLayout(t *testing.T) {
 	}
 
 	wantRowWidth := pageWidth
-	for _, line := range strings.Split(rendered, "\n") {
+	for line := range strings.SplitSeq(rendered, "\n") {
 		if strings.Contains(line, "container.restart") {
 			if got := component.VisibleLen(line); got != wantRowWidth {
 				t.Fatalf("audit row width = %d, want %d: %q", got, wantRowWidth, line)

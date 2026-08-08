@@ -41,7 +41,17 @@ func editQueryInput(key string, input *state.QueryInputState) (bool, bool) {
 	case "ctrl+w":
 		return true, input.DeleteWordBackward()
 	default:
-		if len([]rune(key)) != 1 {
+		// Per the IME compose fix (see .omo/ime-compose-shortcuts.md):
+		// during Chinese IME composing the terminal may send a multi-rune
+		// key string for a single user gesture (e.g. "ab" while typing
+		// pinyin). The previous strict len([]rune(key)) != 1 check
+		// returned (false, false) for those, letting the key fall through
+		// to HandleKeyPress' global action table where letter
+		// shortcuts (j/k/i/...) misfired. The field owns the input;
+		// consume the key and let input.Insert attempt to place the
+		// runes. Returning handled=true is the contract that suppresses
+		// shortcut detection upstream.
+		if len([]rune(key)) == 0 {
 			return false, false
 		}
 		return true, input.Insert(key)

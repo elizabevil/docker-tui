@@ -96,7 +96,7 @@ func (m *ImageListModel) SortedItems() []dockerclient.ImageSummary {
 }
 
 func sortImageSlice(items []dockerclient.ImageSummary, col ImageSortColumn, asc bool) {
-	for i := 0; i < len(items); i++ {
+	for i := range items {
 		for j := i + 1; j < len(items); j++ {
 			less := false
 			switch col {

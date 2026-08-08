@@ -19,7 +19,7 @@ func TestRenderBarWidthIsHalfPanel(t *testing.T) {
 	body := dialog.PanelBody{Left: 2, Top: 2, Width: 80, Rows: 30}
 	rendered := utils.StripANSI(RenderBar(m, strings.Repeat(strings.Repeat(" ", 80)+"\n", 30), body))
 	// Find the top border line.
-	for _, line := range strings.Split(rendered, "\n") {
+	for line := range strings.SplitSeq(rendered, "\n") {
 		clean := strings.TrimSpace(line)
 		if strings.HasPrefix(clean, "╭") {
 			// Width = 1/2 of 80 = 40, plus 2 border cells = 42 visible

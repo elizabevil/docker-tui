@@ -43,6 +43,16 @@ func HandleKeyPress(msg tea.KeyPressMsg, m *state.AppModel) (*state.AppModel, te
 		return mm, cmd
 	}
 
+	// IME composing guard: when dispatchByMode did not consume the
+	// key (e.g. a field-specific HandleKey returned false on a
+	// multi-rune IME fragment) and we are in an input-surface mode,
+	// suppress the global action table. Otherwise letter shortcuts
+	// like j/k/i misfire on the inner pinyin components typed into
+	// the field. See .omo/ime-compose-shortcuts.md.
+	if isInputSurfaceMode(m.Navigation.Mode) && isRuneKey(rawKey) {
+		return m, nil
+	}
+
 	// Nested views (image -> containers, compose -> services) own
 	// additional cursor semantics and are resolved before the main
 	// action table.
@@ -418,6 +428,37 @@ func keySurface(mode state.AppMode) string {
 	default:
 		return "main"
 	}
+}
+
+// isInputSurfaceMode reports whether the active mode owns a text input
+// (filter bar, search box, command palette, or any dialog text field).
+// Used by the IME compose guard in HandleKeyPress: when the mode's
+// dispatch did not consume a key (e.g. a field-specific HandleKey
+// returned false on a multi-rune IME fragment) and we are in such a
+// mode, suppress the global action table so letter shortcuts (j/k/i/...)
+// do not misfire on the inner pinyin components.
+func isInputSurfaceMode(mode state.AppMode) bool {
+	switch keySurface(mode) {
+	case "input", "dialog":
+		return true
+	}
+	return false
+}
+
+// isRuneKey reports whether key contains at least one printable rune
+// (rune >= 0x20 and != 0x7F). Control sequences (esc, tab, arrows,
+// ctrl+*, function keys) have no printable rune in their normalized
+// form; rune keys ("j", "ab", "你", …) do. This is the discriminator
+// for the IME compose guard: when key is a rune and the active mode
+// is an input surface, the rune belongs to the field, not to a
+// shortcut.
+func isRuneKey(key string) bool {
+	for _, r := range key {
+		if r >= 0x20 && r != 0x7F {
+			return true
+		}
+	}
+	return false
 }
 
 func keyMode(mode state.AppMode) string {

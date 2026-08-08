@@ -88,7 +88,7 @@ func (s DockerComposeService) ListProjects(ctx context.Context, opts runtimeapi.
 				entry.Version = v
 			}
 			if cf := ctr.Labels[runtimeapi.ComposeLabelConfigFiles]; cf != "" {
-				for _, line := range strings.Split(cf, "\n") {
+				for line := range strings.SplitSeq(cf, "\n") {
 					if t := strings.TrimSpace(line); t != "" {
 						entry.ConfigFiles = append(entry.ConfigFiles, t)
 					}
@@ -135,7 +135,7 @@ func (s DockerComposeService) InspectProject(ctx context.Context, project string
 		}
 		if len(out.ConfigFiles) == 0 {
 			if cf := c.Labels[runtimeapi.ComposeLabelConfigFiles]; cf != "" {
-				for _, line := range strings.Split(cf, "\n") {
+				for line := range strings.SplitSeq(cf, "\n") {
 					if t := strings.TrimSpace(line); t != "" {
 						out.ConfigFiles = append(out.ConfigFiles, t)
 					}

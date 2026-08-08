@@ -52,7 +52,7 @@ func TestToastQueue(t *testing.T) {
 	}
 
 	// Tick until dismissed (30 ticks = 3s at 100ms)
-	for i := 0; i < 30; i++ {
+	for range 30 {
 		q.Tick()
 	}
 	if q.Active() != "" {

@@ -1,6 +1,8 @@
 package box
 
 import (
+	"strings"
+
 	"github.com/elizabevil/docker-tui/internal/tui/ui/component"
 )
 
@@ -55,9 +57,10 @@ func joinWithSep(parts []string, sep string) string {
 	if len(parts) == 0 {
 		return ""
 	}
-	out := parts[0]
+	var out strings.Builder
+	out.WriteString(parts[0])
 	for _, p := range parts[1:] {
-		out += sep + p
+		out.WriteString(sep + p)
 	}
-	return out
+	return out.String()
 }

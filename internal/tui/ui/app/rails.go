@@ -109,7 +109,7 @@ func wrapMessageRail(text string, width, maxLines int) string {
 	width = max(1, width)
 
 	wrapped := make([]string, 0, maxLines+1)
-	for _, logicalLine := range strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n") {
+	for logicalLine := range strings.SplitSeq(strings.ReplaceAll(text, "\r\n", "\n"), "\n") {
 		if logicalLine == "" {
 			wrapped = append(wrapped, "")
 			continue
@@ -231,8 +231,13 @@ func renderQueryInput(kind queryKind, text string, cursor int, width int, matchC
 	}
 
 	content := component.PadVisible(input, innerWidth)
+	// Bordered box: border top + single content row + border bottom =
+	// queryRailHeight rows, so fitRailHeight does not truncate it. The
+	// cursor sits on the content row and the OS-level IME candidate
+	// window (drawn at cursor_row + 1) lands on the border row, which
+	// is still inside the query rail and clear of the panel.
 	return component.GetStyle(component.StyleQueryBar).
-		Width(boxWidth-2).
+		Width(boxWidth).
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(component.GetStyle(component.StyleDim).GetForeground()).
 		Padding(0, 1).

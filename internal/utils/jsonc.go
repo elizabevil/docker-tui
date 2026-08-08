@@ -82,7 +82,7 @@ func StripJSONCComments(data []byte) []byte {
 func IsJSONC(data []byte) bool {
 	inString := false
 	escape := false
-	for i := 0; i < len(data); i++ {
+	for i := range data {
 		c := data[i]
 		if inString {
 			switch {

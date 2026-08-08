@@ -114,10 +114,7 @@ func planFor(class TerminalClass, usableHeight int) railPlan {
 // thresholds; nothing is permanently hidden.
 func renderCompactApp(m *state.AppModel) string {
 	plan := planFor(TerminalCompact, m.Viewport.Height)
-	usableW := m.Viewport.Width
-	if usableW < 1 {
-		usableW = 1
-	}
+	usableW := max(m.Viewport.Width, 1)
 	status := renderMessageRail(m, usableW)
 	header := renderCompactHeader(m, usableW)
 	footerLine := renderCompactFooter(usableW)

@@ -36,7 +36,7 @@ func TestRenderListFlexLayoutUsesFullWidthForStats(t *testing.T) {
 	}
 
 	wantRowWidth := pageWidth
-	for _, line := range strings.Split(rendered, "\n") {
+	for line := range strings.SplitSeq(rendered, "\n") {
 		if strings.Contains(line, "dtui-test-redis") {
 			if width := component.VisibleLen(line); width != wantRowWidth {
 				t.Fatalf("container row width = %d, want %d: %q", width, wantRowWidth, line)

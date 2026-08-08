@@ -1,5 +1,7 @@
 package runtime
 
+import "slices"
+
 import "strings"
 
 // FilterSlice returns the items for which match returns true. If match returns
@@ -29,12 +31,7 @@ func MatchesLabel(labels map[string]string, expression string) bool {
 
 // ContainsString reports whether values contains expected.
 func ContainsString(values []string, expected string) bool {
-	for _, value := range values {
-		if value == expected {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(values, expected)
 }
 
 // ContainsReference reports whether any element of references is equal to or

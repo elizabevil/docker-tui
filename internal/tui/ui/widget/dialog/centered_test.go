@@ -29,7 +29,7 @@ func TestCenterOnPanelNormal(t *testing.T) {
 	}
 
 	// Lines 9..13: 40 leading dots, dialog, 20 trailing dots.
-	for dy := 0; dy < 5; dy++ {
+	for dy := range 5 {
 		leftPart := strings.Repeat(".", 40)
 		dl := ansi.TruncateWc(dialogRows[dy], 20, "")
 		if visW := ansi.StringWidth(dl); visW < 20 {
@@ -113,7 +113,7 @@ func TestCenterOnPanelPreservesANSI(t *testing.T) {
 		strings.Repeat(".", 7) + "green" + strings.Repeat(".", 8),
 		strings.Repeat(".", 7) + "blue " + strings.Repeat(".", 8),
 	}
-	for dy := 0; dy < 3; dy++ {
+	for dy := range 3 {
 		if plain := ansi.Strip(lines[dy]); plain != wantPlainRows[dy] {
 			t.Errorf("line %d\n  got: %q\n want: %q", dy, plain, wantPlainRows[dy])
 		}
@@ -181,7 +181,7 @@ var dialogRows []string
 func buildDialog(w, h int, ch rune) string {
 	dialogRows = make([]string, h)
 	var sb strings.Builder
-	for i := 0; i < h; i++ {
+	for i := range h {
 		row := strings.Repeat(string(ch), w)
 		dialogRows[i] = row
 		sb.WriteString(row)
@@ -194,7 +194,7 @@ func buildDialog(w, h int, ch rune) string {
 
 func buildContent(w, h int, ch rune) string {
 	lines := make([]string, h)
-	for i := 0; i < h; i++ {
+	for i := range h {
 		lines[i] = buildContentRow(w, ch)
 	}
 	return strings.Join(lines, "\n")

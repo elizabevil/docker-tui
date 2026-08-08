@@ -3,15 +3,18 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/agilira/orpheus/pkg/orpheus"
 	"github.com/bytedance/sonic"
+	"github.com/charmbracelet/x/term"
 	"github.com/elizabevil/docker-tui/internal/buildinfo"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
@@ -155,7 +158,9 @@ func runTUI(ctx *orpheus.Context) error {
 			"dtui session started",
 		)
 	}
-	p := tea.NewProgram(&mainModel{model: m, initialConnection: initialConnection})
+	parking := newCursorParkingWriter(os.Stdout)
+	p := tea.NewProgram(&mainModel{model: m, initialConnection: initialConnection, parking: parking},
+		tea.WithOutput(parking))
 	if _, err := p.Run(); err != nil {
 		return fmt.Errorf("TUI error: %w", err)
 	}
@@ -163,9 +168,73 @@ func runTUI(ctx *orpheus.Context) error {
 	return nil
 }
 
+// cursorParkTarget is the terminal position (0-based) where the cursor
+// should be parked after each render, plus whether parking is active.
+// When active the cursor's *position* is moved to the target while its
+// *visibility* stays hidden: View.Cursor is always nil, so the renderer
+// emits \x1b[?25l once and never shows the cursor again. OS-level IME
+// candidate windows still follow the cursor position, so parking on the
+// footer keeps them at the bottom of the screen instead of over the
+// table.
+type cursorParkTarget struct {
+	x, y   int
+	active bool
+}
+
+// cursorParkingWriter wraps the TUI output writer and re-asserts the
+// parked cursor position after every Write. It implements term.File
+// (Read/Close/Fd forwarded to the wrapped *os.File) so bubbletea still
+// detects a TTY: ttyOutput drives window size, resize events, terminal
+// restore and the color profile.
+type cursorParkingWriter struct {
+	f      *os.File
+	target atomic.Value // cursorParkTarget
+}
+
+func newCursorParkingWriter(f *os.File) *cursorParkingWriter {
+	c := &cursorParkingWriter{f: f}
+	c.target.Store(cursorParkTarget{})
+	return c
+}
+
+// Compile-time contract: bubbletea type-asserts the output to term.File
+// in initInput to detect a TTY. ttyOutput drives window size, resize
+// events, terminal restore and the color profile, so breaking this
+// assertion silently disables rendering at 0x0.
+var _ term.File = (*cursorParkingWriter)(nil)
+
+func (c *cursorParkingWriter) Write(p []byte) (int, error) {
+	n, err := c.f.Write(p)
+	if err != nil {
+		return n, err
+	}
+	if t, ok := c.target.Load().(cursorParkTarget); ok && t.active {
+		// CUP + trailing hide. The renderer may emit \x1b[?25h on
+		// altscreen transitions, so the hide is asserted here too.
+		seq := fmt.Sprintf("\x1b[%d;%dH\x1b[?25l", t.y+1, t.x+1)
+		if _, werr := io.WriteString(c.f, seq); werr != nil {
+			_ = werr // best effort: the frame already made it out
+		}
+	}
+	return n, err
+}
+
+func (c *cursorParkingWriter) Read(p []byte) (int, error) { return c.f.Read(p) }
+
+func (c *cursorParkingWriter) Close() error { return c.f.Close() }
+
+func (c *cursorParkingWriter) Fd() uintptr { return c.f.Fd() }
+
+// SetTarget updates the parked cursor target. Call it from View so the
+// target reflects the current layout before the next render flush.
+func (c *cursorParkingWriter) SetTarget(x, y int, active bool) {
+	c.target.Store(cursorParkTarget{x: x, y: y, active: active})
+}
+
 type mainModel struct {
 	model             *state.AppModel
 	initialConnection string
+	parking           *cursorParkingWriter
 }
 
 const initialResizeSettleDelay = 150 * time.Millisecond
@@ -308,6 +377,17 @@ func (m *mainModel) View() tea.View {
 	// remains the primary input path even when mouse is on.
 	if m.model.Dependencies.Config != nil && m.model.Dependencies.Config.UI.EnableMouse {
 		v.MouseMode = tea.MouseModeCellMotion
+	}
+	// When no text input owns the keyboard, park the cursor on the
+	// footer rail so IME candidate windows render at the bottom of the
+	// screen instead of over the table. The cursor stays hidden (View.Cursor
+	// is never set); only its position is moved, by cursorParkingWriter.
+	if m.parking != nil {
+		if x, y, ok := view.IdleCursorPosition(m.model); ok {
+			m.parking.SetTarget(x, y, true)
+		} else {
+			m.parking.SetTarget(0, 0, false)
+		}
 	}
 	return v
 }

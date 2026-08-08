@@ -62,7 +62,7 @@ type Record struct {
 	Runtime RuntimeContext `json:"runtime"`
 	UI      UIContext      `json:"ui"`
 	Target  TargetDTO      `json:"target"`
-	Details Details        `json:"details,omitempty"`
+	Details Details        `json:"details"`
 }
 
 type Target interface {

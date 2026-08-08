@@ -126,7 +126,7 @@ type ImageInspectJSON struct {
 	OsVersion    string                  `json:"OsVersion,omitempty"`
 	Size         int64                   `json:"Size"`
 	VirtualSize  int64                   `json:"VirtualSize,omitempty"`
-	GraphDriver  ImageInspectGraphDriver `json:"GraphDriver,omitempty"`
-	RootFS       ImageInspectRootFS      `json:"RootFS,omitempty"`
+	GraphDriver  ImageInspectGraphDriver `json:"GraphDriver"`
+	RootFS       ImageInspectRootFS      `json:"RootFS"`
 	Config       *ImageInspectConfig     `json:"Config,omitempty"`
 }

@@ -3,6 +3,7 @@ package dialog
 import (
 	"fmt"
 	"image/color"
+	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
@@ -314,18 +315,19 @@ func renderFormField(form state.FormState, f state.FormField, index, labelWidth,
 		value = df.Render(focused, valueWidth, cursorVisible)
 		value = wrapFormInputValue(value, valueWidth, opStyles)
 	}
-	row := label + " " + value
+	var row strings.Builder
+	row.WriteString(label + " " + value)
 	if len(wrapLines) > 0 {
 		indent := utils.PadVisible("", labelWidth+1)
 		for _, extra := range wrapLines {
-			row += "\n" + indent + extra
+			row.WriteString("\n" + indent + extra)
 		}
 	}
 	if f.Error() != "" {
 		pad := utils.PadVisible("", labelWidth+1)
-		row += "\n" + pad + lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDialogError).GetForeground()).Render(f.Error())
+		row.WriteString("\n" + pad + lipgloss.NewStyle().Foreground(component.GetStyle(component.StyleDialogError).GetForeground()).Render(f.Error()))
 	}
-	return row
+	return row.String()
 }
 
 // wrapFormInputValue applies the formInput style (foreground / background)

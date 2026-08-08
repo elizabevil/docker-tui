@@ -67,7 +67,7 @@ func gatherComposeProjects(m *state.AppModel) ([]composeProj, map[string]*compos
 				item.version = c.Labels[dockerclient.ComposeLabelVersion]
 			}
 			if cf := c.Labels[dockerclient.ComposeLabelConfigFiles]; cf != "" {
-				for _, line := range strings.Split(cf, "\n") {
+				for line := range strings.SplitSeq(cf, "\n") {
 					if t := strings.TrimSpace(line); t != "" {
 						item.configFiles = append(item.configFiles, t)
 					}
@@ -134,10 +134,7 @@ func RenderPanel(m *state.AppModel, panelWidth int, panelHeight int) string {
 	}
 
 	// topBar 占 1 行，表格内容高度减 1
-	bodyH := panelHeight - 1
-	if bodyH < 3 {
-		bodyH = 3
-	}
+	bodyH := max(panelHeight-1, 3)
 
 	left := renderProjectList(m, ordered, leftW, bodyH)
 	right := renderServicePanel(m, ordered[projectCursor], rightW, bodyH)

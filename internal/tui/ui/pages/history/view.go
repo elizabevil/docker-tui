@@ -25,20 +25,14 @@ func RenderView(m *state.AppModel, panelHeight, panelWidth int) string {
 
 	items := FilterLayers(h.Layers, h.Filter)
 
-	visible := panelHeight - 4
-	if visible < 1 {
-		visible = 1
-	}
+	visible := max(panelHeight-4, 1)
 	if h.ViewOffset < 0 {
 		h.ViewOffset = 0
 	}
 	if h.ViewOffset > max(0, len(items)-visible) {
 		h.ViewOffset = max(0, len(items)-visible)
 	}
-	end := h.ViewOffset + visible
-	if end > len(items) {
-		end = len(items)
-	}
+	end := min(h.ViewOffset+visible, len(items))
 	window := items[h.ViewOffset:end]
 
 	selectedWindow := -1

@@ -152,7 +152,7 @@ func NewTextField(cfg TextFieldConfig) state.FormField {
 	}
 }
 
-func (f *TextField) Kind() state.FormFieldKind      { return state.FormText }
+func (f *TextField) Kind() state.FormFieldKind     { return state.FormText }
 func (f *TextField) Key() string                   { return f.key }
 func (f *TextField) Hidden() bool                  { return f.hidden }
 func (f *TextField) SetHidden(v bool)              { f.hidden = v }
@@ -168,16 +168,16 @@ func (f *TextField) Cursor() int                   { return f.cursor }
 func (f *TextField) SetCursor(c int)               { f.cursor = c }
 func (f *TextField) Toggle() bool                  { return false }
 func (f *TextField) SetToggle(_ bool)              {}
-func (f *TextField) Options() []string            { return nil }
-func (f *TextField) DisplayOptions() []string     { return nil }
-func (f *TextField) Index() int                   { return 0 }
-func (f *TextField) SetIndex(_ int)               {}
-func (f *TextField) Selected() map[string]bool    { return nil }
+func (f *TextField) Options() []string             { return nil }
+func (f *TextField) DisplayOptions() []string      { return nil }
+func (f *TextField) Index() int                    { return 0 }
+func (f *TextField) SetIndex(_ int)                {}
+func (f *TextField) Selected() map[string]bool     { return nil }
 func (f *TextField) SetSelected(_ map[string]bool) {}
 
-func (f *TextField) Label() string   { return f.label }
+func (f *TextField) Label() string      { return f.label }
 func (f *TextField) HelperText() string { return f.helperText }
-func (f *TextField) HelpText() string { return f.helperText }
+func (f *TextField) HelpText() string   { return f.helperText }
 
 func (f *TextField) Render(focused bool, width int, cursorVisible ...bool) string {
 	value := renderTextCell(f.text, f.cursor, state.FormText, focused, width, cursorVisible...)
@@ -232,7 +232,7 @@ func NewIntField(cfg IntFieldConfig) state.FormField {
 	}
 }
 
-func (f *IntField) Kind() state.FormFieldKind      { return state.FormInt }
+func (f *IntField) Kind() state.FormFieldKind     { return state.FormInt }
 func (f *IntField) Key() string                   { return f.key }
 func (f *IntField) Hidden() bool                  { return f.hidden }
 func (f *IntField) SetHidden(v bool)              { f.hidden = v }
@@ -248,18 +248,18 @@ func (f *IntField) Cursor() int                   { return f.cursor }
 func (f *IntField) SetCursor(c int)               { f.cursor = c }
 func (f *IntField) Toggle() bool                  { return false }
 func (f *IntField) SetToggle(_ bool)              {}
-func (f *IntField) Options() []string            { return nil }
-func (f *IntField) DisplayOptions() []string     { return nil }
-func (f *IntField) Index() int                   { return 0 }
-func (f *IntField) SetIndex(_ int)               {}
-func (f *IntField) Selected() map[string]bool    { return nil }
+func (f *IntField) Options() []string             { return nil }
+func (f *IntField) DisplayOptions() []string      { return nil }
+func (f *IntField) Index() int                    { return 0 }
+func (f *IntField) SetIndex(_ int)                {}
+func (f *IntField) Selected() map[string]bool     { return nil }
 func (f *IntField) SetSelected(_ map[string]bool) {}
 func (f *IntField) Min() *float64                 { return f.min }
 func (f *IntField) Max() *float64                 { return f.max }
 
-func (f *IntField) Label() string   { return f.label }
+func (f *IntField) Label() string      { return f.label }
 func (f *IntField) HelperText() string { return f.helperText }
-func (f *IntField) HelpText() string { return f.helperText }
+func (f *IntField) HelpText() string   { return f.helperText }
 
 func (f *IntField) Render(focused bool, width int, cursorVisible ...bool) string {
 	value := renderTextCell(f.text, f.cursor, state.FormInt, focused, width, cursorVisible...)
@@ -364,14 +364,14 @@ func NewPathField(cfg PathFieldConfig) state.FormField {
 }
 
 func (f *PathField) Kind() state.FormFieldKind { return state.FormPath }
-func (f *PathField) Key() string              { return f.key }
-func (f *PathField) Hidden() bool             { return f.hidden }
-func (f *PathField) SetHidden(v bool)         { f.hidden = v }
-func (f *PathField) Error() string            { return f.errMsg }
-func (f *PathField) SetError(v string)        { f.errMsg = v }
-func (f *PathField) Touched() bool            { return f.touched }
-func (f *PathField) SetTouched(v bool)        { f.touched = v }
-func (f *PathField) Value() any               { return strings.TrimSpace(f.text) }
+func (f *PathField) Key() string               { return f.key }
+func (f *PathField) Hidden() bool              { return f.hidden }
+func (f *PathField) SetHidden(v bool)          { f.hidden = v }
+func (f *PathField) Error() string             { return f.errMsg }
+func (f *PathField) SetError(v string)         { f.errMsg = v }
+func (f *PathField) Touched() bool             { return f.touched }
+func (f *PathField) SetTouched(v bool)         { f.touched = v }
+func (f *PathField) Value() any                { return strings.TrimSpace(f.text) }
 func (f *PathField) Reset() {
 	f.text = ""
 	f.cursor = 0
@@ -383,17 +383,17 @@ func (f *PathField) Reset() {
 	f.showHidden = false
 	f.pathError = ""
 }
-func (f *PathField) Text() string     { return f.text }
-func (f *PathField) SetText(s string) { f.text = s }
-func (f *PathField) Cursor() int      { return f.cursor }
-func (f *PathField) SetCursor(c int)  { f.cursor = c }
-func (f *PathField) Toggle() bool     { return false }
-func (f *PathField) SetToggle(_ bool) {}
-func (f *PathField) Options() []string { return nil }
-func (f *PathField) DisplayOptions() []string { return nil }
-func (f *PathField) Index() int { return 0 }
-func (f *PathField) SetIndex(_ int) {}
-func (f *PathField) Selected() map[string]bool { return nil }
+func (f *PathField) Text() string                  { return f.text }
+func (f *PathField) SetText(s string)              { f.text = s }
+func (f *PathField) Cursor() int                   { return f.cursor }
+func (f *PathField) SetCursor(c int)               { f.cursor = c }
+func (f *PathField) Toggle() bool                  { return false }
+func (f *PathField) SetToggle(_ bool)              {}
+func (f *PathField) Options() []string             { return nil }
+func (f *PathField) DisplayOptions() []string      { return nil }
+func (f *PathField) Index() int                    { return 0 }
+func (f *PathField) SetIndex(_ int)                {}
+func (f *PathField) Selected() map[string]bool     { return nil }
 func (f *PathField) SetSelected(_ map[string]bool) {}
 
 // DependsOn / DependsEq: PathField-specific. The state-level field-hidden
@@ -402,9 +402,9 @@ func (f *PathField) SetSelected(_ map[string]bool) {}
 func (f *PathField) DependsOn() string { return f.dependsOn }
 func (f *PathField) DependsEq() bool   { return f.dependsEq }
 
-func (f *PathField) Label() string    { return f.label }
+func (f *PathField) Label() string      { return f.label }
 func (f *PathField) HelperText() string { return f.helperText }
-func (f *PathField) HelpText() string { return "path with Tab completion" }
+func (f *PathField) HelpText() string   { return "path with Tab completion" }
 
 func (f *PathField) Render(focused bool, width int, cursorVisible ...bool) string {
 	value := renderTextCell(f.text, f.cursor, state.FormPath, focused, width, cursorVisible...)
@@ -434,19 +434,19 @@ func (f *PathField) OpenPopup() (FormPopup, bool) {
 }
 
 // PathField-specific methods (not on FormField).
-func (f *PathField) PathSource() state.PathSource     { return f.pathSource }
-func (f *PathField) PathMode() state.PathMode         { return f.pathMode }
-func (f *PathField) ShowHidden() bool                 { return f.showHidden }
-func (f *PathField) SetShowHidden(v bool)             { f.showHidden = v }
-func (f *PathField) Suggestions() []state.PathEntry   { return f.suggestions }
+func (f *PathField) PathSource() state.PathSource       { return f.pathSource }
+func (f *PathField) PathMode() state.PathMode           { return f.pathMode }
+func (f *PathField) ShowHidden() bool                   { return f.showHidden }
+func (f *PathField) SetShowHidden(v bool)               { f.showHidden = v }
+func (f *PathField) Suggestions() []state.PathEntry     { return f.suggestions }
 func (f *PathField) SetSuggestions(v []state.PathEntry) { f.suggestions = v }
-func (f *PathField) PathLoading() bool                { return f.loading }
-func (f *PathField) SetPathLoading(v bool)            { f.loading = v }
-func (f *PathField) PathTabInput() string             { return f.tabInput }
-func (f *PathField) SetPathTabInput(v string)         { f.tabInput = v }
-func (f *PathField) PathError() string                { return f.pathError }
-func (f *PathField) SetPathError(v string)            { f.pathError = v }
-func (f *PathField) TextRaw() string                 { return f.text }
+func (f *PathField) PathLoading() bool                  { return f.loading }
+func (f *PathField) SetPathLoading(v bool)              { f.loading = v }
+func (f *PathField) PathTabInput() string               { return f.tabInput }
+func (f *PathField) SetPathTabInput(v string)           { f.tabInput = v }
+func (f *PathField) PathError() string                  { return f.pathError }
+func (f *PathField) SetPathError(v string)              { f.pathError = v }
+func (f *PathField) TextRaw() string                    { return f.text }
 
 // --- SelectField ----------------------------------------------------------
 
@@ -465,8 +465,8 @@ type SelectField struct {
 
 // SelectFieldConfig builds a SelectField.
 type SelectFieldConfig struct {
-	Key, Label, HelperText string
-	Required               bool
+	Key, Label, HelperText  string
+	Required                bool
 	Options, DisplayOptions []string
 	Index                   int
 }
@@ -484,13 +484,13 @@ func NewSelectField(cfg SelectFieldConfig) state.FormField {
 }
 
 func (f *SelectField) Kind() state.FormFieldKind { return state.FormSelect }
-func (f *SelectField) Key() string              { return f.key }
-func (f *SelectField) Hidden() bool             { return f.hidden }
-func (f *SelectField) SetHidden(v bool)         { f.hidden = v }
-func (f *SelectField) Error() string            { return f.errMsg }
-func (f *SelectField) SetError(v string)        { f.errMsg = v }
-func (f *SelectField) Touched() bool            { return f.touched }
-func (f *SelectField) SetTouched(v bool)        { f.touched = v }
+func (f *SelectField) Key() string               { return f.key }
+func (f *SelectField) Hidden() bool              { return f.hidden }
+func (f *SelectField) SetHidden(v bool)          { f.hidden = v }
+func (f *SelectField) Error() string             { return f.errMsg }
+func (f *SelectField) SetError(v string)         { f.errMsg = v }
+func (f *SelectField) Touched() bool             { return f.touched }
+func (f *SelectField) SetTouched(v bool)         { f.touched = v }
 
 func (f *SelectField) Value() any {
 	if f.index < 0 || f.index >= len(f.options) {
@@ -498,23 +498,23 @@ func (f *SelectField) Value() any {
 	}
 	return f.options[f.index]
 }
-func (f *SelectField) Reset() { f.index = 0; f.touched = false; f.errMsg = "" }
-func (f *SelectField) Text() string     { return "" }
-func (f *SelectField) SetText(_ string) {}
-func (f *SelectField) Cursor() int      { return 0 }
-func (f *SelectField) SetCursor(_ int)  {}
-func (f *SelectField) Toggle() bool     { return false }
-func (f *SelectField) SetToggle(_ bool) {}
-func (f *SelectField) Options() []string        { return f.options }
-func (f *SelectField) DisplayOptions() []string { return f.displayOptions }
-func (f *SelectField) Index() int               { return f.index }
-func (f *SelectField) SetIndex(i int)           { f.index = i }
-func (f *SelectField) Selected() map[string]bool { return nil }
+func (f *SelectField) Reset()                        { f.index = 0; f.touched = false; f.errMsg = "" }
+func (f *SelectField) Text() string                  { return "" }
+func (f *SelectField) SetText(_ string)              {}
+func (f *SelectField) Cursor() int                   { return 0 }
+func (f *SelectField) SetCursor(_ int)               {}
+func (f *SelectField) Toggle() bool                  { return false }
+func (f *SelectField) SetToggle(_ bool)              {}
+func (f *SelectField) Options() []string             { return f.options }
+func (f *SelectField) DisplayOptions() []string      { return f.displayOptions }
+func (f *SelectField) Index() int                    { return f.index }
+func (f *SelectField) SetIndex(i int)                { f.index = i }
+func (f *SelectField) Selected() map[string]bool     { return nil }
 func (f *SelectField) SetSelected(_ map[string]bool) {}
 
-func (f *SelectField) Label() string   { return f.label }
+func (f *SelectField) Label() string      { return f.label }
 func (f *SelectField) HelperText() string { return f.helperText }
-func (f *SelectField) HelpText() string { return "single choice dropdown" }
+func (f *SelectField) HelpText() string   { return "single choice dropdown" }
 
 func (f *SelectField) Render(focused bool, width int, _ ...bool) string {
 	value, marker := renderSelectCellValue(f.options, f.displayOptions, f.index, nil, state.FormSelect, focused, width)
@@ -547,10 +547,10 @@ type MultiSelectField struct {
 
 // MultiSelectFieldConfig builds a MultiSelectField.
 type MultiSelectFieldConfig struct {
-	Key, Label, HelperText string
-	Required               bool
+	Key, Label, HelperText  string
+	Required                bool
 	Options, DisplayOptions []string
-	Selected               map[string]bool
+	Selected                map[string]bool
 }
 
 func NewMultiSelectField(cfg MultiSelectFieldConfig) state.FormField {
@@ -566,13 +566,13 @@ func NewMultiSelectField(cfg MultiSelectFieldConfig) state.FormField {
 }
 
 func (f *MultiSelectField) Kind() state.FormFieldKind { return state.FormMultiSelect }
-func (f *MultiSelectField) Key() string              { return f.key }
-func (f *MultiSelectField) Hidden() bool             { return f.hidden }
-func (f *MultiSelectField) SetHidden(v bool)         { f.hidden = v }
-func (f *MultiSelectField) Error() string            { return f.errMsg }
-func (f *MultiSelectField) SetError(v string)        { f.errMsg = v }
-func (f *MultiSelectField) Touched() bool            { return f.touched }
-func (f *MultiSelectField) SetTouched(v bool)        { f.touched = v }
+func (f *MultiSelectField) Key() string               { return f.key }
+func (f *MultiSelectField) Hidden() bool              { return f.hidden }
+func (f *MultiSelectField) SetHidden(v bool)          { f.hidden = v }
+func (f *MultiSelectField) Error() string             { return f.errMsg }
+func (f *MultiSelectField) SetError(v string)         { f.errMsg = v }
+func (f *MultiSelectField) Touched() bool             { return f.touched }
+func (f *MultiSelectField) SetTouched(v bool)         { f.touched = v }
 
 func (f *MultiSelectField) Value() any {
 	if f.selected == nil {
@@ -580,23 +580,23 @@ func (f *MultiSelectField) Value() any {
 	}
 	return f.selected
 }
-func (f *MultiSelectField) Reset() { f.selected = nil; f.touched = false; f.errMsg = "" }
-func (f *MultiSelectField) Text() string     { return "" }
-func (f *MultiSelectField) SetText(_ string) {}
-func (f *MultiSelectField) Cursor() int      { return 0 }
-func (f *MultiSelectField) SetCursor(_ int)  {}
-func (f *MultiSelectField) Toggle() bool     { return false }
-func (f *MultiSelectField) SetToggle(_ bool) {}
-func (f *MultiSelectField) Options() []string        { return f.options }
-func (f *MultiSelectField) DisplayOptions() []string { return f.displayOptions }
-func (f *MultiSelectField) Index() int               { return 0 }
-func (f *MultiSelectField) SetIndex(_ int)           {}
-func (f *MultiSelectField) Selected() map[string]bool { return f.selected }
+func (f *MultiSelectField) Reset()                        { f.selected = nil; f.touched = false; f.errMsg = "" }
+func (f *MultiSelectField) Text() string                  { return "" }
+func (f *MultiSelectField) SetText(_ string)              {}
+func (f *MultiSelectField) Cursor() int                   { return 0 }
+func (f *MultiSelectField) SetCursor(_ int)               {}
+func (f *MultiSelectField) Toggle() bool                  { return false }
+func (f *MultiSelectField) SetToggle(_ bool)              {}
+func (f *MultiSelectField) Options() []string             { return f.options }
+func (f *MultiSelectField) DisplayOptions() []string      { return f.displayOptions }
+func (f *MultiSelectField) Index() int                    { return 0 }
+func (f *MultiSelectField) SetIndex(_ int)                {}
+func (f *MultiSelectField) Selected() map[string]bool     { return f.selected }
 func (f *MultiSelectField) SetSelected(v map[string]bool) { f.selected = v }
 
-func (f *MultiSelectField) Label() string   { return f.label }
+func (f *MultiSelectField) Label() string      { return f.label }
 func (f *MultiSelectField) HelperText() string { return f.helperText }
-func (f *MultiSelectField) HelpText() string { return "multi-select dropdown" }
+func (f *MultiSelectField) HelpText() string   { return "multi-select dropdown" }
 
 func (f *MultiSelectField) Render(focused bool, width int, _ ...bool) string {
 	value, marker := renderSelectCellValue(f.options, f.displayOptions, 0, f.selected, state.FormMultiSelect, focused, width)
@@ -649,36 +649,36 @@ func NewBoolField(cfg BoolFieldConfig) state.FormField {
 	}
 }
 
-func (f *BoolField) Kind() state.FormFieldKind { return state.FormBool }
-func (f *BoolField) Key() string              { return f.key }
-func (f *BoolField) Hidden() bool             { return f.hidden }
-func (f *BoolField) SetHidden(v bool)         { f.hidden = v }
-func (f *BoolField) Error() string            { return f.errMsg }
-func (f *BoolField) SetError(v string)        { f.errMsg = v }
-func (f *BoolField) Touched() bool            { return f.touched }
-func (f *BoolField) SetTouched(v bool)        { f.touched = v }
-func (f *BoolField) Value() any               { return f.toggle }
-func (f *BoolField) Reset()                   { f.toggle = false; f.touched = false; f.errMsg = "" }
-func (f *BoolField) Text() string             { return "" }
-func (f *BoolField) SetText(_ string)         {}
-func (f *BoolField) Cursor() int              { return 0 }
-func (f *BoolField) SetCursor(_ int)          {}
-func (f *BoolField) Toggle() bool             { return f.toggle }
-func (f *BoolField) SetToggle(v bool)         { f.toggle = v }
-func (f *BoolField) Options() []string        { return nil }
-func (f *BoolField) DisplayOptions() []string { return nil }
-func (f *BoolField) Index() int               { return 0 }
-func (f *BoolField) SetIndex(_ int)           {}
-func (f *BoolField) Selected() map[string]bool { return nil }
+func (f *BoolField) Kind() state.FormFieldKind     { return state.FormBool }
+func (f *BoolField) Key() string                   { return f.key }
+func (f *BoolField) Hidden() bool                  { return f.hidden }
+func (f *BoolField) SetHidden(v bool)              { f.hidden = v }
+func (f *BoolField) Error() string                 { return f.errMsg }
+func (f *BoolField) SetError(v string)             { f.errMsg = v }
+func (f *BoolField) Touched() bool                 { return f.touched }
+func (f *BoolField) SetTouched(v bool)             { f.touched = v }
+func (f *BoolField) Value() any                    { return f.toggle }
+func (f *BoolField) Reset()                        { f.toggle = false; f.touched = false; f.errMsg = "" }
+func (f *BoolField) Text() string                  { return "" }
+func (f *BoolField) SetText(_ string)              {}
+func (f *BoolField) Cursor() int                   { return 0 }
+func (f *BoolField) SetCursor(_ int)               {}
+func (f *BoolField) Toggle() bool                  { return f.toggle }
+func (f *BoolField) SetToggle(v bool)              { f.toggle = v }
+func (f *BoolField) Options() []string             { return nil }
+func (f *BoolField) DisplayOptions() []string      { return nil }
+func (f *BoolField) Index() int                    { return 0 }
+func (f *BoolField) SetIndex(_ int)                {}
+func (f *BoolField) Selected() map[string]bool     { return nil }
 func (f *BoolField) SetSelected(_ map[string]bool) {}
 
 // DependsOn / DependsEq: BoolField-specific.
 func (f *BoolField) DependsOn() string { return f.dependsOn }
 func (f *BoolField) DependsEq() bool   { return f.dependsEq }
 
-func (f *BoolField) Label() string   { return f.label }
+func (f *BoolField) Label() string      { return f.label }
 func (f *BoolField) HelperText() string { return f.helperText }
-func (f *BoolField) HelpText() string { return "boolean checkbox" }
+func (f *BoolField) HelpText() string   { return "boolean checkbox" }
 
 func (f *BoolField) Render(focused bool, width int, _ ...bool) string {
 	return fitValue(renderBoolCell(f.toggle, focused), width)
@@ -715,8 +715,8 @@ type RadioGroupField struct {
 
 // RadioGroupFieldConfig builds a RadioGroupField.
 type RadioGroupFieldConfig struct {
-	Key, Label, HelperText string
-	Required               bool
+	Key, Label, HelperText  string
+	Required                bool
 	Options, DisplayOptions []string
 	Index                   int
 }
@@ -734,13 +734,13 @@ func NewRadioGroupField(cfg RadioGroupFieldConfig) state.FormField {
 }
 
 func (f *RadioGroupField) Kind() state.FormFieldKind { return state.FormRadioGroup }
-func (f *RadioGroupField) Key() string              { return f.key }
-func (f *RadioGroupField) Hidden() bool             { return f.hidden }
-func (f *RadioGroupField) SetHidden(v bool)         { f.hidden = v }
-func (f *RadioGroupField) Error() string            { return f.errMsg }
-func (f *RadioGroupField) SetError(v string)        { f.errMsg = v }
-func (f *RadioGroupField) Touched() bool            { return f.touched }
-func (f *RadioGroupField) SetTouched(v bool)        { f.touched = v }
+func (f *RadioGroupField) Key() string               { return f.key }
+func (f *RadioGroupField) Hidden() bool              { return f.hidden }
+func (f *RadioGroupField) SetHidden(v bool)          { f.hidden = v }
+func (f *RadioGroupField) Error() string             { return f.errMsg }
+func (f *RadioGroupField) SetError(v string)         { f.errMsg = v }
+func (f *RadioGroupField) Touched() bool             { return f.touched }
+func (f *RadioGroupField) SetTouched(v bool)         { f.touched = v }
 
 func (f *RadioGroupField) Value() any {
 	if f.index < 0 || f.index >= len(f.options) {
@@ -748,23 +748,23 @@ func (f *RadioGroupField) Value() any {
 	}
 	return f.options[f.index]
 }
-func (f *RadioGroupField) Reset() { f.index = 0; f.touched = false; f.errMsg = "" }
-func (f *RadioGroupField) Text() string     { return "" }
-func (f *RadioGroupField) SetText(_ string) {}
-func (f *RadioGroupField) Cursor() int      { return 0 }
-func (f *RadioGroupField) SetCursor(_ int)  {}
-func (f *RadioGroupField) Toggle() bool     { return false }
-func (f *RadioGroupField) SetToggle(_ bool) {}
-func (f *RadioGroupField) Options() []string        { return f.options }
-func (f *RadioGroupField) DisplayOptions() []string { return f.displayOptions }
-func (f *RadioGroupField) Index() int               { return f.index }
-func (f *RadioGroupField) SetIndex(i int)           { f.index = i }
-func (f *RadioGroupField) Selected() map[string]bool { return nil }
+func (f *RadioGroupField) Reset()                        { f.index = 0; f.touched = false; f.errMsg = "" }
+func (f *RadioGroupField) Text() string                  { return "" }
+func (f *RadioGroupField) SetText(_ string)              {}
+func (f *RadioGroupField) Cursor() int                   { return 0 }
+func (f *RadioGroupField) SetCursor(_ int)               {}
+func (f *RadioGroupField) Toggle() bool                  { return false }
+func (f *RadioGroupField) SetToggle(_ bool)              {}
+func (f *RadioGroupField) Options() []string             { return f.options }
+func (f *RadioGroupField) DisplayOptions() []string      { return f.displayOptions }
+func (f *RadioGroupField) Index() int                    { return f.index }
+func (f *RadioGroupField) SetIndex(i int)                { f.index = i }
+func (f *RadioGroupField) Selected() map[string]bool     { return nil }
 func (f *RadioGroupField) SetSelected(_ map[string]bool) {}
 
-func (f *RadioGroupField) Label() string   { return f.label }
+func (f *RadioGroupField) Label() string      { return f.label }
 func (f *RadioGroupField) HelperText() string { return f.helperText }
-func (f *RadioGroupField) HelpText() string { return "radio group (single choice)" }
+func (f *RadioGroupField) HelpText() string   { return "radio group (single choice)" }
 
 func (f *RadioGroupField) Render(focused bool, width int, _ ...bool) string {
 	label := fieldValueLabel(f.options, f.displayOptions, f.index)
@@ -791,8 +791,8 @@ type TextMultiLineField struct {
 	hidden                 bool
 	errMsg                 string
 
-	text   string
-	cursor int
+	text    string
+	cursor  int
 	touched bool
 }
 
@@ -817,32 +817,32 @@ func NewTextMultiLineField(cfg TextMultiLineFieldConfig) state.FormField {
 	}
 }
 
-func (f *TextMultiLineField) Kind() state.FormFieldKind { return state.FormTextMultiLine }
-func (f *TextMultiLineField) Key() string              { return f.key }
-func (f *TextMultiLineField) Hidden() bool             { return f.hidden }
-func (f *TextMultiLineField) SetHidden(v bool)         { f.hidden = v }
-func (f *TextMultiLineField) Error() string            { return f.errMsg }
-func (f *TextMultiLineField) SetError(v string)        { f.errMsg = v }
-func (f *TextMultiLineField) Touched() bool            { return f.touched }
-func (f *TextMultiLineField) SetTouched(v bool)        { f.touched = v }
-func (f *TextMultiLineField) Value() any               { return strings.TrimSpace(f.text) }
-func (f *TextMultiLineField) Reset()                   { f.text = ""; f.cursor = 0; f.touched = false; f.errMsg = "" }
-func (f *TextMultiLineField) Text() string             { return f.text }
-func (f *TextMultiLineField) SetText(s string)         { f.text = s }
-func (f *TextMultiLineField) Cursor() int              { return f.cursor }
-func (f *TextMultiLineField) SetCursor(c int)          { f.cursor = c }
-func (f *TextMultiLineField) Toggle() bool             { return false }
-func (f *TextMultiLineField) SetToggle(_ bool)         {}
-func (f *TextMultiLineField) Options() []string        { return nil }
-func (f *TextMultiLineField) DisplayOptions() []string { return nil }
-func (f *TextMultiLineField) Index() int               { return 0 }
-func (f *TextMultiLineField) SetIndex(_ int)           {}
-func (f *TextMultiLineField) Selected() map[string]bool { return nil }
+func (f *TextMultiLineField) Kind() state.FormFieldKind     { return state.FormTextMultiLine }
+func (f *TextMultiLineField) Key() string                   { return f.key }
+func (f *TextMultiLineField) Hidden() bool                  { return f.hidden }
+func (f *TextMultiLineField) SetHidden(v bool)              { f.hidden = v }
+func (f *TextMultiLineField) Error() string                 { return f.errMsg }
+func (f *TextMultiLineField) SetError(v string)             { f.errMsg = v }
+func (f *TextMultiLineField) Touched() bool                 { return f.touched }
+func (f *TextMultiLineField) SetTouched(v bool)             { f.touched = v }
+func (f *TextMultiLineField) Value() any                    { return strings.TrimSpace(f.text) }
+func (f *TextMultiLineField) Reset()                        { f.text = ""; f.cursor = 0; f.touched = false; f.errMsg = "" }
+func (f *TextMultiLineField) Text() string                  { return f.text }
+func (f *TextMultiLineField) SetText(s string)              { f.text = s }
+func (f *TextMultiLineField) Cursor() int                   { return f.cursor }
+func (f *TextMultiLineField) SetCursor(c int)               { f.cursor = c }
+func (f *TextMultiLineField) Toggle() bool                  { return false }
+func (f *TextMultiLineField) SetToggle(_ bool)              {}
+func (f *TextMultiLineField) Options() []string             { return nil }
+func (f *TextMultiLineField) DisplayOptions() []string      { return nil }
+func (f *TextMultiLineField) Index() int                    { return 0 }
+func (f *TextMultiLineField) SetIndex(_ int)                {}
+func (f *TextMultiLineField) Selected() map[string]bool     { return nil }
 func (f *TextMultiLineField) SetSelected(_ map[string]bool) {}
 
-func (f *TextMultiLineField) Label() string   { return f.label }
+func (f *TextMultiLineField) Label() string      { return f.label }
 func (f *TextMultiLineField) HelperText() string { return f.helperText }
-func (f *TextMultiLineField) HelpText() string { return "multi-line text (first line shown)" }
+func (f *TextMultiLineField) HelpText() string   { return "multi-line text (first line shown)" }
 
 func (f *TextMultiLineField) Render(focused bool, width int, cursorVisible ...bool) string {
 	first, _, _ := strings.Cut(f.text, "\n")
@@ -874,8 +874,8 @@ type TextPasswordField struct {
 	hidden                 bool
 	errMsg                 string
 
-	text   string
-	cursor int
+	text    string
+	cursor  int
 	touched bool
 }
 
@@ -900,32 +900,32 @@ func NewTextPasswordField(cfg TextPasswordFieldConfig) state.FormField {
 	}
 }
 
-func (f *TextPasswordField) Kind() state.FormFieldKind { return state.FormTextPassword }
-func (f *TextPasswordField) Key() string              { return f.key }
-func (f *TextPasswordField) Hidden() bool             { return f.hidden }
-func (f *TextPasswordField) SetHidden(v bool)         { f.hidden = v }
-func (f *TextPasswordField) Error() string            { return f.errMsg }
-func (f *TextPasswordField) SetError(v string)        { f.errMsg = v }
-func (f *TextPasswordField) Touched() bool            { return f.touched }
-func (f *TextPasswordField) SetTouched(v bool)        { f.touched = v }
-func (f *TextPasswordField) Value() any               { return strings.TrimSpace(f.text) }
-func (f *TextPasswordField) Reset()                   { f.text = ""; f.cursor = 0; f.touched = false; f.errMsg = "" }
-func (f *TextPasswordField) Text() string             { return f.text }
-func (f *TextPasswordField) SetText(s string)         { f.text = s }
-func (f *TextPasswordField) Cursor() int              { return f.cursor }
-func (f *TextPasswordField) SetCursor(c int)          { f.cursor = c }
-func (f *TextPasswordField) Toggle() bool             { return false }
-func (f *TextPasswordField) SetToggle(_ bool)         {}
-func (f *TextPasswordField) Options() []string        { return nil }
-func (f *TextPasswordField) DisplayOptions() []string { return nil }
-func (f *TextPasswordField) Index() int               { return 0 }
-func (f *TextPasswordField) SetIndex(_ int)           {}
-func (f *TextPasswordField) Selected() map[string]bool { return nil }
+func (f *TextPasswordField) Kind() state.FormFieldKind     { return state.FormTextPassword }
+func (f *TextPasswordField) Key() string                   { return f.key }
+func (f *TextPasswordField) Hidden() bool                  { return f.hidden }
+func (f *TextPasswordField) SetHidden(v bool)              { f.hidden = v }
+func (f *TextPasswordField) Error() string                 { return f.errMsg }
+func (f *TextPasswordField) SetError(v string)             { f.errMsg = v }
+func (f *TextPasswordField) Touched() bool                 { return f.touched }
+func (f *TextPasswordField) SetTouched(v bool)             { f.touched = v }
+func (f *TextPasswordField) Value() any                    { return strings.TrimSpace(f.text) }
+func (f *TextPasswordField) Reset()                        { f.text = ""; f.cursor = 0; f.touched = false; f.errMsg = "" }
+func (f *TextPasswordField) Text() string                  { return f.text }
+func (f *TextPasswordField) SetText(s string)              { f.text = s }
+func (f *TextPasswordField) Cursor() int                   { return f.cursor }
+func (f *TextPasswordField) SetCursor(c int)               { f.cursor = c }
+func (f *TextPasswordField) Toggle() bool                  { return false }
+func (f *TextPasswordField) SetToggle(_ bool)              {}
+func (f *TextPasswordField) Options() []string             { return nil }
+func (f *TextPasswordField) DisplayOptions() []string      { return nil }
+func (f *TextPasswordField) Index() int                    { return 0 }
+func (f *TextPasswordField) SetIndex(_ int)                {}
+func (f *TextPasswordField) Selected() map[string]bool     { return nil }
 func (f *TextPasswordField) SetSelected(_ map[string]bool) {}
 
-func (f *TextPasswordField) Label() string   { return f.label }
+func (f *TextPasswordField) Label() string      { return f.label }
 func (f *TextPasswordField) HelperText() string { return f.helperText }
-func (f *TextPasswordField) HelpText() string { return "password (masked)" }
+func (f *TextPasswordField) HelpText() string   { return "password (masked)" }
 
 func (f *TextPasswordField) Render(focused bool, width int, cursorVisible ...bool) string {
 	masked := strings.Repeat(passwordBullet, len([]rune(f.text)))
@@ -956,13 +956,10 @@ type SelectPopup struct {
 
 func (p *SelectPopup) Title() string { return "" }
 func (p *SelectPopup) Size() (int, int) {
-	rows := len(p.options)
-	if rows > 8 {
-		rows = 8
-	}
+	rows := min(len(p.options), 8)
 	return 60, rows + 2
 }
-func (p *SelectPopup) Highlighted() int { return p.cursor }
+func (p *SelectPopup) Highlighted() int                { return p.cursor }
 func (p *SelectPopup) Render(width, height int) string { return "" }
 
 func (p *SelectPopup) HandleKey(key string) (bool, bool, any) {
@@ -1001,9 +998,9 @@ type PathPopup struct {
 	cursor int
 }
 
-func (p *PathPopup) Title() string     { return "" }
-func (p *PathPopup) Highlighted() int { return p.cursor }
-func (p *PathPopup) Size() (int, int) { return 100, state.FormPopupVisibleRows + 5 }
+func (p *PathPopup) Title() string                   { return "" }
+func (p *PathPopup) Highlighted() int                { return p.cursor }
+func (p *PathPopup) Size() (int, int)                { return 100, state.FormPopupVisibleRows + 5 }
 func (p *PathPopup) Render(width, height int) string { return "" }
 
 func (p *PathPopup) HandleKey(key string) (bool, bool, any) {

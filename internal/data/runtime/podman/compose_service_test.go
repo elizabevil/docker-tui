@@ -155,11 +155,11 @@ func TestComposeRunDetachedDelegatesRemoveToEngine(t *testing.T) {
 	}))
 
 	err := svc.Run(context.Background(), "demo", "web", nil, runtimeapi.RunOptions{
-		Detach:            true,
-		RemoveAfter:       true,
+		Detach:             true,
+		RemoveAfter:        true,
 		EntrypointOverride: "/bin/sh",
-		EnvOverrides:      map[string]string{"FOO": "bar"},
-		User:              "1000:1000",
+		EnvOverrides:       map[string]string{"FOO": "bar"},
+		User:               "1000:1000",
 	})
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
@@ -349,8 +349,7 @@ func TestComposeEventsStreamsProjectEvents(t *testing.T) {
 		return response(http.StatusOK, eventBody), nil
 	}))
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	out, err := svc.Events(ctx, "demo")
 	if err != nil {
 		t.Fatalf("Events() error = %v", err)

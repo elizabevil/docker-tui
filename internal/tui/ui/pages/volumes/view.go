@@ -28,10 +28,7 @@ func RenderList(vm *state.VolumeListModel, cm *state.ContainerListModel, width i
 	if vm.DetailName != "" {
 		return renderContainers(cm, width, vm.DetailName, panelHeight)
 	}
-	w := width
-	if w < 42 {
-		w = 42
-	}
+	w := max(width, 42)
 
 	profile := profileSelector.Select(w)
 	colsDef := tc.Columns.Get(profile)
