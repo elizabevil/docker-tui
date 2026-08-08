@@ -23,10 +23,14 @@ var errComposeUnsupported = errors.New(
 	"podman compose: this command is not available via Engine API; use podman compose CLI",
 )
 
+// projectFilter returns the label-only filter for listing a compose
+// project's containers. "All" (including stopped containers) is NOT a
+// valid filter key per podman swagger — it is a separate top-level
+// query parameter, handled by the driver via ContainerListOptions.All
+// (see containers_rest.go:query.Set("all", ...)).
 func (s PodmanComposeService) projectFilter(project string) map[string][]string {
 	return map[string][]string{
 		"label": {runtimeapi.ComposeProjectLabelValue(project)},
-		"all":   {"true"},
 	}
 }
 
