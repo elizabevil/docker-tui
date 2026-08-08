@@ -10,23 +10,27 @@ import (
 )
 
 // ContainerUpdate applies resource-limit changes via POST /libpod/containers/{id}/update.
+// Swagger compliance: only restartPolicy/restartRetries are query params
+// (ContainerUpdateLibpod); memory/cpu limits ride in the UpdateEntities body.
 // TASK-019.
 func (c *RESTClient) ContainerUpdate(ctx context.Context, id string, options dto.ContainerUpdateOptions) (*dto.ContainerUpdateResponse, error) {
 	query := url.Values{}
-	if options.Memory > 0 {
-		query.Set("memory", strconv.FormatInt(options.Memory, 10))
-	}
-	if options.NanoCPUs > 0 {
-		query.Set("cpus", strconv.FormatFloat(float64(options.NanoCPUs)/1e9, 'f', 6, 64))
-	}
 	if options.RestartPolicy != "" {
 		query.Set("restartPolicy", options.RestartPolicy)
 	}
 	if options.RestartMaxRetries > 0 {
-		query.Set("restartMaxRetries", strconv.Itoa(options.RestartMaxRetries))
+		query.Set("restartRetries", strconv.Itoa(options.RestartMaxRetries))
+	}
+	body := dto.UpdateEntities{}
+	if options.Memory > 0 {
+		body.Memory = &dto.LinuxMemory{Limit: options.Memory}
+	}
+	if options.NanoCPUs > 0 {
+		// CFS bandwidth: 1 CPU = 1e9 nanoCPUs over the default 100000us period.
+		body.CPU = &dto.LinuxCPU{Period: 100000, Quota: options.NanoCPUs / 10000}
 	}
 	var raw dto.ContainerUpdateResponse
-	if err := c.Post(ctx, ContainerUpdatePath(id), query, nil, &raw); err != nil {
+	if err := c.Post(ctx, ContainerUpdatePath(id), query, &body, &raw); err != nil {
 		return nil, err
 	}
 	return &raw, nil

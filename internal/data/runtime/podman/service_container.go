@@ -66,6 +66,11 @@ func (s PodmanContainerService) Stats(ctx context.Context, id string) (runtimeap
 	if err != nil {
 		return runtimeapi.ContainerStats{}, mapPodmanContainerErr(err, "stats", id)
 	}
+	return mapPodmanStats(raw), nil
+}
+
+// mapPodmanStats converts a dto.StatsJSON into the runtime stats view.
+func mapPodmanStats(raw *dto.StatsJSON) runtimeapi.ContainerStats {
 	var networkRx, networkTx float64
 	for _, net := range raw.Networks {
 		networkRx += float64(net.RxBytes)
@@ -81,7 +86,7 @@ func (s PodmanContainerService) Stats(ctx context.Context, id string) (runtimeap
 		MemoryPercent: memPct,
 		NetworkRx:     networkRx,
 		NetworkTx:     networkTx,
-	}, nil
+	}
 }
 
 // mapPodmanContainerErr wraps a Podman REST error with the container
@@ -154,7 +159,9 @@ func (s PodmanContainerService) Update(ctx context.Context, id string, options r
 	if res == nil {
 		return runtimeapi.ContainerUpdateResult{}, nil
 	}
-	return runtimeapi.ContainerUpdateResult{Warnings: res.Warnings}, nil
+	// Podman's containerUpdateResponse carries only the container ID;
+	// the runtime result has no warnings to surface here.
+	return runtimeapi.ContainerUpdateResult{}, nil
 }
 
 // Diff returns filesystem changes between a container and its base image.

@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"strconv"
 	"time"
+
+	"github.com/elizabevil/docker-tui/internal/driver/podman/dto"
 )
 
 // ContainerActionOptions carries the parameters of an arbitrary container
@@ -13,7 +15,7 @@ import (
 // zero value:
 //
 //	ActionStart   — no fields used
-//	ActionStop    — Timeout, Signal
+//	ActionStop    — Timeout
 //	ActionRestart — Timeout
 //	ActionKill    — Signal
 //	ActionPause   — no fields used
@@ -46,7 +48,6 @@ func (o ContainerActionOptions) Query(action string) url.Values {
 	switch action {
 	case ActionStop:
 		o.setTimeout(q)
-		o.setSignal(q)
 	case ActionRestart:
 		o.setTimeout(q)
 	case ActionKill:
@@ -120,4 +121,14 @@ func (c *RESTClient) ExecuteContainerAction(ctx context.Context, id, action stri
 	default:
 		return newPodmanError(KindInvalid, "container."+action, fmt.Errorf("unsupported action: %s", action))
 	}
+}
+
+// ContainerCreate creates a container via POST /libpod/containers/create.
+// Per swagger the endpoint returns 201 Created with a ContainerCreateResponse.
+func (c *RESTClient) ContainerCreate(ctx context.Context, spec *dto.SpecGenerator) (*dto.ContainerCreateResponse, error) {
+	var raw dto.ContainerCreateResponse
+	if err := c.Post(ctx, PathContainerCreate, nil, spec, &raw); err != nil {
+		return nil, err
+	}
+	return &raw, nil
 }

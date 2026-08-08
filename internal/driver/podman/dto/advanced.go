@@ -18,8 +18,10 @@ const (
 	ArchiveChangeDeleted  ChangeKind = 2
 )
 
-// ContainerUpdateOptions is the request body for
-// /libpod/containers/{id}/update.
+// ContainerUpdateOptions captures the update knobs surfaced to the
+// caller. Resource limits (Memory, NanoCPUs) are sent in the
+// UpdateEntities JSON body; restart knobs map to the query parameters
+// restartPolicy / restartRetries as defined by ContainerUpdateLibpod.
 type ContainerUpdateOptions struct {
 	Memory            int64
 	NanoCPUs          int64
@@ -28,10 +30,46 @@ type ContainerUpdateOptions struct {
 }
 
 // ContainerUpdateResponse is the response for
-// /libpod/containers/{id}/update. The Podman REST API returns a list
-// of human-readable warnings.
+// /libpod/containers/{id}/update. The swagger definition
+// (containerUpdateResponse) declares a single ID field.
 type ContainerUpdateResponse struct {
-	Warnings []string `json:"Warnings"`
+	ID string `json:"ID"`
+}
+
+// UpdateEntities is the request body for /libpod/containers/{id}/update
+// (swagger definitions.UpdateEntities). Only the resource-limit subset
+// surfaced by ContainerUpdateOptions is modelled; unrecognized fields
+// are ignored by the daemon.
+type UpdateEntities struct {
+	Memory *LinuxMemory `json:"memory,omitempty"`
+	CPU    *LinuxCPU    `json:"cpu,omitempty"`
+}
+
+// LinuxMemory mirrors swagger definitions.LinuxMemory. Limit is in bytes.
+type LinuxMemory struct {
+	Limit             int64  `json:"limit,omitempty"`
+	Reservation       int64  `json:"reservation,omitempty"`
+	Swap              int64  `json:"swap,omitempty"`
+	Kernel            int64  `json:"kernel,omitempty"`
+	KernelTCP         int64  `json:"kernelTCP,omitempty"`
+	Swappiness        uint64 `json:"swappiness,omitempty"`
+	DisableOOMKiller  bool   `json:"disableOOMKiller,omitempty"`
+	UseHierarchy      bool   `json:"useHierarchy,omitempty"`
+	CheckBeforeUpdate bool   `json:"checkBeforeUpdate,omitempty"`
+}
+
+// LinuxCPU mirrors swagger definitions.LinuxCPU. Quota/Period use the
+// CFS bandwidth accounting units (microseconds); Cpus is a cpuset list.
+type LinuxCPU struct {
+	Quota           int64  `json:"quota,omitempty"`
+	Period          uint64 `json:"period,omitempty"`
+	Shares          uint64 `json:"shares,omitempty"`
+	Burst           uint64 `json:"burst,omitempty"`
+	Idle            int64  `json:"idle,omitempty"`
+	Cpus            string `json:"cpus,omitempty"`
+	Mems            string `json:"mems,omitempty"`
+	RealtimePeriod  uint64 `json:"realtimePeriod,omitempty"`
+	RealtimeRuntime int64  `json:"realtimeRuntime,omitempty"`
 }
 
 // ContainerCommitOptions captures parameters for

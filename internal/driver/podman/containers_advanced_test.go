@@ -2,6 +2,7 @@ package podman
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -65,6 +66,59 @@ func TestContainerCommitUsesCollectionEndpointAndQuery(t *testing.T) {
 	}
 	if result.ID != "sha256:new" {
 		t.Fatalf("commit ID = %q", result.ID)
+	}
+}
+
+// TestContainerUpdateSwaggerCompliance verifies the update request is
+// shaped per ContainerUpdateLibpod: query carries only restartPolicy /
+// restartRetries, resource limits ride in the UpdateEntities body, and
+// the response parses the containerUpdateResponse {ID} schema.
+func TestContainerUpdateSwaggerCompliance(t *testing.T) {
+	client, err := NewRESTClient(RESTConfig{
+		Endpoint:   "http://podman.test",
+		APIVersion: "5.4.2",
+		HTTPClient: &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+			if request.Method != http.MethodPost || request.URL.Path != "/v5.4.2/libpod/containers/abc123/update" {
+				t.Fatalf("request = %s %s", request.Method, request.URL.Path)
+			}
+			query := request.URL.Query()
+			for key, want := range map[string]string{
+				"restartPolicy": "on-failure", "restartRetries": "3",
+			} {
+				if got := query.Get(key); got != want {
+					t.Fatalf("query %s = %q, want %q", key, got, want)
+				}
+			}
+			for _, banned := range []string{"memory", "cpus", "restartMaxRetries"} {
+				if query.Has(banned) {
+					t.Fatalf("query must not contain %q (swagger ContainerUpdateLibpod)", banned)
+				}
+			}
+			var body dto.UpdateEntities
+			if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
+				t.Fatalf("decode body: %v", err)
+			}
+			if body.Memory == nil || body.Memory.Limit != 512*1024*1024 {
+				t.Fatalf("body.Memory = %+v", body.Memory)
+			}
+			if body.CPU == nil || body.CPU.Quota != 200000 || body.CPU.Period != 100000 {
+				t.Fatalf("body.CPU = %+v", body.CPU)
+			}
+			return response(http.StatusCreated, `{"ID":"abc123"}`), nil
+		})},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := client.ContainerUpdate(context.Background(), "abc123", dto.ContainerUpdateOptions{
+		Memory: 512 * 1024 * 1024, NanoCPUs: 2_000_000_000,
+		RestartPolicy: "on-failure", RestartMaxRetries: 3,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.ID != "abc123" {
+		t.Fatalf("update ID = %q", result.ID)
 	}
 }
 

@@ -1,24 +1,12 @@
 {
-  "ID": "5c7a0612-a262-48d5-b83c-a54d543bf307",
-  "Containers": 3,
-  "ContainersRunning": 2,
+  "ID": "605b9d77-9424-4094-9b61-a93a6f393c92",
+  "Containers": 13,
+  "ContainersRunning": 0,
   "ContainersPaused": 0,
-  "ContainersStopped": 1,
-  "Images": 253,
+  "ContainersStopped": 13,
+  "Images": 10,
   "Driver": "overlay",
   "DriverStatus": [
-    [
-      "Backing Filesystem",
-      "extfs"
-    ],
-    [
-      "Supports d_type",
-      "true"
-    ],
-    [
-      "Native Overlay Diff",
-      "true"
-    ],
     [
       "Using metacopy",
       "false"
@@ -29,6 +17,18 @@
     ],
     [
       "Supports volatile",
+      "true"
+    ],
+    [
+      "Backing Filesystem",
+      "extfs"
+    ],
+    [
+      "Supports d_type",
+      "true"
+    ],
+    [
+      "Native Overlay Diff",
       "true"
     ]
   ],
@@ -63,7 +63,7 @@
   "NFd": 11,
   "OomKillDisable": false,
   "NGoroutines": 14,
-  "SystemTime": "2026-08-05T22:45:00.243645019-04:00",
+  "SystemTime": "2026-08-07T22:02:08.25329975-04:00",
   "LoggingDriver": "",
   "CgroupDriver": "systemd",
   "NEventsListener": 0,
@@ -80,8 +80,8 @@
     "IndexConfigs": {},
     "Mirrors": []
   },
-  "NCPU": 14,
-  "MemTotal": 16733388800,
+  "NCPU": 12,
+  "MemTotal": 16733409280,
   "GenericResources": null,
   "DockerRootDir": "/home/debi/.local/share/containers/storage",
   "HttpProxy": "",
@@ -162,5 +162,5 @@
   "Rootless": true,
   "SwapFree": 0,
   "SwapTotal": 0,
-  "Uptime": "29h 26m 9.00s (Approximately 1.21 days)"
+  "Uptime": "7h 28m 11.00s (Approximately 0.29 days)"
 }

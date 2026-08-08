@@ -10,6 +10,7 @@ import (
 const (
 	PathSystemVersion = "/libpod/version"
 	PathContainerList = "/libpod/containers/json"
+	PathContainerCreate = "/libpod/containers/create"
 	PathImageList     = "/libpod/images/json"
 	PathImagePull     = "/libpod/images/pull"
 	PathImagePrune    = "/libpod/images/prune"
@@ -22,6 +23,7 @@ const (
 	PathNetworkCreate = "/libpod/networks/create"
 	PathNetworkPrune  = "/libpod/networks/prune"
 	PathEvents        = "/libpod/events"
+	PathPodList       = "/libpod/pods/json"
 )
 
 // Podman REST API resource path bases for URL construction.
@@ -148,4 +150,9 @@ func NetworkInspectPath(id string) string {
 }
 func NetworkRemovePath(id string) string {
 	return fmt.Sprintf("/libpod/networks/%s", escape(id))
+}
+
+// Pods
+func PodInspectPath(name string) string {
+	return fmt.Sprintf("/libpod/pods/%s/json", escape(name))
 }
