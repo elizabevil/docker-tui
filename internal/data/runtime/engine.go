@@ -16,5 +16,7 @@ type Engine interface {
 	Actions() ResourceActionService
 	Exec() ExecService
 	Events() EventService
+	Compose() ComposeService
+	Pods() PodService
 	Close() error
 }

@@ -117,6 +117,10 @@ type advancedEngine struct {
 
 func (e *advancedEngine) Containers() runtimeapi.ContainerService { return e.containers }
 
+func (e *advancedEngine) Compose() runtimeapi.ComposeService { return nil }
+
+func (e *advancedEngine) Pods() runtimeapi.PodService { return nil }
+
 func newAdvancedEngine(svc runtimeapi.ContainerService) *advancedEngine {
 	return &advancedEngine{Engine: mockengine.New(), containers: svc}
 }

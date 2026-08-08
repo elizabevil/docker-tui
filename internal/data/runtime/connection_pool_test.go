@@ -23,6 +23,8 @@ func (s *stubEngine) ImageTransfers() ImageTransferService { return nil }
 func (s *stubEngine) Actions() ResourceActionService       { return nil }
 func (s *stubEngine) Exec() ExecService                    { return nil }
 func (s *stubEngine) Events() EventService                 { return nil }
+func (s *stubEngine) Compose() ComposeService               { return nil }
+func (s *stubEngine) Pods() PodService                     { return nil }
 func (s *stubEngine) Close() error {
 	s.closeOK = true
 	return nil

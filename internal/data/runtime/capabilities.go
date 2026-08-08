@@ -32,6 +32,17 @@ const (
 	CapabilityNetworkListFilter   Capability = "network.list.filter"
 	CapabilityEventFilter         Capability = "events.filter"
 	CapabilityExecResize          Capability = "exec.resize"
+
+	CapabilityComposeAggregate    Capability = "compose.aggregate"
+	CapabilityComposeProjectLevel Capability = "compose.project_level"
+	CapabilityComposeUp           Capability = "compose.up"
+	CapabilityComposeBuild        Capability = "compose.build"
+	CapabilityComposeRun          Capability = "compose.run"
+	CapabilityComposeConfig       Capability = "compose.config"
+	CapabilityComposePull         Capability = "compose.pull"
+	CapabilityComposePush         Capability = "compose.push"
+	CapabilityComposePodScope     Capability = "compose.pod_scope"
+	CapabilityComposeCoLocated    Capability = "compose.co_located"
 	CapabilityStatsStream         Capability = "stats.stream"
 )
 

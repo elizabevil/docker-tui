@@ -230,6 +230,16 @@ func (c *Client) Capabilities() runtimeapi.CapabilitySet {
 		runtimeapi.CapabilityEventFilter: {Support: runtimeapi.Available},
 		runtimeapi.CapabilityExecResize:  {Support: runtimeapi.Available},
 		runtimeapi.CapabilityStatsStream: {Support: runtimeapi.Available},
+		runtimeapi.CapabilityComposeAggregate:    {Support: runtimeapi.Available},
+		runtimeapi.CapabilityComposeProjectLevel: {Support: runtimeapi.Degraded, Reason: "list/inspect wrap, no atomic project-level operation", ReasonCode: "wrap_no_atomic"},
+		runtimeapi.CapabilityComposeUp:           {Support: runtimeapi.Available},
+		runtimeapi.CapabilityComposeBuild:        {Support: runtimeapi.Unsupported, Reason: "daemon has no Dockerfile context path", ReasonCode: "no_dockerfile_context"},
+		runtimeapi.CapabilityComposeRun:          {Support: runtimeapi.Available, Reason: "one-off run with --rm / detach semantics per R08-08", ReasonCode: "oneoff_create_start_wait_remove"},
+		runtimeapi.CapabilityComposeConfig:       {Support: runtimeapi.Unsupported, Reason: "yaml merge endpoint absent", ReasonCode: "no_yaml_endpoint"},
+		runtimeapi.CapabilityComposePull:         {Support: runtimeapi.Degraded, Reason: "per-image supported, batch is loop", ReasonCode: "loop_only"},
+		runtimeapi.CapabilityComposePush:         {Support: runtimeapi.Degraded, Reason: "per-image supported, batch is loop", ReasonCode: "loop_only"},
+		runtimeapi.CapabilityComposePodScope:     {Support: runtimeapi.Available, Reason: "DockerPodService self-implements wrap (Q6)", ReasonCode: "wrap_self_implemented"},
+		runtimeapi.CapabilityComposeCoLocated:    {Support: runtimeapi.Degraded, Reason: "N+1 inspect with 5s TTL + events invalidation (R08-15 Q2)", ReasonCode: "n_plus_1_cached"},
 	}
 }
 
@@ -240,3 +250,7 @@ func (c *Client) PingTimeout(timeout time.Duration) error {
 	_, err := c.cli.Ping(ctx)
 	return err
 }
+
+func (c *Client) Compose() runtimeapi.ComposeService { return DockerComposeService{Client: c} }
+
+func (c *Client) Pods() runtimeapi.PodService { return DockerPodService{Client: c} }

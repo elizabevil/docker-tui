@@ -81,12 +81,13 @@ func (c *Client) listContainersDocker(ctx context.Context, opts runtimeapi.Conta
 			}
 		}
 
-		if project, ok := ctr.Labels["com.docker.compose.project"]; ok {
+		if project, ok := ctr.Labels[runtimeapi.ComposeLabelProject]; ok {
 			summary.ComposeProject = project
 		}
-		if service, ok := ctr.Labels["com.docker.compose.service"]; ok {
+		if service, ok := ctr.Labels[runtimeapi.ComposeLabelService]; ok {
 			summary.ComposeService = service
 		}
+		runtimeapi.ApplyComposeLabels(ctr.Labels, &summary)
 
 		result = append(result, summary)
 	}

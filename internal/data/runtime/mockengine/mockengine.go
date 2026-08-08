@@ -107,8 +107,54 @@ func (m *Engine) Exec() runtimeapi.ExecService { return nil }
 // Events implements runtimeapi.Engine.
 func (m *Engine) Events() runtimeapi.EventService { return nil }
 
+func (m *Engine) Compose() runtimeapi.ComposeService { return composeStub{} }
+
+func (m *Engine) Pods() runtimeapi.PodService { return podStub{} }
+
 // Close implements runtimeapi.Engine.
 func (m *Engine) Close() error { return nil }
+
+type composeStub struct{}
+
+func (composeStub) ListProjects(context.Context) ([]runtimeapi.ComposeProjectSummary, error) {
+	return nil, nil
+}
+func (composeStub) InspectProject(context.Context, string) (runtimeapi.ComposeProjectSummary, error) {
+	return runtimeapi.ComposeProjectSummary{}, nil
+}
+func (composeStub) Config(context.Context, string) (string, error)        { return "", nil }
+func (composeStub) Start(context.Context, string, []string) error          { return nil }
+func (composeStub) Stop(context.Context, string, []string, int) error       { return nil }
+func (composeStub) Restart(context.Context, string, []string) error        { return nil }
+func (composeStub) Down(context.Context, string, runtimeapi.DownOptions) error {
+	return nil
+}
+func (composeStub) Up(context.Context, string, runtimeapi.UpOptions) error { return nil }
+func (composeStub) Run(context.Context, string, string, []string, runtimeapi.RunOptions) error {
+	return nil
+}
+func (composeStub) Exec(context.Context, string, string, []string) error { return nil }
+func (composeStub) Top(context.Context, string, string) (runtimeapi.ContainerProcesses, error) {
+	return runtimeapi.ContainerProcesses{}, nil
+}
+func (composeStub) Port(context.Context, string, string, int) (string, error) {
+	return "", nil
+}
+func (composeStub) Stats(context.Context, string, string) (runtimeapi.ContainerStats, error) {
+	return runtimeapi.ContainerStats{}, nil
+}
+func (composeStub) Events(context.Context, string) (<-chan runtimeapi.ComposeEvent, error) {
+	return nil, nil
+}
+
+type podStub struct{}
+
+func (podStub) ListPods(context.Context, runtimeapi.PodListOptions) ([]runtimeapi.PodSummary, error) {
+	return nil, nil
+}
+func (podStub) InspectPod(context.Context, string) (runtimeapi.PodDetail, error) {
+	return runtimeapi.PodDetail{}, nil
+}
 
 type actionService struct{ engine *Engine }
 

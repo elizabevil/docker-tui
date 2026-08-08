@@ -27,7 +27,7 @@ func composeProjectVolumes(m *state.AppModel, project string) []string {
 		if v.Labels == nil {
 			continue
 		}
-		if v.Labels["com.docker.compose.project"] == project {
+		if v.Labels[runtime.ComposeLabelProject] == project {
 			vols = append(vols, v.Name)
 		}
 	}
@@ -40,7 +40,7 @@ func composeProjectNetworks(m *state.AppModel, project string) []string {
 		if n.Labels == nil {
 			continue
 		}
-		if n.Labels["com.docker.compose.project"] == project {
+		if n.Labels[runtime.ComposeLabelProject] == project {
 			nets = append(nets, n.ID)
 		}
 	}

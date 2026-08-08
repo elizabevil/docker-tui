@@ -78,8 +78,9 @@ func MapContainerSummaries(raw []dto.ContainerItem) []runtimeapi.ContainerSummar
 			NetworkNames: append([]string(nil), c.Networks...),
 			Labels:       c.Labels,
 		}
-		summary.ComposeProject = c.Labels["com.docker.compose.project"]
-		summary.ComposeService = c.Labels["com.docker.compose.service"]
+		summary.ComposeProject = c.Labels[runtimeapi.ComposeLabelProject]
+		summary.ComposeService = c.Labels[runtimeapi.ComposeLabelService]
+		runtimeapi.ApplyComposeLabels(c.Labels, &summary)
 		result = append(result, summary)
 	}
 	return result

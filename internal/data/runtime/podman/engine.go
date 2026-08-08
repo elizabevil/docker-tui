@@ -84,6 +84,16 @@ func (e *PodmanEngine) Capabilities() runtimeapi.CapabilitySet {
 		runtimeapi.CapabilityEventFilter: {Support: runtimeapi.Available},
 		runtimeapi.CapabilityExecResize:  {Support: runtimeapi.Available},
 		runtimeapi.CapabilityStatsStream: {Support: runtimeapi.Available},
+		runtimeapi.CapabilityComposeAggregate:    {Support: runtimeapi.Available},
+		runtimeapi.CapabilityComposeProjectLevel: {Support: runtimeapi.Available, Reason: "podman-compose default 1 project 1 pod, direct aggregation", ReasonCode: "one_to_one_podman_compose"},
+		runtimeapi.CapabilityComposeUp:           {Support: runtimeapi.Available},
+		runtimeapi.CapabilityComposeBuild:        {Support: runtimeapi.Unsupported, Reason: "daemon has no Dockerfile context path", ReasonCode: "no_dockerfile_context"},
+		runtimeapi.CapabilityComposeRun:          {Support: runtimeapi.Available, Reason: "one-off run with --rm / detach semantics per R08-08", ReasonCode: "oneoff_create_start_wait_remove"},
+		runtimeapi.CapabilityComposeConfig:       {Support: runtimeapi.Unsupported, Reason: "yaml merge endpoint absent", ReasonCode: "no_yaml_endpoint"},
+		runtimeapi.CapabilityComposePull:         {Support: runtimeapi.Degraded, Reason: "per-image supported, batch is loop", ReasonCode: "loop_only"},
+		runtimeapi.CapabilityComposePush:         {Support: runtimeapi.Degraded, Reason: "per-image supported, batch is loop", ReasonCode: "loop_only"},
+		runtimeapi.CapabilityComposePodScope:     {Support: runtimeapi.Available, Reason: "PodmanPodService wraps /libpod/pods", ReasonCode: "direct_daemon_endpoint"},
+		runtimeapi.CapabilityComposeCoLocated:    {Support: runtimeapi.Available, Reason: "inspect.Pod field in list, zero RTT (per podman-compose defaults)", ReasonCode: "list_field_native"},
 	}
 }
 
@@ -132,3 +142,7 @@ func (e *PodmanEngine) Events() runtimeapi.EventService { return PodmanEventServ
 // Close releases any resources held by the engine. The Podman REST
 // client is stateless so this is a no-op.
 func (e *PodmanEngine) Close() error { return nil }
+
+func (e *PodmanEngine) Compose() runtimeapi.ComposeService { return PodmanComposeService{Client: e.client} }
+
+func (e *PodmanEngine) Pods() runtimeapi.PodService { return PodmanPodService{Client: e.client} }
