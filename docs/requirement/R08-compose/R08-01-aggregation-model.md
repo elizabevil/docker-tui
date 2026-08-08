@@ -76,13 +76,19 @@ type ComposeLabels struct {
     Source          string   // "docker" | "podman" | "unknown"
 }
 
-// runtime 包内独立定义
-type ComposeLabelExtractor interface {
-    Extract(ctx context.Context, container runtime.ContainerSummary) ComposeLabels
-}
+// runtime 包共享的 label 常量与填充函数(实际实现,2026-08-08 核对):
+//   internal/data/runtime/compose_labels.go
+//   ComposeLabelProject / ComposeLabelService / ComposeLabelImage /
+//   ComposeLabelContainerNumber / ComposeLabelConfigHash / ComposeLabelOneoff /
+//   ComposeLabelVersion / ComposeLabelWorkingDir / ComposeLabelConfigFiles
+//   func ApplyComposeLabels(labels map[string]string, summary *ContainerSummary)
+//
+// 各 adapter 独立读取容器 label 后调用 ApplyComposeLabels 填充字段:
+//   docker: internal/data/runtime/docker/containers.go(独立适配)
+//   podman: internal/data/runtime/podman/mappers.go(独立适配)
 ```
 
-聚合器在 `internal/tui/ui/pages/compose/view.go:36 gatherComposeProjects` 处调用 extractor,不做运行时特化分支。
+聚合器在 `internal/tui/ui/pages/compose/view.go:36 gatherComposeProjects` 处调用聚合结果,不做运行时特化分支。
 
 ### F4 边界
 
@@ -94,12 +100,10 @@ type ComposeLabelExtractor interface {
 
 涉及模块:
 
-- 新文件:`internal/data/runtime/docker/compose_labels.go` — Docker 适配器
-- 新文件:`internal/data/runtime/podman/compose_labels.go` — Podman 适配器
-- 新文件:`internal/data/runtime/compose_labels.go` — 共享类型与接口
-- 修改:`internal/data/runtime/docker/containers.go:84-89` 改为调用 `extractComposeLabels`,并写入新增字段
-- 修改:`internal/data/runtime/podman/mappers.go:81-82` 同上
-- 修改:`internal/data/runtime/containers.go` `ContainerSummary` 增加 `WorkingDir / ConfigFiles / Version / ConfigHash / ContainerNumber / Oneoff / ComposeLabelSource` 字段
+- 新文件:`internal/data/runtime/compose_labels.go` — 共享 label 常量 + `ApplyComposeLabels`(已落地)
+- 修改:`internal/data/runtime/docker/containers.go` 调用 `ApplyComposeLabels` 并写入新增字段(已落地)
+- 修改:`internal/data/runtime/podman/mappers.go` 同上(已落地)
+- 修改:`internal/data/runtime/containers.go` `ContainerSummary` 增加 `WorkingDir / ConfigFiles / Version / ConfigHash / ContainerNumber / Oneoff / ComposeLabelSource` 字段(已落地)
 - 修改:`internal/tui/keyboard/compose_action.go:30 / :43`(`composeProjectVolumes` / `composeProjectNetworks`)按 `ComposeLabels.Project` 字段比较(从 `Labels` map 改字段访问)
 
 ### R08-14 CoLocatedGroup 字段注入
@@ -151,4 +155,4 @@ runtime.ContainerList (docker) | libpod.ContainersList (podman)
 - 旧代码:`internal/data/runtime/docker/containers.go:84-89`、`internal/data/runtime/podman/mappers.go:81-82`、`internal/tui/keyboard/compose_action.go:30 / :43`
 - 保留信息:`com.docker.compose.project` / `com.docker.compose.service` 主键语义
 - 废弃信息:无
-- 待确认:`ComposeLabelExtractor` 接口是否放在 `runtime` 包还是 `runtime/adapter` 子包(后者更易遵守"独立适配"原则)。
+- 待确认:**已定(2026-08-08)**。实际实现未引入 `ComposeLabelExtractor` 接口 —— label 常量与 `ApplyComposeLabels` 共享于 `runtime` 包,docker / podman adapter 各自独立读取容器 label 后调用填充函数(遵守"独立适配"原则:读取路径独立,填充逻辑共享)。

@@ -51,12 +51,12 @@ func (s DockerComposeService) listContainers(ctx context.Context, project string
 	})
 }
 
-func (s DockerComposeService) ListProjects(ctx context.Context) ([]runtimeapi.ComposeProjectSummary, error) {
+func (s DockerComposeService) ListProjects(ctx context.Context, opts runtimeapi.ListProjectsOptions) ([]runtimeapi.ComposeProjectSummary, error) {
 	if s.Client == nil || s.Client.cli == nil {
 		return nil, fmt.Errorf("docker client not initialized")
 	}
 	containers, err := s.Client.cli.ContainerList(ctx, container.ListOptions{
-		All:     true,
+		All:     opts.All,
 		Filters: buildFilter(map[string][]string{"label": {runtimeapi.ComposeLabelProject}}),
 	})
 	if err != nil {

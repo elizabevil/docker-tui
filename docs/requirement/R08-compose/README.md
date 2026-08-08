@@ -39,9 +39,8 @@
 | 编号 | 标题 | 状态 | 优先级 | 来源 |
 |---|---|---|---|---|
 | [R08-01](./R08-01-aggregation-model.md) | 容器标签聚合模型(Docker/Podman 分轨适配) | implementing | high | 用户评审结果 2026-08-07 |
-| [R08-02](./R08-02-engine-support.md) | ComposeService engine 抽象候选 | planned-review | high | 用户评审结果 2026-08-07 |
-| [R08-03](./R08-03-discover.md) | 项目 / 服务 / 配置发现(ps / ls / config / 元信息) | planned | high | R02 镜像 / R04 runtime 推导 |
-| [R08-04](./R08-04-lifecycle.md) | 生命周期(up / down / start / stop / restart + 标志) | planned | high | docker compose CLI 权威 |
+| [R08-02](./R08-02-engine-support.md) | ComposeService engine 抽象候选 | implementing | high | 用户评审结果 2026-08-07 |
+| [R08-03](./R08-03-discover.md) | 项目 / 服务 / 配置发现(ps / ls / config / 元信息) | planned | high | R02 镜像 / R04 runtime 推导 || [R08-04](./R08-04-lifecycle.md) | 生命周期(up / down / start / stop / restart + 标志) | planned | high | docker compose CLI 权威 |
 | [R08-05](./R08-05-build-transfer.md) | 镜像构建与传输(build / pull / push) | planned | medium | docker compose CLI 权威 |
 | [R08-06](./R08-06-logs.md) | 聚合日志(多服务 / 服务级) | planned | high | R01 容器 + compose 增量 |
 | [R08-07](./R08-07-service-queries.md) | 服务级联查询(top / port / stats) | implementing | medium | R01 容器动作复用 |
@@ -51,7 +50,7 @@
 | [R08-11](./R08-11-action-bar.md) | Action Bar 接入 Compose | planned | high | [R03-02](../R03-form-action/R03-02-action-bar.md) 扩展 |
 | [R08-12](./R08-12-keymap.md) | Keymap 注册表接入 Compose | planned | high | [R01-container 关联约束](../../constraint/C04-keybinding.md) 接续 |
 | [R08-13](./R08-13-i18n.md) | i18n 接入 Compose(命名空间与键表) | planned | medium | [constraint/C06-i18n.md](../../constraint/C06-i18n.md) 扩展 |
-| [R08-14](./R08-14-co-located-group.md) | **横切专题:服务与容器中间层**(CoLocated Group) — Docker / Podman 差异落点 | planned | high | 用户评审 2026-08-07 跨切决策 |
+| [R08-14](./R08-14-co-located-group.md) | **横切专题:服务与容器中间层**(CoLocated Group) — Docker / Podman 差异落点 | implementing | high | 用户评审 2026-08-07 跨切决策 |
 | [R08-15](./R08-15-driver-implementation.md) | runtime driver 适配实现方案 — docker / podman adapter 路径 | implementing | high | 用户评审 2026-08-07 驱动实现讨论 |
 
 ## 架构约束(用户评审结论)
@@ -105,9 +104,9 @@
 
 ## 待确认
 
-1. **R08-02 ComposeService** 是否确认引入 —— `planned-review` 状态待主模型决策;若拒绝引入,R08-04 / R08-05 / R08-06 / R08-09 中部分能力需降级到"容器 / 镜像层级动作的循环包装"(不会撤销实现,但 API 路径不同)。
-2. **重复功能收紧边界**: Compose-级 `start / stop / restart / pause / unpause / kill / rm / prune` / `exec` 单 service,是否允许存在?若不允许 → 全部走容器级 + Compose-级仅保留"项目级 batch"。
-3. **`compose ls` 空项目语义**: 当前标签聚合天然看不到空项目。R08-03 是补 empty-project 来源(Docker / Podman 是否提供 API),还是退回"无容器则隐藏"?
+1. **R08-02 ComposeService** 是否确认引入 —— **已定(2026-08-07):确认引入**。`runtime.Engine.Compose() ComposeService` 已实现(接口含 ListProjects / InspectProject / Config / Start / Stop / Restart / Down / Up / Run / Exec / Top / Port / Stats / Events),docker / podman 双 adapter 独立实现,`Config` 永久 `ErrComposeUnsupported`。
+2. **重复功能收紧边界** —— **已定(2026-08-08):允许 Compose-级单 service 动作,与容器页面区分**。语义:容器页面调容器级 API(如容器 Stop),Compose 页面调 Compose-级 API(项目/服务范围 Stop),**API 路径不同,仅用户可感知的结果相同**;两者并存,UI 上区分粒度。
+3. **`compose ls` 空项目语义** —— **已定(2026-08-08):无容器则隐藏**。与 `docker compose ls` 权威行为一致(`pkg/compose/ls.go` 仅按容器 `com.docker.compose.project` label 聚合,容器是项目存在的唯一载体;`--all` 仅包含 stopped 容器,不产生"无容器项目")。R08-03 **不**补 empty-project 来源。`ComposeService.ListProjects` 以 `ListProjectsOptions{All bool}` 暴露 stopped 容器范围,默认 false 与 CLI 默认一致。
 
 ## 实施阶段建议(参考,主模型决策优先)
 

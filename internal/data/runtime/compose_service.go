@@ -28,7 +28,7 @@ import (
 // Build / Pull / Push 不在本接口,在 R08-05 build-transfer 域定义(Build 永久 ErrUnsupported;
 // Pull / Push wrap-able)。
 type ComposeService interface {
-	ListProjects(ctx context.Context) ([]ComposeProjectSummary, error)
+	ListProjects(ctx context.Context, opts ListProjectsOptions) ([]ComposeProjectSummary, error)
 	InspectProject(ctx context.Context, project string) (ComposeProjectSummary, error)
 	Config(ctx context.Context, project string) (string, error)
 	Start(ctx context.Context, project string, services []string) error
@@ -54,6 +54,15 @@ type ComposeProjectSummary struct {
 	HasRunning  bool
 	HasStopped  bool
 	Source      string
+}
+
+// ListProjectsOptions 控制项目发现范围。
+//
+// All 决定是否包含已停止(stopped)容器聚合出的项目,与 docker compose ls 的
+// --all 语义一致:默认(false)仅聚合 running 容器,true 时聚合 running + stopped。
+// 项目存在性始终以容器 label 为载体(无容器则项目不可见),All 不改变这一语义。
+type ListProjectsOptions struct {
+	All bool
 }
 
 type ComposeServiceSummary struct {

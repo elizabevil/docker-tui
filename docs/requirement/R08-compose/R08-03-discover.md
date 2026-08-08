@@ -15,7 +15,7 @@
 | 能力 | 已实现层 | 本需求增量 |
 |---|---|---|
 | `docker compose ps` | R01-容器-列表(从容器 label 聚合) | 本需求统一为 `ComposeService.ListProjects`(带 Source 字段) |
-| `docker compose ls` | 无空项目支持 | **补空项目**(若 daemon 提供 `serve-events` 级过滤接口;否则仍需 label,但给出"无容器 → 标记孤儿项目"提示) |
+| `docker compose ls` | 无空项目支持 | **与 CLI 一致:无容器则隐藏**(2026-08-08 已定,见 §决策记录) |
 | `docker compose config` | 无 | R08-02 决策 B:`Config` 返回 `ErrComposeUnsupported`,本需求给出**替代方案**:`WorkingDir / ConfigFiles / Version` 元信息 |
 | `docker compose images` | R02 镜像列表 | 不在 Compose-级重复实现 |
 
@@ -23,7 +23,7 @@
 
 `ComposeService.ListProjects / InspectProject` 项目级发现能力 + 仅元信息(`WorkingDir / ConfigFiles / Version`)的轻量"config 替代"能力。具体能力分解:
 
-1. 当前 UI 只能看到"有容器的项目"。空项目(已 down 完的)在不被任何容器体现时,**不可见**。
+1. 当前 UI 只能看到"有容器的项目"。空项目(已 down 完的)在不被任何容器体现时,**不可见** —— 与 `docker compose ls` 权威行为一致,本需求**保留**此语义,不补空项目来源。
 2. `docker compose config` 真正需要 yaml 解析,R08-02 决策 B 不实现。本需求提供"只读元信息"替代,足够 dtui 用户判断"这个项目有没有 working_dir、有没有 compose 文件、哪份 compose 文件"。
 3. 服务级信息(每个 service 的 image / replicas / 状态)从 label + 容器聚合,不重新解析 yaml。
 
@@ -44,7 +44,7 @@
 - 右栏 inspect 标题:`Compose Detail: <project>`(已与 BR-017 修复保持一致)
 - 元信息空值降级显示"(unknown)"而非空白
 - ConfigFiles 多行展示在 sub-table 区,宽屏拼接 / 窄屏折叠
-- 空项目态:left 列表中加 `(orphan)` 标签 + 灰显
+- 空项目态:不显示(与 `docker compose ls` 语义一致,见 §决策记录)
 
 详细版式在 UI overhaul 阶段统一治理,本需求**只列出**字段与状态。
 
@@ -64,15 +64,13 @@ type ComposeProjectSummary struct {
     Services     []ComposeServiceSummary
     HasRunning   bool   // 至少 1 个 running 容器
     HasStopped   bool   // 至少 1 个 stopped 容器
-    IsOrphan     bool   // 有 config_files 但无容器(典型 down 后)
 }
 ```
 
-### F2 空项目语义
+### F2 空项目语义(2026-08-08 已定:无容器则隐藏)
 
-- 完全无容器 + 推断不到工作目录:不显示(避免污染列表)
-- 完全无容器 + 关联 WorkingDir / ConfigFiles:`IsOrphan=true`,显示并标 `(orphan)`
-- 有容器但所有 stopped:`HasStopped=true, HasRunning=false`,正常显示
+- **完全无容器:不显示**(无 `IsOrphan` / `(orphan)` 概念,与 `docker compose ls` 一致 —— 容器 label 是项目存在的唯一载体)
+- 有容器但所有 stopped:`HasStopped=true, HasRunning=false`,正常显示(需 `ListProjectsOptions{All:true}`,见 §决策记录)
 
 ### F3 WorkingDir / ConfigFiles 来源
 
@@ -98,30 +96,30 @@ type ComposeProjectSummary struct {
 涉及模块:
 
 - 新文件:`internal/data/runtime/compose_inspect.go` — `composeProjectsWithMeta` 业务逻辑(Docker / Podman 共享)
-- 修改:`internal/data/runtime/docker/compose_service.go` — 加 ListProjects 实现
-- 修改:`internal/data/runtime/podman/compose_service.go` — 同上
-- 修改:`internal/tui/ui/pages/compose/view.go:36 gatherComposeProjects` 改为调用 `ComposeService.ListProjects`(而非直接遍历 `m.Resources.Containers.Items`)
-- 修改:`internal/tui/ui/pages/compose/view.go` 增 `IsOrphan` 字段在 composeProj
+- 修改:`internal/data/runtime/docker/compose_service.go` — ListProjects 实现(已落地,2026-08-08)
+- 修改:`internal/data/runtime/podman/compose_service.go` — 同上(已落地)
+- 修改:`internal/tui/ui/pages/compose/view.go:36 gatherComposeProjects` 改为调用 `ComposeService.ListProjects(All:true)`(而非直接遍历 `m.Resources.Containers.Items`)
 - 状态:`m.Resources.Compose.Projects` 新增字段(具体实现位置待定 — 详见 R08-12 §状态机)
 
 调用链:
 
 ```text
 view.RenderPanel
-  -> ComposeService.ListProjects
+  -> ComposeService.ListProjects(ListProjectsOptions{All:true})
      -> 项目聚合(containers + volumes + networks)
         -> 元信息 working_dir / config_files / version(从 label 聚合)
-           -> annotate IsOrphan / HasRunning / HasStopped
+           -> annotate HasRunning / HasStopped
 ```
 
 ## 验收标准
 
-1. `ComposeService.ListProjects` 返回包含 `Source / WorkingDir / ConfigFiles / Version / HasRunning / HasStopped / IsOrphan`
-2. Podman runtime:WorkingDir / ConfigFiles / Version 字段在所有情况下为空,且 `Source=podman`
-3. Docker runtime:testdata 注入的 `working_dir = /home/u/myapp` 单行展示;`config_files = /home/u/myapp/compose.yml\\n/home/u/myapp/compose.override.yml` 双行展示
-4. 空项目(`IsOrphan=true`)在左栏可见且有标记
-5. `InspectProject` 只读,不修改任何资源
-6. `Config` 仍返回 `ErrComposeUnsupported` 错误(透明给 UI:显示"complete yaml unavailable, see CLI")
+1. `ComposeService.ListProjects` 返回包含 `Source / WorkingDir / ConfigFiles / Version / HasRunning / HasStopped`
+2. `ListProjects` 以 `ListProjectsOptions{All bool}` 控制 stopped 容器范围:`All=false`(默认)仅聚合 running,`All=true` 聚合 running + stopped;实现不得写死 `All=true`
+3. Podman runtime:WorkingDir / ConfigFiles / Version 字段在所有情况下为空,且 `Source=podman`
+4. Docker runtime:testdata 注入的 `working_dir = /home/u/myapp` 单行展示;`config_files = /home/u/myapp/compose.yml\\n/home/u/myapp/compose.override.yml` 双行展示
+5. 完全无容器项目不显示(`IsOrphan` 不存在,无 orphan 标记)
+6. `InspectProject` 只读,不修改任何资源
+7. `Config` 仍返回 `ErrComposeUnsupported` 错误(透明给 UI:显示"complete yaml unavailable, see CLI")
 
 ## 非目标
 
@@ -142,7 +140,6 @@ UI 渲染层在以下位置接入 CoLocated group 标记:
 ## 迁移记录
 
 - 旧文档:[.omo/compose-todo.md §3.2 information lookup / 补 G.6 元信息增强](../../../.omo/compose-todo.md)
-- 旧代码:`internal/tui/ui/pages/compose/view.go:36 gatherComposeProjects`(无元信息、无 orphan 检测)
+- 旧代码:`internal/tui/ui/pages/compose/view.go:36 gatherComposeProjects`(无元信息)
 - 保留信息:`project / services / running count / total count` 现有字段
-- 废弃信息:无
-- 待确认:`IsOrphan`(无容器但有 working_dir)的判定是否需要用户可关闭(避免噪音)
+- 废弃信息:`IsOrphan`(无容器但有 working_dir 的孤儿标记)— 2026-08-08 决策"无容器则隐藏"后不再需要

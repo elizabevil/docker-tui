@@ -15,11 +15,11 @@
 
 | Compose 命令 | 已实现层 | 本需求处理 |
 |---|---|---|
-| `start` | R01 容器(`containerStartCmd`) | **保留** compose-级(start 整项目一批);等价循环 |
-| `stop` | R01 容器 | **保留**;R01 容器级 stop 与本需求 stop **共存**(Action Bar scope 不同) |
+| `start` | R01 容器(`containerStartCmd`) | **保留** compose-级(start 整项目/单 service 一批);与容器级共存,API 路径不同(ComposeService.Start vs 容器 Start),仅结果相同 |
+| `stop` | R01 容器 | **保留**;R01 容器级 stop 与本需求 stop **共存**(Action Bar scope 不同,API 路径不同) |
 | `restart` | R01 容器 | **保留**;compose-级避免逐个 Tab → 容器 |
 | `down` | R01 容器(`containerRemoveCmd`)+ R03 卷删删 + Network 删删(各自实现,**未协同**) | **新增 ComposeService.Down**,一个事务内完成 3 类资源,支持 `-v / --rmi / --remove-orphans` |
-| `up` | 无 | **决策 A**:不实现(见 F5);返回 `ErrComposeUnsupported` 给用户提示 |
+| `up` | 无 | **已实现**(2026-08-08,`ComposeService.Up` wrap 自实现,见 §决策记录);`--build/--force-recreate/--no-deps/--scale` 标志入 `UpOptions` |
 
 ## 目标
 
@@ -136,10 +136,10 @@ func (s *DockerComposeService) Start(ctx context.Context, project string, servic
 
 `stop / restart` 同模式。
 
-### F5 up 不实现
+### F5 up 实现(2026-08-08 落定)
 
 ```
-up      -> ErrComposeUnsupported  (always)
+up      -> ComposeService.Up(已实现,wrap 自实现 per R08-02 Q3)
 build   -> R08-05 处理;不在 R08-04 范围
 config  -> ErrComposeUnsupported  (R08-03 给替代)
 pull    -> R08-05 处理;不在 R08-04 范围
@@ -186,11 +186,11 @@ Ctrl+D (compose 面板)
 5. `DownOptions.RemoveImages="local"` 仅删 compose build 的镜像(scratch + 中间层),**不**删拉取的 docker hub 镜像(`com.docker.compose.image` label 存在时)
 6. Audit 一次 trace,type=`compose_project.down`
 7. start / stop 与 R01 容器级 stop 区分 audit 类型,但行为不冲突(并发场景下 action 只针对项目容器)
-8. `Up` 命令在 UI 明示:"本版本不支持 compose up,请用 docker compose CLI"
+8. `Up` 命令在 UI 可见(2026-08-08 起已实现,`ComposeService.Up`),Action Bar 明示支持标志
 
 ## 非目标
 
-- 实现 compose up / build(留 R08-05 / future)
+- 实现 compose build(留 R08-05 / future)
 - 跨 runtime 编排(Docker 项目和 Podman 项目同名处理) — 留 R08-13
 - Compose Spec 多文件 `include`(单 compose 项目)
 

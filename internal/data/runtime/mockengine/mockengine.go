@@ -116,7 +116,7 @@ func (m *Engine) Close() error { return nil }
 
 type composeStub struct{}
 
-func (composeStub) ListProjects(context.Context) ([]runtimeapi.ComposeProjectSummary, error) {
+func (composeStub) ListProjects(context.Context, runtimeapi.ListProjectsOptions) ([]runtimeapi.ComposeProjectSummary, error) {
 	return nil, nil
 }
 func (composeStub) InspectProject(context.Context, string) (runtimeapi.ComposeProjectSummary, error) {

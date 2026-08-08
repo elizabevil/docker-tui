@@ -2,7 +2,7 @@
 
 ## 元信息
 
-- 状态: planned-review
+- 状态: implementing(**已引入**,2026-08-08 落定)
 - 优先级: high
 - 来源: 用户评审结果 2026-08-07("可能要提供单独的 comeposeservice")
 - 关联任务: [.omo/compose-todo.md 补 E.4 / 补 F.2 / 补 F.3](../../../.omo/compose-todo.md)
@@ -19,9 +19,16 @@
 | 用途 | 把所有 docker 适配方法收口到一个 service facade | 对接 compose-级能力(项目发现 / 生命周期 / 聚合) |
 | 抽象层级 | 位于 Container / Volume / Network / Image **同一层**之上 | 与 Container / Volume / Network / Image **同层**新增 |
 | 影响范围 | 改 ContainerService / VolumeService / NetworkService 的包装路径 | 新增一个 service,不改其它 service 形态 |
-| TASK-022 取舍 | 决策:不引入 | 决策:**未决议**(本需求提议) |
+| TASK-022 取舍 | 决策:不引入 | 决策:**已引入**(2026-08-08) |
 
 > 本需求不复活 Phase E,仅讨论"ComposeService 在 Engine 接口层是否新增"。
+
+## 决策记录(2026-08-08 落定)
+
+- **引入 `ComposeService`**:`runtime.Engine.Compose() ComposeService`,接口 14 方法(ListProjects / InspectProject / Config / Start / Stop / Restart / Down / Up / Run / Exec / Top / Port / Stats / Events)。
+- **实现位置**:`internal/data/runtime/compose_service.go`(接口)+ `docker/compose_service.go` + `podman/compose_service.go`(独立适配器)。
+- **能力矩阵**:除 `Config` 永久 `ErrComposeUnsupported` 外,全部方法由 driver 层 wrap 自实现(见接口注释 Q3 决策表)。
+- **ListProjects 参数化**:`ListProjectsOptions{All bool}` 暴露 stopped 容器范围,内部聚合用 `All` 决定是否含 stopped(2026-08-08,见 R08-03 空项目语义)。
 
 ## 目标
 

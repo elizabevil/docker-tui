@@ -65,7 +65,7 @@ func (s PodmanComposeService) listContainers(ctx context.Context, project string
 	return MapContainerSummaries(raw), nil
 }
 
-func (s PodmanComposeService) ListProjects(ctx context.Context) ([]runtimeapi.ComposeProjectSummary, error) {
+func (s PodmanComposeService) ListProjects(ctx context.Context, opts runtimeapi.ListProjectsOptions) ([]runtimeapi.ComposeProjectSummary, error) {
 	if s.Client == nil || s.Client.REST == nil {
 		return nil, podmandriver.ErrPodmanRESTNotReady
 	}
@@ -73,7 +73,7 @@ func (s PodmanComposeService) ListProjects(ctx context.Context) ([]runtimeapi.Co
 	if err != nil {
 		return nil, err
 	}
-	raw, err := s.Client.REST.ListContainers(ctx, dto.ContainerListOptions{All: true, Limit: 0, Filters: filters})
+	raw, err := s.Client.REST.ListContainers(ctx, dto.ContainerListOptions{All: opts.All, Limit: 0, Filters: filters})
 	if err != nil {
 		return nil, err
 	}
