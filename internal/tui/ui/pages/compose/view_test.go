@@ -121,3 +121,46 @@ func TestRenderComposeContainersPodValue(t *testing.T) {
 		t.Fatalf("pod value missing in output:\n%s", out)
 	}
 }
+
+// TestRenderServicePanelPodIndicatorOnPodman pins §4.3 decision C
+// "右栏 Service 行只显示 Pod 状态指示符 (前缀字符)": when the engine
+// advertises CapabilityComposePodScope, every service name in the
+// right pane is prefixed with "● " so the user can see at a glance
+// which services share a pod (podman) vs. run independently (docker).
+func TestRenderServicePanelPodIndicatorOnPodman(t *testing.T) {
+	eng := mockengine.New()
+	eng.SetCapability(runtimeapi.CapabilityComposePodScope, runtimeapi.CapabilityInfo{Support: runtimeapi.Available})
+
+	m := state.NewAppModel(config.DefaultAppConfig(), eng, "test")
+	m.Compose.ComposeFocus = 1
+	m.Resources.Containers.Items = []runtimeapi.ContainerSummary{{
+		ID: "abc", Name: "web-1", State: state.ContainerStateRunning,
+		ComposeProject: "demo", ComposeService: "web",
+	}}
+
+	out := component.StripANSI(RenderPanel(m, 120, 24))
+	if !strings.Contains(out, "● web") {
+		t.Fatalf("pod indicator missing on podman:\n%s", out)
+	}
+}
+
+// TestRenderServicePanelNoIndicatorOnDocker pins the symmetry
+// requirement: when the engine lacks CapabilityComposePodScope, no
+// "●" prefix appears anywhere in the rendered panel — docker users
+// see the unchanged right-pane layout.
+func TestRenderServicePanelNoIndicatorOnDocker(t *testing.T) {
+	eng := mockengine.New()
+	eng.SetCapability(runtimeapi.CapabilityComposePodScope, runtimeapi.CapabilityInfo{Support: runtimeapi.Unsupported})
+
+	m := state.NewAppModel(config.DefaultAppConfig(), eng, "test")
+	m.Compose.ComposeFocus = 1
+	m.Resources.Containers.Items = []runtimeapi.ContainerSummary{{
+		ID: "abc", Name: "web-1", State: state.ContainerStateRunning,
+		ComposeProject: "demo", ComposeService: "web",
+	}}
+
+	out := component.StripANSI(RenderPanel(m, 120, 24))
+	if strings.Contains(out, "●") {
+		t.Fatalf("pod indicator leaked on docker:\n%s", out)
+	}
+}

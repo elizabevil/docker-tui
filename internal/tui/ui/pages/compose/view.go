@@ -257,7 +257,11 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 		for j, cd := range colsDef {
 			switch cd.Key {
 			case "service":
-				cells[j] = name
+				if podScopeSupported(m) {
+					cells[j] = "● " + name
+				} else {
+					cells[j] = name
+				}
 			case "image":
 				cells[j] = info.image
 			case "pods":
