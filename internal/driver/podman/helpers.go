@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/url"
 )
 
@@ -18,6 +19,7 @@ func PodmanFilterQuery(filters map[string][]string) (url.Values, error) {
 	if err != nil {
 		return nil, fmt.Errorf("encode Podman prune filters: %w", err)
 	}
+	log.Printf("podman filter: %s", string(encoded))
 	query.Set("filters", string(encoded))
 	return query, nil
 }

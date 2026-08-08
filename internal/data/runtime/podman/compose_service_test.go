@@ -332,7 +332,7 @@ func TestComposeStatsMapsValues(t *testing.T) {
 }
 
 func TestComposeEventsStreamsProjectEvents(t *testing.T) {
-	eventBody := `{"Type":"container","Action":"start","ID":"web123","Name":"demo_web_1","TimeNano":1700000000000000000,"Attributes":{"com.docker.compose.service":"web"}}` + "\n"
+	eventBody := `{"Type":"container","Action":"start","ID":"web123","Name":"demo_web_1","TimeNano":1700000000000000000,"Attributes":{"com.docker.compose.project":"demo","com.docker.compose.service":"web"}}` + "\n"
 	svc := newComposeService(t, roundTripFunc(func(req *http.Request) (*http.Response, error) {
 		if req.URL.Path != "/v5.2.0/libpod/events" {
 			t.Fatalf("unexpected path %q", req.URL.Path)
@@ -340,9 +340,11 @@ func TestComposeEventsStreamsProjectEvents(t *testing.T) {
 		if got := req.URL.Query().Get("stream"); got != "true" {
 			t.Errorf("events stream = %q, want true", got)
 		}
-		filters := req.URL.Query().Get("filters")
-		if !strings.Contains(filters, "com.docker.compose.project=demo") {
-			t.Errorf("events filters = %q, want project filter", filters)
+		// /libpod/events filter spec is generic in podman swagger and
+		// podman rejects "label" / "type" filter keys on this endpoint.
+		// We subscribe to all container events and filter client-side.
+		if got := req.URL.Query().Get("filters"); got != "" {
+			t.Errorf("events filters = %q, want empty (server-side disabled)", got)
 		}
 		return response(http.StatusOK, eventBody), nil
 	}))

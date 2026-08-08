@@ -384,10 +384,13 @@ func (s PodmanComposeService) Events(ctx context.Context, project string) (<-cha
 		return out, podmandriver.ErrPodmanRESTNotReady
 	}
 	events, err := (PodmanEventService{Client: s.Client}).Subscribe(ctx, runtimeapi.EventOptions{
-		Filters: runtimeapi.FilterSet{
-			"label": {runtimeapi.ComposeProjectLabelValue(project)},
-			"type":  {"container"},
-		},
+		// /libpod/events filter spec is generic in podman swagger; podman
+		// rejects "label" and "type" as filter keys (these are valid only
+		// on the docker compat /events endpoint). Server-side filter is
+		// limited to container/event/image/pod/volume/network/daemon/status/
+		// time — none of which can express "compose project label". We
+		// subscribe to all container events and filter client-side by
+		// ComposeLabelProject in Attributes (see event handler below).
 	})
 	if err != nil {
 		close(out)
@@ -404,6 +407,12 @@ func (s PodmanComposeService) Events(ctx context.Context, project string) (<-cha
 					return
 				}
 				if item.Error != nil {
+					continue
+				}
+				// /libpod/events rejects label/type filter keys; we subscribe
+				// to all container events and filter client-side by the
+				// compose project label set on the source container.
+				if item.Event.Attributes[runtimeapi.ComposeLabelProject] != project {
 					continue
 				}
 				out <- runtimeapi.ComposeEvent{
