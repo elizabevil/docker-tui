@@ -1,7 +1,6 @@
 package keyboard
 
 import (
-	"sort"
 	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
@@ -113,67 +112,15 @@ func clearDialogState(m *state.AppModel) {
 }
 
 func composeProjectNames(m *state.AppModel) []string {
-	filter := ""
-	if m != nil {
-		filter = m.Compose.ComposeProjectFilter
-	}
-	set := make(map[string]bool)
-	for _, c := range m.Resources.Containers.Items {
-		if c.ComposeProject == "" {
-			continue
-		}
-		if filter != "" && !strings.Contains(c.ComposeProject, filter) {
-			continue
-		}
-		set[c.ComposeProject] = true
-	}
-	names := make([]string, 0, len(set))
-	for name := range set {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	return names
+	return state.ComposeProjectNames(m)
 }
 
 func composeServiceNames(m *state.AppModel, project string) []string {
-	filter := ""
-	if m != nil {
-		filter = m.Compose.ComposeServiceFilter
-	}
-	set := make(map[string]bool)
-	for _, c := range m.Resources.Containers.Items {
-		if c.ComposeProject != project {
-			continue
-		}
-		name := c.ComposeService
-		if name == "" {
-			name = "unknown"
-		}
-		if filter != "" && !strings.Contains(name, filter) {
-			continue
-		}
-		set[name] = true
-	}
-	names := make([]string, 0, len(set))
-	for name := range set {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	return names
+	return state.ComposeServiceNames(m, project)
 }
 
 func currentComposeProject(m *state.AppModel) string {
-	names := composeProjectNames(m)
-	if len(names) == 0 {
-		return ""
-	}
-	if m.Compose.ComposeCursor >= len(names) {
-		m.Compose.ComposeCursor = len(names) - 1
-	}
-	if m.Compose.ComposeCursor < 0 {
-		m.Compose.ComposeCursor = 0
-	}
-	return names[m.Compose.ComposeCursor]
+	return state.SelectedComposeProject(m)
 }
 
 // FormatKeyForDisplay converts a raw key string to a display-friendly label.

@@ -50,3 +50,35 @@ func ApplyComposeLabels(labels map[string]string, summary *ContainerSummary) {
 		summary.ConfigFiles = out
 	}
 }
+
+// ComposeImageFromLabels returns the image reference declared by the
+// compose file (com.docker.compose.image label) when present, falling
+// back to the container's effective Image. Centralised so the keyboard
+// layer's push / top / stats paths and the action bar's
+// `compose_tagged` predicate share the same parser.
+func ComposeImageFromLabels(c ContainerSummary) string {
+	if c.Labels != nil {
+		if img := c.Labels[ComposeLabelImage]; img != "" {
+			return img
+		}
+	}
+	return c.Image
+}
+
+// ComposeServiceFromContainer returns the canonical service label
+// value for a container, falling back to "unknown" when the label is
+// absent. Compose groups containers by (project, service); the
+// "unknown" sentinel keeps aggregations stable for malformed labels.
+func ComposeServiceFromContainer(c ContainerSummary) string {
+	if c.ComposeService != "" {
+		return c.ComposeService
+	}
+	return "unknown"
+}
+
+// ComposeProjectFromContainer returns the canonical project label
+// value for a container. Empty string means "not part of any compose
+// project" — callers should filter such rows out.
+func ComposeProjectFromContainer(c ContainerSummary) string {
+	return c.ComposeProject
+}

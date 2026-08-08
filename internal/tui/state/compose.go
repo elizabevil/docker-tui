@@ -9,6 +9,32 @@ type ComposeState struct {
 	ComposeFocus           int
 	ComposeContainerViewID string
 	ComposeContainerCursor int
+
+	// ComposeDownRemoveVolumes toggles `-v` on compose down. Held in
+	// state so a future Confirm dialog can edit it before firing.
+	ComposeDownRemoveVolumes bool
+
+	// ComposeDownRemoveImages is the `--rmi` selector. Empty means
+	// "do not remove images"; "local" / "all" per R08-04 F2.
+	ComposeDownRemoveImages string
+
+	// ComposeDownRemoveOrphans toggles `--remove-orphans` (R08-04 F2).
+	// dtui orphan = container whose service label is not in the
+	// project's aggregated service set (R08-04 F3 simplified).
+	ComposeDownRemoveOrphans bool
+
+	// ComposeServiceTop / Port / Stats hold the latest per-service
+	// query results (R08-07). The UI subviews read from these slices;
+	// the data path lives in internal/tui/keyboard/compose_action.go
+	// and surfaces via ComposeServiceTopLoaded / PortLoaded / StatsLoaded.
+	ComposeServiceTop    []ComposeServiceTopItem
+	ComposeServicePort   []ComposeServicePortItem
+	ComposeServiceStats  []ComposeServiceStatsItem
+
+	// ComposeGroupID is the R08-14 CoLocated group selector for the
+	// Action Bar's group-level verbs (Shift+Ctrl+D / Shift+Ctrl+R /
+	// Shift+Ctrl+E). Empty means "all containers in the project".
+	ComposeGroupID string
 }
 
 func (s *ComposeState) Focus(focus int) { s.ComposeFocus = min(1, max(0, focus)) }
