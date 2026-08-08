@@ -211,6 +211,19 @@ type OperationSpec struct {
 	// history".
 	DisabledWhen []Requirement `json:"disabledWhen,omitempty"`
 
+	// RequiresCapabilities is a list of runtime.Capability identifiers
+	// (e.g. "compose.pod_scope"). The action bar evaluator hides the
+	// Operation unless Engine.Capabilities().Supports(c) returns true
+	// for every entry. Distinct from Requires / DisabledWhen, which
+	// gate on UI state predicates; capability gating is a runtime
+	// capability check, evaluated against the live Engine.
+	//
+	// Capability identifiers are NOT a closed universe at this layer:
+	// the loader accepts any string. Validation happens at evaluation
+	// time (CapabilitySet lookup is a map miss → Unsupported), so a
+	// typo in YAML fails closed (item hidden) instead of panicking.
+	RequiresCapabilities []string `json:"requiresCapabilities,omitempty"`
+
 	// InActionBar controls whether this Operation appears in the action
 	// bar (the `;`-triggered overlay). Default true; loader fills the
 	// default for JSONC files that omit the field.

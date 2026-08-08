@@ -1,6 +1,7 @@
 package config
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -206,5 +207,37 @@ func TestLoadOperationsFormatSymmetry(t *testing.T) {
 		if strings.TrimSpace(spec.Action) == "" {
 			t.Errorf("%s::%s missing action", spec.Scope, spec.Kind)
 		}
+	}
+}
+
+// TestRequiresCapabilitiesFieldRoundtrips verifies the loader accepts
+// and preserves the requiresCapabilities JSON field. Capability names
+// are open at the loader layer; evaluation happens against the
+// runtime CapabilitySet, which fails closed on unknown names.
+func TestRequiresCapabilitiesFieldRoundtrips(t *testing.T) {
+	src := []byte(`
+        {
+          "scope": "compose",
+          "operations": [
+            {
+              "kind": "future_capability_demo",
+              "action": "compose.demo",
+              "mode": "async",
+              "async": { "body": "wait" },
+              "label": "demo",
+              "description": "demo op",
+              "requires": ["engine"],
+              "requiresCapabilities": ["compose.pod_scope"]
+            }
+          ]
+        }
+    `)
+	var doc operationsScopeDocument
+	if err := decodeJSONCStrict(src, &doc); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	spec := doc.Operations[0]
+	if got, want := spec.RequiresCapabilities, []string{"compose.pod_scope"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("RequiresCapabilities = %v, want %v", got, want)
 	}
 }
