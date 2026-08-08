@@ -107,6 +107,11 @@
         "header": "table.state"
       },
       {
+        "key": "pod",
+        "fixed": 14,
+        "header": "table.pod"
+      },
+      {
         "key": "ip",
         "fixed": 15,
         "header": "table.ip"

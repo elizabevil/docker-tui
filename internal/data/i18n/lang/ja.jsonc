@@ -39,6 +39,7 @@
   "table.mountpoint": "マウントポイント",
   "table.subnet": "サブネット",
   "table.service": "サービス",
+  "table.pod": "ポッド",
   "table.pods": "ポッド",
   "table.mounts": "マウント",
   "table.stats": "統計",

@@ -113,3 +113,26 @@ func TestResolveLayoutShrinksFromPreferredToMin(t *testing.T) {
 		t.Fatalf("column shrank below min: %v", layout.Widths)
 	}
 }
+
+// TestPodsSubHasPodColumn pins the §4.3 pod-column contract: the
+// container sub-view's pods_sub profile carries a "pod" column whose
+// header routes through the i18n layer. Visibility (whether the column
+// is rendered at all) is decided by renderComposeContainers based on
+// the runtime capability — this test only pins that the column
+// definition exists in YAML.
+func TestPodsSubHasPodColumn(t *testing.T) {
+	tc := MustLoad("compose")
+	cols := tc.Columns.Get("pods_sub")
+	var found bool
+	for _, c := range cols {
+		if c.Key == "pod" {
+			found = true
+			if c.Header != "table.pod" {
+				t.Fatalf("pod column header = %q, want %q", c.Header, "table.pod")
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("pods_sub missing \"pod\" column; got %d cols", len(cols))
+	}
+}

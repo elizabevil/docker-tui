@@ -39,6 +39,7 @@
   "table.mountpoint": "挂载点",
   "table.subnet": "子网",
   "table.service": "服务",
+  "table.pod": "容器组",
   "table.pods": "容器组",
   "table.mounts": "挂载",
   "table.stats": "监控",

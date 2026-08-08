@@ -41,6 +41,7 @@
   "table.mountpoint": "MOUNTPOINT",
   "table.subnet": "SUBNET",
   "table.service": "SERVICE",
+  "table.pod": "POD",
   "table.pods": "PODS",
   "table.mounts": "MOUNTS",
   "table.stats": "STATISTICS",
