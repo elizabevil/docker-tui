@@ -93,6 +93,20 @@ func handleComposeServicePushCompleted(m *state.AppModel, msg state.ComposeServi
 	return m, nil
 }
 
+// handleComposeServicePullCompleted surfaces the aggregated pull
+// result (R08-05): a toast reports the success count, errors land in
+// the feedback panel.
+func handleComposeServicePullCompleted(m *state.AppModel, msg state.ComposeServicePullCompleted) (*state.AppModel, tea.Cmd) {
+	if msg.Error != nil {
+		m.Feedback.RecordError(fmt.Sprintf("compose pull %s: %v", msg.Project, msg.Error))
+		return m, nil
+	}
+	if msg.Success > 0 {
+		keyboard.ShowToastNow(m, fmt.Sprintf("✓ compose pull %s: %d images", msg.Project, msg.Success))
+	}
+	return m, nil
+}
+
 func handleLogTick(m *state.AppModel, _ state.LogTick) (*state.AppModel, tea.Cmd) {
 	if m.Connection.Engine != nil && m.Log.LogContainerID != "" {
 		// Fetch recent logs on subsequent ticks (use "10s" since to get new lines)

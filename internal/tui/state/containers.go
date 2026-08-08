@@ -166,6 +166,15 @@ type (
 		Error   error
 	}
 
+	// ComposeServicePullCompleted carries the aggregated outcome of
+	// `docker compose pull <project>` (R08-05). Image references are
+	// deduplicated before pulling, so Success counts distinct images.
+	ComposeServicePullCompleted struct {
+		Project string
+		Success int
+		Error   error
+	}
+
 	ComposeServiceTopItem struct {
 		ContainerID   string
 		ContainerName string

@@ -665,28 +665,72 @@ func splitHostPort(binding string) string {
 	return binding[i+1:]
 }
 
-// doComposeBuild is the placeholder for `docker compose build`
-// (R08-05). The compose build API lives outside the Engine API surface
-// per R08-02 decision B.
+// doComposeBuild implements `docker compose build` (R08-05). dtui
+// does not parse compose yaml, so a build that references `build:`
+// sections is impossible; the capability gate turns this into the
+// spec-mandated CLI hint when the driver cannot build either.
 func doComposeBuild(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	if m.Connection.Engine == nil {
+		return m, nil
+	}
 	project := currentComposeProject(m)
 	if project == "" {
+		return m, nil
+	}
+	if !m.Connection.Engine.Capabilities().Supports(runtime.CapabilityComposeBuild) {
+		ShowToastWarn(m, fmt.Sprintf("⚠ compose build %s: requires compose CLI,请用 docker compose CLI", project))
 		return m, nil
 	}
 	ShowToastWarn(m, fmt.Sprintf("✕ compose build %s: not implemented (R08-05, use CLI)", project))
 	return m, nil
 }
 
-// doComposePull walks the project's services and would pull each
-// image, but the runtime API (ImageTransferService) does not expose a
-// pull verb today — we surface a toast explaining the gap.
+// doComposePull pulls every image referenced by the project's
+// services via the generic ActionPull (R08-05). References are
+// deduplicated across services before pulling.
 func doComposePull(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	if m.Connection.Engine == nil {
+		return m, nil
+	}
 	project := currentComposeProject(m)
 	if project == "" {
 		return m, nil
 	}
-	ShowToastWarn(m, fmt.Sprintf("✕ compose pull %s: not implemented (R08-05, runtime API missing pull)", project))
-	return m, nil
+	containers := composeProjectContainers(m, project)
+	if len(containers) == 0 {
+		ShowToastWarn(m, "✕ compose pull failed: no containers")
+		return m, nil
+	}
+	refs := composeProjectImageRefs(containers, false)
+	if len(refs) == 0 {
+		ShowToastWarn(m, "✕ compose pull: no images in project")
+		return m, nil
+	}
+	ShowToastNow(m, fmt.Sprintf("⟳ compose pull %s (%d images)", project, len(refs)))
+	return m, fetchComposePull(m.Connection.Engine, project, refs)
+}
+
+func fetchComposePull(eng runtime.Engine, project string, refs []string) tea.Cmd {
+	return func() tea.Msg {
+		var failures []error
+		successes := 0
+		for _, ref := range refs {
+			_, err := eng.Actions().Execute(context.Background(), runtime.ResourceRef{
+				Type: runtime.ResourceImage,
+				ID:   ref,
+			}, runtime.ActionPull, runtime.ActionOptions{})
+			if err != nil {
+				failures = append(failures, fmt.Errorf("%s: %w", ref, err))
+				continue
+			}
+			successes++
+		}
+		return state.ComposeServicePullCompleted{
+			Project: project,
+			Success: successes,
+			Error:   errors.Join(failures...),
+		}
+	}
 }
 
 // doComposePush iterates every tagged image in the project and pushes

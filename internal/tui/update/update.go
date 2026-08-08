@@ -167,6 +167,9 @@ func Update(msg tea.Msg, m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	case state.ComposeServicePushCompleted:
 		return handleComposeServicePushCompleted(m, msg)
 
+	case state.ComposeServicePullCompleted:
+		return handleComposeServicePullCompleted(m, msg)
+
 	case state.LogStreamError:
 		return handleLogStreamError(m, msg)
 
