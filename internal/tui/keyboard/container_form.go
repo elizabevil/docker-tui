@@ -48,6 +48,9 @@ const (
 	fieldVolumeRemoveForce        = "force"
 	fieldComposeScaleReplicas     = "replicas"
 	fieldComposeScaleNoDeps       = "noDeps"
+	fieldComposeRunCommand         = "command"
+	fieldComposeRunEntrypoint      = "entrypoint"
+	fieldComposeRunRm              = "rm"
 	// FormNetworkRemove has no editable fields (network remove does
 	// not support --force), so no fieldNetworkRemoveForce constant.
 )
@@ -417,6 +420,47 @@ func openComposeScaleForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 			}),
 		},
 	})
+	m.Navigation.Mode = state.ModeContainerForm
+	return m, nil
+}
+
+// openComposeRunForm builds the R08-08 F2 form for `docker compose run`.
+// Three fields: command (required), entrypoint override (optional),
+// and the --rm toggle (default true). --no-deps and per-key env/label
+// overrides are accepted for spec compatibility (RunOptions in
+// compose_service.go) but are not surfaced in the UI; --no-deps has
+// no effect (dtui does not parse compose.yaml) and env/label belong
+// to a future enhancement per R08-08 §非目标.
+func openComposeRunForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	project := currentComposeProject(m)
+	service := selectedDetailComposeService(m, project)
+	if m.Connection.Engine == nil || project == "" || service == "" {
+		ShowToastWarn(m, "✕ compose run: pick a service in the compose panel")
+		return m, nil
+	}
+	m.Form.Open(state.FormSpec{
+		Kind:       state.FormComposeRun,
+		Title:      "Run one-off: " + project + "/" + service,
+		TargetID:   project,
+		TargetName: service,
+		Fields: []state.FormField{
+			dialog.NewTextField(dialog.TextFieldConfig{
+				Key:         fieldComposeRunCommand,
+				Label:       "Command",
+				Required:    true,
+				Placeholder: "e.g. /bin/sh",
+			}),
+			dialog.NewTextField(dialog.TextFieldConfig{
+				Key:   fieldComposeRunEntrypoint,
+				Label: "Entrypoint override (optional)",
+			}),
+			dialog.NewBoolField(dialog.BoolFieldConfig{
+				Key:   fieldComposeRunRm,
+				Label: "--rm (auto-remove when command exits)",
+			}),
+		},
+	})
+	m.Form.Get(fieldComposeRunRm).SetToggle(true)
 	m.Navigation.Mode = state.ModeContainerForm
 	return m, nil
 }
@@ -1395,6 +1439,26 @@ func submitContainerForm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		}
 		clearContainerForm(m)
 		return executeComposeScale(m, project, service, replicas, noDeps)
+	case state.FormComposeRun:
+		project := id
+		service := name
+		cmdField := m.Form.Get(fieldComposeRunCommand)
+		if cmdField == nil || strings.TrimSpace(cmdField.Text()) == "" {
+			ShowToastWarn(m, i18n.T("compose.run.form.empty_command"))
+			clearContainerForm(m)
+			return m, nil
+		}
+		command := strings.Fields(cmdField.Text())
+		entrypoint := ""
+		if f := m.Form.Get(fieldComposeRunEntrypoint); f != nil {
+			entrypoint = strings.TrimSpace(f.Text())
+		}
+		removeAfter := true
+		if f := m.Form.Get(fieldComposeRunRm); f != nil {
+			removeAfter = f.Toggle()
+		}
+		clearContainerForm(m)
+		return executeComposeRun(m, project, service, command, entrypoint, removeAfter)
 	}
 	clearContainerForm(m)
 	return m, nil

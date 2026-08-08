@@ -73,6 +73,7 @@ const (
 	ActionComposeProjectKill    KeyAction = "compose_project.kill"
 	ActionComposeProjectRm      KeyAction = "compose_project.rm"
 	ActionComposeProjectPrune   KeyAction = "compose_project.prune"
+	ActionComposeProjectRun      KeyAction = "compose_project.run"
 	ActionComposeProjectEvents  KeyAction = "compose_project.events"
 	ActionComposeProjectDetail  KeyAction = "compose_project.detail"
 

@@ -92,7 +92,10 @@ func TestFetchComposeLogsBatchAggregatesMultipleSources(t *testing.T) {
 		{ID: "web1", Name: "demo_web_1", ComposeProject: "demo", ComposeService: "web"},
 		{ID: "db1", Name: "demo_db_1", ComposeProject: "demo", ComposeService: "db"},
 	}
-	cmd := FetchComposeLogsBatch(eng, composeLogVirtualID("demo", ""), containers, "10s", "200", false)
+	cmd := FetchComposeLogsBatch(eng, composeLogVirtualID("demo", ""), containers, runtimeapi.ComposeLogOptions{
+		Since: "10s",
+		Tail:  "200",
+	})
 	if cmd == nil {
 		t.Fatal("FetchComposeLogsBatch returned nil cmd")
 	}
@@ -135,7 +138,10 @@ func TestFetchComposeLogsBatchAssignsReplicaIndex(t *testing.T) {
 		{ID: "web1", Name: "demo_web_1", ComposeProject: "demo", ComposeService: "web"},
 		{ID: "web2", Name: "demo_web_2", ComposeProject: "demo", ComposeService: "web"},
 	}
-	cmd := FetchComposeLogsBatch(eng, composeLogVirtualID("demo", ""), containers, "10s", "200", false)
+	cmd := FetchComposeLogsBatch(eng, composeLogVirtualID("demo", ""), containers, runtimeapi.ComposeLogOptions{
+		Since: "10s",
+		Tail:  "200",
+	})
 	msg := cmd()
 	batch := msg.(state.LogBatchReceived)
 	if len(batch.Lines) != 2 {
@@ -158,14 +164,28 @@ func TestFetchComposeLogsBatchPartialFailure(t *testing.T) {
 		{ID: "web1", ComposeProject: "demo", ComposeService: "web"},
 		{ID: "db1", ComposeProject: "demo", ComposeService: "db"},
 	}
-	cmd := FetchComposeLogsBatch(eng, composeLogVirtualID("demo", ""), containers, "10s", "200", false)
+	cmd := FetchComposeLogsBatch(eng, composeLogVirtualID("demo", ""), containers, runtimeapi.ComposeLogOptions{
+		Since: "10s",
+		Tail:  "200",
+	})
 	msg := cmd()
 	batch, ok := msg.(state.ComposeLogBatchReceived)
 	if !ok {
 		t.Fatalf("expected ComposeLogBatchReceived (partial-failure carrier), got %T", msg)
 	}
-	if len(batch.Lines) != 1 || batch.Lines[0] != "[web] ok" {
-		t.Errorf("lines = %#v", batch.Lines)
+	// R08-06 §F6: failed containers get a placeholder line "(service.replica:
+	// connection lost)" inserted into the merged stream so the user
+	// still sees which container is unavailable. The db1 placeholder
+	// comes before web1 because both have zero timestamps and the sort
+	// is stable over the original iteration order (db1 first).
+	if len(batch.Lines) != 2 {
+		t.Fatalf("lines = %#v, want 2 lines (web1 success + db1 placeholder)", batch.Lines)
+	}
+	if batch.Lines[0] != "[db] (db.1: connection lost)" {
+		t.Errorf("lines[0] = %q, want db1 placeholder", batch.Lines[0])
+	}
+	if batch.Lines[1] != "[web] ok" {
+		t.Errorf("lines[1] = %q, want [web] ok", batch.Lines[1])
 	}
 	if len(batch.StreamErrs) != 1 || batch.StreamErrs[0].ContainerID != "db1" {
 		t.Errorf("streamErrs = %#v", batch.StreamErrs)

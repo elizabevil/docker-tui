@@ -76,6 +76,24 @@ func (s DockerComposeService) ListProjects(ctx context.Context, opts runtimeapi.
 				Services: []runtimeapi.ComposeServiceSummary{},
 			}
 			byProject[p] = entry
+			// R08-03 F3: capture working_dir / config_files / version from
+			// the first container's labels. Docker sets these on every
+			// replica; the first container is the simplest correct
+			// source. ConfigFiles is the JSON-escaped multi-line
+			// compose.yaml path list; split on '\n'.
+			if wd := ctr.Labels[runtimeapi.ComposeLabelWorkingDir]; wd != "" {
+				entry.WorkingDir = wd
+			}
+			if v := ctr.Labels[runtimeapi.ComposeLabelVersion]; v != "" {
+				entry.Version = v
+			}
+			if cf := ctr.Labels[runtimeapi.ComposeLabelConfigFiles]; cf != "" {
+				for _, line := range strings.Split(cf, "\n") {
+					if t := strings.TrimSpace(line); t != "" {
+						entry.ConfigFiles = append(entry.ConfigFiles, t)
+					}
+				}
+			}
 		}
 		entry.Services = append(entry.Services, runtimeapi.ComposeServiceSummary{
 			Name:  ctr.Labels[runtimeapi.ComposeLabelService],
@@ -105,6 +123,25 @@ func (s DockerComposeService) InspectProject(ctx context.Context, project string
 		Services: []runtimeapi.ComposeServiceSummary{},
 	}
 	for _, c := range containers {
+		// R08-03 F3: copy working_dir / config_files / version from
+		// the first container that carries them. Replicas in a project
+		// share the same compose.yaml, so the first match is
+		// representative.
+		if out.WorkingDir == "" {
+			out.WorkingDir = c.Labels[runtimeapi.ComposeLabelWorkingDir]
+		}
+		if out.Version == "" {
+			out.Version = c.Labels[runtimeapi.ComposeLabelVersion]
+		}
+		if len(out.ConfigFiles) == 0 {
+			if cf := c.Labels[runtimeapi.ComposeLabelConfigFiles]; cf != "" {
+				for _, line := range strings.Split(cf, "\n") {
+					if t := strings.TrimSpace(line); t != "" {
+						out.ConfigFiles = append(out.ConfigFiles, t)
+					}
+				}
+			}
+		}
 		out.Services = append(out.Services, runtimeapi.ComposeServiceSummary{
 			Name:  c.Labels[runtimeapi.ComposeLabelService],
 			Image: c.Image,
@@ -222,15 +259,29 @@ func (s DockerComposeService) Run(ctx context.Context, project, service string, 
 	if image == "" {
 		return fmt.Errorf("service %q not found in project %q", service, project)
 	}
+	// R08-08 §F3: container-number is max+1 of existing replicas in this
+	// service so the engine's container-name auto-allocator does not
+	// collide with pre-existing compose-managed containers. Docker
+	// stores the label inside the Summary.Labels map.
+	containerNumber := 1
+	for _, c := range containers {
+		if c.Labels[runtimeapi.ComposeLabelService] != service {
+			continue
+		}
+		if n, err := strconv.Atoi(c.Labels[runtimeapi.ComposeLabelContainerNumber]); err == nil && n >= containerNumber {
+			containerNumber = n + 1
+		}
+	}
 	containerName := fmt.Sprintf("%s_%s_oneoff", project, service)
 	cfg := &container.Config{
 		Image: image,
 		Cmd:   command,
 		Labels: map[string]string{
-			runtimeapi.ComposeLabelProject: project,
-			runtimeapi.ComposeLabelService: service,
-			runtimeapi.ComposeLabelOneoff:  "true",
-			"dtui.compose.run.timestamp":   time.Now().UTC().Format(time.RFC3339),
+			runtimeapi.ComposeLabelProject:         project,
+			runtimeapi.ComposeLabelService:         service,
+			runtimeapi.ComposeLabelOneoff:          "true",
+			runtimeapi.ComposeLabelContainerNumber: strconv.Itoa(containerNumber),
+			"dtui.compose.run.timestamp":           time.Now().UTC().Format(time.RFC3339),
 		},
 	}
 	for k, v := range opts.EnvOverrides {

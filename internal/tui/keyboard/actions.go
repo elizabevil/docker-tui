@@ -162,6 +162,8 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 		return doComposeRm(m)
 	case keys.ActionComposeProjectPrune:
 		return doComposePrune(m)
+	case keys.ActionComposeProjectRun:
+		return doComposeRun(m)
 	case keys.ActionComposeProjectEvents:
 		return doComposeEvents(m)
 

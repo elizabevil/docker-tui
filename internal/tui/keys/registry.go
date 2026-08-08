@@ -102,6 +102,7 @@ func Registry() []ActionSpec {
 		{ActionComposeProjectKill, []string{KeyCtrlK}, compose},
 		{ActionComposeProjectRm, nil, compose},
 		{ActionComposeProjectPrune, nil, compose},
+		{ActionComposeProjectRun, nil, compose},
 		{ActionComposeProjectEvents, []string{KeyCtrlF3}, compose},
 		{ActionComposeProjectDetail, []string{KeyD}, compose},
 
@@ -234,6 +235,7 @@ func configuredBindings(keymap config.KeymapConfig) map[KeyAction][]string {
 		ActionComposeProjectKill:    cm.Kill.Values(),
 		ActionComposeProjectRm:      cm.Rm.Values(),
 		ActionComposeProjectPrune:   cm.Prune.Values(),
+		ActionComposeProjectRun:      cm.Run.Values(),
 		ActionComposeProjectEvents:  cm.Events.Values(),
 		ActionComposeProjectDetail:  cm.Detail.Values(),
 

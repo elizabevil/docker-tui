@@ -28,6 +28,14 @@ const (
 	// compose service. The form carries one Int field (target replicas)
 	// and one Bool field (--no-deps).
 	FormComposeScale
+	// FormComposeRun (R08-08 F2) wraps the docker compose run form
+	// for a single compose service. The form carries the command
+	// line, an optional entrypoint override, and a --rm toggle
+	// (default true). --no-deps and per-key env/label overrides are
+	// accepted for spec compatibility but not surfaced in the UI
+	// (dtui does not parse compose.yaml, so --no-deps has no
+	// effect; env/label belong to a future enhancement).
+	FormComposeRun
 )
 
 // FormFieldKind selects how a form field is edited and rendered.

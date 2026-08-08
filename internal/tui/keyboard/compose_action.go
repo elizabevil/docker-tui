@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/data/audit"
+	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	"github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
@@ -305,13 +306,13 @@ func openComposeDownConfirm(m *state.AppModel, project string) (*state.AppModel,
 	target := audit.ComposeTarget{Name: project}
 	trace := beginAudit(m, "resource.compose_project.down", target, "Compose down: "+project)
 	options := []state.ChoiceOption{
-		{ID: "opt_volumes", Label: "-v delete volumes", Checked: m.Compose.ComposeDownRemoveVolumes},
-		{ID: "opt_rmi", Label: "--rmi all delete images", Checked: m.Compose.ComposeDownRemoveImages != ""},
-		{ID: "opt_orphans", Label: "--remove-orphans", Checked: m.Compose.ComposeDownRemoveOrphans},
+		{ID: "opt_volumes", Label: i18n.T("compose.dialog.down.option_volumes"), Checked: m.Compose.ComposeDownRemoveVolumes},
+		{ID: "opt_rmi", Label: i18n.T("compose.dialog.down.option_rmi"), Checked: m.Compose.ComposeDownRemoveImages != ""},
+		{ID: "opt_orphans", Label: i18n.T("compose.dialog.down.option_orphans"), Checked: m.Compose.ComposeDownRemoveOrphans},
 		{ID: keys.ShowOptionCancel, Label: "Cancel"},
 		{ID: keys.ShowOptionConfirm, Label: "Confirm"},
 	}
-	m.Confirm.OpenWithOptions(keys.ShowOptionConfirm, project, "Down compose project "+project, trace, options)
+	m.Confirm.OpenWithOptions(keys.ShowOptionConfirm, project, i18n.T("compose.dialog.down.title", project), trace, options)
 	m.Confirm.Focus = 0 // start on the first checkbox, not Cancel
 	m.Navigation.Mode = state.ModeConfirm
 	return m, nil
@@ -328,7 +329,7 @@ func doComposeLogs(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	service := selectedDetailComposeService(m, project)
 	containers := composeProjectContainers(m, project)
 	if len(containers) == 0 {
-		ShowToastNow(m, "✕ compose logs failed: no containers")
+		ShowToastNow(m, i18n.T("compose.toast.logs_no_containers"))
 		return m, nil
 	}
 	// Scope the fetch to the selected service when the right pane is
@@ -341,7 +342,7 @@ func doComposeLogs(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 			}
 		}
 		if len(picked) == 0 {
-			ShowToastWarn(m, fmt.Sprintf("✕ compose logs: service %q has no containers", service))
+			ShowToastWarn(m, i18n.T("compose.toast.logs_service", service))
 			return m, nil
 		}
 	} else {
@@ -351,12 +352,23 @@ func doComposeLogs(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	m.Log.Open(virtualID)
 	m.Navigation.Mode = state.ModeLogView
 	cfg := m.Dependencies.Config.Logs
+	// Audit: log view open (R08-06 §F7 — fires once on open, not on close).
+	target := audit.ComposeTarget{
+		Name: project,
+		Meta: audit.ComposeMeta{Containers: len(picked)},
+	}
+	beginAudit(m, "resource.compose_project.logs_view", target, "Viewing compose logs: "+project)
+	opts := runtime.ComposeLogOptions{
+		Since:      cfg.Since,
+		Tail:       cfg.Tail,
+		Timestamps: cfg.Timestamps,
+	}
 	label := project
 	if service != "" {
 		label = project + "/" + service
 	}
-	ShowToastNow(m, fmt.Sprintf("✓ compose logs %s (%d sources)", label, len(picked)))
-	return m, FetchComposeLogsBatch(m.Connection.Engine, virtualID, picked, cfg.Since, cfg.Tail, cfg.Timestamps)
+	ShowToastNow(m, i18n.T("compose.toast.logs", label, len(picked)))
+	return m, FetchComposeLogsBatch(m.Connection.Engine, virtualID, picked, opts)
 }
 
 // composeLogVirtualID returns the synthetic LogContainerID used by the
@@ -374,14 +386,22 @@ func composeLogVirtualID(project, service string) string {
 // returns a single LogBatchReceived whose lines are prefixed with
 // "[service] " (single replica) or "[service.N] " (Nth replica of the
 // service) per R08-06 F4. Service / replica counters come from the
-// supplied containers slice; ordering within a service is preserved
-// but cross-service lines are emitted in fetch order (R08-06 F1
-// simplification — true timestamp merging needs streaming, deferred).
+// supplied containers slice; cross-service lines are merged and
+// sorted by parsed RFC3339Nano timestamp (F1).
 //
-// Failures for individual containers are surfaced as
-// LogStreamError for each; the Update loop filters those out so a
-// single dropped container does not abort the whole view (F6).
-func FetchComposeLogsBatch(client runtime.Engine, virtualID string, containers []runtime.ContainerSummary, since, tail string, ts bool) tea.Cmd {
+// The engine is always queried with timestamps=true so the aggregator
+// has data to sort on; opts.Timestamps only controls whether the
+// parsed time surfaces in the visible line as a [HH:MM:SS.mmm] prefix.
+// opts.Merged collapses all replicas of a service under a single
+// [service] tag instead of the default [service.N] suffix (F3).
+//
+// Failures for individual containers are surfaced as LogStreamError
+// for each, and a placeholder line "(service.replica: connection
+// lost)" is inserted into the merged stream so the user still sees
+// which container is unavailable (F6). The Update loop filters
+// StreamErrs out of the visible buffer; a separate toast surfaces
+// the failure to the user.
+func FetchComposeLogsBatch(client runtime.Engine, virtualID string, containers []runtime.ContainerSummary, opts runtime.ComposeLogOptions) tea.Cmd {
 	return func() tea.Msg {
 		// Stable order so replicas keep their assigned suffix across runs.
 		ordered := append([]runtime.ContainerSummary(nil), containers...)
@@ -396,57 +416,91 @@ func FetchComposeLogsBatch(client runtime.Engine, virtualID string, containers [
 			replicaIdx[c.ComposeService]++
 		}
 		seen := make(map[string]int, len(ordered))
-		var allLines []string
+		var all []runtime.ComposeLogLine
 		var streamErrs []state.LogStreamError
 		for _, c := range ordered {
 			seen[c.ComposeService]++
 			idx := seen[c.ComposeService]
-			prefix := composeLogPrefix(c, replicaIdx[c.ComposeService], idx)
-			reader, err := client.Containers().Logs(context.Background(), c.ID, runtime.ContainerLogOptions{Since: since, Tail: tail, Timestamps: ts})
+			// Engine is always queried with timestamps=true so the
+			// aggregator can sort; opts.Timestamps only controls whether
+			// the parsed time surfaces in the visible line.
+			reader, err := client.Containers().Logs(context.Background(), c.ID, runtime.ContainerLogOptions{Since: opts.Since, Tail: opts.Tail, Timestamps: true})
 			if err != nil {
 				streamErrs = append(streamErrs, state.LogStreamError{ContainerID: c.ID, Error: err})
+				all = append(all, runtime.ComposeLogLine{
+					Service:     c.ComposeService,
+					Replica:     idx,
+					ContainerID: c.ID,
+					Line:        i18n.T("compose.logs.lost_connection", c.ComposeService, idx),
+				})
 				continue
 			}
 			scanner := bufio.NewScanner(reader)
 			for scanner.Scan() {
-				line := scanner.Text()
-				if line == "" {
+				rawLine := scanner.Text()
+				if rawLine == "" {
 					continue
 				}
-				allLines = append(allLines, prefix+" "+line)
+				ts, content := runtime.ParseLogLineTimestamp(rawLine)
+				all = append(all, runtime.ComposeLogLine{
+					Service:     c.ComposeService,
+					Replica:     idx,
+					ContainerID: c.ID,
+					Timestamp:   ts,
+					Line:        content,
+				})
 			}
 			if cerr := scanner.Err(); cerr != nil {
 				streamErrs = append(streamErrs, state.LogStreamError{ContainerID: c.ID, Error: cerr})
 			}
 			_ = reader.Close() //nolint:errcheck // log reader fully scanned before close.
 		}
+		// Sort by timestamp across all streams. Zero-value timestamps
+		// (no engine-provided ts) sink to the tail so they never block
+		// timestamped lines.
+		sort.SliceStable(all, func(i, j int) bool {
+			iZero := all[i].Timestamp.IsZero()
+			jZero := all[j].Timestamp.IsZero()
+			if iZero != jZero {
+				return !iZero
+			}
+			return all[i].Timestamp.Before(all[j].Timestamp)
+		})
+		lines := make([]string, 0, len(all))
+		for _, l := range all {
+			prefix := composeLogPrefix(l.Service, replicaIdx[l.Service], l.Replica, opts.Merged)
+			if opts.Timestamps && !l.Timestamp.IsZero() {
+				prefix = "[" + l.Timestamp.Format(runtime.LogTimeFormat) + "] " + prefix
+			}
+			lines = append(lines, prefix+" "+l.Line)
+		}
 		if len(streamErrs) > 0 {
 			return state.ComposeLogBatchReceived{
 				ContainerID: virtualID,
-				Lines:       allLines,
+				Lines:       lines,
 				StreamErrs:  streamErrs,
 			}
 		}
-		return state.LogBatchReceived{ContainerID: virtualID, Lines: allLines}
+		return state.LogBatchReceived{ContainerID: virtualID, Lines: lines}
 	}
 }
 
 // composeLogPrefix formats the per-line service tag. Single-replica
-// services use "[service]"; multi-replica services use "[service.N]"
-// so the user can distinguish outputs that share a service name.
-func composeLogPrefix(c runtime.ContainerSummary, total, idx int) string {
-	service := c.ComposeService
+// services and the merged mode use "[service]"; multi-replica services
+// in separate mode use "[service.N]" so the user can distinguish
+// outputs that share a service name (R08-06 §F4).
+func composeLogPrefix(service string, total, idx int, merged bool) string {
 	if service == "" {
 		service = "unknown"
 	}
-	if total <= 1 {
+	if merged || total <= 1 {
 		return "[" + service + "]"
 	}
 	return fmt.Sprintf("[%s.%d]", service, idx)
 }
 
 func composeActionPending(m *state.AppModel, verb string) (*state.AppModel, tea.Cmd) {
-	ShowToastWarn(m, fmt.Sprintf("✕ compose %s: not implemented yet", verb))
+		ShowToastWarn(m, i18n.T("compose.toast.actions_pending", verb))
 	return m, nil
 }
 
@@ -464,10 +518,10 @@ func doComposeRestart(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	containers := composeProjectContainers(m, project)
 	if len(containers) == 0 {
-		ShowToastWarn(m, "✕ compose restart failed: no containers")
+		ShowToastWarn(m, i18n.T("compose.toast.restart_failed", project))
 		return m, nil
 	}
-	ShowToastNow(m, fmt.Sprintf("⟳ restart %s (%d containers)", project, len(containers)))
+	ShowToastNow(m, i18n.T("compose.toast.restart", project, len(containers)))
 	_, stopCmd := doComposeStop(m)
 	_, startCmd := doComposeStart(m)
 	if stopCmd == nil || startCmd == nil {
@@ -487,7 +541,7 @@ func doComposeTop(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	containers := composeProjectContainers(m, project)
 	if len(containers) == 0 {
-		ShowToastWarn(m, "✕ compose top failed: no containers")
+		ShowToastWarn(m, i18n.T("compose.toast.top_failed", project))
 		return m, nil
 	}
 	target := service
@@ -509,7 +563,7 @@ func doComposePort(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	containers := composeProjectContainers(m, project)
 	if len(containers) == 0 {
-		ShowToastWarn(m, "✕ compose port failed: no containers")
+		ShowToastWarn(m, i18n.T("compose.toast.port_failed", project))
 		return m, nil
 	}
 	// 80 = the canonical "first published port" default; UI may override
@@ -517,7 +571,7 @@ func doComposePort(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	// container and use R01's :port command for a specific number.
 	const defaultPort = 80
 	m.Compose.ComposeSubview = state.ComposeSubviewPort
-	ShowToastNow(m, fmt.Sprintf("⟳ compose port %s/%s :%d", project, service, defaultPort))
+	ShowToastNow(m, i18n.T("compose.toast.port", project, service, defaultPort))
 	return m, fetchComposeServicePort(m.Connection.Engine, project, service, defaultPort, containers)
 }
 
@@ -531,11 +585,11 @@ func doComposeStats(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	containers := composeProjectContainers(m, project)
 	if len(containers) == 0 {
-		ShowToastWarn(m, "✕ compose stats failed: no containers")
+		ShowToastWarn(m, i18n.T("compose.toast.stats_failed", project))
 		return m, nil
 	}
 	m.Compose.ComposeSubview = state.ComposeSubviewStats
-	ShowToastNow(m, fmt.Sprintf("⟳ compose stats %s (%d sources)", project, len(containers)))
+	ShowToastNow(m, i18n.T("compose.toast.stats", project, len(containers)))
 	return m, fetchComposeServiceStats(m.Connection.Engine, project, containers)
 }
 
@@ -744,7 +798,7 @@ func doComposePrune(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 		return m, nil
 	}
 	engine := m.Connection.Engine
-	ShowToastNow(m, fmt.Sprintf("⟳ pruning %s (%d containers, %d volumes)", project, len(containers), len(volumes)))
+	ShowToastNow(m, i18n.T("compose.toast.prune", project, len(containers), len(volumes)))
 	return m, func() tea.Msg {
 		result := state.BatchActioned{
 			Scope:    ComposeScope(composeVerbPrune),
@@ -816,7 +870,7 @@ func doComposeProjectLifecycle(m *state.AppModel, verb string, perContainer func
 		return m, nil
 	}
 	engine := m.Connection.Engine
-	ShowToastNow(m, fmt.Sprintf("⟳ %s %s (%d containers)", verb, project, len(containers)))
+		ShowToastNow(m, i18n.T("compose.toast.actions_starting", verb, project, len(containers)))
 	return m, func() tea.Msg {
 		result := state.BatchActioned{
 			Scope:    ComposeScope(verb),
@@ -996,7 +1050,7 @@ func doComposeEvents(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	}
 	m.EventPanel.SetFilterFromCompose(project)
 	m.Navigation.Mode = state.ModeEvents
-	ShowToastNow(m, fmt.Sprintf("✓ events filtered to %s", project))
+	ShowToastNow(m, i18n.T("compose.toast.events_filter", project))
 	return m, nil
 }
 
@@ -1054,6 +1108,46 @@ func doComposeServiceRun(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	return m, fetchComposeServiceRun(m.Connection.Engine, project, service, runtime.RunOptions{
 		RemoveAfter: true,
 	})
+}
+
+// doComposeRun opens the R08-08 F2 form (command / --rm / entrypoint
+// override) and dispatches to executeComposeRun on submit. This is
+// the form-based path; doComposeServiceRun above is the quick
+// default-args path (keymap ActionComposeServiceRun).
+func doComposeRun(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return openComposeRunForm(m)
+}
+
+// executeComposeRun invokes ComposeService.Run with values parsed
+// from the run form (R08-08 F2). The --no-deps / env / label
+// overrides are accepted on RunOptions for spec compatibility but
+// are not surfaced in the UI; --no-deps has no effect (dtui does not
+// parse compose.yaml). Audits as "compose_service.run" with the
+// oneoff timestamp label so the audit history distinguishes
+// "run" from "resident" container creates.
+func executeComposeRun(m *state.AppModel, project, service string, command []string, entrypoint string, removeAfter bool) (*state.AppModel, tea.Cmd) {
+	if m.Connection.Engine == nil {
+		return m, nil
+	}
+	opts := runtime.RunOptions{
+		RemoveAfter:        removeAfter,
+		EntrypointOverride: entrypoint,
+	}
+	target := audit.ComposeTarget{
+		Name: project,
+		Meta: audit.ComposeMeta{Containers: 1},
+	}
+	trace := beginAudit(m, "compose_service.run", target,
+		fmt.Sprintf("compose run %s/%s (%d args, --rm=%v)", project, service, len(command), removeAfter))
+	err := m.Connection.Engine.Compose().Run(context.Background(), project, service, command, opts)
+	if err != nil {
+		FinishAudit(m, trace, audit.ResultFailed, fmt.Sprintf("compose run failed: %s", err), audit.Details{Error: err.Error()})
+		ShowToastWarn(m, fmt.Sprintf("✕ compose run %s/%s: %s", project, service, err))
+		return m, nil
+	}
+	FinishAudit(m, trace, audit.ResultSucceeded, "compose run started", audit.Details{})
+	ShowToastNow(m, i18n.T("compose.toast.run_started", project, service))
+	return m, nil
 }
 
 func fetchComposeServiceRun(eng runtime.Engine, project, service string, opts runtime.RunOptions) tea.Cmd {

@@ -24,6 +24,13 @@ type composeProj struct {
 	total   int
 	running int
 	svcs    map[string]composeSvc
+	// workingDir / configFiles / version are taken from the first
+	// container's compose labels (R08-03 F3). Empty on podman which
+	// does not set these labels; the render layer falls back to
+	// i18n.T("compose.detail.empty") when all three are empty.
+	workingDir  string
+	configFiles []string
+	version     string
 }
 
 type composeSvc struct {
@@ -48,6 +55,24 @@ func gatherComposeProjects(m *state.AppModel) ([]composeProj, map[string]*compos
 		if !ok {
 			item = &composeProj{name: p, svcs: map[string]composeSvc{}}
 			projects[p] = item
+			// R08-03 F3: capture working_dir / config_files / version from
+			// the first container we see for this project. Docker sets
+			// these on every replica; podman sets none. Reading from the
+			// first container is the simplest correct path — replicas in
+			// the same project share the same compose.yaml.
+			if wd := c.Labels[dockerclient.ComposeLabelWorkingDir]; wd != "" {
+				item.workingDir = wd
+			}
+			if cv := c.Labels[dockerclient.ComposeLabelConfigHash]; cv != "" {
+				item.version = c.Labels[dockerclient.ComposeLabelVersion]
+			}
+			if cf := c.Labels[dockerclient.ComposeLabelConfigFiles]; cf != "" {
+				for _, line := range strings.Split(cf, "\n") {
+					if t := strings.TrimSpace(line); t != "" {
+						item.configFiles = append(item.configFiles, t)
+					}
+				}
+			}
 		}
 		item.total++
 		if c.State == state.ContainerStateRunning {
@@ -206,6 +231,30 @@ func renderProjectList(m *state.AppModel, ordered []composeProj, w, panelHeight 
 	})
 }
 
+// renderComposeMeta formats the R08-03 F3 metadata strip
+// (working_dir / config_files / version) for the right pane header.
+// Returns "" when the strip would just be "(no project metadata)" —
+// caller can then skip appending to keep the header clean.
+func renderComposeMeta(proj composeProj, w int) string {
+	hasMeta := proj.workingDir != "" || proj.version != "" || len(proj.configFiles) > 0
+	if !hasMeta {
+		return ""
+	}
+	parts := make([]string, 0, 2+len(proj.configFiles))
+	if proj.workingDir != "" {
+		parts = append(parts, i18n.T("compose.detail.working_dir", proj.workingDir))
+	}
+	if proj.version != "" {
+		parts = append(parts, i18n.T("compose.detail.version", proj.version))
+	}
+	if len(proj.configFiles) > 0 {
+		parts = append(parts, i18n.T("compose.detail.config_files"))
+		parts = append(parts, proj.configFiles...)
+	}
+	joined := strings.Join(parts, "\n")
+	return component.TruncateVisible(joined, w)
+}
+
 func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int) string {
 	sts := "partial"
 	if proj.running == proj.total {
@@ -216,6 +265,12 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 	}
 	rawTitle := state.PanelLabel(state.PanelCompose) + " > " + proj.name + " > " + i18n.T("key.services")
 	rawSummary := i18n.T("compose.summary", sts, len(proj.svcs), proj.total)
+	// R08-03 F3 metadata strip: shows working_dir / version when the
+	// compose daemon set them (Docker). ConfigFiles is multi-line; on
+	// narrow terminals it may be truncated by the TruncateVisible call
+	// below. When all three are empty, we fall back to the spec's
+	// "(no project metadata)" line (per F3).
+	meta := renderComposeMeta(proj, w)
 	// header combines the breadcrumb (left) with the running / service / pod
 	// counts (right). The summary is treated as the canonical "stats" slot for
 	// this view; any duplicate shortcut hints are intentionally omitted so the
@@ -224,6 +279,9 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 	title := component.GetStyle(component.StylePanelTitle).Render(component.TruncateVisible(rawTitle, w))
 	summary := component.GetStyle(component.StyleDim).Render(rawSummary)
 	header := composePanelHeader(title, summary, w)
+	if meta != "" {
+		header = lipgloss.JoinVertical(lipgloss.Left, header, component.GetStyle(component.StyleDim).Render(meta))
+	}
 
 	svcNames := make([]string, 0, len(proj.svcs))
 	for name := range proj.svcs {
