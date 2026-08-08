@@ -1,1 +1,422 @@
-[]
+[
+  {
+    "AutoRemove": false,
+    "Command": [
+      "nginx",
+      "-g",
+      "daemon off;"
+    ],
+    "Created": "2026-08-09T22:16:02.179144981-04:00",
+    "CreatedAt": "",
+    "CIDFile": "",
+    "Exited": false,
+    "ExitedAt": -62135596800,
+    "ExitCode": 0,
+    "ExposedPorts": {
+      "80": [
+        "tcp"
+      ]
+    },
+    "Id": "b9400998a7cc70163162ccb5da217cc99eb47ed5d3aaf4375279ded504bbcca3",
+    "Image": "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/nginx:alpine",
+    "ImageID": "93f9c72967dbcfaffe724ae5ba471e9568c9bbe67271f53266c84f3c83a409e3",
+    "IsInfra": false,
+    "Labels": {
+      "PODMAN_SYSTEMD_UNIT": "podman-compose@integration.service",
+      "com.docker.compose.container-number": "1",
+      "com.docker.compose.project": "integration",
+      "com.docker.compose.project.config_files": "web-app.yml",
+      "com.docker.compose.project.working_dir": "/home/debi/IdeaProjects/docker-tui/test/integration",
+      "com.docker.compose.service": "nginx",
+      "dtui.test.suite": "web-app",
+      "io.podman.compose.config-hash": "792cd37bc38ae78222e9a09fd683d3778b818511be55b272f708bd54b1b204fd",
+      "io.podman.compose.project": "integration",
+      "io.podman.compose.version": "1.3.0",
+      "maintainer": "NGINX Docker Maintainers \u003cdocker-maint@nginx.com\u003e"
+    },
+    "Mounts": [],
+    "Names": [
+      "dtui-webapp-nginx"
+    ],
+    "Namespaces": {},
+    "Networks": [
+      "integration_default"
+    ],
+    "Pid": 1588848,
+    "Pod": "cc111bbaf0236486ef3bb1597dad79c1ed65783674746c325df7b77d15aedfaa",
+    "PodName": "pod_integration",
+    "Ports": [
+      {
+        "host_ip": "",
+        "container_port": 80,
+        "host_port": 18080,
+        "range": 1,
+        "protocol": "tcp"
+      }
+    ],
+    "Restarts": 0,
+    "Size": null,
+    "StartedAt": 1786328162,
+    "State": "running",
+    "Status": "healthy"
+  },
+  {
+    "AutoRemove": false,
+    "Command": [
+      "redis-server",
+      "--appendonly",
+      "yes"
+    ],
+    "Created": "2026-08-09T22:16:02.436062654-04:00",
+    "CreatedAt": "",
+    "CIDFile": "",
+    "Exited": false,
+    "ExitedAt": -62135596800,
+    "ExitCode": 0,
+    "ExposedPorts": {
+      "6379": [
+        "tcp"
+      ]
+    },
+    "Id": "2b1eedff1865671a40718f842a38bd91c285cb4c82eac93b0b27fe1526ed6042",
+    "Image": "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/redis:7-alpine",
+    "ImageID": "e08bd8d5a6774025cff22e5db8361f6a5d023811e84d77d0033e47d44970cc94",
+    "IsInfra": false,
+    "Labels": {
+      "PODMAN_SYSTEMD_UNIT": "podman-compose@integration.service",
+      "com.docker.compose.container-number": "1",
+      "com.docker.compose.project": "integration",
+      "com.docker.compose.project.config_files": "web-app.yml",
+      "com.docker.compose.project.working_dir": "/home/debi/IdeaProjects/docker-tui/test/integration",
+      "com.docker.compose.service": "redis",
+      "dtui.test.suite": "web-app",
+      "io.podman.compose.config-hash": "792cd37bc38ae78222e9a09fd683d3778b818511be55b272f708bd54b1b204fd",
+      "io.podman.compose.project": "integration",
+      "io.podman.compose.version": "1.3.0"
+    },
+    "Mounts": [
+      "/data"
+    ],
+    "Names": [
+      "dtui-webapp-redis"
+    ],
+    "Namespaces": {},
+    "Networks": [
+      "integration_default"
+    ],
+    "Pid": 1588974,
+    "Pod": "cc111bbaf0236486ef3bb1597dad79c1ed65783674746c325df7b77d15aedfaa",
+    "PodName": "pod_integration",
+    "Ports": [
+      {
+        "host_ip": "",
+        "container_port": 6379,
+        "host_port": 16379,
+        "range": 1,
+        "protocol": "tcp"
+      }
+    ],
+    "Restarts": 0,
+    "Size": null,
+    "StartedAt": 1786328162,
+    "State": "running",
+    "Status": "healthy"
+  },
+  {
+    "AutoRemove": false,
+    "Command": [
+      "postgres"
+    ],
+    "Created": "2026-08-09T22:16:39.671788224-04:00",
+    "CreatedAt": "",
+    "CIDFile": "",
+    "Exited": false,
+    "ExitedAt": -62135596800,
+    "ExitCode": 0,
+    "ExposedPorts": {
+      "5432": [
+        "tcp"
+      ]
+    },
+    "Id": "c58868d81b22a1bb450f2b3dbd521cb7f857e449d8a8bad92cbb9529de726e97",
+    "Image": "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/postgres:18-alpine",
+    "ImageID": "3f4989ad6f4a9d8859fdea63e719881fc9fbda8c3ec94afb6d34d470b751ae80",
+    "IsInfra": false,
+    "Labels": {
+      "PODMAN_SYSTEMD_UNIT": "podman-compose@integration.service",
+      "com.docker.compose.container-number": "1",
+      "com.docker.compose.project": "integration",
+      "com.docker.compose.project.config_files": "web-app.yml",
+      "com.docker.compose.project.working_dir": "/home/debi/IdeaProjects/docker-tui/test/integration",
+      "com.docker.compose.service": "postgres",
+      "dtui.test.suite": "web-app",
+      "io.podman.compose.config-hash": "792cd37bc38ae78222e9a09fd683d3778b818511be55b272f708bd54b1b204fd",
+      "io.podman.compose.project": "integration",
+      "io.podman.compose.version": "1.3.0"
+    },
+    "Mounts": [
+      "/var/lib/postgresql",
+      "/var/lib/postgresql/data"
+    ],
+    "Names": [
+      "dtui-webapp-postgres"
+    ],
+    "Namespaces": {},
+    "Networks": [
+      "integration_default"
+    ],
+    "Pid": 1589730,
+    "Pod": "cc111bbaf0236486ef3bb1597dad79c1ed65783674746c325df7b77d15aedfaa",
+    "PodName": "pod_integration",
+    "Ports": [
+      {
+        "host_ip": "",
+        "container_port": 5432,
+        "host_port": 15432,
+        "range": 1,
+        "protocol": "tcp"
+      }
+    ],
+    "Restarts": 0,
+    "Size": null,
+    "StartedAt": 1786328199,
+    "State": "running",
+    "Status": "healthy"
+  },
+  {
+    "AutoRemove": false,
+    "Command": [
+      "sleep",
+      "infinity"
+    ],
+    "Created": "2026-08-09T22:16:39.858141918-04:00",
+    "CreatedAt": "",
+    "CIDFile": "",
+    "Exited": false,
+    "ExitedAt": -62135596800,
+    "ExitCode": 0,
+    "ExposedPorts": null,
+    "Id": "dba8b24bc7537b636ddfc2995fb8978b1286b69b3c665768a1803c90b421d2eb",
+    "Image": "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:3.19",
+    "ImageID": "494edff7360579cb513922f6c60ecab4bb267a9b8339f7962f6a78c5c31ec923",
+    "IsInfra": false,
+    "Labels": {
+      "PODMAN_SYSTEMD_UNIT": "podman-compose@integration.service",
+      "com.docker.compose.container-number": "1",
+      "com.docker.compose.project": "integration",
+      "com.docker.compose.project.config_files": "web-app.yml",
+      "com.docker.compose.project.working_dir": "/home/debi/IdeaProjects/docker-tui/test/integration",
+      "com.docker.compose.service": "cli",
+      "dtui.test.suite": "web-app",
+      "io.podman.compose.config-hash": "792cd37bc38ae78222e9a09fd683d3778b818511be55b272f708bd54b1b204fd",
+      "io.podman.compose.project": "integration",
+      "io.podman.compose.version": "1.3.0"
+    },
+    "Mounts": [],
+    "Names": [
+      "dtui-webapp-cli"
+    ],
+    "Namespaces": {},
+    "Networks": [
+      "integration_default"
+    ],
+    "Pid": 1589826,
+    "Pod": "cc111bbaf0236486ef3bb1597dad79c1ed65783674746c325df7b77d15aedfaa",
+    "PodName": "pod_integration",
+    "Ports": null,
+    "Restarts": 0,
+    "Size": null,
+    "StartedAt": 1786328199,
+    "State": "running",
+    "Status": ""
+  },
+  {
+    "AutoRemove": false,
+    "Command": [
+      "sleep",
+      "infinity"
+    ],
+    "Created": "2026-08-09T22:16:40.015472687-04:00",
+    "CreatedAt": "",
+    "CIDFile": "",
+    "Exited": false,
+    "ExitedAt": -62135596800,
+    "ExitCode": 0,
+    "ExposedPorts": null,
+    "Id": "5a7c8c96502037c12c40af4ac7aacbdfe4862b2f7f0e00319b7dc2a885bd0ef9",
+    "Image": "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:3.19",
+    "ImageID": "494edff7360579cb513922f6c60ecab4bb267a9b8339f7962f6a78c5c31ec923",
+    "IsInfra": false,
+    "Labels": {
+      "PODMAN_SYSTEMD_UNIT": "podman-compose@integration.service",
+      "com.docker.compose.container-number": "1",
+      "com.docker.compose.project": "integration",
+      "com.docker.compose.project.config_files": "web-app.yml",
+      "com.docker.compose.project.working_dir": "/home/debi/IdeaProjects/docker-tui/test/integration",
+      "com.docker.compose.service": "worker-limited",
+      "dtui.test.suite": "web-app",
+      "io.podman.compose.config-hash": "792cd37bc38ae78222e9a09fd683d3778b818511be55b272f708bd54b1b204fd",
+      "io.podman.compose.project": "integration",
+      "io.podman.compose.version": "1.3.0"
+    },
+    "Mounts": [],
+    "Names": [
+      "dtui-webapp-worker-limited"
+    ],
+    "Namespaces": {},
+    "Networks": [
+      "integration_default"
+    ],
+    "Pid": 1589873,
+    "Pod": "cc111bbaf0236486ef3bb1597dad79c1ed65783674746c325df7b77d15aedfaa",
+    "PodName": "pod_integration",
+    "Ports": null,
+    "Restarts": 0,
+    "Size": null,
+    "StartedAt": 1786328200,
+    "State": "running",
+    "Status": ""
+  },
+  {
+    "AutoRemove": false,
+    "Command": [
+      "sleep",
+      "infinity"
+    ],
+    "Created": "2026-08-09T22:16:40.168341475-04:00",
+    "CreatedAt": "",
+    "CIDFile": "",
+    "Exited": false,
+    "ExitedAt": -62135596800,
+    "ExitCode": 0,
+    "ExposedPorts": null,
+    "Id": "64b31cd9769c7d981cb92b2cd4b37e6f7b52947ad20ce1554793abca4de8308b",
+    "Image": "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:3.19",
+    "ImageID": "494edff7360579cb513922f6c60ecab4bb267a9b8339f7962f6a78c5c31ec923",
+    "IsInfra": false,
+    "Labels": {
+      "PODMAN_SYSTEMD_UNIT": "podman-compose@integration.service",
+      "com.docker.compose.container-number": "1",
+      "com.docker.compose.project": "integration",
+      "com.docker.compose.project.config_files": "web-app.yml",
+      "com.docker.compose.project.working_dir": "/home/debi/IdeaProjects/docker-tui/test/integration",
+      "com.docker.compose.service": "worker",
+      "dtui.test.suite": "web-app",
+      "io.podman.compose.config-hash": "792cd37bc38ae78222e9a09fd683d3778b818511be55b272f708bd54b1b204fd",
+      "io.podman.compose.project": "integration",
+      "io.podman.compose.version": "1.3.0"
+    },
+    "Mounts": [],
+    "Names": [
+      "dtui-webapp-worker"
+    ],
+    "Namespaces": {},
+    "Networks": [
+      "integration_default"
+    ],
+    "Pid": 1589921,
+    "Pod": "cc111bbaf0236486ef3bb1597dad79c1ed65783674746c325df7b77d15aedfaa",
+    "PodName": "pod_integration",
+    "Ports": null,
+    "Restarts": 0,
+    "Size": null,
+    "StartedAt": 1786328200,
+    "State": "running",
+    "Status": ""
+  },
+  {
+    "AutoRemove": false,
+    "Command": [
+      "sleep",
+      "infinity"
+    ],
+    "Created": "2026-08-09T22:19:28.370947864-04:00",
+    "CreatedAt": "",
+    "CIDFile": "",
+    "Exited": false,
+    "ExitedAt": -62135596800,
+    "ExitCode": 0,
+    "ExposedPorts": null,
+    "Id": "e7b04504855bbbf8244194fed9e8896d4d0a794bcfc79b1c95952b78120d37d7",
+    "Image": "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:3.19",
+    "ImageID": "494edff7360579cb513922f6c60ecab4bb267a9b8339f7962f6a78c5c31ec923",
+    "IsInfra": false,
+    "Labels": {
+      "PODMAN_SYSTEMD_UNIT": "podman-compose@integration.service",
+      "com.docker.compose.container-number": "1",
+      "com.docker.compose.project": "integration",
+      "com.docker.compose.project.config_files": "batch-task.yml",
+      "com.docker.compose.project.working_dir": "/home/debi/IdeaProjects/docker-tui/test/integration",
+      "com.docker.compose.service": "worker",
+      "dtui.test.role": "worker",
+      "dtui.test.suite": "batch-task",
+      "io.podman.compose.config-hash": "718db6ab4ed4ba28ec0ad0be81257d76e302c3f169aa26e0ee43732d088077c3",
+      "io.podman.compose.project": "integration",
+      "io.podman.compose.version": "1.3.0"
+    },
+    "Mounts": [],
+    "Names": [
+      "dtui-batch-worker"
+    ],
+    "Namespaces": {},
+    "Networks": [
+      "integration_default"
+    ],
+    "Pid": 1593326,
+    "Pod": "cc111bbaf0236486ef3bb1597dad79c1ed65783674746c325df7b77d15aedfaa",
+    "PodName": "pod_integration",
+    "Ports": null,
+    "Restarts": 0,
+    "Size": null,
+    "StartedAt": 1786328368,
+    "State": "running",
+    "Status": ""
+  },
+  {
+    "AutoRemove": false,
+    "Command": [
+      "echo cron-job-running \u0026\u0026 sleep infinity"
+    ],
+    "Created": "2026-08-09T22:19:28.531102063-04:00",
+    "CreatedAt": "",
+    "CIDFile": "",
+    "Exited": false,
+    "ExitedAt": -62135596800,
+    "ExitCode": 0,
+    "ExposedPorts": null,
+    "Id": "0577f4790699448c19f1bb55b4e86c2c898040631490a8e6f9328fa4df7bb5c0",
+    "Image": "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:3.19",
+    "ImageID": "494edff7360579cb513922f6c60ecab4bb267a9b8339f7962f6a78c5c31ec923",
+    "IsInfra": false,
+    "Labels": {
+      "PODMAN_SYSTEMD_UNIT": "podman-compose@integration.service",
+      "com.docker.compose.container-number": "1",
+      "com.docker.compose.project": "integration",
+      "com.docker.compose.project.config_files": "batch-task.yml",
+      "com.docker.compose.project.working_dir": "/home/debi/IdeaProjects/docker-tui/test/integration",
+      "com.docker.compose.service": "cron",
+      "dtui.test.role": "cron",
+      "dtui.test.suite": "batch-task",
+      "io.podman.compose.config-hash": "718db6ab4ed4ba28ec0ad0be81257d76e302c3f169aa26e0ee43732d088077c3",
+      "io.podman.compose.project": "integration",
+      "io.podman.compose.version": "1.3.0"
+    },
+    "Mounts": [],
+    "Names": [
+      "dtui-batch-cron"
+    ],
+    "Namespaces": {},
+    "Networks": [
+      "integration_default"
+    ],
+    "Pid": 1593372,
+    "Pod": "cc111bbaf0236486ef3bb1597dad79c1ed65783674746c325df7b77d15aedfaa",
+    "PodName": "pod_integration",
+    "Ports": null,
+    "Restarts": 0,
+    "Size": null,
+    "StartedAt": 1786328368,
+    "State": "running",
+    "Status": ""
+  }
+]

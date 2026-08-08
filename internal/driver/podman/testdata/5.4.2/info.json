@@ -1,12 +1,20 @@
 {
-  "ID": "605b9d77-9424-4094-9b61-a93a6f393c92",
-  "Containers": 13,
-  "ContainersRunning": 0,
+  "ID": "01666182-8a61-4fcb-b2fb-2d61297069bb",
+  "Containers": 10,
+  "ContainersRunning": 8,
   "ContainersPaused": 0,
-  "ContainersStopped": 13,
+  "ContainersStopped": 2,
   "Images": 10,
   "Driver": "overlay",
   "DriverStatus": [
+    [
+      "Supports d_type",
+      "true"
+    ],
+    [
+      "Native Overlay Diff",
+      "true"
+    ],
     [
       "Using metacopy",
       "false"
@@ -22,14 +30,6 @@
     [
       "Backing Filesystem",
       "extfs"
-    ],
-    [
-      "Supports d_type",
-      "true"
-    ],
-    [
-      "Native Overlay Diff",
-      "true"
     ]
   ],
   "Plugins": {
@@ -63,7 +63,7 @@
   "NFd": 11,
   "OomKillDisable": false,
   "NGoroutines": 14,
-  "SystemTime": "2026-08-07T22:02:08.25329975-04:00",
+  "SystemTime": "2026-08-10T08:17:29.136390332-04:00",
   "LoggingDriver": "",
   "CgroupDriver": "systemd",
   "NEventsListener": 0,
@@ -162,5 +162,5 @@
   "Rootless": true,
   "SwapFree": 0,
   "SwapTotal": 0,
-  "Uptime": "7h 28m 11.00s (Approximately 0.29 days)"
+  "Uptime": "57h 30m 48.00s (Approximately 2.38 days)"
 }

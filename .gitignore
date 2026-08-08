@@ -1,6 +1,7 @@
 /dist/
 .idea
 internal/data/runtime/podman/testdata/
+internal/driver/podman/testdata/
 .omo/
 .opencode/
 # musl-gpgme build scratch area (all configure/build side-effects)

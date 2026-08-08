@@ -16,9 +16,9 @@
     },
     "cpus": 12,
     "cpuUtilization": {
-      "userPercent": 2.76,
-      "systemPercent": 1.58,
-      "idlePercent": 95.66
+      "userPercent": 7.25,
+      "systemPercent": 3.25,
+      "idlePercent": 89.51
     },
     "databaseBackend": "sqlite",
     "distribution": {
@@ -27,7 +27,7 @@
       "codename": "trixie"
     },
     "eventLogger": "journald",
-    "freeLocks": 2015,
+    "freeLocks": 2016,
     "hostname": "debian",
     "idMappings": {
       "gidmap": [
@@ -57,7 +57,7 @@
     },
     "kernel": "7.0.10+deb13-amd64",
     "logDriver": "journald",
-    "memFree": 917270528,
+    "memFree": 831311872,
     "memTotal": 16733409280,
     "networkBackend": "netavark",
     "networkBackendInfo": {
@@ -104,23 +104,23 @@
     },
     "swapFree": 0,
     "swapTotal": 0,
-    "uptime": "7h 28m 11.00s (Approximately 0.29 days)",
+    "uptime": "57h 30m 49.00s (Approximately 2.38 days)",
     "variant": "",
     "linkmode": "dynamic"
   },
   "store": {
     "configFile": "/home/debi/.config/containers/storage.conf",
     "containerStore": {
-      "number": 13,
+      "number": 10,
       "paused": 0,
-      "running": 0,
-      "stopped": 13
+      "running": 8,
+      "stopped": 2
     },
     "graphDriverName": "overlay",
     "graphOptions": {},
     "graphRoot": "/home/debi/.local/share/containers/storage",
     "graphRootAllocated": 99804827648,
-    "graphRootUsed": 68258283520,
+    "graphRootUsed": 78073638912,
     "graphStatus": {
       "Backing Filesystem": "extfs",
       "Native Overlay Diff": "true",

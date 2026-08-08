@@ -1,33 +1,10 @@
 [
   {
-    "name": "dtui-net-front",
-    "id": "e27f07ae517a0dc34819686d2ca4300a5a4ca8a665af4a660b6f063613a91c91",
-    "driver": "bridge",
-    "network_interface": "podman2",
-    "created": "2026-08-07T10:35:29.592356449-04:00",
-    "subnets": [
-      {
-        "subnet": "10.89.1.0/24",
-        "gateway": "10.89.1.1"
-      }
-    ],
-    "ipv6_enabled": false,
-    "internal": false,
-    "dns_enabled": true,
-    "labels": {
-      "com.docker.compose.project": "integration",
-      "io.podman.compose.project": "integration"
-    },
-    "ipam_options": {
-      "driver": "host-local"
-    }
-  },
-  {
     "name": "integration_default",
-    "id": "13b3868983aa473f262a2938a0e01ad3a43780e3cc350c240ddd1f4484eb00cb",
+    "id": "ec4fdf6e05fb6bea077729889e2e982aadccd3415f215f8e498b80554f85b613",
     "driver": "bridge",
     "network_interface": "podman1",
-    "created": "2026-08-07T10:34:58.344121547-04:00",
+    "created": "2026-08-09T22:16:02.12551499-04:00",
     "subnets": [
       {
         "subnet": "10.89.0.0/24",
@@ -50,7 +27,7 @@
     "id": "2f259bab93aaaaa2542ba43ef33eb990d0999ee1b9924b557b7be53c0b7a1bb9",
     "driver": "bridge",
     "network_interface": "podman0",
-    "created": "2026-08-07T22:02:04.558424301-04:00",
+    "created": "2026-08-10T08:17:29.415676417-04:00",
     "subnets": [
       {
         "subnet": "10.88.0.0/16",
@@ -60,29 +37,6 @@
     "ipv6_enabled": false,
     "internal": false,
     "dns_enabled": false,
-    "ipam_options": {
-      "driver": "host-local"
-    }
-  },
-  {
-    "name": "dtui-net-back",
-    "id": "5366bb5cd8e22975d9ff29c5dd3115dbee1ce2258065cb273537087f0cc964c5",
-    "driver": "bridge",
-    "network_interface": "podman3",
-    "created": "2026-08-07T10:35:29.804426708-04:00",
-    "subnets": [
-      {
-        "subnet": "10.89.2.0/24",
-        "gateway": "10.89.2.1"
-      }
-    ],
-    "ipv6_enabled": false,
-    "internal": false,
-    "dns_enabled": true,
-    "labels": {
-      "com.docker.compose.project": "integration",
-      "io.podman.compose.project": "integration"
-    },
     "ipam_options": {
       "driver": "host-local"
     }

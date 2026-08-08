@@ -160,6 +160,32 @@
     "Os": "linux"
   },
   {
+    "Id": "494edff7360579cb513922f6c60ecab4bb267a9b8339f7962f6a78c5c31ec923",
+    "ParentId": "",
+    "RepoTags": [
+      "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:3.19"
+    ],
+    "RepoDigests": [
+      "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine@sha256:8d733e27df31ac40ec64633002a200a0aed5477866730e0bfeb8d2dec5d8e76a"
+    ],
+    "Created": 1721687209,
+    "Size": 7688159,
+    "SharedSize": 0,
+    "VirtualSize": 7688159,
+    "Labels": null,
+    "Containers": 7,
+    "Arch": "amd64",
+    "Digest": "sha256:8d733e27df31ac40ec64633002a200a0aed5477866730e0bfeb8d2dec5d8e76a",
+    "History": [
+      "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:3.19"
+    ],
+    "IsManifestList": false,
+    "Names": [
+      "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:3.19"
+    ],
+    "Os": "linux"
+  },
+  {
     "Id": "93f9c72967dbcfaffe724ae5ba471e9568c9bbe67271f53266c84f3c83a409e3",
     "ParentId": "",
     "RepoTags": [
@@ -175,7 +201,7 @@
     "Labels": {
       "maintainer": "NGINX Docker Maintainers \u003cdocker-maint@nginx.com\u003e"
     },
-    "Containers": 2,
+    "Containers": 1,
     "Arch": "amd64",
     "Digest": "sha256:ad410b95f177bbfb6693662c031eee92e59c3932c2c55c45cf3032cf6ee193d5",
     "History": [
@@ -201,7 +227,7 @@
     "SharedSize": 0,
     "VirtualSize": 42217740,
     "Labels": null,
-    "Containers": 2,
+    "Containers": 1,
     "Arch": "amd64",
     "Digest": "sha256:eca6112ab727f397e5c982bf51137b8358599eb4e967dc0319401b0ab58f7512",
     "History": [
@@ -236,32 +262,6 @@
     "IsManifestList": false,
     "Names": [
       "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/postgres:18-alpine"
-    ],
-    "Os": "linux"
-  },
-  {
-    "Id": "494edff7360579cb513922f6c60ecab4bb267a9b8339f7962f6a78c5c31ec923",
-    "ParentId": "",
-    "RepoTags": [
-      "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:3.19"
-    ],
-    "RepoDigests": [
-      "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine@sha256:8d733e27df31ac40ec64633002a200a0aed5477866730e0bfeb8d2dec5d8e76a"
-    ],
-    "Created": 1721687209,
-    "Size": 7688159,
-    "SharedSize": 0,
-    "VirtualSize": 7688159,
-    "Labels": null,
-    "Containers": 8,
-    "Arch": "amd64",
-    "Digest": "sha256:8d733e27df31ac40ec64633002a200a0aed5477866730e0bfeb8d2dec5d8e76a",
-    "History": [
-      "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:3.19"
-    ],
-    "IsManifestList": false,
-    "Names": [
-      "swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:3.19"
     ],
     "Os": "linux"
   }
