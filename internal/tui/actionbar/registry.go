@@ -76,14 +76,18 @@ func VisibleItems(m *state.AppModel) []ActionItem {
 }
 
 // buildItemsForScope projects an Operations slice into the action bar
-// display shape, evaluating Requires and DisabledWhen against the
-// live AppModel.
+// display shape, evaluating Requires / DisabledWhen / RequiresCapabilities
+// against the live AppModel.
 func buildItemsForScope(m *state.AppModel, ops *config.Operations, scope config.OperationScope) []ActionItem {
 	specs := ops.ForScope(scope)
 	items := make([]ActionItem, 0, len(specs))
+capsLoop:
 	for _, spec := range specs {
 		if !spec.InActionBar {
 			continue
+		}
+		if !capabilitiesSatisfied(spec, m) {
+			continue capsLoop
 		}
 		items = append(items, ActionItem{
 			Label:       spec.Label,
@@ -93,6 +97,27 @@ func buildItemsForScope(m *state.AppModel, ops *config.Operations, scope config.
 		})
 	}
 	return items
+}
+
+// capabilitiesSatisfied returns true when every entry in
+// spec.RequiresCapabilities is supported by the live Engine. An empty
+// list is trivially satisfied. Engine==nil with non-empty requirements
+// fails closed so a not-yet-connected Engine never shows an operation
+// it might not support.
+func capabilitiesSatisfied(spec config.OperationSpec, m *state.AppModel) bool {
+	if len(spec.RequiresCapabilities) == 0 {
+		return true
+	}
+	if m == nil || m.Connection.Engine == nil {
+		return false
+	}
+	caps := m.Connection.Engine.Capabilities()
+	for _, want := range spec.RequiresCapabilities {
+		if !caps.Supports(runtimeapi.Capability(want)) {
+			return false
+		}
+	}
+	return true
 }
 
 // evaluateEnabled returns true when the Operation should be available

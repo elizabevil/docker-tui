@@ -1,6 +1,7 @@
 package actionbar
 
 import (
+	"context"
 	"testing"
 
 	"github.com/elizabevil/docker-tui/internal/data/config"
@@ -9,6 +10,28 @@ import (
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
+
+// capEngine is a minimal runtimeapi.Engine stub for capability-filter
+// tests. Only Capabilities carries test data; the rest return zero
+// values because buildItemsForScope / VisibleItems never invoke them.
+type capEngine struct {
+	caps runtimeapi.CapabilitySet
+}
+
+func (e *capEngine) Identity() runtimeapi.Identity                       { return runtimeapi.Identity{} }
+func (e *capEngine) Capabilities() runtimeapi.CapabilitySet             { return e.caps }
+func (e *capEngine) PingContext(context.Context) error                  { return nil }
+func (e *capEngine) Containers() runtimeapi.ContainerService             { return nil }
+func (e *capEngine) Volumes() runtimeapi.VolumeService                  { return nil }
+func (e *capEngine) Networks() runtimeapi.NetworkService                { return nil }
+func (e *capEngine) Images() runtimeapi.ImageService                    { return nil }
+func (e *capEngine) ImageTransfers() runtimeapi.ImageTransferService    { return nil }
+func (e *capEngine) Actions() runtimeapi.ResourceActionService          { return nil }
+func (e *capEngine) Exec() runtimeapi.ExecService                       { return nil }
+func (e *capEngine) Events() runtimeapi.EventService                    { return nil }
+func (e *capEngine) Compose() runtimeapi.ComposeService                 { return nil }
+func (e *capEngine) Pods() runtimeapi.PodService                        { return nil }
+func (e *capEngine) Close() error                                       { return nil }
 
 func TestContainersExposeOnlyComplexActions(t *testing.T) {
 	m := state.NewAppModel(config.DefaultAppConfig(), &dockerclient.Client{}, "test")
@@ -95,6 +118,51 @@ func TestBuildItemsForScopeSkipsInActionBarFalse(t *testing.T) {
 	items := buildItemsForScope(m, ops, config.OperationScopeContainer)
 	if len(items) != 1 || items[0].Action != keys.ActionContainerRename {
 		t.Fatalf("items = %#v, want exactly [containerRename]", items)
+	}
+}
+
+// TestBuildItemsForScopeHidesByCapability pins the L2 capability gate:
+// Operations declaring requiresCapabilities must be hidden when the
+// live Engine lacks the listed capability (fail closed), and visible
+// when every required capability is supported.
+func TestBuildItemsForScopeHidesByCapability(t *testing.T) {
+	spec := config.OperationSpec{
+		Scope:               config.OperationScopeCompose,
+		Kind:                "demo",
+		Action:              "compose.demo",
+		Mode:                config.OperationModeAsync,
+		Async:               &config.AsyncBody{Body: "wait"},
+		Label:               "Demo",
+		Description:         "demo",
+		InActionBar:         true,
+		RequiresCapabilities: []string{"compose.pod_scope"},
+	}
+	ops := &config.Operations{
+		ByScope: map[config.OperationScope][]config.OperationSpec{
+			config.OperationScopeCompose: {spec},
+		},
+	}
+
+	// nil engine + non-empty requirement → hidden (fail closed)
+	m1 := state.NewAppModel(config.DefaultAppConfig(), nil, "test")
+	if got := buildItemsForScope(m1, ops, config.OperationScopeCompose); len(got) != 0 {
+		t.Fatalf("nil engine must hide items with capability requirements, got %#v", got)
+	}
+
+	// engine lacking the capability → hidden
+	m2 := state.NewAppModel(config.DefaultAppConfig(), &capEngine{}, "test")
+	if got := buildItemsForScope(m2, ops, config.OperationScopeCompose); len(got) != 0 {
+		t.Fatalf("engine without capability must hide item, got %#v", got)
+	}
+
+	// engine with the capability → visible
+	m3 := state.NewAppModel(config.DefaultAppConfig(), &capEngine{
+		caps: runtimeapi.CapabilitySet{
+			runtimeapi.CapabilityComposePodScope: runtimeapi.CapabilityInfo{Support: runtimeapi.Available},
+		},
+	}, "test")
+	if got := buildItemsForScope(m3, ops, config.OperationScopeCompose); len(got) != 1 {
+		t.Fatalf("engine with capability must show item, got %#v", got)
 	}
 }
 
