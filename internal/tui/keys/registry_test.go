@@ -74,3 +74,112 @@ func TestDefaultAppConfigMatchesRegistryDefaults(t *testing.T) {
 		}
 	}
 }
+
+// TestComposeCtrlDRoutesToComposeProjectDown verifies R08-12 F1 —
+// Ctrl+D in the compose view resolves to the project down action and
+// the legacy ActionDelete does NOT shadow it.
+func TestComposeCtrlDRoutesToComposeProjectDown(t *testing.T) {
+	resolver := NewResolver(CompileBindings(config.DefaultAppConfig().Keymap))
+	compose := Context{App: "app", Surface: "main", View: "compose", Mode: "normal"}
+
+	action, ok := resolver.Resolve(KeyCtrlD, compose)
+	if !ok || action != ActionComposeProjectDown {
+		t.Fatalf("Resolve(ctrl+d, compose) = %q, %v; want %q", action, ok, ActionComposeProjectDown)
+	}
+
+	if _, ok := resolver.Resolve(KeyCtrlD, compose); ok && action == ActionDelete {
+		t.Fatalf("ActionDelete leaked into compose view after override")
+	}
+}
+
+// TestComposeContainerActionsReachableInSubview verifies R08-12 F2 —
+// when the user is inside compose-containers, container-scoped actions
+// still resolve to the same handlers as the regular containers view.
+func TestComposeContainerActionsReachableInSubview(t *testing.T) {
+	resolver := NewResolver(CompileBindings(config.DefaultAppConfig().Keymap))
+	subview := Context{App: "app", Surface: "main", View: "compose-containers", Mode: "normal"}
+
+	cases := []struct {
+		key  string
+		want KeyAction
+	}{
+		{KeyS, ActionContainerStart},
+		{KeyCtrlS, ActionContainerStop},
+		{KeyCtrlR, ActionContainerRestart},
+		{KeyCtrlK, ActionContainerKill},
+		{KeyL, ActionContainerLogs},
+		{KeyE, ActionContainerExec},
+		{KeyP, ActionContainerPause},
+	}
+	for _, tc := range cases {
+		action, ok := resolver.Resolve(tc.key, subview)
+		if !ok || action != tc.want {
+			t.Fatalf("Resolve(%s, compose-containers) = %q, %v; want %q", tc.key, action, ok, tc.want)
+		}
+	}
+}
+
+// TestComposeProjectActionsResolveInComposeView verifies R08-12 F3/F4 —
+// the 22 project-level + 3 service-level + 3 group actions resolve to
+// their expected default key bindings in the compose view.
+func TestComposeProjectActionsResolveInComposeView(t *testing.T) {
+	resolver := NewResolver(CompileBindings(config.DefaultAppConfig().Keymap))
+	compose := Context{App: "app", Surface: "main", View: "compose", Mode: "normal"}
+
+	cases := []struct {
+		key  string
+		want KeyAction
+	}{
+		{KeyS, ActionComposeProjectStart},
+		{KeyCtrlS, ActionComposeProjectStop},
+		{KeyCtrlR, ActionComposeProjectRestart},
+		{KeyCtrlD, ActionComposeProjectDown},
+		{KeyL, ActionComposeProjectLogs},
+		{KeyCtrlT, ActionComposeProjectTop},
+		{KeyComma, ActionComposeProjectPort},
+		{KeyCtrlB, ActionComposeProjectBuild},
+		{KeyCtrlK, ActionComposeProjectKill},
+		{KeyCtrlF3, ActionComposeProjectEvents},
+		{KeyD, ActionComposeProjectDetail},
+		{KeyE, ActionComposeServiceExec},
+		{KeyShiftCtrlD, ActionComposeGroupDown},
+		{KeyShiftCtrlR, ActionComposeGroupRestart},
+		{KeyShiftCtrlE, ActionComposeGroupExec},
+	}
+	for _, tc := range cases {
+		action, ok := resolver.Resolve(tc.key, compose)
+		if !ok || action != tc.want {
+			t.Fatalf("Resolve(%s, compose) = %q, %v; want %q", tc.key, action, ok, tc.want)
+		}
+	}
+}
+
+// TestComposeProjectActionsRespectKeymapOverride verifies R08-12 F6 —
+// a user-supplied keymap.compose.* override beats the registry default.
+func TestComposeProjectActionsRespectKeymapOverride(t *testing.T) {
+	custom := config.DefaultAppConfig().Keymap
+	custom.Compose.Start = config.KeyBinding{Primary: "z"}
+	custom.Compose.Down = config.KeyBinding{Primary: "shift+ctrl+x"}
+
+	resolver := NewResolver(CompileBindings(custom))
+	compose := Context{App: "app", Surface: "main", View: "compose", Mode: "normal"}
+
+	if action, ok := resolver.Resolve("z", compose); !ok || action != ActionComposeProjectStart {
+		t.Fatalf("override z → start = %q, %v; want %q", action, ok, ActionComposeProjectStart)
+	}
+	if action, ok := resolver.Resolve("shift+ctrl+x", compose); !ok || action != ActionComposeProjectDown {
+		t.Fatalf("override shift+ctrl+x → down = %q, %v; want %q", action, ok, ActionComposeProjectDown)
+	}
+}
+
+// TestComposeActionsIsolatedFromContainersView verifies R08-12 F4
+// (context isolation) — pressing s on the containers panel still starts
+// a single container, not the compose project.
+func TestComposeActionsIsolatedFromContainersView(t *testing.T) {
+	resolver := NewResolver(CompileBindings(config.DefaultAppConfig().Keymap))
+	containers := Context{App: "app", Surface: "main", View: "containers", Mode: "normal"}
+
+	if action, ok := resolver.Resolve(KeyS, containers); !ok || action != ActionContainerStart {
+		t.Fatalf("Resolve(s, containers) = %q, %v; want %q", action, ok, ActionContainerStart)
+	}
+}

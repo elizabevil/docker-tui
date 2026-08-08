@@ -139,6 +139,7 @@ type KeymapPatch struct {
 	Network    *ResourceKeymapPatch   `json:"network,omitempty" yaml:"network,omitempty"`
 	Navigation *NavigationKeymapPatch `json:"navigation,omitempty" yaml:"navigation,omitempty"`
 	Dialog     *DialogKeymapPatch     `json:"dialog,omitempty" yaml:"dialog,omitempty"`
+	Compose    *ComposeKeymapPatch    `json:"compose,omitempty" yaml:"compose,omitempty"`
 }
 
 type GlobalKeymapPatch struct {
@@ -198,6 +199,31 @@ type NavigationKeymapPatch struct {
 type DialogKeymapPatch struct {
 	Confirm *KeyBinding `json:"confirm,omitempty" yaml:"confirm,omitempty"`
 	Cancel  *KeyBinding `json:"cancel,omitempty" yaml:"cancel,omitempty"`
+}
+
+type ComposeKeymapPatch struct {
+	Start       *KeyBinding `json:"start,omitempty" yaml:"start,omitempty"`
+	Stop        *KeyBinding `json:"stop,omitempty" yaml:"stop,omitempty"`
+	Restart     *KeyBinding `json:"restart,omitempty" yaml:"restart,omitempty"`
+	Down        *KeyBinding `json:"down,omitempty" yaml:"down,omitempty"`
+	Logs        *KeyBinding `json:"logs,omitempty" yaml:"logs,omitempty"`
+	Top         *KeyBinding `json:"top,omitempty" yaml:"top,omitempty"`
+	Port        *KeyBinding `json:"port,omitempty" yaml:"port,omitempty"`
+	Stats       *KeyBinding `json:"stats,omitempty" yaml:"stats,omitempty"`
+	Build       *KeyBinding `json:"build,omitempty" yaml:"build,omitempty"`
+	Pull        *KeyBinding `json:"pull,omitempty" yaml:"pull,omitempty"`
+	Push        *KeyBinding `json:"push,omitempty" yaml:"push,omitempty"`
+	Scale       *KeyBinding `json:"scale,omitempty" yaml:"scale,omitempty"`
+	Pause       *KeyBinding `json:"pause,omitempty" yaml:"pause,omitempty"`
+	Unpause     *KeyBinding `json:"unpause,omitempty" yaml:"unpause,omitempty"`
+	Kill        *KeyBinding `json:"kill,omitempty" yaml:"kill,omitempty"`
+	Rm          *KeyBinding `json:"rm,omitempty" yaml:"rm,omitempty"`
+	Prune       *KeyBinding `json:"prune,omitempty" yaml:"prune,omitempty"`
+	Events      *KeyBinding `json:"events,omitempty" yaml:"events,omitempty"`
+	Run         *KeyBinding `json:"run,omitempty" yaml:"run,omitempty"`
+	Exec        *KeyBinding `json:"exec,omitempty" yaml:"exec,omitempty"`
+	ServiceLogs *KeyBinding `json:"serviceLogs,omitempty" yaml:"service_logs,omitempty"`
+	Detail      *KeyBinding `json:"detail,omitempty" yaml:"detail,omitempty"`
 }
 
 type LayoutPatch struct {
@@ -425,6 +451,30 @@ func (p KeymapPatch) apply(target *KeymapConfig) {
 	if p.Dialog != nil {
 		assign(&target.Dialog.Confirm, p.Dialog.Confirm)
 		assign(&target.Dialog.Cancel, p.Dialog.Cancel)
+	}
+	if p.Compose != nil {
+		assign(&target.Compose.Start, p.Compose.Start)
+		assign(&target.Compose.Stop, p.Compose.Stop)
+		assign(&target.Compose.Restart, p.Compose.Restart)
+		assign(&target.Compose.Down, p.Compose.Down)
+		assign(&target.Compose.Logs, p.Compose.Logs)
+		assign(&target.Compose.Top, p.Compose.Top)
+		assign(&target.Compose.Port, p.Compose.Port)
+		assign(&target.Compose.Stats, p.Compose.Stats)
+		assign(&target.Compose.Build, p.Compose.Build)
+		assign(&target.Compose.Pull, p.Compose.Pull)
+		assign(&target.Compose.Push, p.Compose.Push)
+		assign(&target.Compose.Scale, p.Compose.Scale)
+		assign(&target.Compose.Pause, p.Compose.Pause)
+		assign(&target.Compose.Unpause, p.Compose.Unpause)
+		assign(&target.Compose.Kill, p.Compose.Kill)
+		assign(&target.Compose.Rm, p.Compose.Rm)
+		assign(&target.Compose.Prune, p.Compose.Prune)
+		assign(&target.Compose.Events, p.Compose.Events)
+		assign(&target.Compose.Run, p.Compose.Run)
+		assign(&target.Compose.Exec, p.Compose.Exec)
+		assign(&target.Compose.ServiceLogs, p.Compose.ServiceLogs)
+		assign(&target.Compose.Detail, p.Compose.Detail)
 	}
 }
 

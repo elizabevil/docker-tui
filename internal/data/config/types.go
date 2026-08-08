@@ -239,6 +239,31 @@ type DialogKeymap struct {
 	Cancel  KeyBinding `json:"cancel" yaml:"cancel"`
 }
 
+type ComposeKeymap struct {
+	Start       KeyBinding `json:"start" yaml:"start"`
+	Stop        KeyBinding `json:"stop" yaml:"stop"`
+	Restart     KeyBinding `json:"restart" yaml:"restart"`
+	Down        KeyBinding `json:"down" yaml:"down"`
+	Logs        KeyBinding `json:"logs" yaml:"logs"`
+	Top         KeyBinding `json:"top" yaml:"top"`
+	Port        KeyBinding `json:"port" yaml:"port"`
+	Stats       KeyBinding `json:"stats" yaml:"stats"`
+	Build       KeyBinding `json:"build" yaml:"build"`
+	Pull        KeyBinding `json:"pull" yaml:"pull"`
+	Push        KeyBinding `json:"push" yaml:"push"`
+	Scale       KeyBinding `json:"scale" yaml:"scale"`
+	Pause       KeyBinding `json:"pause" yaml:"pause"`
+	Unpause     KeyBinding `json:"unpause" yaml:"unpause"`
+	Kill        KeyBinding `json:"kill" yaml:"kill"`
+	Rm          KeyBinding `json:"rm" yaml:"rm"`
+	Prune       KeyBinding `json:"prune" yaml:"prune"`
+	Events      KeyBinding `json:"events" yaml:"events"`
+	Run         KeyBinding `json:"run" yaml:"run"`
+	Exec        KeyBinding `json:"exec" yaml:"exec"`
+	ServiceLogs KeyBinding `json:"serviceLogs" yaml:"service_logs"`
+	Detail      KeyBinding `json:"detail" yaml:"detail"`
+}
+
 type KeymapConfig struct {
 	Global     GlobalKeymap     `json:"global" yaml:"global"`
 	Container  ContainerKeymap  `json:"container" yaml:"container"`
@@ -247,6 +272,7 @@ type KeymapConfig struct {
 	Network    ResourceKeymap   `json:"network" yaml:"network"`
 	Navigation NavigationKeymap `json:"navigation" yaml:"navigation"`
 	Dialog     DialogKeymap     `json:"dialog" yaml:"dialog"`
+	Compose    ComposeKeymap    `json:"compose" yaml:"compose"`
 }
 
 type DockerComposeCommand struct {
@@ -452,5 +478,18 @@ func defaultKeymap() KeymapConfig {
 		Network:    ResourceKeymap{Create: b(KeyC), Prune: b(KeyP), Remove: b(KeyCtrlD)},
 		Navigation: NavigationKeymap{TabNext: b(KeyTab, KeyCloseBracket), TabPrev: b(KeyShiftTab, KeyOpenBracket), Up: b(KeyUp, KeyK), Down: b(KeyDown, KeyJ), Enter: b(KeyEnter), Back: b(KeyEscape), Delete: b(KeyCtrlD)},
 		Dialog:     DialogKeymap{Confirm: b(KeyEnter), Cancel: b(KeyEscape)},
+		Compose: ComposeKeymap{
+			Start:   b(KeyS),
+			Stop:    b(KeyCtrlS),
+			Restart: b(KeyCtrlR),
+			Down:    b(KeyCtrlD),
+			Logs:    b(KeyL),
+			Top:     b(KeyCtrlT),
+			Port:    b(KeyComma),
+			Kill:    b(KeyCtrlK),
+			Events:  b(KeyCtrlF3),
+			Exec:    b(KeyE),
+			Detail:  b(KeyD),
+		},
 	}
 }

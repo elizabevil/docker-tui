@@ -98,6 +98,41 @@
         "primary": "ctrl+d"
       }
     },
+    "compose": {
+      "start": {
+        "primary": "s"
+      },
+      "stop": {
+        "primary": "ctrl+s"
+      },
+      "restart": {
+        "primary": "ctrl+r"
+      },
+      "down": {
+        "primary": "ctrl+d"
+      },
+      "logs": {
+        "primary": "l"
+      },
+      "top": {
+        "primary": "ctrl+t"
+      },
+      "port": {
+        "primary": ","
+      },
+      "kill": {
+        "primary": "ctrl+k"
+      },
+      "events": {
+        "primary": "ctrl+f3"
+      },
+      "exec": {
+        "primary": "e"
+      },
+      "detail": {
+        "primary": "d"
+      }
+    },
     "navigation": {
       "tabNext": {
         "primary": "tab",

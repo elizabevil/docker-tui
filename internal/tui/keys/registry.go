@@ -32,8 +32,9 @@ type Resolver struct {
 func Registry() []ActionSpec {
 	app := []Context{{App: "app"}}
 	main := []Context{{Surface: "main"}}
-	containers := []Context{{View: "containers"}, {View: "image-containers"}}
+	containers := []Context{{View: "containers"}, {View: "image-containers"}, {View: "compose-containers"}}
 	images := []Context{{View: "images"}}
+	compose := []Context{{View: "compose"}}
 	return []ActionSpec{
 		{ActionQuit, []string{KeyCtrlC}, app},
 		{ActionHelp, []string{KeyQmark, KeyF1}, app},
@@ -60,7 +61,7 @@ func Registry() []ActionSpec {
 		{ActionContainerExec, []string{KeyE}, containers},
 		{ActionContainerInspect, []string{KeyI}, []Context{{View: "containers"}}},
 		{ActionContainerStats, []string{KeyM}, []Context{{View: "containers"}}},
-		{ActionContainerPause, []string{KeyP}, []Context{{View: "containers"}}},
+		{ActionContainerPause, []string{KeyP}, containers},
 
 		// TASK-019 advanced container actions. Keys chosen to avoid
 		// collisions with the existing lifecycle bindings above; users can
@@ -85,6 +86,38 @@ func Registry() []ActionSpec {
 		{ActionNetworkCreate, []string{KeyC}, []Context{{View: "networks"}}},
 		{ActionNetworkPrune, []string{KeyP}, []Context{{View: "networks"}}},
 		{ActionNetworkRemove, []string{KeyCtrlD}, []Context{{View: "networks"}}},
+
+		// R08-12: Compose project-level actions.
+		{ActionComposeProjectStart, []string{KeyS}, compose},
+		{ActionComposeProjectStop, []string{KeyCtrlS}, compose},
+		{ActionComposeProjectRestart, []string{KeyCtrlR}, compose},
+		{ActionComposeProjectDown, []string{KeyCtrlD}, compose},
+		{ActionComposeProjectLogs, []string{KeyL}, compose},
+		{ActionComposeProjectTop, []string{KeyCtrlT}, compose},
+		{ActionComposeProjectPort, []string{KeyComma}, compose},
+		{ActionComposeProjectStats, nil, compose},
+		{ActionComposeProjectBuild, []string{KeyCtrlB}, compose},
+		{ActionComposeProjectPull, nil, compose},
+		{ActionComposeProjectPush, nil, compose},
+		{ActionComposeProjectScale, nil, compose},
+		{ActionComposeProjectPause, nil, compose},
+		{ActionComposeProjectUnpause, nil, compose},
+		{ActionComposeProjectKill, []string{KeyCtrlK}, compose},
+		{ActionComposeProjectRm, nil, compose},
+		{ActionComposeProjectPrune, nil, compose},
+		{ActionComposeProjectEvents, []string{KeyCtrlF3}, compose},
+		{ActionComposeProjectDetail, []string{KeyD}, compose},
+
+		// R08-12: Compose service-level actions.
+		{ActionComposeServiceRun, nil, compose},
+		{ActionComposeServiceExec, []string{KeyE}, compose},
+		{ActionComposeServiceLogs, nil, compose},
+
+		// R08-14: Compose co-located group actions.
+		{ActionComposeGroupDown, []string{KeyShiftCtrlD}, compose},
+		{ActionComposeGroupRestart, []string{KeyShiftCtrlR}, compose},
+		{ActionComposeGroupExec, []string{KeyShiftCtrlE}, compose},
+
 		{ActionRefreshConnections, []string{KeyF12, KeyR}, app},
 		{ActionClearFilters, []string{KeyCtrlI}, app},
 	}
@@ -154,6 +187,8 @@ func (r *Resolver) resourceDeleteOverrides(context Context) bool {
 		action = ActionVolumeRemove
 	case "networks":
 		action = ActionNetworkRemove
+	case "compose", "compose-containers":
+		action = ActionComposeProjectDown
 	default:
 		return false
 	}
@@ -172,6 +207,7 @@ func Normalize(key string) string {
 }
 
 func configuredBindings(keymap config.KeymapConfig) map[KeyAction][]string {
+	cm := keymap.Compose
 	return map[KeyAction][]string{
 		ActionQuit: keymap.Global.Quit.Values(), ActionActionBar: keymap.Global.ActionBar.Values(), ActionHelp: keymap.Global.Help.Values(), ActionFilter: keymap.Global.Filter.Values(), ActionRefresh: keymap.Global.Refresh.Values(),
 		ActionContainerStart: keymap.Container.Start.Values(), ActionContainerStop: keymap.Container.Stop.Values(),
@@ -190,6 +226,32 @@ func configuredBindings(keymap config.KeymapConfig) map[KeyAction][]string {
 		ActionNetworkCreate: keymap.Network.Create.Values(), ActionNetworkPrune: keymap.Network.Prune.Values(), ActionNetworkRemove: keymap.Network.Remove.Values(),
 		ActionTabNext: keymap.Navigation.TabNext.Values(), ActionTabPrev: keymap.Navigation.TabPrev.Values(), ActionUp: keymap.Navigation.Up.Values(),
 		ActionDown: keymap.Navigation.Down.Values(), ActionEnter: keymap.Navigation.Enter.Values(), ActionBack: keymap.Navigation.Back.Values(), ActionDelete: keymap.Navigation.Delete.Values(),
+
+		// R08-12: Compose project-level actions.
+		ActionComposeProjectStart:   cm.Start.Values(),
+		ActionComposeProjectStop:    cm.Stop.Values(),
+		ActionComposeProjectRestart: cm.Restart.Values(),
+		ActionComposeProjectDown:    cm.Down.Values(),
+		ActionComposeProjectLogs:    cm.Logs.Values(),
+		ActionComposeProjectTop:     cm.Top.Values(),
+		ActionComposeProjectPort:    cm.Port.Values(),
+		ActionComposeProjectStats:   cm.Stats.Values(),
+		ActionComposeProjectBuild:   cm.Build.Values(),
+		ActionComposeProjectPull:    cm.Pull.Values(),
+		ActionComposeProjectPush:    cm.Push.Values(),
+		ActionComposeProjectScale:   cm.Scale.Values(),
+		ActionComposeProjectPause:   cm.Pause.Values(),
+		ActionComposeProjectUnpause: cm.Unpause.Values(),
+		ActionComposeProjectKill:    cm.Kill.Values(),
+		ActionComposeProjectRm:      cm.Rm.Values(),
+		ActionComposeProjectPrune:   cm.Prune.Values(),
+		ActionComposeProjectEvents:  cm.Events.Values(),
+		ActionComposeProjectDetail:  cm.Detail.Values(),
+
+		// R08-12: Compose service-level actions.
+		ActionComposeServiceRun:  cm.Run.Values(),
+		ActionComposeServiceExec: cm.Exec.Values(),
+		ActionComposeServiceLogs: cm.ServiceLogs.Values(),
 	}
 }
 

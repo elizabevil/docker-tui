@@ -325,6 +325,7 @@ func DefaultTheme() *Theme {
 			Image:     defaultActionScopeStyles(),
 			Volume:    defaultActionScopeStyles(),
 			Network:   defaultActionScopeStyles(),
+			Compose:   defaultActionScopeStyles(),
 		},
 	}
 }
@@ -533,6 +534,9 @@ func (p ThemePatch) Apply(target *Theme) {
 		}
 		if p.Action.Network != nil {
 			applyActionScopePatch(&target.Action.Network, p.Action.Network)
+		}
+		if p.Action.Compose != nil {
+			applyActionScopePatch(&target.Action.Compose, p.Action.Compose)
 		}
 	}
 }

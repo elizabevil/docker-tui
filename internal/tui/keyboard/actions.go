@@ -131,6 +131,62 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 	case keys.ActionEvents:
 		return openEventsPage(m)
 
+	// R08-12: Compose project-level actions.
+	case keys.ActionComposeProjectStart:
+		return doComposeStart(m)
+	case keys.ActionComposeProjectStop:
+		return doComposeStop(m)
+	case keys.ActionComposeProjectRestart:
+		return doComposeRestart(m)
+	case keys.ActionComposeProjectDown:
+		return doComposeDown(m)
+	case keys.ActionComposeProjectLogs:
+		return doComposeLogs(m)
+	case keys.ActionComposeProjectDetail:
+		return doComposeDetail(m)
+	case keys.ActionComposeProjectTop:
+		return doComposeTop(m)
+	case keys.ActionComposeProjectPort:
+		return doComposePort(m)
+	case keys.ActionComposeProjectStats:
+		return doComposeStats(m)
+	case keys.ActionComposeProjectBuild:
+		return doComposeBuild(m)
+	case keys.ActionComposeProjectPull:
+		return doComposePull(m)
+	case keys.ActionComposeProjectPush:
+		return doComposePush(m)
+	case keys.ActionComposeProjectScale:
+		return doComposeScale(m)
+	case keys.ActionComposeProjectPause:
+		return doComposePause(m)
+	case keys.ActionComposeProjectUnpause:
+		return doComposeUnpause(m)
+	case keys.ActionComposeProjectKill:
+		return doComposeKill(m)
+	case keys.ActionComposeProjectRm:
+		return doComposeRm(m)
+	case keys.ActionComposeProjectPrune:
+		return doComposePrune(m)
+	case keys.ActionComposeProjectEvents:
+		return doComposeEvents(m)
+
+	// R08-12: Compose service-level actions.
+	case keys.ActionComposeServiceRun:
+		return doComposeServiceRun(m)
+	case keys.ActionComposeServiceExec:
+		return doComposeServiceExec(m)
+	case keys.ActionComposeServiceLogs:
+		return doComposeServiceLogs(m)
+
+	// R08-14: Compose co-located group actions.
+	case keys.ActionComposeGroupDown:
+		return doComposeGroupDown(m)
+	case keys.ActionComposeGroupRestart:
+		return doComposeGroupRestart(m)
+	case keys.ActionComposeGroupExec:
+		return doComposeGroupExec(m)
+
 	case keys.ActionActionBar:
 		return doActionBar(m)
 	}

@@ -267,3 +267,91 @@ func doComposeLogs(m *state.AppModel) (*state.AppModel, tea.Cmd) {
 	ShowToastNow(m, fmt.Sprintf("✓ compose logs %s/%s", project, picked.Name))
 	return m, FetchLogBatch(m.Connection.Engine, picked.ID, cfg.Since, cfg.Tail, cfg.Timestamps)
 }
+
+func composeActionPending(m *state.AppModel, verb string) (*state.AppModel, tea.Cmd) {
+	ShowToastWarn(m, fmt.Sprintf("✕ compose %s: not implemented yet", verb))
+	return m, nil
+}
+
+func doComposeRestart(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	if currentComposeProject(m) == "" {
+		return m, nil
+	}
+	return composeActionPending(m, "restart")
+}
+
+func doComposeTop(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return composeActionPending(m, "top")
+}
+
+func doComposePort(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return composeActionPending(m, "port")
+}
+
+func doComposeStats(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return composeActionPending(m, "stats")
+}
+
+func doComposeBuild(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return composeActionPending(m, "build")
+}
+
+func doComposePull(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return composeActionPending(m, "pull")
+}
+
+func doComposePush(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return composeActionPending(m, "push")
+}
+
+func doComposeScale(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return composeActionPending(m, "scale")
+}
+
+func doComposePause(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return composeActionPending(m, "pause")
+}
+
+func doComposeUnpause(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return composeActionPending(m, "unpause")
+}
+
+func doComposeKill(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return composeActionPending(m, "kill")
+}
+
+func doComposeRm(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return composeActionPending(m, "rm")
+}
+
+func doComposePrune(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return composeActionPending(m, "prune")
+}
+
+func doComposeEvents(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return composeActionPending(m, "events")
+}
+
+func doComposeServiceRun(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return composeActionPending(m, "service.run")
+}
+
+func doComposeServiceExec(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return composeActionPending(m, "service.exec")
+}
+
+func doComposeServiceLogs(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return composeActionPending(m, "service.logs")
+}
+
+func doComposeGroupDown(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return composeActionPending(m, "group.down")
+}
+
+func doComposeGroupRestart(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return composeActionPending(m, "group.restart")
+}
+
+func doComposeGroupExec(m *state.AppModel) (*state.AppModel, tea.Cmd) {
+	return composeActionPending(m, "group.exec")
+}

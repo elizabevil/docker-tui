@@ -277,3 +277,33 @@ ActionComposeGroupExec    KeyAction = "compose_group.exec"
 - 保留信息:`compose_nav.go:53-71` 现有 KeyS / KeyCtrlS / KeyCtrlD / KeyL / KeyD 调用路径(逐步迁移到 handleAction)
 - 废弃信息:无
 - 待确认:ActionComposeProjectStats 默认键(`m` 是否冲突 — R01 容器 `m` 用于 stats,compose stats 选 nil 让用户配置)
+
+### 2026-08-08 阶段 A 落地
+
+**已完成**:
+- `internal/tui/keys/action.go`:22 个 `ActionCompose*` + 3 个 `ActionComposeGroup*`(`R08-14` 横切)KeyAction 定义到位。
+- `internal/tui/keys/registry.go`:
+  - `compose` / `compose-containers` context 切片注册。
+  - `{View: "compose-containers"}` 加入 `containers` 切片(F2:子视图复用容器动作)。
+  - `resourceDeleteOverrides` 增加 `compose` / `compose-containers` case,F1 dead code bug 修通。
+  - `configuredBindings` 接入 `config.ComposeKeymap` 全部字段。
+- `internal/tui/keyboard/actions.go`:25 个 compose action 的 `handleAction` case 分派到 `doCompose*` 实现。
+- `internal/tui/keyboard/compose_action.go`:`doComposeStart` / `doComposeStop` / `doComposeDown` / `doComposeLogs` 已存在并直接复用;其余 19 个 `doCompose*` 助手实现为 `composeActionPending` stub,toast 提示对应 R08 子需求阶段(R08-04 / R08-05 / R08-06 / R08-07 / R08-08 / R08-09 / R08-10 / R08-14)。
+- `internal/data/config/types.go`:`ComposeKeymap` 新增 `Detail` 字段(对应 `KeyD` 在 compose 面板的 detail 跳转)。
+- `internal/data/config/app_patch.go`:`ComposeKeymapPatch` 同步加 `Detail` 字段并在 apply 中复制。
+- `internal/data/config/defaults/keymap.jsonc`:`compose` 段新增 `detail` 默认绑定。
+- `internal/tui/keys/keys.go`:`KeyComma` / `KeyCtrlF3` / `KeyShiftCtrlD` / `KeyShiftCtrlR` / `KeyShiftCtrlE` 常量补齐。
+- `internal/tui/keys/registry_test.go`:新增 5 个测试覆盖 F1/F2/F3/F4/F6。
+
+**Driver/REST 参数完整性修复**(R08-02 / R08-15 旁路):
+- `docker/compose_service.go::Stop`:`timeoutSec int` 参数原先以 `_ = timeoutSec` 丢弃,实现硬编码 10 秒。改为传入 `runContainerAction` 的 `timeoutSec` 参数,Stop / Restart 同步生效。
+- `docker/compose_service.go::Stats`:原先命中容器后 `return ContainerStats{}` 空结构,数据字段未填充。改为调 `s.Client.containerStatsContext(ctx, c.ID)` 复用容器 stats 路径,得到 `CPUPercent` / `MemoryUsage` / `NetworkRx/Tx` 等完整快照。
+- `docker/compose_service.go::Exec`:原先 `runContainerAction` 对 `dockerContainerExec` 直接 `continue`(纯 no-op),`command []string` 形参未使用。改为独立路径,定位服务首个容器后通过 `ContainerExecCreate` + `ContainerExecStart` 真正执行命令;同时删除 `dockerContainerExec` 枚举(已无引用)。
+- `docker/compose_service.go::Events`:`ComposeEvent.Service` 字段未填充,与 podman 不一致。改为从 `ev.Actor.Attributes[runtimeapi.ComposeLabelService]` 取 service label。
+
+**测试**: `./internal/tui/keys/... ./internal/tui/keyboard/... ./internal/data/runtime/docker/... ./internal/data/runtime/... ./internal/data/config/...` 全部 PASS。5 个新增 compose 断言 + 11 个 docker 既有测试全数通过。`internal/data/runtime/podman` 因宿主缺 `pkg-config` / `btrfs` C 头构建失败,与本次改动无关。
+
+**保留迁移**:
+- `compose_nav.go:53-71` 旧 switch 路径(`KeyS` / `KeyCtrlS` / `KeyCtrlD` / `KeyL` / `KeyD`)暂保留为冗余入口,后续可由 R08-11 Action Bar 接入统一收敛。
+- `templates/template.golden.yml` 暂未渲染 `keymap.compose` 段,留作 R08-13 i18n / 文档同步时统一处理。
+- `docker/compose_service.go::Up` 的 `UpOptions` 整组参数(`Build` / `ForceRecreate` / `NoDeps` / `NoBuild` / `Scale` ...)按 Q3 决策表保留 `engine API 单交互面` 约束,实现仅做 `start all`(逐容器 start),后续 R08-05 阶段可补 build/pull 与按 service 重建语义。

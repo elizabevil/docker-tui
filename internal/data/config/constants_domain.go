@@ -112,6 +112,7 @@ const (
 	KeyEscape    Key = "esc"
 	KeyF1        Key = "f1"
 	KeyC         Key = "c"
+	KeyD         Key = "d"
 	KeyE         Key = "e"
 	KeyH         Key = "h"
 	KeyI         Key = "i"
@@ -122,6 +123,8 @@ const (
 	KeyP         Key = "p"
 	KeyR         Key = "r"
 	KeyS         Key = "s"
+	KeyComma     Key = ","
+	KeyCtrlB     Key = "ctrl+b"
 	KeyCtrlC     Key = "ctrl+c"
 	KeyCtrlD     Key = "ctrl+d"
 	KeyCtrlE     Key = "ctrl+e"
@@ -132,6 +135,10 @@ const (
 	KeyCtrlS     Key = "ctrl+s"
 	KeyCtrlT     Key = "ctrl+t"
 	KeyCtrlU     Key = "ctrl+u"
+	KeyCtrlF3    Key = "ctrl+f3"
+	KeyShiftCtrlD Key = "shift+ctrl+d"
+	KeyShiftCtrlR Key = "shift+ctrl+r"
+	KeyShiftCtrlE Key = "shift+ctrl+e"
 )
 
 type ColorToken string

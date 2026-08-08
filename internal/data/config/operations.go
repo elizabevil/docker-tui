@@ -10,8 +10,9 @@ type OperationScope string
 const (
 	OperationScopeContainer OperationScope = "container"
 	OperationScopeImage     OperationScope = "image"
-	// OperationScopeVolume    OperationScope = "volume"  // future
-	// OperationScopeNetwork   OperationScope = "network" // future
+	OperationScopeVolume    OperationScope = "volume"
+	OperationScopeNetwork   OperationScope = "network"
+	OperationScopeCompose   OperationScope = "compose"
 )
 
 // OperationMode is the rendering mode of an Operation's body. Each
@@ -119,6 +120,16 @@ const (
 	RequirementNetwork  Requirement = "network"
 	RequirementRunning  Requirement = "running"
 	RequirementManifest Requirement = "manifest"
+	// R08-11: compose-级 requirement tokens. The action bar's
+	// evaluateEnabled checks them against the selected compose
+	// project / service; the dispatcher does NOT branch on them.
+	RequirementComposeProject  Requirement = "compose_project"
+	RequirementComposeService  Requirement = "compose_service"
+	RequirementComposeRunning  Requirement = "compose_running"
+	RequirementComposePaused   Requirement = "compose_paused"
+	RequirementComposeStopped  Requirement = "compose_stopped"
+	RequirementComposeTagged   Requirement = "compose_tagged"
+	RequirementComposeHasPorts Requirement = "compose_has_ports"
 )
 
 // allRequirements is the canonical Requirement universe. The loader
@@ -132,6 +143,13 @@ var allRequirements = map[Requirement]struct{}{
 	RequirementNetwork:   {},
 	RequirementRunning:   {},
 	RequirementManifest:  {},
+	RequirementComposeProject:  {},
+	RequirementComposeService:  {},
+	RequirementComposeRunning:  {},
+	RequirementComposePaused:   {},
+	RequirementComposeStopped:  {},
+	RequirementComposeTagged:   {},
+	RequirementComposeHasPorts: {},
 }
 
 // OperationSpec is one entry in the Operations registry. The struct
@@ -276,6 +294,7 @@ type ActionStyles struct {
 	// can differentiate by overriding action.volume or action.network.
 	Volume  ActionScopeStyles `json:"volume" yaml:"volume"`
 	Network ActionScopeStyles `json:"network" yaml:"network"`
+	Compose ActionScopeStyles `json:"compose" yaml:"compose"`
 }
 
 // defaultActionScopeStyles returns the fallback contract for a single
@@ -331,6 +350,7 @@ type ActionStylesPatch struct {
 	Image     *ActionScopeStylesPatch `json:"image,omitempty" yaml:"image,omitempty"`
 	Volume    *ActionScopeStylesPatch `json:"volume,omitempty" yaml:"volume,omitempty"`
 	Network   *ActionScopeStylesPatch `json:"network,omitempty" yaml:"network,omitempty"`
+	Compose   *ActionScopeStylesPatch `json:"compose,omitempty" yaml:"compose,omitempty"`
 }
 
 // applyActionScopePatch overwrites the matching fields on target with

@@ -150,6 +150,24 @@
           "foreground": "foregroundMuted",
           "background": "transparent"
         }
+      },
+      "compose": {
+        "window": {
+          "background": "backgroundSubtle",
+          "border": "primary"
+        },
+        "formInput": {
+          "foreground": "foreground",
+          "background": "backgroundDeep"
+        },
+        "confirm": {
+          "foreground": "success",
+          "background": "transparent"
+        },
+        "cancel": {
+          "foreground": "foregroundMuted",
+          "background": "transparent"
+        }
       }
     }
   }

@@ -120,21 +120,20 @@ func (s DockerComposeService) Config(ctx context.Context, project string) (strin
 }
 
 func (s DockerComposeService) Start(ctx context.Context, project string, services []string) error {
-	return s.runContainerAction(ctx, project, services, dockerContainerStart)
+	return s.runContainerAction(ctx, project, services, dockerContainerStart, 0)
 }
 
 func (s DockerComposeService) Stop(ctx context.Context, project string, services []string, timeoutSec int) error {
-	_ = timeoutSec
-	return s.runContainerAction(ctx, project, services, dockerContainerStop)
+	return s.runContainerAction(ctx, project, services, dockerContainerStop, timeoutSec)
 }
 
 func (s DockerComposeService) Restart(ctx context.Context, project string, services []string) error {
-	return s.runContainerAction(ctx, project, services, dockerContainerRestart)
+	return s.runContainerAction(ctx, project, services, dockerContainerRestart, 10)
 }
 
 func (s DockerComposeService) Up(ctx context.Context, project string, opts runtimeapi.UpOptions) error {
 	_ = opts
-	return s.runContainerAction(ctx, project, nil, dockerContainerStart)
+	return s.runContainerAction(ctx, project, nil, dockerContainerStart, 0)
 }
 
 func (s DockerComposeService) Down(ctx context.Context, project string, opts runtimeapi.DownOptions) error {
@@ -271,7 +270,33 @@ func (s DockerComposeService) Run(ctx context.Context, project, service string, 
 }
 
 func (s DockerComposeService) Exec(ctx context.Context, project, service string, command []string) error {
-	return s.runContainerAction(ctx, project, []string{service}, dockerContainerExec)
+	if s.Client == nil || s.Client.cli == nil {
+		return fmt.Errorf("docker client not initialized")
+	}
+	containers, err := s.listContainers(ctx, project)
+	if err != nil {
+		return err
+	}
+	for _, c := range containers {
+		if c.Labels[runtimeapi.ComposeLabelService] != service {
+			continue
+		}
+		execCfg := &container.ExecOptions{
+			Cmd:          command,
+			AttachStdout: false,
+			AttachStderr: false,
+			Tty:          false,
+		}
+		resp, err := s.Client.cli.ContainerExecCreate(ctx, c.ID, *execCfg)
+		if err != nil {
+			return fmt.Errorf("exec create on %s: %w", c.ID, err)
+		}
+		if err := s.Client.cli.ContainerExecStart(ctx, resp.ID, container.ExecStartOptions{}); err != nil {
+			return fmt.Errorf("exec start on %s: %w", c.ID, err)
+		}
+		return nil
+	}
+	return fmt.Errorf("no container found for service %q in project %q", service, project)
 }
 
 func (s DockerComposeService) Top(ctx context.Context, project, service string) (runtimeapi.ContainerProcesses, error) {
@@ -352,10 +377,9 @@ func (s DockerComposeService) Stats(ctx context.Context, project, service string
 		if c.Labels[runtimeapi.ComposeLabelService] != service {
 			continue
 		}
-		stats, err := s.Client.cli.ContainerStats(ctx, c.ID, false)
+		stats, err := s.Client.containerStatsContext(ctx, c.ID)
 		if err == nil {
-			_ = stats.Body.Close()
-			return runtimeapi.ContainerStats{}, nil
+			return stats, nil
 		}
 	}
 	return runtimeapi.ContainerStats{}, fmt.Errorf("no running container for service %q", service)
@@ -386,6 +410,7 @@ func (s DockerComposeService) Events(ctx context.Context, project string) (<-cha
 				out <- runtimeapi.ComposeEvent{
 					Type:      string(ev.Action),
 					Project:   project,
+					Service:   ev.Actor.Attributes[runtimeapi.ComposeLabelService],
 					Action:    string(ev.Action),
 					Timestamp: time.Unix(0, ev.TimeNano),
 				}
@@ -406,10 +431,9 @@ const (
 	dockerContainerStart dockerContainerAction = iota
 	dockerContainerStop
 	dockerContainerRestart
-	dockerContainerExec
 )
 
-func (s DockerComposeService) runContainerAction(ctx context.Context, project string, services []string, action dockerContainerAction) error {
+func (s DockerComposeService) runContainerAction(ctx context.Context, project string, services []string, action dockerContainerAction, timeoutSec int) error {
 	if s.Client == nil || s.Client.cli == nil {
 		return fmt.Errorf("docker client not initialized")
 	}
@@ -422,8 +446,8 @@ func (s DockerComposeService) runContainerAction(ctx context.Context, project st
 		filterSet[sv] = struct{}{}
 	}
 	var stopTimeout int
-	if action == dockerContainerStop {
-		stopTimeout = 10
+	if action == dockerContainerStop || action == dockerContainerRestart {
+		stopTimeout = timeoutSec
 	}
 	var failures []string
 	for _, c := range containers {
@@ -440,8 +464,6 @@ func (s DockerComposeService) runContainerAction(ctx context.Context, project st
 			err = s.Client.cli.ContainerStop(ctx, c.ID, container.StopOptions{Timeout: &stopTimeout})
 		case dockerContainerRestart:
 			err = s.Client.cli.ContainerRestart(ctx, c.ID, container.StopOptions{Timeout: &stopTimeout})
-		case dockerContainerExec:
-			continue
 		}
 		if err != nil {
 			failures = append(failures, c.ID)

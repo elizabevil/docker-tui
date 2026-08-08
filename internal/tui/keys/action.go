@@ -57,4 +57,35 @@ const (
 	ActionContainerRename    KeyAction = "containerRename"
 	ActionContainerTop       KeyAction = "containerTop"
 	ActionContainerPort      KeyAction = "containerPort"
+
+	// R08-12: Compose project-level actions.
+	ActionComposeProjectStart   KeyAction = "compose_project.start"
+	ActionComposeProjectStop    KeyAction = "compose_project.stop"
+	ActionComposeProjectRestart KeyAction = "compose_project.restart"
+	ActionComposeProjectDown    KeyAction = "compose_project.down"
+	ActionComposeProjectLogs    KeyAction = "compose_project.logs"
+	ActionComposeProjectTop     KeyAction = "compose_project.top"
+	ActionComposeProjectPort    KeyAction = "compose_project.port"
+	ActionComposeProjectStats   KeyAction = "compose_project.stats"
+	ActionComposeProjectBuild   KeyAction = "compose_project.build"
+	ActionComposeProjectPull    KeyAction = "compose_project.pull"
+	ActionComposeProjectPush    KeyAction = "compose_project.push"
+	ActionComposeProjectScale   KeyAction = "compose_project.scale"
+	ActionComposeProjectPause   KeyAction = "compose_project.pause"
+	ActionComposeProjectUnpause KeyAction = "compose_project.unpause"
+	ActionComposeProjectKill    KeyAction = "compose_project.kill"
+	ActionComposeProjectRm      KeyAction = "compose_project.rm"
+	ActionComposeProjectPrune   KeyAction = "compose_project.prune"
+	ActionComposeProjectEvents  KeyAction = "compose_project.events"
+	ActionComposeProjectDetail  KeyAction = "compose_project.detail"
+
+	// R08-12: Compose service-level actions.
+	ActionComposeServiceRun  KeyAction = "compose_service.run"
+	ActionComposeServiceExec KeyAction = "compose_service.exec"
+	ActionComposeServiceLogs KeyAction = "compose_service.logs"
+
+	// R08-14: Compose co-located group actions.
+	ActionComposeGroupDown    KeyAction = "compose_group.down"
+	ActionComposeGroupRestart KeyAction = "compose_group.restart"
+	ActionComposeGroupExec    KeyAction = "compose_group.exec"
 )
