@@ -210,9 +210,6 @@ type ComposeKeymapPatch struct {
 	Top         *KeyBinding `json:"top,omitempty" yaml:"top,omitempty"`
 	Port        *KeyBinding `json:"port,omitempty" yaml:"port,omitempty"`
 	Stats       *KeyBinding `json:"stats,omitempty" yaml:"stats,omitempty"`
-	Build       *KeyBinding `json:"build,omitempty" yaml:"build,omitempty"`
-	Pull        *KeyBinding `json:"pull,omitempty" yaml:"pull,omitempty"`
-	Push        *KeyBinding `json:"push,omitempty" yaml:"push,omitempty"`
 	Scale       *KeyBinding `json:"scale,omitempty" yaml:"scale,omitempty"`
 	Pause       *KeyBinding `json:"pause,omitempty" yaml:"pause,omitempty"`
 	Unpause     *KeyBinding `json:"unpause,omitempty" yaml:"unpause,omitempty"`
@@ -461,9 +458,6 @@ func (p KeymapPatch) apply(target *KeymapConfig) {
 		assign(&target.Compose.Top, p.Compose.Top)
 		assign(&target.Compose.Port, p.Compose.Port)
 		assign(&target.Compose.Stats, p.Compose.Stats)
-		assign(&target.Compose.Build, p.Compose.Build)
-		assign(&target.Compose.Pull, p.Compose.Pull)
-		assign(&target.Compose.Push, p.Compose.Push)
 		assign(&target.Compose.Scale, p.Compose.Scale)
 		assign(&target.Compose.Pause, p.Compose.Pause)
 		assign(&target.Compose.Unpause, p.Compose.Unpause)

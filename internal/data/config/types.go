@@ -248,9 +248,6 @@ type ComposeKeymap struct {
 	Top         KeyBinding `json:"top" yaml:"top"`
 	Port        KeyBinding `json:"port" yaml:"port"`
 	Stats       KeyBinding `json:"stats" yaml:"stats"`
-	Build       KeyBinding `json:"build" yaml:"build"`
-	Pull        KeyBinding `json:"pull" yaml:"pull"`
-	Push        KeyBinding `json:"push" yaml:"push"`
 	Scale       KeyBinding `json:"scale" yaml:"scale"`
 	Pause       KeyBinding `json:"pause" yaml:"pause"`
 	Unpause     KeyBinding `json:"unpause" yaml:"unpause"`
