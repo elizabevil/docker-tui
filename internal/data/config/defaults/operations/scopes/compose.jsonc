@@ -195,33 +195,6 @@
       "label":  "Service logs",
       "description": "Stream logs for the selected service",
       "requires": ["engine", "compose_service"]
-    },
-    {
-      "kind":   "group_down",
-      "action": "compose_group.down",
-      "mode":   "async",
-      "async":  { "body": "composeTrigger" },
-      "label":  "Group Down",
-      "description": "Down the co-located group of services that share a working_dir / config_files",
-      "requires": ["engine", "compose_project"]
-    },
-    {
-      "kind":   "group_restart",
-      "action": "compose_group.restart",
-      "mode":   "async",
-      "async":  { "body": "composeTrigger" },
-      "label":  "Group Restart",
-      "description": "Restart every service in the co-located group",
-      "requires": ["engine", "compose_project"]
-    },
-    {
-      "kind":   "group_exec",
-      "action": "compose_group.exec",
-      "mode":   "page",
-      "page":   { "body": "composeExec" },
-      "label":  "Group Exec",
-      "description": "Exec into the first running container of the co-located group",
-      "requires": ["engine", "compose_service", "compose_running"]
     }
   ]
 }

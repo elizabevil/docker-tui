@@ -306,15 +306,12 @@ func TestComposeOperationsSurfaceInActionBar(t *testing.T) {
 		keys.ActionComposeProjectLogs,
 		keys.ActionComposeProjectStats,
 		keys.ActionComposeProjectDown,
-		keys.ActionComposeProjectBuild,
-		keys.ActionComposeProjectPull,
 		keys.ActionComposeProjectPrune,
 		keys.ActionComposeProjectEvents,
 		keys.ActionComposeProjectTop,     // has running container
 		keys.ActionComposeProjectPort,    // has ports
 		keys.ActionComposeProjectPause,   // has running container
 		keys.ActionComposeProjectKill,    // has running container
-		keys.ActionComposeProjectPush,    // tagged service
 	}
 	wantDisabled := []keys.KeyAction{
 		keys.ActionComposeProjectStart,   // no stopped container (running present so compose_stopped=false)

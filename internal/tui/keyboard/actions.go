@@ -173,14 +173,6 @@ func handleAction(action keys.KeyAction, m *state.AppModel, cmds []tea.Cmd) (*st
 	case keys.ActionComposeServiceLogs:
 		return doComposeServiceLogs(m)
 
-	// R08-14: Compose co-located group actions.
-	case keys.ActionComposeGroupDown:
-		return doComposeGroupDown(m)
-	case keys.ActionComposeGroupRestart:
-		return doComposeGroupRestart(m)
-	case keys.ActionComposeGroupExec:
-		return doComposeGroupExec(m)
-
 	case keys.ActionActionBar:
 		return doActionBar(m)
 	}

@@ -67,9 +67,6 @@ const (
 	ActionComposeProjectTop     KeyAction = "compose_project.top"
 	ActionComposeProjectPort    KeyAction = "compose_project.port"
 	ActionComposeProjectStats   KeyAction = "compose_project.stats"
-	ActionComposeProjectBuild   KeyAction = "compose_project.build"
-	ActionComposeProjectPull    KeyAction = "compose_project.pull"
-	ActionComposeProjectPush    KeyAction = "compose_project.push"
 	ActionComposeProjectScale   KeyAction = "compose_project.scale"
 	ActionComposeProjectPause   KeyAction = "compose_project.pause"
 	ActionComposeProjectUnpause KeyAction = "compose_project.unpause"
@@ -83,9 +80,4 @@ const (
 	ActionComposeServiceRun  KeyAction = "compose_service.run"
 	ActionComposeServiceExec KeyAction = "compose_service.exec"
 	ActionComposeServiceLogs KeyAction = "compose_service.logs"
-
-	// R08-14: Compose co-located group actions.
-	ActionComposeGroupDown    KeyAction = "compose_group.down"
-	ActionComposeGroupRestart KeyAction = "compose_group.restart"
-	ActionComposeGroupExec    KeyAction = "compose_group.exec"
 )

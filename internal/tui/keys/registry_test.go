@@ -137,14 +137,10 @@ func TestComposeProjectActionsResolveInComposeView(t *testing.T) {
 		{KeyL, ActionComposeProjectLogs},
 		{KeyCtrlT, ActionComposeProjectTop},
 		{KeyComma, ActionComposeProjectPort},
-		{KeyCtrlB, ActionComposeProjectBuild},
 		{KeyCtrlK, ActionComposeProjectKill},
 		{KeyCtrlF3, ActionComposeProjectEvents},
 		{KeyD, ActionComposeProjectDetail},
 		{KeyE, ActionComposeServiceExec},
-		{KeyShiftCtrlD, ActionComposeGroupDown},
-		{KeyShiftCtrlR, ActionComposeGroupRestart},
-		{KeyShiftCtrlE, ActionComposeGroupExec},
 	}
 	for _, tc := range cases {
 		action, ok := resolver.Resolve(tc.key, compose)

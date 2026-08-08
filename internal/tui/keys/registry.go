@@ -96,9 +96,6 @@ func Registry() []ActionSpec {
 		{ActionComposeProjectTop, []string{KeyCtrlT}, compose},
 		{ActionComposeProjectPort, []string{KeyComma}, compose},
 		{ActionComposeProjectStats, nil, compose},
-		{ActionComposeProjectBuild, []string{KeyCtrlB}, compose},
-		{ActionComposeProjectPull, nil, compose},
-		{ActionComposeProjectPush, nil, compose},
 		{ActionComposeProjectScale, nil, compose},
 		{ActionComposeProjectPause, nil, compose},
 		{ActionComposeProjectUnpause, nil, compose},
@@ -112,11 +109,6 @@ func Registry() []ActionSpec {
 		{ActionComposeServiceRun, nil, compose},
 		{ActionComposeServiceExec, []string{KeyE}, compose},
 		{ActionComposeServiceLogs, nil, compose},
-
-		// R08-14: Compose co-located group actions.
-		{ActionComposeGroupDown, []string{KeyShiftCtrlD}, compose},
-		{ActionComposeGroupRestart, []string{KeyShiftCtrlR}, compose},
-		{ActionComposeGroupExec, []string{KeyShiftCtrlE}, compose},
 
 		{ActionRefreshConnections, []string{KeyF12, KeyR}, app},
 		{ActionClearFilters, []string{KeyCtrlI}, app},
@@ -236,9 +228,6 @@ func configuredBindings(keymap config.KeymapConfig) map[KeyAction][]string {
 		ActionComposeProjectTop:     cm.Top.Values(),
 		ActionComposeProjectPort:    cm.Port.Values(),
 		ActionComposeProjectStats:   cm.Stats.Values(),
-		ActionComposeProjectBuild:   cm.Build.Values(),
-		ActionComposeProjectPull:    cm.Pull.Values(),
-		ActionComposeProjectPush:    cm.Push.Values(),
 		ActionComposeProjectScale:   cm.Scale.Values(),
 		ActionComposeProjectPause:   cm.Pause.Values(),
 		ActionComposeProjectUnpause: cm.Unpause.Values(),

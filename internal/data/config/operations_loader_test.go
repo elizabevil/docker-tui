@@ -226,6 +226,23 @@ func TestComposeScopeHasNoBuildPullPush(t *testing.T) {
 	}
 }
 
+// TestComposeScopeHasNoGroupOperations pins §3.4 / R08-14: CoLocated
+// metadata is a ContainerSummary field, not a separately-actionable
+// group concept. group_* kinds must not be promoted into the action
+// bar; any kind reappearing is a regression.
+func TestComposeScopeHasNoGroupOperations(t *testing.T) {
+	ops, err := LoadOperations()
+	if err != nil {
+		t.Fatalf("LoadOperations: %v", err)
+	}
+	for _, spec := range ops.ForScope(OperationScopeCompose) {
+		switch spec.Kind {
+		case "group_down", "group_restart", "group_exec":
+			t.Fatalf("group kind %q still in compose scope; CoLocated must not promote to group ops", spec.Kind)
+		}
+	}
+}
+
 // TestRequiresCapabilitiesFieldRoundtrips verifies the loader accepts
 // and preserves the requiresCapabilities JSON field. Capability names
 // are open at the loader layer; evaluation happens against the
