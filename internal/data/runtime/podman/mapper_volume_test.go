@@ -25,8 +25,8 @@ func TestMapVolumesFormatsCreatedAt(t *testing.T) {
 	if vol.Name != "test-vol" || vol.Driver != "local" {
 		t.Errorf("name/driver = %q/%q", vol.Name, vol.Driver)
 	}
-	if vol.CreatedAt != "2025-06-15T10:30:00Z" {
-		t.Errorf("CreatedAt = %q", vol.CreatedAt)
+	if !vol.CreatedAt.Equal(time.Date(2025, 6, 15, 10, 30, 0, 0, time.UTC)) {
+		t.Errorf("CreatedAt = %v", vol.CreatedAt)
 	}
 	if vol.Labels["app"] != "api" {
 		t.Error("labels not preserved")
@@ -59,7 +59,7 @@ func TestMapVolumeDefaultsScopeAndOmitsZeroTime(t *testing.T) {
 	if result[0].Scope != "local" {
 		t.Fatalf("scope = %q", result[0].Scope)
 	}
-	if result[0].CreatedAt != "" {
-		t.Fatalf("CreatedAt = %q", result[0].CreatedAt)
+	if !result[0].CreatedAt.IsZero() {
+		t.Fatalf("CreatedAt = %v", result[0].CreatedAt)
 	}
 }

@@ -61,7 +61,7 @@ func RenderList(vm *state.VolumeListModel, cm *state.ContainerListModel, width i
 			case "mountpoint":
 				return vol.Mountpoint
 			case "created":
-				return vol.CreatedAt
+				return vol.CreatedAt.Format(utils.TableDateTime)
 			}
 			return ""
 		})

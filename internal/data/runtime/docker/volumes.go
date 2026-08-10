@@ -8,6 +8,7 @@ import (
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/volume"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 // ListVolumesContext returns all volumes visible to the client with a caller-provided context.
@@ -30,7 +31,7 @@ func (c *Client) ListVolumesContext(ctx context.Context, options runtimeapi.Volu
 	for _, v := range resp.Volumes {
 		items = append(items, runtimeapi.Volume{
 			Name: v.Name, Driver: v.Driver, Mountpoint: v.Mountpoint,
-			Labels: v.Labels, Scope: v.Scope, CreatedAt: v.CreatedAt,
+			Labels: v.Labels, Scope: v.Scope, CreatedAt: utils.ParseTimeOrZero(v.CreatedAt),
 		})
 	}
 	return items, nil
@@ -67,7 +68,7 @@ func (c *Client) CreateVolumeContext(ctx context.Context, options runtimeapi.Vol
 	if err != nil {
 		return nil, runtimeapi.MapRuntimeError(err, "volume.create", runtimeapi.ResourceRef{Type: runtimeapi.ResourceVolume, ID: options.Name}, runtimeapi.Docker)
 	}
-	return &runtimeapi.Volume{Name: created.Name, Driver: created.Driver, Mountpoint: created.Mountpoint, Labels: created.Labels, Scope: created.Scope, CreatedAt: created.CreatedAt}, nil
+	return &runtimeapi.Volume{Name: created.Name, Driver: created.Driver, Mountpoint: created.Mountpoint, Labels: created.Labels, Scope: created.Scope, CreatedAt: utils.ParseTimeOrZero(created.CreatedAt)}, nil
 }
 
 // PruneVolumesContext removes unused volumes with a caller-provided context.

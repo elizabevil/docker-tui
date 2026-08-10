@@ -3,6 +3,7 @@ package runtime
 import (
 	"context"
 	"fmt"
+	"time"
 )
 
 // Well-known filter field names for volume and network list operations.
@@ -108,7 +109,7 @@ type Volume struct {
 	Mountpoint string
 	Labels     map[string]string
 	Scope      string
-	CreatedAt  string
+	CreatedAt  time.Time
 }
 
 // Network is the runtime-neutral summary of a Docker or Podman network.

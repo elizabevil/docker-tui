@@ -142,7 +142,7 @@ func MapVolumes(raw []dto.VolumeItem) []runtimeapi.Volume {
 			Mountpoint: v.Mountpoint,
 			Labels:     v.Labels,
 			Scope:      scope,
-			CreatedAt:  dto.FormatPodmanTime(v.CreatedAt),
+			CreatedAt:  v.CreatedAt,
 		})
 	}
 	return result
