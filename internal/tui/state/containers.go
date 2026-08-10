@@ -356,24 +356,23 @@ func (m *ContainerListModel) FilteredItems() []runtimeapi.ContainerSummary {
 
 // SortedItems returns filtered items sorted by the current SortBy column.
 func (m *ContainerListModel) SortedItems() []runtimeapi.ContainerSummary {
-	var selectedID string
 	items := m.FilteredItems()
-	if m.Cursor >= 0 && m.Cursor < len(items) {
-		selectedID = items[m.Cursor].ID
-	}
-
 	sortContainerSlice(items, m.SortBy, m.SortAsc, m.Stats)
+	return items
+}
 
-	if selectedID != "" {
-		for i, item := range items {
-			if item.ID == selectedID {
-				m.Cursor = i
-				break
-			}
+// TrackCursor returns the index of selectedID in items, or m.Cursor when
+// selectedID is empty, or -1 when the item is no longer present.
+func (m *ContainerListModel) TrackCursor(items []runtimeapi.ContainerSummary, selectedID string) int {
+	if selectedID == "" {
+		return m.Cursor
+	}
+	for i, item := range items {
+		if item.ID == selectedID {
+			return i
 		}
 	}
-
-	return items
+	return -1
 }
 
 func contains(s, substr string) bool {
@@ -382,28 +381,38 @@ func contains(s, substr string) bool {
 
 func sortContainerSlice(items []runtimeapi.ContainerSummary, col ContainerSortColumn, asc bool, stats map[string]ContainerStats) {
 	sort.SliceStable(items, func(i, j int) bool {
-		less := false
+		primary := false
 		switch col {
 		case ContainerSortByName:
-			less = items[i].Name < items[j].Name
+			primary = items[i].Name < items[j].Name
 		case ContainerSortByID:
-			less = items[i].ID < items[j].ID
+			primary = items[i].ID < items[j].ID
 		case ContainerSortByState:
-			less = items[i].State < items[j].State
+			primary = items[i].State < items[j].State ||
+				(items[i].State == items[j].State && items[i].Name < items[j].Name)
 		case ContainerSortByCreated:
-			less = items[i].Created < items[j].Created
+			primary = items[i].Created < items[j].Created ||
+				(items[i].Created == items[j].Created && items[i].Name < items[j].Name)
 		case ContainerSortByCPU:
 			si, sj := stats[items[i].ID], stats[items[j].ID]
-			less = si.CPU < sj.CPU
+			primary = si.CPU < sj.CPU ||
+				(si.CPU == sj.CPU && items[i].Name < items[j].Name)
 		case ContainerSortByMem:
 			si, sj := stats[items[i].ID], stats[items[j].ID]
-			less = si.MemPerc < sj.MemPerc
+			primary = si.MemPerc < sj.MemPerc ||
+				(si.MemPerc == sj.MemPerc && items[i].Name < items[j].Name)
 		default:
-			less = items[i].Name < items[j].Name
+			primary = items[i].Name < items[j].Name
 		}
 		if asc {
-			return less
+			return primary
 		}
-		return !less
+		if primary {
+			return true
+		}
+		if items[i].Name != items[j].Name {
+			return items[i].Name > items[j].Name
+		}
+		return items[i].ID > items[j].ID
 	})
 }

@@ -176,7 +176,7 @@ func RenderPanel(m *state.AppModel, panelWidth int, panelHeight int) string {
 }
 
 func renderProjectList(m *state.AppModel, ordered []composeProj, w, panelHeight int) string {
-	colsDef := tc.Columns.Get("default")
+	colsDef := ProjectTableColumns()
 	if len(colsDef) == 0 {
 		return ""
 	}
@@ -301,7 +301,7 @@ func renderServicePanel(m *state.AppModel, proj composeProj, w, panelHeight int)
 	}
 	serviceCursor := m.Compose.ServiceCursor(len(svcNames))
 
-	colsDef := tc.Columns.Get("services_sub")
+	colsDef := ServiceTableColumns()
 	total := len(svcNames)
 	rowHeight := component.CalcRowHeight(panelHeight - 2)
 	rows := make([][]string, 0, rowHeight)

@@ -197,31 +197,7 @@ func renderContainers(im *state.ImageListModel, cm *state.ContainerListModel, wi
 		return i18n.T("msg.loading")
 	}
 
-	imgShort := utils.ShortID(imgID)
-	var imgNames []string
-	for _, item := range im.Items {
-		if item.ID == imgID || utils.ShortID(item.ID) == imgShort {
-			imgNames = append(imgNames, item.RepoTags...)
-			break
-		}
-	}
-
-	// Filter containers matching this image
-	var matched []dockerclient.ContainerSummary
-	for _, c := range cm.Items {
-		match := strings.Contains(c.Image, imgShort)
-		if !match {
-			for _, n := range imgNames {
-				if strings.Contains(c.Image, n) {
-					match = true
-					break
-				}
-			}
-		}
-		if match {
-			matched = append(matched, c)
-		}
-	}
+	matched := MatchedContainersByImage(im, cm, imgID)
 	if len(matched) == 0 {
 		return renderInfoBlock([]string{component.StrNoContainer, "Press Esc to return"}, panelHeight)
 	}
@@ -298,7 +274,6 @@ func renderContainers(im *state.ImageListModel, cm *state.ContainerListModel, wi
 		SelectionProvider: selProv,
 	})
 }
-
 func selectedContainerSubRow(items []dockerclient.ContainerSummary, offset, cursor int) int {
 	if cursor < offset {
 		return 0
@@ -308,6 +283,34 @@ func selectedContainerSubRow(items []dockerclient.ContainerSummary, offset, curs
 		row += len(containers.FormatPorts(items[i].PortBindings, false))
 	}
 	return row
+}
+
+func MatchedContainersByImage(im *state.ImageListModel, cm *state.ContainerListModel, imgID string) []dockerclient.ContainerSummary {
+	if im == nil || cm == nil {
+		return nil
+	}
+	imgShort := utils.ShortID(imgID)
+	var imgNames []string
+	for _, image := range im.Items {
+		if image.ID == imgID || utils.ShortID(image.ID) == imgShort {
+			imgNames = append(imgNames, image.RepoTags...)
+			break
+		}
+	}
+	var matched []dockerclient.ContainerSummary
+	for _, container := range cm.Items {
+		if strings.Contains(container.Image, imgShort) {
+			matched = append(matched, container)
+			continue
+		}
+		for _, name := range imgNames {
+			if strings.Contains(container.Image, name) {
+				matched = append(matched, container)
+				break
+			}
+		}
+	}
+	return matched
 }
 
 func renderInfoBlock(lines []string, panelHeight int) string {

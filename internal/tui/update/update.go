@@ -10,7 +10,7 @@ import (
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keyboard"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
-	view "github.com/elizabevil/docker-tui/internal/tui/ui/app"
+	"github.com/elizabevil/docker-tui/internal/tui/ui/app/mouse"
 	"github.com/elizabevil/docker-tui/internal/utils"
 
 	tea "charm.land/bubbletea/v2"
@@ -47,7 +47,7 @@ func handleMouseWheel(m *state.AppModel, msg tea.MouseWheelMsg) *state.AppModel 
 // stays in one place; keyboard input remains the primary control
 // surface and mouse is purely additive.
 func handleMouseClick(m *state.AppModel, msg tea.MouseClickMsg) (*state.AppModel, tea.Cmd) {
-	view.ApplyMouseClick(m, msg)
+	mouse.ApplyMouseClick(m, msg)
 	return m, nil
 }
 

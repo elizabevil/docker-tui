@@ -41,6 +41,89 @@ func CalcTableRowHeight(panelHeight int, selectionPreview bool) int {
 	return max(1, h)
 }
 
+// TableHitLayoutInput describes the lines rendered before table data rows.
+type TableHitLayoutInput struct {
+	TopLabel             bool
+	SelectionPreview     bool
+	SelectionPreviewPad  int
+	Total                int
+	BannerLines          int
+}
+
+// TableHitLayout maps panel-body rows to visible table data rows.
+type TableHitLayout struct {
+	dataStartRow     int
+	rowSpacing       int
+	selectionPreview bool
+	previewPad       int
+}
+
+// NewTableHitLayout builds the row contract shared by table rendering and mouse hit testing.
+func NewTableHitLayout(input TableHitLayoutInput) TableHitLayout {
+	start := max(input.BannerLines, 0)
+	if input.TopLabel {
+		start++
+	}
+	if input.SelectionPreview {
+		pad := input.SelectionPreviewPad
+		if pad < 0 {
+			pad = 0
+		}
+		start += 1 + pad
+	}
+	if input.Total > 0 {
+		start++
+	}
+	start++
+	return TableHitLayout{
+		dataStartRow:     start,
+		rowSpacing:       RowSpacing(),
+		selectionPreview: input.SelectionPreview,
+		previewPad:       input.SelectionPreviewPad,
+	}
+}
+
+// HeaderRow returns the zero-based body row that holds the table header.
+func (l TableHitLayout) HeaderRow() int {
+	if l.dataStartRow <= 0 {
+		return 0
+	}
+	return l.dataStartRow - 1
+}
+
+// DataStartRow returns the zero-based body row where data row zero begins.
+func (l TableHitLayout) DataStartRow() int {
+	return l.dataStartRow
+}
+
+// SelectionLineBreaks returns the newline count after the selection preview.
+func (l TableHitLayout) SelectionLineBreaks() int {
+	if !l.selectionPreview {
+		return 0
+	}
+	return l.previewPad + 1
+}
+
+// DataRowAt resolves a body row to a visible data-row index.
+func (l TableHitLayout) DataRowAt(bodyRow, visibleRows int) (int, bool) {
+	if visibleRows <= 0 {
+		return 0, false
+	}
+	relative := bodyRow - l.dataStartRow
+	if relative < 0 {
+		return 0, false
+	}
+	stride := l.rowSpacing + 1
+	if relative%stride != 0 {
+		return 0, false
+	}
+	row := relative / stride
+	if row >= visibleRows {
+		return 0, false
+	}
+	return row, true
+}
+
 // ShortID is a delegate to utils.ShortID.
 func ShortID(id string) string { return utils.ShortID(id) }
 

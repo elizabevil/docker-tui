@@ -1,7 +1,7 @@
 # 未关闭的 BUG / 需求
 
 > 建立日期: 2026-08-01
-> 最后同步: 2026-08-07 (BR-025/BR-034/BR-044 已关闭移除;BR-008/BR-032/BR-035/BR-041 标记 partial)
+> 最后同步: 2026-08-09 (BR-030 转 wontfix;新增 BR-048 鼠标点击选中精确性)
 > 来源: [bugfix-requirements.md](bugfix-requirements.md) 的快照
 > 目的: 把 `bugfix-requirements.md` 中**当前未完成**的 BUG / 需求单独切出,
 >       作为"待开发工作项"独立跟踪,不与已完成条目混在一起。
@@ -10,11 +10,11 @@
 
 | 状态 | 数量 | 备注 |
 |---|---|---|
-| `open` | 16 | 未开始或被搁置的需求 |
+| `open` | 17 | 未开始或被搁置的需求 |
 | `partial` | 4 | 部分完成(BR-008 H=History / BR-032 键盘排序 / BR-035 Events 面板 / BR-041 form 部分修复) |
 | `implementing` | 1 | 修复进行中(部分子任务已完成) |
 | `pending` | 1 | 用户尚未提供具体内容 |
-| `wontfix` | 1 (BR-012 已转移为新需求 BR-030,保留记录) |
+| `wontfix` | 2 (BR-012 由 BR-048 重新激活;BR-030 被用户否决转 wontfix) |
 
 ## 排序与优先级
 
@@ -22,8 +22,8 @@
 
 | 编号 | 标题 | 优先级 | 状态 |
 |---|---|---|---|
+| [BR-048](#br-048) | 鼠标点击选中表格行不精确(点击行与选中行错位) | high | open |
 | [BR-009](#br-009) | 卷详情加载 + 容器子视图选中(部分修复) | high | implementing |
-| [BR-030](#br-030) | 取消鼠标点击行选中,改用滚轮上下选行 | high | open |
 | [BR-033](#br-033) | TASK-019 高级容器动作未实现(Copy/Update/Diff/Export/Commit/Wait) | high | open |
 | [BR-041](#br-041) | action bar / 输入框 / 长 label wrap / select 图标(部分修复) | high | partial |
 | [BR-023](#br-023) | F2 唯一提供 runtime 选择器;其它页面不得用 C 刷新 Conn | medium | open |
@@ -640,6 +640,32 @@
   1. 在 audit 面板按 Enter 可进入详情;详情 Esc 返回。
   2. Trace ID 可完整阅读(或可展开);`go test ./internal/tui/keyboard/ ./internal/tui/ui/pages/audit/` 通过。
 
+<a id="br-048"></a>
+
+### BR-048 鼠标点击选中表格行不精确(点击行与选中行错位)
+
+- 状态: `open`
+- 优先级: `high`
+- 症状:
+  - 2026-08-09 用户反馈:"当前支持鼠标操作,但是鼠标不够精确,例如选中表项"。点击列表行选中位置与视觉点击行相差 1 到数行,滚动后误差更大。
+  - 2026-08-09 用户确认方向:**修复点击精确性**(保留点击选行),否决 BR-030 取消方案。
+- 当前行为(逻辑链梳理,详见 [bugfix-requirements.md BR-048](bugfix-requirements.md#br-048)):
+  - 渲染侧 `RenderTable` 在 panel body 内先输出 SelectionInfo 预览(1+pad)、PageInfo(1)、Header(1) 后才到数据行;数据行 0 的真实偏移 ≈ 2~4 行(有 mark 时再加 2)。
+  - `HitTest` 的 `row := y - bodyTop` 把 bodyTop 当作数据行 0,未扣除前置行 → 固定偏差。
+  - `clickListCursor` 的 `*cursor = row` 未加 `ViewOffset`,滚动后点击错位;也未映射容器页多行行高。
+- 代码锚点:
+  [mouse.go:205](internal/tui/ui/app/mouse.go:205) `HitTest`
+  [mouse.go:300](internal/tui/ui/app/mouse.go:300) `clickListCursor`
+  [table.go:66](internal/tui/ui/component/table.go:66) `RenderTable`
+  [helpers.go:29](internal/tui/ui/component/helpers.go:29) `CalcTableRowHeight`
+  [view.go:149](internal/tui/ui/pages/containers/view.go:149) `selectedRowForCursor`
+- 期望行为:
+  1. 换算链 `cursor = viewOffset + (clickRow − 前置行数)`,前置行数按 ActivePanel/状态动态计算。
+  2. 滚动、mark、ModeFilter、容器多行行高场景下均精确;表头/预览/页码区点击不移动 cursor。
+- 验收标准:
+  1. 各列表页未滚动点击精确;滚动后点击 item = offset + 可见行号。
+  2. 表头/预览/页码点击不移动 cursor;`go test ./internal/tui/ui/app/` 通过。
+
 ---
 
 ## 维护说明
@@ -652,4 +678,5 @@
 
 ## 关键事实:已 wontfix 的条目
 
-- **BR-012** 鼠标点击行位置不对 — 用户决定取消鼠标点击行选中,改用滚轮上下选行(见 BR-030)。`clickListCursor` 与 `HitTest` 中与点击相关的分支不再维护。
+- **BR-012** 鼠标点击行位置不对 — 原因 BR-030 决定取消鼠标点击行选中;2026-08-09 用户重新确认**修复点击精确性**(BR-048),本条目重新激活,不再按 wontfix 处理。
+- **BR-030** 取消鼠标点击行选中,改用滚轮上下选行 — 2026-08-09 用户否决该方向,改为修复点击精确性(见 BR-048)。

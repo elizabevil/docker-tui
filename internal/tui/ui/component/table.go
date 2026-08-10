@@ -101,6 +101,11 @@ func RenderTable(d TableData) string {
 		Background:   resolveTableBackground(),
 	}
 
+	selectionInfo := ""
+	if d.SelectionProvider != nil {
+		selectionInfo = d.SelectionProvider.SelectionInfo()
+	}
+
 	var sb strings.Builder
 
 	if d.TopLabel != "" {
@@ -109,13 +114,10 @@ func RenderTable(d TableData) string {
 	}
 
 	// SelectionInfo：选中项预览（表格上方，居中，空行分隔）
-	if d.SelectionProvider != nil {
-		if info := d.SelectionProvider.SelectionInfo(); info != "" {
-			centered := lipgloss.NewStyle().Width(containerW).Align(lipgloss.Center).Render(renderSelectionInfo(info))
-			sb.WriteString(centered)
-			pad := max(SelectionPreviewPadding(), 1)
-			sb.WriteString(strings.Repeat("\n", pad))
-		}
+	if selectionInfo != "" {
+		centered := lipgloss.NewStyle().Width(containerW).Align(lipgloss.Center).Render(renderSelectionInfo(selectionInfo))
+		sb.WriteString(centered)
+		sb.WriteString(strings.Repeat("\n", SelectionPreviewPadding()))
 	}
 
 	// Page info: 当前显示行（右对齐）

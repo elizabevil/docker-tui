@@ -48,8 +48,8 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 	}
 
 	rowHeight := component.CalcTableRowHeight(panelHeight, !selectionDisabled)
+	component.EnsureVisible(&cm.ViewOffset, cm.Cursor, rowHeight, total)
 	viewOffset := cm.ViewOffset
-	component.EnsureVisible(&viewOffset, cm.Cursor, rowHeight, total)
 
 	running, exited, createdSt := 0, 0, 0
 	for _, c := range items {

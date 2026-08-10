@@ -50,6 +50,64 @@ func TestRenderTableProjectsPageAndSummaryAtTopRight(t *testing.T) {
 	}
 }
 
+func TestTableHitLayoutComputesDataStartRow(t *testing.T) {
+	// Given
+	layout := NewTableHitLayout(TableHitLayoutInput{
+		SelectionPreview:    true,
+		SelectionPreviewPad: 1,
+		Total:               3,
+		BannerLines:         1,
+	})
+
+	// When
+	start := layout.DataStartRow()
+
+	// Then
+	if start != 5 {
+		t.Fatalf("data start row = %d, want 5", start)
+	}
+}
+
+func TestTableHitLayoutRejectsNonDataRows(t *testing.T) {
+	// Given
+	layout := NewTableHitLayout(TableHitLayoutInput{SelectionPreview: true, Total: 3})
+
+	// When
+	_, ok := layout.DataRowAt(layout.DataStartRow()-1, 3)
+
+	// Then
+	if ok {
+		t.Fatal("row before data area was accepted as a data row")
+	}
+}
+
+func TestTableHitLayoutMapsRowsWithConfiguredSpacing(t *testing.T) {
+	// Given
+	previous := GetTableLayout()
+	defer ApplyTableLayout(previous)
+	updated := previous
+	updated.RowSpacing = 1
+	ApplyTableLayout(updated)
+	layout := NewTableHitLayout(TableHitLayoutInput{Total: 3})
+	start := layout.DataStartRow()
+
+	// When
+	first, firstOK := layout.DataRowAt(start, 3)
+	_, gapOK := layout.DataRowAt(start+1, 3)
+	second, secondOK := layout.DataRowAt(start+2, 3)
+
+	// Then
+	if !firstOK || first != 0 {
+		t.Fatalf("first row = (%d, %t), want (0, true)", first, firstOK)
+	}
+	if gapOK {
+		t.Fatal("row spacing was accepted as a data row")
+	}
+	if !secondOK || second != 1 {
+		t.Fatalf("second row = (%d, %t), want (1, true)", second, secondOK)
+	}
+}
+
 func TestTableConfigOwnsSharedLayoutAndSemanticColumnStyles(t *testing.T) {
 	layout := GetTableLayout()
 	if layout.ColumnSpacing != tables.DefaultColumnGap {

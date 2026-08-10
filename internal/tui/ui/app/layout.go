@@ -202,10 +202,10 @@ func RenderApp(m *state.AppModel) string {
 	overlayColor := dialog.OverlayColor(m)
 	rep := ResolveLayout(m)
 	panelBody := dialog.PanelBody{
-		Left:  rep.Panel.bodyLeft,
-		Top:   rep.Panel.bodyTop,
-		Width: rep.Panel.bodyWidth,
-		Rows:  rep.Panel.bodyRows,
+		Left:  rep.Panel.BodyLeft,
+		Top:   rep.Panel.BodyTop,
+		Width: rep.Panel.BodyWidth,
+		Rows:  rep.Panel.BodyRows,
 	}
 	if m.Navigation.Mode == state.ModeActionBar {
 		return actionbar.RenderBar(m, result, panelBody)
@@ -288,8 +288,8 @@ func renderActionBar(m *state.AppModel, content string) string {
 	}
 	report := ResolveLayout(m)
 	body := dialog.PanelBody{
-		Left: report.Panel.bodyLeft, Top: report.Panel.bodyTop,
-		Width: report.Panel.bodyWidth, Rows: report.Panel.bodyRows,
+		Left: report.Panel.BodyLeft, Top: report.Panel.BodyTop,
+		Width: report.Panel.BodyWidth, Rows: report.Panel.BodyRows,
 	}
 	return actionbar.RenderBar(m, content, body)
 }
@@ -410,7 +410,7 @@ func renderMiddlePanel(m *state.AppModel, panelH int, panelW int) string {
 		}
 	}
 
-	bodyH := panelBodyHeight(panelH)
+	bodyH := PanelBodyHeight(panelH)
 	contentW := panelW - 4
 	page := projectPage(m, bodyH, contentW)
 	return panel.Panel{

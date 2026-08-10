@@ -348,7 +348,7 @@
 
 ### BR-012 所有表格鼠标点击选中的行位置不对
 
-- 状态: `wontfix`
+- 状态: `wontfix` → **已由 BR-048 重新激活**(2026-08-09 用户确认修复点击精确性,否决 BR-030 的取消方案)
 - 优先级: `high`
 - 症状: 在镜像 / 卷 / 网络列表上用鼠标点击某一行,选中行落在与点击位置相差一行或几行的位置,无法精准定位。
 - 当前行为:
@@ -368,9 +368,9 @@
   2. standard 模式下多列布局(镜像在右列,容器在左列),点击右侧命中镜像专属区域、点击左侧命中容器专属区域,不串列。
   3. compact 模式下点击行为不变(单 panel)。
 - 不修复原因:
-  - 用户在 [BR-030](#br-030-取消鼠标点击表格行选中改用滚轮上下选行) 中明确决定**取消鼠标点击行选中**,改为只用滚轮上下选行。`LayoutReport` 按 panel 分列几何这一修复已不再需要。
-  - `clickListCursor` 与 `HitTest` 中与点击相关的分支可以移除,降低 standard 模式下多列布局的几何计算复杂度。
-- 替代方案: 见 BR-030。
+  - 原记录:用户在 [BR-030](#br-030-取消鼠标点击表格行选中改用滚轮上下选行) 中明确决定**取消鼠标点击行选中**,改为只用滚轮上下选行。`LayoutReport` 按 panel 分列几何这一修复已不再需要。
+  - **2026-08-09 更新**:用户重新确认方向为**修复点击精确性**(BR-048),本条目不再按 wontfix 处理;原"多列几何"主张已由 BR-048 核实为与当前代码不符(standard 模式为单一全宽 panel),真实根因见 BR-048。
+- 替代方案: 见 BR-048。
 
 ### BR-013 头部 Connection 列 Engine / Runtime 信息重复
 
@@ -688,7 +688,7 @@
 
 ### BR-030 取消鼠标点击表格行选中,改用滚轮上下选行
 
-- 状态: `open`
+- 状态: `open` → **`wontfix`**(2026-08-09 用户否决"取消点击",改为修复点击精确性,见 BR-048)
 - 优先级: `high`
 - 症状:
   - 镜像 / 卷 / 网络 / 容器 / 审计列表上,鼠标点击行尝试选中时位置错位(BR-012)。
@@ -1295,3 +1295,52 @@
 - 验收标准:
   1. 容器页标记 → Tab 切到 Compose → 容器 marks 为 0,Compose 页批量操作不误读容器 marks。
   2. `go test ./internal/tui/keyboard/` 通过。
+
+### BR-048 鼠标点击选中表格行不精确(点击行与选中行错位)
+
+- 状态: `open`
+- 优先级: `high`
+- 症状:
+  - 2026-08-09 用户反馈:"当前支持鼠标操作,但是鼠标不够精确,例如选中表项"。在容器 / 镜像 / 卷 / 网络 / 审计列表上用鼠标点击某一行,选中行与点击位置相差 1 到数行,滚动后误差更大。
+  - 2026-08-09 用户确认方向:**修复点击精确性**(保留点击选行),否决 BR-030 的"取消点击、只留滚轮"方案;BR-012 的 wontfix 理由随之失效。
+- 当前行为(逻辑链梳理):
+  - **渲染侧真实布局**(`panel.Panel.Render` → `RenderTable`):
+    `panel.Panel.Render` (panel.go:25) 输出 `border top(1 行) + title(1 行) + body`;body 从 `panelTop+2` 开始,高度 `panelH-3`。`renderMiddlePanel` (layout.go:405) 把 `bodyH = panelH-3` 当作 `panelHeight` 传入各页 `RenderList`。`RenderTable` (table.go:66) 在 body 区域内自上而下输出:
+    1. (可选) `MarkedItemsBanner` — 容器页在 `RenderList` 外层以 `banner + "\n" + view` 拼在表格之前,有 mark 时多占 2 行;
+    2. (可选) `TopLabel` — 表格上框标签(列表页不使用);
+    3. (可选) `SelectionInfo` 预览行 — `SelectionProvider != nil` 且返回非空时输出 1 行居中预览 + `SelectionPreviewPadding()`(默认 1)个空行;
+    4. `PageInfo` 行(`Total > 0` 时):`1-5/100` 右对齐,占 1 行;
+    5. `Header` 表头行,占 1 行;
+    6. 数据行,每行后跟 `RowSpacing()`(默认 0)个空行,再补空行到 `Limit`。
+    因此**数据行 0 在 body 内的真实偏移** = banner(0/1) + toplabel(0/1) + selectionPreview(0 或 1+pad) + pageInfo(1) + header(1)。标准容器页(有预览、有数据、无 mark)下数据行 0 位于 body 内第 4 行。
+  - **鼠标侧行号换算**(`HitTest` → `clickListCursor`):
+    `HitTest` (mouse.go:205) 计算 `row := y - rep.Panel.bodyTop`,把 `bodyTop`(panelTop+2)当作数据行 0,未扣除上述前置行 → **固定偏差 2~4 行**。
+    `clickListCursor` (mouse.go:300) 执行 `*cursor = row`,直接用可见行号,既未加 `*offset`(ViewOffset,滚动后点击选错行),也未考虑容器页多行行高(`selectedRowForCursor` 已处理渲染多行,但点击路径未复用该换算)。
+  - **BR-012 原始主张"standard 多列几何失真"在当前代码中已不成立**:`resolveStandardLayout` (mouse.go:152) 与 `renderMiddlePanel` (layout.go:405) 均为**单一全宽 panel**,不存在"镜像在右列、容器在左列"的分栏;当前点击错位的真实根因是前置行未扣除 + ViewOffset 未加 + 多行行高未映射。
+- 代码锚点:
+  [internal/tui/ui/app/mouse.go:205](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/app/mouse.go:205) `HitTest` — `row := y - bodyTop`,未扣除前置行
+  [internal/tui/ui/app/mouse.go:300](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/app/mouse.go:300) `clickListCursor` — `*cursor = row` 未加 ViewOffset、未映射多行行高
+  [internal/tui/ui/app/mouse.go:152](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/app/mouse.go:152) `resolveStandardLayout` — 单一 panelRect,无多列
+  [internal/tui/ui/widget/panel/panel.go:25](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/widget/panel/panel.go:25) `Panel.Render` — border+title+body 结构
+  [internal/tui/ui/component/table.go:66](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/component/table.go:66) `RenderTable` — SelectionInfo/PageInfo/Header/数据行 实际布局
+  [internal/tui/ui/component/helpers.go:29](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/component/helpers.go:29) `CalcTableRowHeight` — 现有"真实数据行"计算,可复用作偏移基准
+  [internal/tui/ui/pages/containers/view.go:149](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/pages/containers/view.go:149) `selectedRowForCursor` — 渲染多行换算参考实现
+  [internal/tui/ui/component/viewport.go:8](/home/debi/IdeaProjects/docker-tui/internal/tui/ui/component/viewport.go:8) `EnsureVisible` — ViewOffset 收敛规则
+- 期望行为:
+  1. 鼠标点击的可见行号经换算后,选中的 item 与视觉点击行完全一致,误差 ≤ 0。
+  2. 换算链为:`cursor = viewOffset + (clickRow − 前置行数)`,前置行数 = banner + toplabel + selectionPreview(1+pad) + pageInfo(1) + header(1),按 ActivePanel 与当前状态(有无 mark、是否 ModeFilter、Total>0)动态计算。
+  3. 滚动后点击(offset>0)与未滚动点击行为一致;容器页多行行高(多端口绑定)点击按 `selectedRowForCursor` 的反向映射命中正确 item。
+  4. 表头 / PageInfo / SelectionInfo 区域点击不触发选中移动(或按 BR-032 的"点击表头排序"扩展)。
+  5. compact 与 standard 模式行为一致(两者均为单 panel 几何,偏移差异仅来自前置行)。
+- 验收标准:
+  1. 容器 / 镜像 / 卷 / 网络 / 审计列表,未滚动时点击任意数据行,选中行与点击行一致。
+  2. 滚动(offset>0)后点击可见行,选中的 item = offset + 可见行号;`ViewOffset` 同步收敛(`EnsureVisible`)。
+  3. 有 mark(banner 出现)时点击仍精确;`ModeFilter`(selectionDisabled,无预览行)时同样精确。
+  4. 容器页存在多端口绑定(渲染多行)时,点击每个视觉行命中正确的 item。
+  5. 点击表头 / 页码 / 预览区域不移动 cursor。
+  6. `go test ./internal/tui/ui/app/` 与 `go test ./internal/tui/ui/pages/containers/` 通过,新增点击命中测试。
+- 修复方案(设计,待实施):
+  1. 在 `component` 层新增"表格数据行首行偏移"计算函数(基于 `CalcTableRowHeight` 相同的前置行口径,输出数据行 0 在 body 内的行号),渲染侧与鼠标侧共用同一口径,避免二次漂移。
+  2. `clickListCursor` 改为:先按 ActivePanel/状态求前置行数,再 `clickRow = rawRow − 前置行数`;`clickRow < 0` 视为命中表头/预览区,不移动 cursor;`cursor = *offset + clickRow`,随后 clamp 到 `[0, total)` 并复用 `EnsureVisible` 收敛 offset。
+  3. 容器页点击路径复用多行行高反向映射(`selectedRowForCursor` 的逆运算),其余页行高恒为 1。
+  4. 更新 `mouse_test.go` 中依赖"bodyTop 即数据行 0"假设的现有用例(如 `TestApplyMouseClickMovesContainerCursor`),改为按新换算断言。

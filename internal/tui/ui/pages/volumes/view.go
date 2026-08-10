@@ -46,8 +46,8 @@ func RenderList(vm *state.VolumeListModel, cm *state.ContainerListModel, width i
 	}
 
 	rowHeight := component.CalcTableRowHeight(panelHeight, !selectionDisabled)
+	component.EnsureVisible(&vm.ViewOffset, vm.Cursor, rowHeight, total)
 	viewOffset := vm.ViewOffset
-	component.EnsureVisible(&viewOffset, vm.Cursor, rowHeight, total)
 
 	rows := component.BuildRows(items, colsDef, viewOffset, rowHeight,
 		func(vol runtimeapi.Volume, cd tables.ColumnDef, _ int) string {

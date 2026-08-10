@@ -43,7 +43,7 @@ func (h railHeights) total() int {
 	return h.header + h.message + h.query + h.panel + h.footer
 }
 
-func panelBodyHeight(panelHeight int) int {
+func PanelBodyHeight(panelHeight int) int {
 	const panelOverhead = 3 // border(2) + title(1)
 	return max(1, panelHeight-panelOverhead)
 }

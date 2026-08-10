@@ -24,11 +24,11 @@ func TestCalculateRailHeights(t *testing.T) {
 }
 
 func TestPanelBodyHeight(t *testing.T) {
-	if got := panelBodyHeight(10); got != 7 {
-		t.Fatalf("panelBodyHeight(10) = %d, want 7", got)
+	if got := PanelBodyHeight(10); got != 7 {
+		t.Fatalf("PanelBodyHeight(10) = %d, want 7", got)
 	}
-	if got := panelBodyHeight(2); got != 1 {
-		t.Fatalf("panelBodyHeight(2) = %d, want 1", got)
+	if got := PanelBodyHeight(2); got != 1 {
+		t.Fatalf("PanelBodyHeight(2) = %d, want 1", got)
 	}
 }
 
