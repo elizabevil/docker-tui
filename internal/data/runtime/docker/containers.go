@@ -73,9 +73,11 @@ func (c *Client) listContainersDocker(ctx context.Context, opts runtimeapi.Conta
 		}
 
 		if ctr.NetworkSettings != nil {
+			summary.Networks = map[string]string{}
 			for name, net := range ctr.NetworkSettings.Networks {
 				summary.NetworkNames = append(summary.NetworkNames, name)
 				if net.IPAddress != "" {
+					summary.Networks[name] = net.IPAddress
 					summary.IPs = append(summary.IPs, net.IPAddress)
 				}
 			}

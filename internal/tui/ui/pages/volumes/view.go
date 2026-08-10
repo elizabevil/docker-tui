@@ -80,7 +80,7 @@ func RenderList(vm *state.VolumeListModel, cm *state.ContainerListModel, width i
 				return ""
 			}
 			v := items[vm.Cursor]
-			return v.Name
+			return v.Driver + "  " + v.Mountpoint
 		})
 	}
 

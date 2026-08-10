@@ -315,6 +315,8 @@ func NewContainerListModel() *ContainerListModel {
 		Items:  make([]runtimeapi.ContainerSummary, 0),
 		Stats:  make(map[string]ContainerStats),
 		Cursor: 0,
+		SortBy: ContainerSortByName,
+		SortAsc: true,
 	}
 }
 

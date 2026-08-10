@@ -24,7 +24,7 @@ func buildImageDetailDataSections(data *runtimeapi.ImageDetail) []detailSection 
 	basic := detailSection{Title: i18n.T("inspect.section_basic")}
 	appendValue(&basic.Lines, "ID", data.ID)
 	appendValue(&basic.Lines, i18n.T("inspect.tags"), strings.Join(data.RepoTags, ", "))
-	appendValue(&basic.Lines, i18n.T("inspect.registry"), data.Registry)
+	appendValue(&basic.Lines, i18n.T("inspect.registry"), imageFullRef(data))
 	appendValue(&basic.Lines, i18n.T("inspect.name"), data.Name)
 	appendValue(&basic.Lines, i18n.T("inspect.tag"), data.Tag)
 	appendValue(&basic.Lines, i18n.T("inspect.digest"), strings.Join(data.RepoDigests, ", "))

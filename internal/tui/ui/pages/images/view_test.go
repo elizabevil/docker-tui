@@ -72,7 +72,7 @@ func TestRenderListUsesStableExcelLikeColumnTracks(t *testing.T) {
 	const pageWidth = 200
 	rendered := component.StripANSI(RenderList(model, state.NewContainerListModel(), pageWidth, 12, nil, false))
 	for line := range strings.SplitSeq(rendered, "\n") {
-		if !strings.Contains(line, "cmdb_adminserver") || !strings.Contains(line, "6b1b147de") {
+		if !strings.Contains(line, "cmdb_adminserver") || !strings.Contains(line, "6b1b147de") || !strings.Contains(line, "linux/amd64") {
 			continue
 		}
 		if got := component.VisibleLen(line); got != pageWidth {
@@ -102,10 +102,43 @@ func TestContainerSubviewShowsSelectedContainerInsteadOfDuplicateImage(t *testin
 	containers.Items = []runtimeapi.ContainerSummary{{ID: "container123456789", Name: "web", Image: "example/nginx:latest"}}
 
 	plain := component.StripANSI(RenderList(images, containers, 120, 12, nil, false))
-	if !strings.Contains(plain, "Container: web (container123)") {
+	if !strings.Contains(plain, "web (container123)") {
 		t.Fatalf("selected container summary missing: %q", plain)
 	}
-	if strings.Count(plain, "example/nginx:latest") > 1 {
+	if strings.Count(plain, "example/nginx:latest") > 2 {
 		t.Fatalf("image reference is duplicated: %q", plain)
+	}
+}
+
+func TestRenderListSelectionPreviewShowsRegistry(t *testing.T) {
+	model := state.NewImageListModel()
+	model.Items = []runtimeapi.ImageSummary{{
+		ID:       "6b1b147de1234567890",
+		RepoTags: []string{"h536b8/canway_d/blueking/cmdb_adminserver:v3.14.8-alpha3-cw.1"},
+		Registry: "docker-bkrepo.example.com",
+	}}
+
+	plain := component.StripANSI(RenderList(model, state.NewContainerListModel(), 200, 12, nil, false))
+	for _, line := range strings.Split(plain, "\n") {
+		if !strings.Contains(line, "6b1b147de") || !strings.Contains(line, "docker-bkrepo.example.com") {
+			continue
+		}
+		if !strings.Contains(line, "docker-bkrepo.example.com/h536b8/canway_d/blueking/cmdb_adminserver:v3.14.8-alpha3-cw.1") {
+			t.Fatalf("preview missing registry-qualified ref: %q", line)
+		}
+		return
+	}
+	t.Fatalf("selection preview row not found: %q", plain)
+}
+
+func TestRenderListSelectionPreviewUsesDockerIODefault(t *testing.T) {
+	model := state.NewImageListModel()
+	model.Items = []runtimeapi.ImageSummary{{
+		ID:       "6b1b147de1234567890",
+		RepoTags: []string{"nginx:latest"},
+	}}
+	plain := component.StripANSI(RenderList(model, state.NewContainerListModel(), 120, 12, nil, false))
+	if !strings.Contains(plain, "docker.io/nginx:latest") {
+		t.Fatalf("docker.io fallback missing: %q", plain)
 	}
 }

@@ -59,6 +59,7 @@ type ContainerSummary struct {
 	Created        int64
 	PortBindings   []PortBinding
 	IPs            []string
+	Networks       map[string]string
 	MountCount     int
 	MountNames     []string
 	NetworkNames   []string
@@ -68,18 +69,18 @@ type ContainerSummary struct {
 
 	// NetworkMode / PidMode / IpcMode: docker HostConfig.* mode 字段;podman 端留空
 	// (podman 不暴露 network_mode: service: 语义,改用 inspect.Pod 推断 CoLocatedGroup)
-	NetworkMode     string
-	PidMode         string
-	IpcMode         string
+	NetworkMode string
+	PidMode     string
+	IpcMode     string
 	// WorkingDir / ConfigFiles / Version: com.docker.compose.project.{working_dir,config_files,version} label
 	// (Docker daemon 写;podman-compose 不写,Podman 端这三个字段留空)
-	WorkingDir      string
-	ConfigFiles     []string
-	Version        string
+	WorkingDir  string
+	ConfigFiles []string
+	Version     string
 	// ConfigHash / ContainerNumber / Oneoff: com.docker.compose.config-hash / container-number / oneoff label
-	ConfigHash     string
+	ConfigHash      string
 	ContainerNumber string
-	Oneoff         bool
+	Oneoff          bool
 
 	// CoLocatedGroupID: "" = 无 group;非空时与 CoLocatedGroupSrc 共同标识一个 CoLocated group
 	// (算法见 R08-14 §F2)
@@ -87,6 +88,33 @@ type ContainerSummary struct {
 	// CoLocatedGroupSrc 是 R08-14 §F2 规定的枚举:docker_network_mode_service | docker_pid_service |
 	// docker_ipc_service | docker_container_ref | podman_default_pod
 	CoLocatedGroupSrc string
+}
+
+func (s *ContainerSummary) OrderedIPs() []string { return s.OrderedIPsFrom(s.Networks) }
+
+func (s *ContainerSummary) OrderedIPsFrom(networks map[string]string) []string {
+	if len(s.IPs) == 0 && len(networks) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(s.IPs)+len(networks))
+	seen := map[string]struct{}{}
+	add := func(ip string) {
+		if ip == "" {
+			return
+		}
+		if _, ok := seen[ip]; ok {
+			return
+		}
+		seen[ip] = struct{}{}
+		out = append(out, ip)
+	}
+	if bridge, ok := networks["bridge"]; ok {
+		add(bridge)
+	}
+	for _, ip := range s.IPs {
+		add(ip)
+	}
+	return out
 }
 
 // PortBinding maps a container port to a host IP and port.

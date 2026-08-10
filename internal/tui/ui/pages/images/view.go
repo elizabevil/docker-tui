@@ -1,6 +1,7 @@
 package images
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
@@ -135,14 +136,7 @@ func RenderList(im *state.ImageListModel, cm *state.ContainerListModel, width in
 				return ""
 			}
 			img := items[im.Cursor]
-			reg, name, tag := splitRef(img.RepoTags)
-			if reg == "" {
-				reg = img.Registry
-			}
-			if name == "" {
-				return utils.ShortID(img.ID)
-			}
-			return reg + "/" + name + ":" + tag
+			return utils.ShortID(img.ID) + "  " + fullRef(&img)
 		})
 	}
 
@@ -336,17 +330,41 @@ func resolveHdr(cd tables.ColumnDef) string {
 }
 
 func fullRef(img *dockerclient.ImageSummary) string {
-	if len(img.RepoTags) > 0 && img.RepoTags[0] != "<none>:<none>" {
-		return img.RepoTags[0]
+	registry := img.Registry
+	if registry == "" {
+		registry = "docker.io"
 	}
-	return utils.ShortID(img.ID)
+	name, tag := splitRefNameTag(img.RepoTags)
+	if name == "" {
+		return utils.ShortID(img.ID)
+	}
+	if tag == "" {
+		tag = "latest"
+	}
+	return fmt.Sprintf("%s/%s:%s", registry, name, tag)
+}
+
+func splitRefNameTag(tags []string) (name, tag string) {
+	if len(tags) == 0 || tags[0] == "" || tags[0] == "<none>:<none>" {
+		return "", ""
+	}
+	ref := tags[0]
+	if idx := strings.LastIndex(ref, ":"); idx > 0 {
+		tag = ref[idx+1:]
+		ref = ref[:idx]
+	} else {
+		tag = "latest"
+	}
+	parts := strings.Split(ref, "/")
+	name = strings.Join(parts, "/")
+	return name, tag
 }
 
 func sortArrow(asc bool) string {
 	if asc {
-		return " " + component.TriangleUp
+		return component.SortArrowAsc
 	}
-	return " " + component.TriangleDown
+	return component.SortArrowDesc
 }
 
 func precomputeContainerIDs(cm *state.ContainerListModel) []string {

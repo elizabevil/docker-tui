@@ -1,7 +1,7 @@
 # 未关闭的 BUG / 需求
 
 > 建立日期: 2026-08-01
-> 最后同步: 2026-08-09 (BR-030 转 wontfix;新增 BR-048 鼠标点击选中精确性)
+> 最后同步: 2026-08-10 (BR-048 第一次修复入库;新增 BR-049..BR-053 共 5 条 UI / 排版问题)
 > 来源: [bugfix-requirements.md](bugfix-requirements.md) 的快照
 > 目的: 把 `bugfix-requirements.md` 中**当前未完成**的 BUG / 需求单独切出,
 >       作为"待开发工作项"独立跟踪,不与已完成条目混在一起。
@@ -10,9 +10,9 @@
 
 | 状态 | 数量 | 备注 |
 |---|---|---|
-| `open` | 17 | 未开始或被搁置的需求 |
+| `open` | 22 | 未开始或被搁置的需求(含本轮新增 BR-049..BR-053) |
 | `partial` | 4 | 部分完成(BR-008 H=History / BR-032 键盘排序 / BR-035 Events 面板 / BR-041 form 部分修复) |
-| `implementing` | 1 | 修复进行中(部分子任务已完成) |
+| `implementing` | 1 | 修复进行中(BR-009 卷详情 / 容器子视图) |
 | `pending` | 1 | 用户尚未提供具体内容 |
 | `wontfix` | 2 (BR-012 由 BR-048 重新激活;BR-030 被用户否决转 wontfix) |
 
@@ -22,10 +22,15 @@
 
 | 编号 | 标题 | 优先级 | 状态 |
 |---|---|---|---|
-| [BR-048](#br-048) | 鼠标点击选中表格行不精确(点击行与选中行错位) | high | open |
+| [BR-048](#br-048) | 鼠标点击选中表格行不精确(点击行与选中行错位)— 已修复 click 命中，仍存在偏移残留 | high | partial |
+| [BR-049](#br-049) | 容器页面 IP 列大部分为空,实际容器 inspect 可拿到 IP | high | open |
+| [BR-050](#br-050) | Image 选中项展示与详情页 Registry 显示字段不完整 | medium | open |
+| [BR-051](#br-051) | 表头点击排序只命中列名 / 鼠标命中区域需对齐列中心 | medium | open |
 | [BR-009](#br-009) | 卷详情加载 + 容器子视图选中(部分修复) | high | implementing |
 | [BR-033](#br-033) | TASK-019 高级容器动作未实现(Copy/Update/Diff/Export/Commit/Wait) | high | open |
 | [BR-041](#br-041) | action bar / 输入框 / 长 label wrap / select 图标(部分修复) | high | partial |
+| [BR-052](#br-052) | 表格鼠标点击仍存在偏移 — 渲染与命中合约未完全同步 | high | open |
+| [BR-053](#br-053) | 表格列宽排版不均匀 — 例如 Network 页 ID 与 CREATED 间隙应均分 | medium | open |
 | [BR-023](#br-023) | F2 唯一提供 runtime 选择器;其它页面不得用 C 刷新 Conn | medium | open |
 | [BR-024](#br-024) | 详情源码视图 Ctrl+C 复制不完整 / 一次性失效 | medium | open |
 | [BR-026](#br-026) | 详情页快捷键集合:支持 j/k/PgUP/PgDn/Filter,**不**支持 Space/R | medium | open |
@@ -40,7 +45,7 @@
 | [BR-040](#br-040) | Dialog 风格统一:四周透明 + panel 居中 | medium | open |
 | [BR-042](#br-042) | 容器高级动作快捷键缺失(Rename/Top/Port 无绑定;TASK-019 默认键 nil) | medium | open |
 | [BR-043](#br-043) | 表格多选标记后,光标移动至标记行无视觉区分 | medium | open |
-| [BR-046](#br-046) | Audit 详情页无法进入:Enter 被全局拦截、d 键无 audit 上下文;Trace ID 截断 | medium | open |
+| [BR-046](#br-046) | Audit 详情页无法进入:Enter 被全局拦截、d 键上下文不含 audit;Trace ID 截断 | medium | open |
 | [BR-008](#br-008) | H 键应进 Help(未完成);镜像页 H 进入 History(已完成) | medium | partial |
 | [BR-045](#br-045) | 容器日志入口:区分运行中 / 已停止容器(需求讨论) | low | open |
 | [BR-028](#br-028) | (TBD - 待用户补充第 6 条) | - | pending |
@@ -644,11 +649,18 @@
 
 ### BR-048 鼠标点击选中表格行不精确(点击行与选中行错位)
 
-- 状态: `open`
+- 状态: `partial`
 - 优先级: `high`
 - 症状:
   - 2026-08-09 用户反馈:"当前支持鼠标操作,但是鼠标不够精确,例如选中表项"。点击列表行选中位置与视觉点击行相差 1 到数行,滚动后误差更大。
   - 2026-08-09 用户确认方向:**修复点击精确性**(保留点击选行),否决 BR-030 取消方案。
+- 修复记录 (2026-08-10):
+  - `component.TableHitLayout` 共享布局契约:`RenderTable` 与 `mouse_lists.applyMouseListClick` 同时使用 `DataStartRow` / `HeaderRow` / `DataRowAt`,消除前置行 / spacing 漂移。
+  - `mouse_click.applyMouseHeaderSort` 根据 `HeaderRow` 命中触发表头点击排序;Compose 右栏另由 `applyComposeSubviewClick` 处理。
+  - 容器列默认排序改为 `ContainerSortByName`(修复 BR-048 反复出现的"看起来随机排序"问题根因之一)。
+- **未修复**(转 BR-052 跟踪):
+  - 各表行仍可能在 preview 与 table body 之间的边界出现 ±1 行偏差,详见 BR-052。
+  - 表头点击排序只命中列名居中位置,其它空白处不触发,详见 BR-051。
 - 当前行为(逻辑链梳理,详见 [bugfix-requirements.md BR-048](bugfix-requirements.md#br-048)):
   - 渲染侧 `RenderTable` 在 panel body 内先输出 SelectionInfo 预览(1+pad)、PageInfo(1)、Header(1) 后才到数据行;数据行 0 的真实偏移 ≈ 2~4 行(有 mark 时再加 2)。
   - `HitTest` 的 `row := y - bodyTop` 把 bodyTop 当作数据行 0,未扣除前置行 → 固定偏差。
@@ -665,6 +677,132 @@
 - 验收标准:
   1. 各列表页未滚动点击精确;滚动后点击 item = offset + 可见行号。
   2. 表头/预览/页码点击不移动 cursor;`go test ./internal/tui/ui/app/` 通过。
+
+---
+
+<a id="br-049"></a>
+
+### BR-049 容器页面 IP 列大部分为空,实际 inspect 可拿到 IP
+
+- 状态: `open`
+- 优先级: `high`
+- 症状:
+  - 用户反馈:容器页面 IP 字段几乎全部渲染为 `—`(占位),但同一个容器在 Docker `inspect` 输出中能拿到 IP 地址。
+  - 截图/示例:列表中 ~90% 行 IP 列为 `—`;只有少数 bridge + 自定义网络上的容器能显示真实 IP。
+- 当前行为(代码锚点):
+  [internal/tui/ui/pages/containers/view.go:188](internal/tui/ui/pages/containers/view.go:188) `ip` 列使用 `c.IPs[0]`(`containers.CellValue`)；`runtimeapi.ContainerSummary.IPs` 由 docker / podman adapter 填充。
+  [internal/data/runtime/docker/containers.go:64](internal/data/runtime/docker/containers.go:64) `IPs` 来自 `NetworkSettings.IPAddress`(旧版字段);`docker inspect` 返回的 `NetworkSettings.Networks[].IPAddress` 才是当前多网络的真实 IP。
+  [internal/data/runtime/podman/mappers.go](internal/data/runtime/podman/mappers.go) Podman 路径同上,只读取 `NetworkSettings.IPAddress`,忽略多网络 map。
+- 根因假设:
+  1. **adapter 漏读多网络**:Docker/Podman 当前容器处于 `bridge` 默认网络,`NetworkSettings.IPAddress` 经常为空字符串,真实 IP 落在 `NetworkSettings.Networks[<name>].IPAddress`。`IPs` 切片始终为空 → 列表渲染 `—`。
+  2. **运行时未刷新**:某些运行中容器首次 fetch 时还未拿到网络,后续 inspect 也未增量更新 IP。
+  3. **字段定义缺失**:`runtimeapi.ContainerSummary` 没有 `Networks` map,只有 `IPs []string`,无法表达 `<network, ip>` 对应关系。
+- 期望行为:
+  1. `runtimeapi.ContainerSummary.IPs` 改为按 `bridge / custom / host / none` 顺序聚合所有网络的 IP(优先常用网络)。
+  2. Docker/Podman adapter 同步把 `Networks.*.IPAddress` 写回 `IPs`,不再依赖单一 `NetworkSettings.IPAddress`。
+  3. 列表渲染对单 IP 直接显示;多 IP 用 `,` 分隔(空间允许时);不可用时回退 `—`。
+- 验收标准:
+  1. 同一台主机运行 `nginx:alpine` 容器 → 列表 IP 列显示真实 IP(非 `—`)。
+  2. 多网络容器显示所有网络 IP,顺序合理。
+  3. `go test ./internal/data/runtime/... ./internal/tui/ui/pages/containers/` 通过。
+
+---
+
+<a id="br-050"></a>
+
+### BR-050 Image 选中项展示与详情页 Registry 字段不完整;Volume 预览仅需 driver / mountpoint
+
+- 状态: `open`
+- 优先级: `medium`
+- 症状:
+  - Image 列表选中项展示(selection preview)当前为 `id  name  image-short`,但用户要求 `id` 字段后跟 **完整 Registry**(而非仅 name)+ name;详情页 Registry 字段当前拼接 `reg/name:tag`,若为空则显示 `<unnamed>`,与列表预览口径不一致。
+  - Volume 选中项预览当前为 `name  driver  mountpoint`,用户确认 **只需 driver 与 mountpoint**(不需要 name,因为 name 已在列内)。
+- 当前行为:
+  [internal/tui/ui/pages/images/view.go:130-147](internal/tui/ui/pages/images/view.go:130-147) 选择 preview:`fmt.Sprintf("%s  %s  %s", short, name, image)`;name 为空时退化为 `short  <unnamed>  <image>`。
+  [internal/tui/ui/pages/images/detail.go](internal/tui/ui/pages/images/detail.go) 详情页 `Registry` 字段拼接 `img.Registry + "/" + name + ":" + tag`,`img.Registry` 可能缺失。
+  [internal/tui/ui/pages/volumes/view.go:76-85](internal/tui/ui/pages/volumes/view.go:76-85) 选择 preview:`v.Name + "  " + v.Driver + "  " + v.Mountpoint`;用户希望去掉 name。
+- 期望行为:
+  1. **Image 列表选中预览**:`<short-id>  <registry>/<name>:<tag>` 三段(若 registry 为空退化为 `docker.io/<name>:<tag>`)。
+  2. **Image 详情 Registry** 字段同样展示完整 `<registry>/<repo>:<tag>`,与列表预览口径一致。
+  3. **Volume 列表选中预览**:仅 `<driver>  <mountpoint>`(不显示 name,避免重复列)。
+- 验收标准:
+  1. Image 列表 preview 与详情页 Registry 字段口径一致,均为完整 ref。
+  2. Volume 列表 preview 仅显示 driver 与 mountpoint;`go test ./internal/tui/ui/pages/images ./internal/tui/ui/pages/volumes` 通过。
+
+---
+
+<a id="br-051"></a>
+
+### BR-051 表头点击排序:仅命中列名才切换排序
+
+- 状态: `open`
+- 优先级: `medium`
+- 症状:
+  - 用户反馈:**只有点击列名(表头文字)才会触发排序切换**,点击列与列之间的空白处不触发。
+  - 当前实现 `mouse_click.applyMouseHeaderSort` 调用 `component.ResolveColumnHit(rep.Panel.bodyLeft, x, cols, widths, gap)`,只在 X 落在列宽区间内时返回 true;空白处被丢弃。
+- 当前行为(代码锚点):
+  [internal/tui/ui/app/mouse_click.go:14-22](internal/tui/ui/app/mouse_click.go:14-22) `applyMouseHeaderSort` 调用 `component.ResolveColumnHit`,仅命中列内 X 才视为列点击。
+  [internal/tui/ui/component/column_hit.go:14-26](internal/tui/ui/component/column_hit.go:14-26) `ResolveColumnHit` 按 widths 切片定位 X 所属列;gap 落在两列之间时落空。
+- 期望行为:
+  1. 表头区域内(HeaderRow)任意 X 都应解析到最近的列;gap 区段向左或向右归一化到最近列(例如靠近左列优先,靠近右列优先,平分时往左)。
+  2. 不再要求用户精确点击列文字;Footer / 数据区点击行为不变。
+- 验收标准:
+  1. 表头任意位置(列内 + gap)点击都触发排序;相邻列不会误触发。
+  2. 非表头行点击仍走 list 点击逻辑;`go test ./internal/tui/ui/app/ ./internal/tui/ui/component/` 通过。
+
+---
+
+<a id="br-052"></a>
+
+### BR-052 表格鼠标点击仍存在偏移;渲染与命中合约未完全同步
+
+- 状态: `open`
+- 优先级: `high`
+- 症状:
+  - 用户反馈:虽然 BR-048 修复了一部分命中,但点击列表仍出现 1 行偏差,尤其在:
+    - 容器列表有 mark banner(多 2 行)
+    - 容器页多端口绑定(每个容器多行)
+    - 镜像页 Selection preview 关闭后 1 行变化
+- 当前行为(代码锚点):
+  [internal/tui/ui/app/mouse_lists.go:54-77](internal/tui/ui/app/mouse_lists.go:54-77) `mouseListTargetFor` 内 `markedBannerLines(m, state.PanelContainers)` 写死返回 `1`;但 banner 实际是容器页 `MarkedItemsBanner` 加 `\n` 两行 + 数据行 0 之间的 preview pad,口径未统一。
+  [internal/tui/ui/app/mouse_lists.go:71-78](internal/tui/ui/app/mouse_lists.go:71-78) 容器 rowCount 直接读 `len(containers.FormatPorts(items[i].PortBindings, false))`,与渲染端 `portList := FormatPorts(c.PortBindings, w < 80)` 的 `compact` 标志不一致。
+  [internal/tui/ui/pages/containers/view.go:81](internal/tui/ui/pages/containers/view.go:81) `FormatPorts(c.PortBindings, w < 80)` 在窄屏使用 compact 模式,可能只占 1 行;鼠标侧用 `FormatPorts(..., false)` 计多行,导致点击命中错位。
+  [internal/tui/ui/component/table.go:117-121](internal/tui/ui/component/table.go:117-121) `RenderTable` 现在硬编码 `sb.WriteString("\n")` 而非 `SelectionPreviewPadding()`,与 `TableHitLayout.DataStartRow()` 内 `1 + SelectionPreviewPad` 不一致。
+- 期望行为:
+  1. 渲染侧与命中侧 **完全共享** 同一份前置行公式:
+     `DataStartRow = bannerLines + (topLabel?1:0) + (preview? 1+previewPad : 0) + (pageInfo?1:0) + 1`。
+  2. 容器 rowCount 使用渲染时的 `FormatPorts(compact)` 标志,与渲染端一致。
+  3. 渲染侧 preview 与 `TableHitLayout` 都从 `selectionInfo != ""` 与 `SelectionPreviewPadding()` 取值,不再写死。
+- 验收标准:
+  1. 容器页 mark 状态下点击第一项仍命中第一项,不再偏移。
+  2. 容器多端口绑定下,点击第二端口行命中容器 0(已通过 BR-048 部分覆盖)。
+  3. 镜像页 Selection preview 关闭前后命中行一致;`go test ./internal/tui/ui/app/ ./internal/tui/ui/pages/` 通过。
+
+---
+
+<a id="br-053"></a>
+
+### BR-053 表格列宽排版不均匀 — Network ID 与 CREATED 间隙应均分剩余空间
+
+- 状态: `open`
+- 优先级: `medium`
+- 症状:
+  - 用户反馈:Network 页 ID 列与 CREATED 列之间出现较大空隙;同样在 Image 宽屏下 registry / name / tag / id / created 之间间距不均衡,看上去列宽分配不够"均匀"。
+  - 当前实现 `component.resolveTableLayout` 调用 `tables.ResolveContentLayout`,后者按 `colW / min / fill` 权重分配,**剩余空间只给 `fill>0` 的列**;`ID`/`CREATED` 标记为 `fixed` 不吸收剩余空间,如果中间列 fill 总权重小,中间会留出"看起来很大"的间隙。
+- 当前行为(代码锚点):
+  [internal/tui/tables/config.go:298-359](internal/tui/tables/config.go:298-359) `growColumnsTowardContent` + `fillColumns` 只在 `fill>0` 的列上分配剩余空间;fixed/min-only 列不会扩展。
+  [internal/tui/tables/config.go:262-296](internal/tui/tables/config.go:262-296) `columnSizing.fluid` 仅当 `Fixed<=0` 时为 true;`Fixed > 0` 时列是 rigid,完全按 fixed 宽度。
+  [internal/tui/ui/component/table_layout.go:21-36](internal/tui/ui/component/table_layout.go:21-36) `resolveTableLayout` 不再做二次重平衡。
+- 期望行为:
+  1. 表总宽度 - 列基础宽度 之差,在**所有流体列**(fluid = true)之间按"等分 / 接近等分"分配,而非仅 fill>0 列。
+  2. fill 权重仍然生效(高 fill 列稍宽),但其余流体列也获得至少 1 cell 增量,避免相邻列中间出现大间隙。
+  3. 固定列(fixed)保持原宽,不参与扩张。
+- 验收标准:
+  1. Network 页 ID 与 CREATED 之间无明显空隙;在 120 与 200 列宽下视觉均分。
+  2. Image 宽屏下 registry / name / tag / id / created / size 列宽合理,无空列。
+  3. 现有 `tables/config_test.go` 的列宽断言继续通过(必要时放宽 tolerance);`go test ./internal/tui/tables/ ./internal/tui/ui/component/` 通过。
+
+---
 
 ---
 

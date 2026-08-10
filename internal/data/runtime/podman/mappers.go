@@ -78,6 +78,7 @@ func MapContainerSummaries(raw []dto.ContainerItem) []runtimeapi.ContainerSummar
 			MountCount:   len(c.Mounts),
 			MountNames:   append([]string(nil), c.Mounts...),
 			NetworkNames: append([]string(nil), c.Networks...),
+			Networks:     map[string]string{},
 			Labels:       c.Labels,
 		}
 		summary.ComposeProject = c.Labels[runtimeapi.ComposeLabelProject]
