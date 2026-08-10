@@ -114,7 +114,11 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 				return ""
 			}
 			n := items[nm.Cursor]
-			return n.Name + "  " + n.Driver
+			subnet := ""
+			if len(n.IPAM) > 0 {
+				subnet = n.IPAM[0]
+			}
+			return n.Name + "  " + n.Driver + "  " + subnet
 		})
 	}
 
@@ -142,7 +146,7 @@ func RenderList(nm *state.NetworkListModel, width int, panelHeight int, markedID
 
 func sortArrow(asc bool) string {
 	if asc {
-		return " " + component.TriangleUp
+		return component.SortArrowAsc
 	}
-	return " " + component.TriangleDown
+	return component.SortArrowDesc
 }

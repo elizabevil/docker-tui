@@ -38,7 +38,7 @@
       },
       {
         "key": "name",
-        "basis": 30,
+        "basis": 22,
         "min": 12,
         "shrink": 1,
         "fill": 2,
@@ -46,17 +46,23 @@
       },
       {
         "key": "driver",
-        "fixed": 8,
+        "basis": 10,
+        "min": 8,
+        "shrink": 1,
+        "max": 18,
         "header": "table.driver"
       },
       {
         "key": "scope",
-        "fixed": 6,
+        "basis": 6,
+        "min": 4,
+        "shrink": 1,
+        "max": 12,
         "header": "table.scope"
       },
       {
         "key": "subnet",
-        "basis": 30,
+        "basis": 22,
         "min": 14,
         "shrink": 1,
         "fill": 2,
@@ -64,7 +70,10 @@
       },
       {
         "key": "ctr",
-        "fixed": 10,
+        "basis": 11,
+        "min": 8,
+        "shrink": 1,
+        "max": 18,
         "header": "table.containers"
       },
       {

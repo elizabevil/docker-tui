@@ -7,7 +7,6 @@ import (
 	"charm.land/lipgloss/v2"
 
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
-	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/tables"
 	"github.com/elizabevil/docker-tui/internal/utils"
 )
@@ -52,7 +51,7 @@ type TableData struct {
 	HeaderOverrides []string
 
 	// SortColKey is the column key currently sorted by (empty = unsorted).
-	// When non-empty, a sort arrow (↑/↓) is shown next to that column's header.
+	// When non-empty, a sort arrow (▲/▼) is shown next to that column's header.
 	SortColKey string
 	SortAsc    bool
 
@@ -117,7 +116,7 @@ func RenderTable(d TableData) string {
 	if selectionInfo != "" {
 		centered := lipgloss.NewStyle().Width(containerW).Align(lipgloss.Center).Render(renderSelectionInfo(selectionInfo))
 		sb.WriteString(centered)
-		sb.WriteString(strings.Repeat("\n", SelectionPreviewPadding()))
+		sb.WriteString("\n")
 	}
 
 	// Page info: 当前显示行（右对齐）
@@ -189,7 +188,7 @@ func renderTopFrameLabel(label string, width int) string {
 }
 
 // resolveHeaders resolves i18n keys and applies HeaderOverrides,
-// then appends a sort arrow (↑/↓) on the active sort column.
+// then appends a sort arrow (▲/▼) on the active sort column.
 func resolveHeaders(d TableData) []string {
 	n := len(d.Cols)
 	headers := make([]string, n)
@@ -206,9 +205,9 @@ func resolveHeaders(d TableData) []string {
 		// Append sort indicator on the active sort column
 		if d.SortColKey != "" && cd.Key == d.SortColKey {
 			if d.SortAsc {
-				h += " " + keys.KUp // ↑
+				h += " " + TriangleUp
 			} else {
-				h += " " + keys.KDown // ↓
+				h += " " + TriangleDown
 			}
 		}
 		headers[i] = h

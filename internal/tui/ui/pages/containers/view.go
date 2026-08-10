@@ -66,9 +66,12 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 	banner := filter.BannerPrefixForCount(cm, total, cm.Len())
 	if !selectionDisabled && cm.Cursor < total {
 		sel := items[cm.Cursor]
-		b := sel.Name
-		if sel.ID != "" {
-			b += " (" + utils.ShortID(sel.ID) + ")"
+		b := utils.ShortID(sel.ID)
+		if sel.Name != "" {
+			if b != "" {
+				b += "  "
+			}
+			b += sel.Name
 		}
 		banner += b
 	}
@@ -114,7 +117,7 @@ func RenderList(cm *state.ContainerListModel, width int, panelHeight int, marked
 				return ""
 			}
 			sel := items[cm.Cursor]
-			return fmt.Sprintf("%s  %s", utils.ShortID(sel.ID), utils.ShortImage(sel.Image))
+			return fmt.Sprintf("%s  %s  %s", utils.ShortID(sel.ID), sel.Name, utils.ShortImage(sel.Image))
 		})
 	}
 
@@ -193,8 +196,9 @@ func CellValue(key string, c *dockerclient.ContainerSummary, status, ports, crea
 		}
 		return component.StrDash
 	case "ip":
-		if len(c.IPs) > 0 {
-			return c.IPs[0]
+		ips := c.OrderedIPs()
+		if len(ips) > 0 {
+			return strings.Join(ips, ",")
 		}
 		return component.StrDash
 	case "created":

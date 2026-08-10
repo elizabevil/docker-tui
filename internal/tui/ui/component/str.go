@@ -34,6 +34,9 @@ const (
 	// the dropdown indicator on select / multiselect form cells.
 	TriangleDownSmall = "\u25be"
 
+	SortArrowAsc = " " + TriangleUp
+	SortArrowDesc = " " + TriangleDown
+
 	// NetInternal is the U+26B2 NEUTER SIGN appended to internal Docker
 	// network names so users can tell them apart from bridge networks.
 	NetInternal = "\u26b2"

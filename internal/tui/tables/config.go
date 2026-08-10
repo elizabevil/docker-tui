@@ -253,6 +253,53 @@ func resolveLayout(cols []ColumnDef, desiredWidths []int, totalWidth, gap int) R
 	}
 }
 
+// spreadAcrossFluid distributes any remaining viewport width across all
+// fluid columns so adjacent tracks do not leave a visible gap. Columns
+// whose max is set cap the expansion; fixed columns are skipped.
+func spreadAcrossFluid(widths []int, specs []columnSizing, remaining int) {
+	if remaining <= 0 {
+		return
+	}
+	for remaining > 0 {
+		flexible := 0
+		for i, spec := range specs {
+			if !spec.fluid {
+				continue
+			}
+			if spec.max > 0 && widths[i] >= spec.max {
+				continue
+			}
+			flexible++
+		}
+		if flexible == 0 {
+			return
+		}
+		share := max(1, remaining/flexible)
+		consumed := 0
+		for i, spec := range specs {
+			if !spec.fluid {
+				continue
+			}
+			if spec.max > 0 && widths[i] >= spec.max {
+				continue
+			}
+			add := share
+			if spec.max > 0 {
+				add = min(add, spec.max-widths[i])
+			}
+			if add <= 0 {
+				continue
+			}
+			widths[i] += add
+			consumed += add
+		}
+		if consumed == 0 {
+			return
+		}
+		remaining -= consumed
+	}
+}
+
 // ResolveColumnWidths is kept as a compatibility wrapper for callers that only
 // need grid track widths.
 func ResolveColumnWidths(cols []ColumnDef, totalWidth int, gapOverride ...int) []int {

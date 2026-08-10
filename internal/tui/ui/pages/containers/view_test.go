@@ -37,7 +37,7 @@ func TestRenderListFlexLayoutUsesFullWidthForStats(t *testing.T) {
 
 	wantRowWidth := pageWidth
 	for line := range strings.SplitSeq(rendered, "\n") {
-		if strings.Contains(line, "dtui-test-redis") {
+		if strings.Contains(line, "RX") {
 			if width := component.VisibleLen(line); width != wantRowWidth {
 				t.Fatalf("container row width = %d, want %d: %q", width, wantRowWidth, line)
 			}
@@ -48,4 +48,37 @@ func TestRenderListFlexLayoutUsesFullWidthForStats(t *testing.T) {
 		}
 	}
 	t.Fatal("container row was not rendered")
+}
+
+func TestRenderListShowsBridgeIPWhenAvailable(t *testing.T) {
+	m := state.NewContainerListModel()
+	m.Items = []runtimeapi.ContainerSummary{
+		{
+			ID:    "10b2c97269cc",
+			Name:  "redis",
+			Image: "redis:7-alpine",
+			State: state.ContainerStateRunning,
+			Networks: map[string]string{
+				"bridge": "172.17.0.42",
+			},
+			IPs: []string{"172.17.0.42"},
+		},
+	}
+	plain := component.StripANSI(RenderList(m, 120, 12, nil, false))
+	if !strings.Contains(plain, "172.17.0.42") {
+		t.Fatalf("bridge IP missing in render: %q", plain)
+	}
+	row := ""
+	for _, line := range strings.Split(plain, "\n") {
+		if strings.Contains(line, "10b2c97269cc") && strings.Contains(line, "172.17.0.42") {
+			row = line
+			break
+		}
+	}
+	if row == "" {
+		t.Fatalf("container row not found: %q", plain)
+	}
+	if strings.Contains(row, "—          172.17.0.42") {
+		t.Fatalf("IP column is still placeholder: %q", row)
+	}
 }

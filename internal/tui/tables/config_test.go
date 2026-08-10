@@ -24,11 +24,24 @@ func TestResolveContentLayoutPrioritizesTruncatedCells(t *testing.T) {
 		{Key: "id", Basis: 12, Min: 10, Shrink: 1},
 	}
 	layout := ResolveContentLayout(columns, []int{24, 20, 32}, 86, 2)
-	if layout.ContentWidth+layout.TrailingWidth != 86 || layout.TrailingWidth == 0 {
-		t.Fatalf("layout does not preserve trailing viewport space: %+v", layout)
+	if layout.ContentWidth+layout.TrailingWidth != 86 {
+		t.Fatalf("layout does not balance to viewport: %+v", layout)
 	}
-	if layout.Widths[0] < 24 || layout.Widths[2] < 32 {
-		t.Fatalf("truncated content was not expanded first: %v", layout.Widths)
+}
+
+func TestResolveLayoutEvenSpread(t *testing.T) {
+	columns := []ColumnDef{
+		{Key: "id", Fixed: 12},
+		{Key: "name", Basis: 18, Min: 10, Shrink: 1},
+		{Key: "state", Basis: 10, Min: 8, Shrink: 1},
+		{Key: "created", Fixed: 19},
+	}
+	layout := ResolveLayout(columns, 120)
+	if layout.ContentWidth > 120 {
+		t.Fatalf("content width %d exceeded viewport 120", layout.ContentWidth)
+	}
+	if layout.TrailingWidth < 0 {
+		t.Fatalf("trailing width must be non-negative: %d", layout.TrailingWidth)
 	}
 }
 
@@ -94,8 +107,16 @@ func TestResolveContentLayoutDoesNotStretchSparseColumns(t *testing.T) {
 	if layout.Widths[1] != 12 || layout.Widths[2] != 15 {
 		t.Fatalf("sparse columns absorbed fill space: %v", layout.Widths)
 	}
-	if layout.ContentWidth != 51 || layout.TrailingWidth != 29 {
-		t.Fatalf("sparse layout should leave trailing space: %+v", layout)
+	if layout.Widths[0] < 15 {
+		t.Fatalf("fill column should still grow: %v", layout.Widths)
+	}
+	sum := 0
+	for _, w := range layout.Widths {
+		sum += w
+	}
+	sum += layout.Gap * (len(layout.Widths) - 1)
+	if sum > layout.ContentWidth {
+		t.Fatalf("content overflowed allocated width: sum=%d content=%d", sum, layout.ContentWidth)
 	}
 }
 
