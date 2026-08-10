@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 type FileSink struct {
@@ -38,7 +40,7 @@ func (s *FileSink) WriteAudit(_ context.Context, record Record) error {
 	if date.IsZero() {
 		date = s.now()
 	}
-	path := filepath.Join(s.dir, "audit-"+date.Format("2006-01-02")+".jsonl")
+	path := filepath.Join(s.dir, "audit-"+date.Format(utils.FileNameDate)+".jsonl")
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
 	if err != nil {
 		return fmt.Errorf("open audit log: %w", err)

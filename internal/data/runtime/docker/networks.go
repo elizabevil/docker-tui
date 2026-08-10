@@ -8,6 +8,7 @@ import (
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 // ListNetworksContext returns all networks visible to the client with a caller-provided context.
@@ -78,7 +79,7 @@ func (c *Client) InspectNetworkContext(ctx context.Context, id string) (*runtime
 	return &runtimeapi.NetworkDetail{
 		Name:       native.Name,
 		ID:         native.ID,
-		Created:    native.Created.Format("2006-01-02T15:04:05Z"),
+		Created:    native.Created.Format(utils.JSONDateTimeUTC),
 		Scope:      native.Scope,
 		Driver:     native.Driver,
 		EnableIPv4: native.EnableIPv4,

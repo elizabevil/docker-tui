@@ -92,7 +92,7 @@ func FormatPercent(v float64) string {
 // FormatCreated formats a Unix timestamp as elapsed time from now.
 // Examples: "1y 23d 12h 30m 15s", "5h 3m 10s", "30s".
 func FormatCreated(unix int64) string {
-	return time.Unix(unix, 0).Format(time.DateTime)
+	return time.Unix(unix, 0).Format(TableDateTime)
 }
 
 // FormatShortDate renders a time in eza-l "Jan 01 14:30" style. Zero time
@@ -101,7 +101,7 @@ func FormatShortDate(t time.Time) string {
 	if t.IsZero() {
 		return ""
 	}
-	return t.Format("Jan 02 15:04")
+	return t.Format(TableShortDate)
 }
 
 // HumanSizeBytes formats an int64 byte count in ls -h style (e.g. "4.0K").

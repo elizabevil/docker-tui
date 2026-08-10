@@ -14,6 +14,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/data/runtime"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
+	"github.com/elizabevil/docker-tui/internal/utils"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -470,7 +471,7 @@ func FetchComposeLogsBatch(client runtime.Engine, virtualID string, containers [
 		for _, l := range all {
 			prefix := composeLogPrefix(l.Service, replicaIdx[l.Service], l.Replica, opts.Merged)
 			if opts.Timestamps && !l.Timestamp.IsZero() {
-				prefix = "[" + l.Timestamp.Format(runtime.LogTimeFormat) + "] " + prefix
+				prefix = "[" + l.Timestamp.Format(utils.LogLineTime) + "] " + prefix
 			}
 			lines = append(lines, prefix+" "+l.Line)
 		}

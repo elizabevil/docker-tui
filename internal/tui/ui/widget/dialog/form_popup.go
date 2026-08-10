@@ -222,7 +222,7 @@ func renderPathDetail(e *state.PathEntry, innerW int) []string {
 	size := humanSize(e.Size)
 	date := "-"
 	if !e.Mtime.IsZero() {
-		date = e.Mtime.Format("Jan 02 2006 15:04")
+		date = e.Mtime.Format(utils.TableShortDateFull)
 	}
 	header := fmt.Sprintf("%s %s:%s %s %s", mode, owner, group, size, date)
 	name := e.Name

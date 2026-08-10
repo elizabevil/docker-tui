@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/elizabevil/docker-tui/internal/utils"
 )
 
 // Path 字段需要区分两种文件系统语义（BR-041 §3）。
@@ -332,7 +334,7 @@ func DefaultCopyName(cwd, containerName, sourceBase, shortID string, t time.Time
 	if ctr == "" {
 		ctr = "rootfs"
 	}
-	return filepath.Join(cwd, ctr+"-"+PathBase(sourceBase)+"-"+t.Format("20060102-150405")+".tar")
+	return filepath.Join(cwd, ctr+"-"+PathBase(sourceBase)+"-"+t.Format(utils.FileNameDateTime)+".tar")
 }
 
 // DefaultExportName 生成 Export 的本地目标名（BR-041 §4.2）:
@@ -343,7 +345,7 @@ func DefaultExportName(cwd, containerName, shortID string, t time.Time) string {
 	if ctr == "" {
 		ctr = "rootfs"
 	}
-	return filepath.Join(cwd, ctr+"-filesystem-"+t.Format("20060102-150405")+".tar")
+	return filepath.Join(cwd, ctr+"-filesystem-"+t.Format(utils.FileNameDateTime)+".tar")
 }
 
 // DefaultImageSaveName generates an absolute local archive path for Image Save.
@@ -357,5 +359,5 @@ func DefaultImageSaveName(cwd, imageRef, shortID string, t time.Time) string {
 	if name == "" {
 		name = "image"
 	}
-	return filepath.Join(cwd, name+"-"+t.Format("20060102-150405")+".tar")
+	return filepath.Join(cwd, name+"-"+t.Format(utils.FileNameDateTime)+".tar")
 }

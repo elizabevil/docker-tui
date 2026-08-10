@@ -192,7 +192,7 @@ func detailRowStyled(label, value string, valueStyle lipgloss.Style, width int) 
 func auditCellValue(key string, r *audit.Record) string {
 	switch key {
 	case "time":
-		return r.Time.Format("2006-01-02 15:04:05")
+		return r.Time.Format(utils.TableDateTime)
 	case "action":
 		return r.Action
 	case "target":

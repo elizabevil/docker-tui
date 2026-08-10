@@ -36,10 +36,6 @@ type ComposeLogLine struct {
 	Line        string    // raw log line, no prefix
 }
 
-// LogTimeFormat is the time-of-day format used in the
-// [HH:MM:SS.mmm] prefix (R08-06 §F4).
-const LogTimeFormat = "15:04:05.000"
-
 // ParseLogLineTimestamp extracts the engine-prepended RFC3339Nano
 // timestamp from a log line. Returns (timestamp, content). If no
 // timestamp is present (or unparseable), returns (zero, line) so
