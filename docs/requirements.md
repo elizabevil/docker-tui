@@ -14,6 +14,7 @@
 | 容器 TASK-019 高级动作 (Copy / Update / Diff / Export / Commit / Wait) | 已实现 | 6 个动作全部接入 Action Bar;Diff / Wait 含取消、过期响应丢弃与 audit;Copy / Update / Export / Commit 走统一 Form 流程(含默认文件名、路径补全、覆盖确认)。当前 Form 持续完善中(详见 [requirement/R01-container/R01-01-advanced-ops.md](requirement/R01-container/R01-01-advanced-ops.md)) |
 | 实时日志 | 已实现 | 当前为按需拉取/显示，不是启动即常驻事件流 |
 | 容器 stats | 已实现 | 定时轮询当前容器列表，不是只轮询单个聚焦容器 |
+| 容器 Exec Shell (二进制优先 + API 后备) | 规划中 | 支持 docker/podman 二进制执行 + Rootless 检测;支持后台执行和多管道;API 方式使用 PTY 重构 ([R01-02](requirement/R01-container/R01-02-exec-shell.md)) |
 | 镜像列表、Pull、Prune、Tag、Push、Save、Load、详情 | 已实现 | 镜像传输支持进度、取消和错误展示；Debug 保留命令预览；详情页按普通镜像 layer history 或 manifest 平台变体分区渲染；Docker 与 Podman 都提供结构化 `ImageDetail`（架构、OS、Driver、LayerCount、Runtime config、History） |
 | Volume / Network 创建、列表、清理、删除、详情 | 已实现 | `c` 创建、`p` 清理；清理报告保留逐资源部分失败 |
 | Compose 项目视图 | 已实现 | 基于 `com.docker.compose.*` labels 聚合，不解析 `compose.yaml` |

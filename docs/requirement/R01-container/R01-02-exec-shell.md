@@ -1,59 +1,168 @@
-# R01-02 容器 Exec 页面 shell UI
+# R01-02: Exec Shell Optimization
 
-## 元信息
+## Status: Draft
 
-- 状态: planned
-- 优先级: medium
-- 来源: 原 BR-038 已合并归档
-- 关联任务: 无
-- 关联约束:
-  - [../../constraint/C04-keybinding.md](../../constraint/C04-keybinding.md)
-  - [../../constraint/C03-table.md](../../constraint/C03-table.md)
+## Feature Summary
+Improve container exec shell performance and rendering quality to match binary CLI experience.
 
-## 目标
+## Problem Statement
 
-为容器页 Exec 动作提供独立的 shell UI 页面,支持交互式输入输出与多行编辑。
+### Current Issues
 
-## 用户流程
+1. **Performance Issues**
+   - API-based exec is slower than direct binary (docker/podman exec)
+   - Each data chunk triggers full UI re-render
+   - term.Buffer processes character-by-character inefficiently
 
-容器页选中容器 → `e` 键 / Action Bar → `ModeExec` → 终端式 UI → 用户输入命令 → 看到实时输出 → `Esc` 退出(回到原页面)。
+2. **Rendering Issues**
+   - TTY rendering via term.Buffer has edge cases
+   - Cursor position tracking may be inaccurate
+   - Terminal resize handling has lag
 
-## UI/UX
+3. **User Experience**
+   - Response time noticeably slower than `docker exec -it`
+   - Some escape sequences not handled properly
+   - Interactive applications may flicker
 
-- 全屏或主区域占满的 shell 视图
-- 输出区可滚动(回看历史)
-- 输入区底部高亮,支持左右移动光标编辑当前行
-- 快捷键提示在底部:`Esc back`、`Ctrl+C cancel command`
+## Optimization Strategy
 
-## 功能规则
+### Phase 1: Binary-First Execution (In Progress)
 
-- 透传按键到容器内的 shell(`charmbracelet/x/term` 或类似方案)
-- 进程生命周期与模式绑定:Mode 退出时关闭连接
-- 输出追加到滚动缓冲区(类似 logs 页)
-- 当前命令未结束前 `Ctrl+C` 终止当前命令,不退出模式
+Use CLI binary directly when available, fallback to API only when necessary.
 
-## 实现设计
+- Check for matching CLI (docker/podman) based on current Engine
+- Execute CLI with `exec -it` for direct TTY
+- Fallback to API if binary unavailable
 
-- 状态:`internal/tui/state/exec.go` `ExecState` 已有 `ModeExec` 与 `ModeExecShell`、`ModeExecPassthrough`
-- 页面:`internal/tui/ui/pages/exec/` 现有 shell 渲染
-- 键盘:`internal/tui/keyboard/keyboard.go` `ModeExec` / `ModeExecPassthrough` 分发已存在
-- 与 [R03-02](../R03-form-action/R03-02-action-bar.md) Action Bar 入口整合
+**Status**: Basic infrastructure done, needs suspend/resume implementation
 
-## 验收标准
+### Phase 2: Rendering Optimization
 
-- `e` 键从容器页进入 Exec
-- 输入字符实时送达容器 shell
-- 输出实时回显,带颜色
-- `Esc` 安全关闭连接并退出
-- `Ctrl+C` 中断当前命令但不退出
+#### 2.1 Batch Rendering
+- Accumulate output chunks before rendering (e.g., 16ms window)
+- Use requestAnimationFrame-style throttling
+- Only trigger re-render when batch is ready
 
-## 非目标
+#### 2.2 term.Buffer Improvements
+- Process data in larger chunks, not character-by-character
+- Pre-allocate line buffers
+- Use strings.Builder for line construction
 
-- 多窗口 / 多 tab
-- 命令历史持久化
+#### 2.3 Cursor Optimization
+- Track cursor position separately from rendering
+- Only update cursor on user input or explicit cursor movement sequences
 
-## 迁移记录
+### Phase 3: Direct TTY Bypass (k9s-style)
 
-- 旧文档:原 BR-038 已合并归档,内容汇总在本文档
-- 保留信息:ModeExec 状态、键盘分发模式
-- 待确认状态:`planned`,原 task 标记 incomplete;主模型确认后启动实施。
+For maximum performance, bypass the TUI rendering entirely:
+
+1. Suspend TUI (save terminal state)
+2. Run CLI exec in foreground
+3. Resume TUI on exit
+
+This provides native terminal experience with zero overhead.
+
+**Reference**: k9s uses tcell/tview's Suspend() mechanism
+
+## Implementation Plan
+
+### Priority 1: Binary Execution (Binary Approach)
+- [x] CLI detector (detector.go)
+- [x] Binary executor (cli.go)
+- [x] Config option (ExecCLI)
+- [ ] TUI suspend/resume integration
+- [ ] Proper signal handling
+
+### Priority 2: Rendering Optimization
+- [x] Chunk-based rendering with buffering
+- [x] term.Buffer performance improvements
+- [ ] Cursor position caching
+
+#### Implemented (Phase 2)
+1. **Batch buffer in ExecState** (`internal/tui/state/exec.go`)
+   - Added `batchBuf` (strings.Builder) and `batchSize` counter
+   - Flushes when batch >= 8192 bytes OR contains newline OR small chunk (<512 bytes)
+   - Reduces number of term.Buffer.Write calls
+
+2. **Reader goroutine batching** (`internal/tui/keyboard/container_action.go`)
+   - Reader accumulates up to 8192 bytes before sending to channel
+   - Reduces channel communication overhead
+
+3. **term.Buffer optimization** (`internal/tui/term/buffer.go`)
+   - Added `extractPrintable()` to batch-extract non-control characters
+   - Added `writeString()` for efficient string writing
+   - Added `handleBackspace()` helper
+   - Avoids byte-by-byte processing
+
+### Priority 3: Fallback Improvements
+- [ ] API session connection pooling
+- [ ] Streaming buffer optimization
+- [ ] Escape sequence handling fixes
+
+## Technical Notes
+
+### Current Data Flow
+
+```
+ContainerExecCreate API
+       ↓
+ContainerExecAttach (stream)
+       ↓
+ExecCh (channel) - one chunk at a time
+       ↓
+Append() → term.Buffer.Write()
+       ↓
+renderExecPassthroughPanel()
+       ↓
+Full UI re-render
+```
+
+### Proposed Optimization: Chunked Rendering
+
+```
+ContainerExecCreate API
+       ↓
+ContainerExecAttach (stream)
+       ↓
+Output buffer (accumulates ~16ms)
+       ↓
+Single Append() with batched data
+       ↓
+renderExecPassthroughPanel()
+       ↓
+Single UI re-render
+```
+
+### Proposed: Binary with Suspend
+
+```
+User presses 'e'
+       ↓
+Save terminal state (tcell/tview Suspend)
+       ↓
+exec.Command("docker", "exec", "-it", id, shell)
+       ↓
+Direct stdin/stdout/stderr to terminal
+       ↓
+User interacts directly (no TUI)
+       ↓
+Exit → Restore terminal state
+       ↓
+Resume TUI
+```
+
+## Configuration
+
+```yaml
+docker:
+  execCLI: true  # Use CLI binary when available (default: false)
+```
+
+## Acceptance Criteria
+
+- [ ] Binary exec works when docker/podman CLI is available
+- [ ] Falls back to API when CLI unavailable
+- [ ] Rendering performance < 16ms per frame
+- [ ] No visible flicker during normal use
+- [ ] Cursor position accurate in common applications (vim, less)
+- [ ] Terminal resize handled within 100ms

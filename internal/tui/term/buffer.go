@@ -35,13 +35,18 @@ func NewBuffer(maxLines int) *Buffer {
 //   - \b (backspace → delete before cursor)
 //   - CSI sequences for cursor movement, erase, insert, delete
 //   - Strip other ANSI escape sequences
-//   - Printable characters (inserted at cursor position)
 func (b *Buffer) Write(data string) {
 	for len(data) > 0 {
-		// Check for ANSI escape sequence
 		if data[0] == '\x1b' {
 			consumed := b.parseANSI(data)
 			data = data[consumed:]
+			continue
+		}
+
+		printable := b.extractPrintable(data)
+		if len(printable) > 0 {
+			b.writeString(printable)
+			data = data[len(printable):]
 			continue
 		}
 
@@ -52,45 +57,66 @@ func (b *Buffer) Write(data string) {
 		case r == '\r':
 			b.col = 0
 			b.lastWasNewline = false
-
 		case r == '\n':
-			if b.lastWasNewline {
-				continue
+			if !b.lastWasNewline {
+				b.lastWasNewline = true
+				b.col = 0
+				b.row++
 			}
-			b.lastWasNewline = true
-			b.col = 0
-			b.row++
-			continue
-
 		case r == '\b' || r == 0x7f:
-			b.lastWasNewline = false
-			if b.col > 0 {
-				b.col--
-				line := []rune(b.currentLine())
-				if b.col < len(line) {
-					b.setLine(string(line[:b.col]) + string(line[b.col+1:]))
-				}
-			}
-
+			b.handleBackspace()
 		case r < 0x20:
 			// Skip other control characters
-			continue
+		}
+	}
+}
 
-		default:
-			b.lastWasNewline = false
-			b.ensureRow()
-			// Ensure column exists, then write character
-			runes := []rune(b.lines[b.row])
-			if b.col >= len(runes) {
-				pad := make([]rune, b.col-len(runes)+1)
-				for i := range pad {
-					pad[i] = ' '
-				}
-				runes = append(runes, pad...)
-			}
-			runes[b.col] = r
-			b.col++
-			b.lines[b.row] = string(runes)
+func (b *Buffer) extractPrintable(data string) string {
+	end := 0
+	for end < len(data) {
+		c := data[end]
+		if c == '\x1b' || c == '\r' || c == '\n' || c == '\b' || c == 0x7f || c < 0x20 {
+			break
+		}
+		end++
+	}
+	return data[:end]
+}
+
+func (b *Buffer) writeString(s string) {
+	if len(s) == 0 {
+		return
+	}
+	b.lastWasNewline = false
+	b.ensureRow()
+
+	runes := []rune(b.lines[b.row])
+	sRunes := []rune(s)
+
+	if b.col >= len(runes) {
+		padding := make([]rune, b.col-len(runes)+len(sRunes))
+		for i := range padding {
+			padding[i] = ' '
+		}
+		runes = append(runes, padding...)
+	} else {
+		insertRunes := make([]rune, len(runes)+len(sRunes))
+		copy(insertRunes, runes[:b.col])
+		copy(insertRunes[b.col:], sRunes)
+		copy(insertRunes[b.col+len(sRunes):], runes[b.col:])
+		runes = insertRunes
+	}
+	b.lines[b.row] = string(runes)
+	b.col += len(sRunes)
+}
+
+func (b *Buffer) handleBackspace() {
+	b.lastWasNewline = false
+	if b.col > 0 {
+		b.col--
+		line := []rune(b.currentLine())
+		if b.col < len(line) {
+			b.setLine(string(line[:b.col]) + string(line[b.col+1:]))
 		}
 	}
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/elizabevil/docker-tui/internal/data/config"
 	"github.com/elizabevil/docker-tui/internal/data/i18n"
 	runtimeapi "github.com/elizabevil/docker-tui/internal/data/runtime"
+	"github.com/elizabevil/docker-tui/internal/tui/exec"
 	"github.com/elizabevil/docker-tui/internal/tui/keys"
 	"github.com/elizabevil/docker-tui/internal/tui/state"
 )
@@ -396,9 +397,31 @@ func doExecCandidates(m *state.AppModel, candidates []string) (*state.AppModel, 
 		"Starting exec session in "+ctr.Name)
 
 	ctx := context.Background()
+
+	cliEnabled := m.Dependencies.Config.Docker.ExecCLI
+	var detector exec.CLIDetector
+	var cliExecutor exec.CLIExecutor
+
+	if cliEnabled {
+		detector = exec.NewBinaryDetector()
+		cliExecutor = exec.NewBinaryExecutor()
+	}
+
 	var session runtimeapi.ExecSession
 	var err error
 	selectedShell := ""
+
+	if cliEnabled && detector != nil {
+		result := detector.Detect(ctx, m.Connection.RuntimeType, m.Connection.ConnectionTarget)
+		if result != nil && result.MatchError == nil {
+			err := cliExecutor.Execute(ctx, result.CLIPath, ctr.ID, candidates[0])
+			if err == nil {
+				FinishAudit(m, trace, audit.ResultSucceeded, "CLI exec completed", audit.Details{})
+				return m, nil
+			}
+		}
+	}
+
 	for _, candidate := range candidates {
 		if candidate == "" {
 			continue
@@ -443,24 +466,31 @@ func doExecCandidates(m *state.AppModel, candidates []string) (*state.AppModel, 
 	m.Exec.Start(session.ID(), session, ch, done, trace)
 	m.Navigation.Mode = state.ModeExecPassthrough
 
-	// Reader goroutine: reads raw TTY output from exec attach and sends it on ch.
+	const batchSize = 8192
 	go func() {
 		buf := make([]byte, 4096)
+		batch := make([]byte, 0, batchSize)
 		defer close(done)
 		defer func() { _ = session.Close() }() //nolint:errcheck // exec reader exits; close best-effort.
 		for {
 			n, err := session.Read(buf)
 			if n > 0 {
-				ch <- string(buf[:n])
+				batch = append(batch, buf[:n]...)
+				if len(batch) >= batchSize {
+					ch <- string(batch)
+					batch = batch[:0]
+				}
 			}
 			if err != nil {
+				if len(batch) > 0 {
+					ch <- string(batch)
+				}
 				close(ch)
 				return
 			}
 		}
 	}()
 
-	// Return a cmd that reads the first chunk from the output channel.
 	return m, func() tea.Msg {
 		data, ok := <-ch
 		if !ok {

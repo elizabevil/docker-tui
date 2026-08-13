@@ -82,7 +82,7 @@
 | Events 独立面板 + Network Connect/Disconnect | F3 浏览 events / 容器动态网络 | medium | [BR-035](bugfix-requirements.md#br-035) |
 | Image Import (tarball) | 扁平 tar → 新镜像 | medium | [BR-036](bugfix-requirements.md#br-036) |
 | Registry Login | docker / podman login 私库 | medium | [BR-037](bugfix-requirements.md#br-037) |
-| Exec 页面 shell UI | 全屏 terminal + 真实 PTY | medium | [BR-038](bugfix-requirements.md#br-038) |
+| Exec 页面 shell UI | 二进制优先(docker/podman) + API 后备 + 多管道支持 | high | [BR-038](bugfix-requirements.md#br-038) + [R01-02](requirement/R01-container/R01-02-exec-shell.md) |
 | Action Bar 取代 Q | 每页多功能面板 | **done** | [BR-039](bugfix-requirements.md#br-039) |
 | Dialog 风格统一 | 四周透明 + panel 居中 | medium | [BR-040](bugfix-requirements.md#br-040) |
 

@@ -307,9 +307,11 @@ func shortMessageID(id string) string {
 func handleExecOutput(m *state.AppModel, msg state.ExecOutput) (*state.AppModel, tea.Cmd) {
 	m.Exec.Append(msg.Data)
 	if m.Exec.ExecCh == nil {
+		m.Exec.Flush()
 		return m, nil
 	}
 	return m, func() tea.Msg {
+		m.Exec.Flush()
 		data, ok := <-m.Exec.ExecCh
 		if !ok {
 			return state.ExecDone{}

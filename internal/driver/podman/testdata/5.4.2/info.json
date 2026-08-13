@@ -1,5 +1,5 @@
 {
-  "ID": "01666182-8a61-4fcb-b2fb-2d61297069bb",
+  "ID": "f66a9487-533e-4371-a8be-8ac3ed31118f",
   "Containers": 10,
   "ContainersRunning": 8,
   "ContainersPaused": 0,
@@ -7,6 +7,10 @@
   "Images": 10,
   "Driver": "overlay",
   "DriverStatus": [
+    [
+      "Backing Filesystem",
+      "extfs"
+    ],
     [
       "Supports d_type",
       "true"
@@ -26,10 +30,6 @@
     [
       "Supports volatile",
       "true"
-    ],
-    [
-      "Backing Filesystem",
-      "extfs"
     ]
   ],
   "Plugins": {
@@ -60,10 +60,10 @@
   "BridgeNfIptables": false,
   "BridgeNfIp6tables": false,
   "Debug": false,
-  "NFd": 11,
+  "NFd": 37,
   "OomKillDisable": false,
-  "NGoroutines": 14,
-  "SystemTime": "2026-08-10T08:17:29.136390332-04:00",
+  "NGoroutines": 18,
+  "SystemTime": "2026-08-10T09:21:17.376191413-04:00",
   "LoggingDriver": "",
   "CgroupDriver": "systemd",
   "NEventsListener": 0,
@@ -162,5 +162,5 @@
   "Rootless": true,
   "SwapFree": 0,
   "SwapTotal": 0,
-  "Uptime": "57h 30m 48.00s (Approximately 2.38 days)"
+  "Uptime": "58h 34m 37.00s (Approximately 2.42 days)"
 }

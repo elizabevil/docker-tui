@@ -160,6 +160,7 @@ type PanelSize struct {
 type DockerConfig struct {
 	Timeout      time.Duration `json:"timeout" yaml:"timeout"`
 	StatsPollSec int           `json:"statsPollSec" yaml:"statsPollSec"`
+	ExecCLI      bool          `json:"execCLI" yaml:"execCLI"`
 }
 
 type Key string
@@ -432,7 +433,7 @@ func DefaultAppConfig() *AppConfig {
 				SelectionInfo: SelectionInfoConfig{Enabled: true, PadLines: 1},
 			},
 		},
-		Docker: DockerConfig{Timeout: DefaultDockerTimeout, StatsPollSec: 3},
+		Docker: DockerConfig{Timeout: DefaultDockerTimeout, StatsPollSec: 3, ExecCLI: false},
 		Runtime: RuntimeConfig{
 			Default:   DefaultConnectionLocalDocker,
 			Discovery: RuntimeDiscoveryConfig{LocalDocker: true, LocalPodman: true},

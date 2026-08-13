@@ -7,7 +7,7 @@
 | 编号 | 标题 | 状态 | 优先级 | 来源 |
 |---|---|---|---|---|
 | [R01-01](./R01-01-advanced-ops.md) | 容器高级动作 (Copy / Update / Diff / Export / Commit / Wait) | implementing | high | [task/br-033-task019-advanced-container-actions.md](../../task/br-033-task019-advanced-container-actions.md) |
-| [R01-02](./R01-02-exec-shell.md) | 容器 Exec 页面 shell UI | planned | medium | 原 BR-038 已归档 |
+| [R01-02](./R01-02-exec-shell.md) | 容器 Exec Shell UI (二进制优先 + API 后备) | planned | high | 原 BR-038 + 2026-08-13 扩展 |
 | [R01-03](./R01-03-stats-top.md) | Stats / Top / Wait 运行时刷新体验 | planned-review | medium | 状态待主模型确认 |
 
 ## 关联约束

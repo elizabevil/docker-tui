@@ -16,9 +16,9 @@
     },
     "cpus": 12,
     "cpuUtilization": {
-      "userPercent": 7.25,
-      "systemPercent": 3.25,
-      "idlePercent": 89.51
+      "userPercent": 7.73,
+      "systemPercent": 3.28,
+      "idlePercent": 88.98
     },
     "databaseBackend": "sqlite",
     "distribution": {
@@ -57,7 +57,7 @@
     },
     "kernel": "7.0.10+deb13-amd64",
     "logDriver": "journald",
-    "memFree": 831311872,
+    "memFree": 395628544,
     "memTotal": 16733409280,
     "networkBackend": "netavark",
     "networkBackendInfo": {
@@ -104,7 +104,7 @@
     },
     "swapFree": 0,
     "swapTotal": 0,
-    "uptime": "57h 30m 49.00s (Approximately 2.38 days)",
+    "uptime": "58h 34m 37.00s (Approximately 2.42 days)",
     "variant": "",
     "linkmode": "dynamic"
   },
@@ -120,7 +120,7 @@
     "graphOptions": {},
     "graphRoot": "/home/debi/.local/share/containers/storage",
     "graphRootAllocated": 99804827648,
-    "graphRootUsed": 78073638912,
+    "graphRootUsed": 78946885632,
     "graphStatus": {
       "Backing Filesystem": "extfs",
       "Native Overlay Diff": "true",
